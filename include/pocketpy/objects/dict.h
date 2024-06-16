@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
-#include "pocketpy/objects/pyvar.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/common/vector.h"
 
 #ifdef __cplusplus
@@ -49,7 +49,7 @@ pkpy_Dict pkpy_Dict__copy(const pkpy_Dict* self);
  * @param val value to set
  * @return `true` if the key is newly added, `false` if the key already exists
  */
-bool pkpy_Dict__set(pkpy_Dict* self, void* vm, pkpy_Var key, pkpy_Var val);
+bool pkpy_Dict__set(pkpy_Dict* self, void* vm, PyVar key, PyVar val);
 
 /**
  * @brief Check if a key exists in the `pkpy_Dict`
@@ -58,7 +58,7 @@ bool pkpy_Dict__set(pkpy_Dict* self, void* vm, pkpy_Var key, pkpy_Var val);
  * @param key key to check
  * @return `true` if the key exists, `false` otherwise
  */
-bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, pkpy_Var key);
+bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, PyVar key);
 
 /**
  * @brief Remove a key from the `pkpy_Dict`
@@ -67,7 +67,7 @@ bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, pkpy_Var key);
  * @param key key to remove
  * @return `true` if the key was found and removed, `false` if the key doesn't exist
  */
-bool pkpy_Dict__del(pkpy_Dict* self, void* vm, pkpy_Var key);
+bool pkpy_Dict__del(pkpy_Dict* self, void* vm, PyVar key);
 
 /**
  * @brief Try to get a value from the `pkpy_Dict`
@@ -76,7 +76,7 @@ bool pkpy_Dict__del(pkpy_Dict* self, void* vm, pkpy_Var key);
  * @param key key to get
  * @return the value associated with the key, `NULL` if the key doesn't exist
  */
-const pkpy_Var* pkpy_Dict__try_get(const pkpy_Dict* self, void* vm, pkpy_Var key);
+const PyVar* pkpy_Dict__try_get(const pkpy_Dict* self, void* vm, PyVar key);
 
 /**
  * @brief Update the `pkpy_Dict` with another one
@@ -106,7 +106,7 @@ pkpy_DictIter pkpy_Dict__iter(const pkpy_Dict* self);
  * @param value value will be filled with the current value, can be `NULL` if not needed
  * @return `true` if the iteration is still valid, `false` otherwise
  */
-bool pkpy_DictIter__next(pkpy_DictIter* self, pkpy_Var* key, pkpy_Var* value);
+bool pkpy_DictIter__next(pkpy_DictIter* self, PyVar* key, PyVar* value);
 
 #ifdef __cplusplus
 }

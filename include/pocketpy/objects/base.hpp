@@ -2,6 +2,7 @@
 
 #include "pocketpy/common/types.hpp"
 #include "pocketpy/common/traits.hpp"
+#include "pocketpy/objects/base.h"
 
 #include <cstdint>
 #include <cassert>
@@ -11,29 +12,15 @@
 namespace pkpy {
 
 struct Type {
-    int16_t index;
-
+    pkpy_Type index;
     constexpr Type() : index(0) {}
-
-    explicit constexpr Type(int index) : index(index) {}
-
+    constexpr Type(pkpy_Type index) : index(index) {}
     bool operator== (Type other) const { return this->index == other.index; }
-
     bool operator!= (Type other) const { return this->index != other.index; }
-
-    constexpr operator int () const { return index; }
+    constexpr operator pkpy_Type () const { return index; }
 };
 
-struct const_sso_var {};
-
-struct PyVar final {
-    Type type;
-    bool is_ptr;
-    uint8_t flags;
-    // 12 bytes SSO
-    int _0;
-    i64 _1;
-
+struct PyVar final: ::PyVar {
     // uninitialized
     PyVar() = default;
 
@@ -41,20 +28,29 @@ struct PyVar final {
     PyVar(PyObject* p);
 
     /* We must initialize all members to allow == operator to work correctly */
-    // constexpr initialized
-    constexpr PyVar(const const_sso_var&, Type type, int value) :
-        type(type), is_ptr(false), flags(0), _0(value), _1(0) {}
-
     // zero initialized
-    constexpr PyVar(std::nullptr_t) : type(0), is_ptr(false), flags(0), _0(0), _1(0) {}
+    PyVar(std::nullptr_t){
+        set_null();
+    }
 
     // PyObject* initialized (is_sso = false)
-    PyVar(Type type, PyObject* p) : type(type), is_ptr(true), flags(0), _0(0), _1(reinterpret_cast<i64>(p)) {}
+    PyVar(Type type, PyObject* p){
+        this->type = type;
+        this->is_ptr = true;
+        this->flags = 0;
+        this->flags_ex = 0;
+        this->_obj = (::PyObject*)p;
+    }
 
     // SSO initialized (is_sso = true)
     template <typename T>
-    PyVar(Type type, T value) : type(type), is_ptr(false), flags(0), _0(0), _1(0) {
+    PyVar(Type type, T value){
         static_assert(sizeof(T) <= 12, "SSO size exceeded");
+        this->type = type;
+        this->is_ptr = false;
+        this->flags = 0;
+        this->flags_ex = 0;
+        this->_i64 = 0;
         as<T>() = value;
     }
 
@@ -62,9 +58,9 @@ struct PyVar final {
     T& as() {
         static_assert(!std::is_reference_v<T>);
         if constexpr(sizeof(T) <= 8) {
-            return reinterpret_cast<T&>(_1);
+            return reinterpret_cast<T&>(_i64);
         } else {
-            return reinterpret_cast<T&>(_0);
+            return reinterpret_cast<T&>(flags_ex);
         }
     }
 
@@ -89,21 +85,26 @@ struct PyVar final {
 
     PyObject* get() const {
         assert(is_ptr);
-        return reinterpret_cast<PyObject*>(_1);
+        return (PyObject*)_obj;
     }
 
     PyObject* operator->() const {
         assert(is_ptr);
-        return reinterpret_cast<PyObject*>(_1);
+        return (PyObject*)_obj;
     }
 
-    i64 hash() const { return _0 + _1; }
+    i64 hash() const { return PyVar__hash(this); }
 
     template <typename T>
     obj_get_t<T> obj_get();
 
     // std::less<> for map-like containers
     bool operator< (const PyVar& other) const { return memcmp(this, &other, sizeof(PyVar)) < 0; }
+
+    // implicit convert from ::PyVar
+    PyVar(const ::PyVar& var) {
+        memcpy(this, &var, sizeof(var));
+    }
 };
 
 static_assert(sizeof(PyVar) == 16 && is_pod_v<PyVar>);

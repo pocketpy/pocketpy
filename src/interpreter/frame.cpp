@@ -11,7 +11,7 @@ PyVar* FastLocals::try_get_name(StrName name) {
 NameDict* FastLocals::to_namedict() {
     NameDict* dict = new NameDict();
     for(int i=0; i<co->varnames_inv.count; i++){
-        auto entry = c11__getitem(c11_smallmap_entry_n2i, &co->varnames_inv, i);
+        auto entry = c11__getitem(c11_smallmap_n2i_KV, &co->varnames_inv, i);
         PyVar value = a[entry.value];
         if(value) dict->set(StrName(entry.key), value);
     }

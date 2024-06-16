@@ -11,7 +11,7 @@ extern "C" {
 #define SMALLMAP_T__HEADER
 #define K uint16_t
 #define V int
-#define TAG n2i
+#define NAME c11_smallmap_n2i
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__HEADER
 
@@ -19,7 +19,7 @@ extern "C" {
 #define SMALLMAP_T__HEADER
 #define K c11_string
 #define V uint16_t
-#define TAG s2n
+#define NAME c11_smallmap_s2n
 #define less(a, b)      (c11_string__cmp((a), (b)) <  0)
 #define equal(a, b)     (c11_string__cmp((a), (b)) == 0)
 #include "pocketpy/xmacros/smallmap.h"

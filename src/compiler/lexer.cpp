@@ -637,7 +637,7 @@ Error* Lexer::precompile(Str* out) noexcept{
     ss << "=" << (int)token_indices.count << '\n';  // L3: raw string count
     uint16_t index = 0;
     for(int i=0; i<token_indices.count; i++){
-        c11_smallmap_entry_s2n* kv = c11__at(c11_smallmap_entry_s2n, &token_indices, i);
+        auto kv = c11__at(c11_smallmap_s2n_KV, &token_indices, i);
         ss << kv->key << '\n';  // L4: raw strings
         kv->value = index++;
     }

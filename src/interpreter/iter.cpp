@@ -118,7 +118,7 @@ void DictItemsIter::_register(VM* vm, PyObject* mod, PyObject* type) {
     vm->bind__next__(type->as<Type>(), [](VM* vm, PyVar _0) -> unsigned {
         DictItemsIter& self = _CAST(DictItemsIter&, _0);
         PyVar key, val;
-        if (pkpy_DictIter__next(&self.it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
+        if (pkpy_DictIter__next(&self.it, (PyVar*)(&key), (PyVar*)(&val))) {
             vm->s_data.push(key);
             vm->s_data.push(val);
             return 2;

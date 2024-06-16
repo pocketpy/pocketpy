@@ -65,7 +65,7 @@ void add_module_csv(VM* vm) {
     });
 
     vm->bind(mod, "DictReader(csvfile: list[str]) -> list[dict]", [](VM* vm, ArgsView args) {
-        PyVar csv_reader = vm->_modules["csv"]->attr("reader");
+        PyVar csv_reader = vm->_modules["csv"]->attr()["reader"];
         PyVar ret_obj = vm->call(csv_reader, args[0]);
         const List& ret = CAST(List&, ret_obj);
         if(ret.size() == 0) { vm->ValueError("empty csvfile"); }

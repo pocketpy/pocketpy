@@ -267,7 +267,7 @@ void add_module_c(VM* vm) {
 
 #undef BIND_PRIMITIVE
 
-    PyObject* char_p_t = mod->attr("char_p").get();
+    PyObject* char_p_t = mod->attr()["char_p"].get();
     vm->bind(char_p_t, "read_string(self) -> str", [](VM* vm, ArgsView args) {
         obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, args[0]);
         const char* target = (const char*)voidp.ptr;

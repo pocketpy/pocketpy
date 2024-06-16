@@ -1,15 +1,15 @@
 #ifndef POCKETPY_C_H
 #define POCKETPY_C_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "pocketpy/common/export.h"
 
+#ifdef __cplusplus
+extern "C" {
+    namespace pkpy{
+#endif
     typedef struct pkpy_vm_handle pkpy_vm;
     typedef int (*pkpy_CFunction)(pkpy_vm*);
     typedef void (*pkpy_COutputHandler)(const char*, int);
@@ -100,6 +100,7 @@ extern "C" {
     PK_EXPORT bool pkpy_repl_input(void* r, const char* line);
     PK_EXPORT void pkpy_delete_repl(void* repl);
 #ifdef __cplusplus
+}
 }
 #endif
 

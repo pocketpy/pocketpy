@@ -39,7 +39,7 @@ struct VoidP {
 #define POINTER_VAR(Tp, NAME)                                       \
     inline PyVar py_var(VM* vm, Tp val) {                           \
         const static pair<StrName, StrName> P("c", NAME);           \
-        PyVar type = vm->_modules[P.first]->attr(P.second);         \
+        PyVar type = vm->_modules[P.first]->attr()[P.second];       \
         return vm->new_object<VoidP>(type->as<Type>(), val);        \
     }
 

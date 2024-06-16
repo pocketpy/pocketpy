@@ -2,9 +2,8 @@
 
 #include "pocketpy/common/vector.h"
 #include "pocketpy/common/str.h"
+#include "pocketpy/objects/base.h"
 #include <stdint.h>
-
-#include "pocketpy/objects/pyvar.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,12 +11,10 @@ extern "C" {
 
 #define SMALLMAP_T__HEADER
 #define K uint16_t
-#define V pkpy_Var
-#define TAG n2v
+#define V PyVar
+#define NAME pkpy_NameDict
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__HEADER
-
-typedef c11_smallmap_n2v pkpy_NameDict;
 
 #ifdef __cplusplus
 }

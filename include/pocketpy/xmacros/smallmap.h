@@ -6,7 +6,7 @@
     /* Input */
     #define K int
     #define V float
-    #define TAG int_float
+    #define NAME c11_smallmap_i2f
 #endif
 
 /* Optional Input */
@@ -23,9 +23,8 @@
 #define CONCAT(A, B)            CONCAT_(A, B)
 #define CONCAT_(A, B)           A##B
 
-#define KV CONCAT(c11_smallmap_entry_, TAG)
-#define SMALLMAP CONCAT(c11_smallmap_, TAG)
-#define SMALLMAP_METHOD(name) CONCAT(SMALLMAP, CONCAT(__, name))
+#define KV CONCAT(NAME, _KV)
+#define METHOD(name) CONCAT(NAME, CONCAT(__, name))
 
 #ifdef SMALLMAP_T__HEADER
 /* Declaration */
@@ -34,32 +33,32 @@ typedef struct {
     V value;
 } KV;
 
-typedef c11_vector SMALLMAP;
+typedef c11_vector NAME;
 
-void SMALLMAP_METHOD(ctor)(SMALLMAP* self);
-void SMALLMAP_METHOD(dtor)(SMALLMAP* self);
-void SMALLMAP_METHOD(set)(SMALLMAP* self, K key, V value);
-V* SMALLMAP_METHOD(try_get)(const SMALLMAP* self, K key);
-V SMALLMAP_METHOD(get)(const SMALLMAP* self, K key, V default_value);
-bool SMALLMAP_METHOD(contains)(const SMALLMAP* self, K key);
-bool SMALLMAP_METHOD(del)(SMALLMAP* self, K key);
-void SMALLMAP_METHOD(clear)(SMALLMAP* self);
+void METHOD(ctor)(NAME* self);
+void METHOD(dtor)(NAME* self);
+void METHOD(set)(NAME* self, K key, V value);
+V* METHOD(try_get)(const NAME* self, K key);
+V METHOD(get)(const NAME* self, K key, V default_value);
+bool METHOD(contains)(const NAME* self, K key);
+bool METHOD(del)(NAME* self, K key);
+void METHOD(clear)(NAME* self);
 
 #endif
 
 #ifdef SMALLMAP_T__SOURCE
 /* Implementation */
 
-void SMALLMAP_METHOD(ctor)(SMALLMAP* self) {
+void METHOD(ctor)(NAME* self) {
     c11_vector__ctor(self, sizeof(KV));
     c11_vector__reserve(self, 4);
 }
 
-void SMALLMAP_METHOD(dtor)(SMALLMAP* self) {
+void METHOD(dtor)(NAME* self) {
     c11_vector__dtor(self);
 }
 
-void SMALLMAP_METHOD(set)(SMALLMAP* self, K key, V value) {
+void METHOD(set)(NAME* self, K key, V value) {
     int index;
     c11__lower_bound(KV, self->data, self->count, key, partial_less, &index);
     KV* it = c11__at(KV, self, index);
@@ -71,7 +70,7 @@ void SMALLMAP_METHOD(set)(SMALLMAP* self, K key, V value) {
     }
 }
 
-V* SMALLMAP_METHOD(try_get)(const SMALLMAP* self, K key) {
+V* METHOD(try_get)(const NAME* self, K key) {
     // use `bsearch` which is faster than `lower_bound`
     int low = 0;
     int high = self->count - 1;
@@ -89,16 +88,16 @@ V* SMALLMAP_METHOD(try_get)(const SMALLMAP* self, K key) {
     return NULL;
 }
 
-V SMALLMAP_METHOD(get)(const SMALLMAP* self, K key, V default_value) {
-    V* p = SMALLMAP_METHOD(try_get)(self, key);
+V METHOD(get)(const NAME* self, K key, V default_value) {
+    V* p = METHOD(try_get)(self, key);
     return p ? *p : default_value;
 }
 
-bool SMALLMAP_METHOD(contains)(const SMALLMAP* self, K key) {
-    return SMALLMAP_METHOD(try_get)(self, key) != NULL;
+bool METHOD(contains)(const NAME* self, K key) {
+    return METHOD(try_get)(self, key) != NULL;
 }
 
-bool SMALLMAP_METHOD(del)(SMALLMAP* self, K key) {
+bool METHOD(del)(NAME* self, K key) {
     int index;
     c11__lower_bound(KV, self->data, self->count, key, partial_less, &index);
     KV* it = c11__at(KV, self, index);
@@ -109,7 +108,7 @@ bool SMALLMAP_METHOD(del)(SMALLMAP* self, K key) {
     return false;
 }
 
-void SMALLMAP_METHOD(clear)(SMALLMAP* self) {
+void METHOD(clear)(NAME* self) {
     c11_vector__clear(self);
 }
 
@@ -117,14 +116,13 @@ void SMALLMAP_METHOD(clear)(SMALLMAP* self) {
 
 /* Undefine all macros */
 #undef KV
-#undef SMALLMAP
-#undef SMALLMAP_METHOD
+#undef METHOD
 #undef CONCAT
 #undef CONCAT_
 
 #undef K
 #undef V
-#undef TAG
+#undef NAME
 #undef less
 #undef partial_less
 #undef equal

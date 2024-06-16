@@ -6,6 +6,8 @@
 #include "pocketpy/objects/object.hpp"
 #include "pocketpy/objects/namedict.h"
 
+#include <string_view>
+
 namespace pkpy {
 
 struct NameDict: pkpy_NameDict {
@@ -14,11 +16,11 @@ struct NameDict: pkpy_NameDict {
     using Item = pair<StrName, PyVar>;
 
     NameDict() {
-        c11_smallmap_n2v__ctor(this);
+        pkpy_NameDict__ctor(this);
     }
 
     ~NameDict() {
-        c11_smallmap_n2v__dtor(this);
+        pkpy_NameDict__dtor(this);
     }
 
     uint16_t size() const {
@@ -26,18 +28,19 @@ struct NameDict: pkpy_NameDict {
     }
 
     void set(StrName key, PyVar val){
-        pkpy_Var* p = (pkpy_Var*)&val;
-        c11_smallmap_n2v__set(this, key.index, *p);
+        PyVar* p = (PyVar*)&val;
+        pkpy_NameDict__set(this, key.index, *p);
     }
 
     PyVar try_get(StrName key) const{
         PyVar* p = try_get_2(key);
-        return p ? *p : nullptr;
+        if(p) return *p;
+        return nullptr;
     }
 
     PyVar* try_get_2(StrName key) const{
-        pkpy_Var* p = c11_smallmap_n2v__try_get(this, key.index);
-        return p ? (PyVar*)p : nullptr;
+        PyVar* p = (PyVar*)pkpy_NameDict__try_get(this, key.index);
+        return p;
     }
 
     PyVar try_get_likely_found(StrName key) const{
@@ -49,11 +52,11 @@ struct NameDict: pkpy_NameDict {
     }
 
     bool del(StrName key){
-        return c11_smallmap_n2v__del(this, key.index);
+        return pkpy_NameDict__del(this, key.index);
     }
 
     bool contains(StrName key) const{
-        return c11_smallmap_n2v__contains(this, key.index);
+        return pkpy_NameDict__contains(this, key.index);
     }
 
     PyVar operator[] (StrName key) const{
@@ -65,13 +68,13 @@ struct NameDict: pkpy_NameDict {
     }
 
     void clear(){
-        c11_smallmap_n2v__clear(this);
+        pkpy_NameDict__clear(this);
     }
 
     array<StrName> keys() const{
         array<StrName> retval((int)size());
         for(int i=0; i<size(); i++){
-            auto it = c11__at(c11_smallmap_entry_n2v, this, i);
+            auto it = c11__at(pkpy_NameDict_KV, this, i);
             retval[i] = StrName(it->key);
         }
         return retval;
@@ -80,7 +83,7 @@ struct NameDict: pkpy_NameDict {
     array<Item> items() const{
         array<Item> retval((int)size());
         for(int i=0; i<size(); i++){
-            auto it = c11__at(c11_smallmap_entry_n2v, this, i);
+            auto it = c11__at(pkpy_NameDict_KV, this, i);
             PyVar* p = (PyVar*)&it->value;
             retval[i] = Item(StrName(it->key), *p);
         }
@@ -89,7 +92,7 @@ struct NameDict: pkpy_NameDict {
 
     void apply(void (*f)(StrName, PyVar, void*), void* data){
         for(int i=0; i<size(); i++){
-            auto it = c11__at(c11_smallmap_entry_n2v, this, i);
+            auto it = c11__at(pkpy_NameDict_KV, this, i);
             PyVar* p = (PyVar*)&it->value;
             f(StrName(it->key), *p, data);
         }

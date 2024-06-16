@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-using namespace pkpy;
+namespace pkpy{
 
 #define PK_ASSERT_N_EXTRA_ELEMENTS(n)                                                                                  \
     int __ex_count = count_extra_elements(vm, n);                                                                      \
@@ -567,3 +567,5 @@ bool pkpy_repl_input(void* r, const char* line) { return ((REPL*)r)->input(line)
 void pkpy_delete_repl(void* repl) { delete (REPL*)repl; }
 
 #endif  // PK_NO_EXPORT_C_API
+
+}  // namespace pkpy

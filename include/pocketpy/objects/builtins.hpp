@@ -82,13 +82,13 @@ const inline int16_t kTpNotImplementedTypeIndex = 25;
 
 inline bool is_tagged(PyVar p) noexcept { return !p.is_ptr; }
 
-inline bool is_float(PyVar p) noexcept { return p.type.index == kTpFloatIndex; }
+inline bool is_float(PyVar p) noexcept { return p.type == kTpFloatIndex; }
 
-inline bool is_int(PyVar p) noexcept { return p.type.index == kTpIntIndex; }
+inline bool is_int(PyVar p) noexcept { return p.type == kTpIntIndex; }
 
-inline bool is_none(PyVar p) noexcept { return p.type.index == kTpNoneTypeIndex; }
+inline bool is_none(PyVar p) noexcept { return p.type == kTpNoneTypeIndex; }
 
-inline bool is_not_implemented(PyVar p) noexcept { return p.type.index == kTpNotImplementedTypeIndex; }
+inline bool is_not_implemented(PyVar p) noexcept { return p.type == kTpNotImplementedTypeIndex; }
 
 inline bool is_type(PyVar obj, Type type) {
     assert(obj != nullptr);
@@ -121,7 +121,7 @@ obj_get_t<T> PyVar::obj_get() {
         return as<T>();
     } else {
         assert(is_ptr);
-        void* v = ((PyObject*)_1)->_value_ptr();
+        void* v = PyObject__value_ptr(_obj);
         return *reinterpret_cast<T*>(v);
     }
 }
@@ -139,9 +139,8 @@ obj_get_t<T> PyVar::obj_get() {
 #define CAST_DEFAULT(T, x, default_value) (x != vm->None) ? py_cast<T>(vm, x) : (default_value)
 
 /*****************************************************************/
-
 #define PY_NULL nullptr
-extern PyVar const PY_OP_CALL;
-extern const PyVar PY_OP_YIELD;
+extern PyVar PY_OP_CALL;
+extern PyVar PY_OP_YIELD;
 
 }  // namespace pkpy

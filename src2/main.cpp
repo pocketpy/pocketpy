@@ -34,6 +34,8 @@ std::string pkpy_platform_getline(bool* eof) {
 
 #else
 
+using namespace pkpy;
+
 std::string pkpy_platform_getline(bool* eof) {
     std::string output;
     if(!std::getline(std::cin, output)) {

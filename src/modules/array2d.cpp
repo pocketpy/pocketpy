@@ -149,11 +149,11 @@ struct Array2d {
                 HANDLE_SLICE();
 
                 bool is_basic_type = false;
-                switch(vm->_tp(_2).index) {
-                    case VM::tp_int.index: is_basic_type = true; break;
-                    case VM::tp_float.index: is_basic_type = true; break;
-                    case VM::tp_str.index: is_basic_type = true; break;
-                    case VM::tp_bool.index: is_basic_type = true; break;
+                switch(vm->_tp(_2)) {
+                    case VM::tp_int: is_basic_type = true; break;
+                    case VM::tp_float: is_basic_type = true; break;
+                    case VM::tp_str: is_basic_type = true; break;
+                    case VM::tp_bool: is_basic_type = true; break;
                     default: is_basic_type = is_none(_2);
                 }
 

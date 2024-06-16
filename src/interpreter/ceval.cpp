@@ -475,7 +475,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     case OP_BUILD_SET: {
                         PyVar _0 = VAR(STACK_VIEW(byte.arg).to_list());
-                        _0 = call(builtins->attr(pk_id_set), _0);
+                        _0 = call(builtins->attr()[pk_id_set], _0);
                         STACK_SHRINK(byte.arg);
                         PUSH(_0);
                     }
@@ -526,7 +526,7 @@ PyVar VM::__run_top_frame() {
                         __unpack_as_list(STACK_VIEW(byte.arg), list);
                         STACK_SHRINK(byte.arg);
                         PyVar _0 = VAR(std::move(list));
-                        _0 = call(builtins->attr(pk_id_set), _0);
+                        _0 = call(builtins->attr()[pk_id_set], _0);
                         PUSH(_0);
                     }
                         DISPATCH()

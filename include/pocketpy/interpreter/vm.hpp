@@ -218,11 +218,11 @@ public:
     constexpr static Type tp_none_type = Type(kTpNoneTypeIndex), tp_not_implemented_type = Type(kTpNotImplementedTypeIndex);
     constexpr static Type tp_ellipsis = Type(26);
 
-    constexpr static PyVar True{const_sso_var(), tp_bool, 1};
-    constexpr static PyVar False{const_sso_var(), tp_bool, 0};
-    constexpr static PyVar None{const_sso_var(), tp_none_type, 0};
-    constexpr static PyVar NotImplemented{const_sso_var(), tp_not_implemented_type, 0};
-    constexpr static PyVar Ellipsis{const_sso_var(), tp_ellipsis, 0};
+    inline static PyVar True = pkpy_True;
+    inline static PyVar False = pkpy_False;
+    inline static PyVar None = pkpy_None;
+    inline static PyVar NotImplemented = pkpy_NotImplemented;
+    inline static PyVar Ellipsis = pkpy_Ellipsis;
 
     const bool enable_os;
     VM(bool enable_os = true);
@@ -242,7 +242,7 @@ public:
     List py_list(PyVar);                                // x -> list(x)
     bool py_callable(PyVar obj);                        // x -> callable(x)
     bool py_bool(PyVar obj){                            // x -> bool(x)
-        if(obj.type == tp_bool) return obj._0;
+        if(obj.type == tp_bool) return obj._bool;
         return __py_bool_non_trivial(obj);
     }
     i64 py_hash(PyVar obj);                             // x -> hash(x)

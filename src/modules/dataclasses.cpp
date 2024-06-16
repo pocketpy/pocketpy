@@ -72,8 +72,8 @@ static void patch__eq__(VM* vm, Type cls) {
         const PyTypeInfo* cls_info = &vm->_all_types[vm->_tp(_0)];
         const auto& fields = cls_info->annotated_fields;
         for(StrName field: fields) {
-            PyVar lhs = _0->attr(field);
-            PyVar rhs = _1->attr(field);
+            PyVar lhs = _0->attr()[field];
+            PyVar rhs = _1->attr()[field];
             if(vm->py_ne(lhs, rhs)) return vm->False;
         }
         return vm->True;

@@ -254,7 +254,7 @@ PyVar VM::py_op(std::string_view name) {
     PyVar func;
     auto it = __cached_op_funcs.try_get(name);
     if(it == nullptr) {
-        func = py_import("operator")->attr(StrName::get(name));
+        func = py_import("operator")->attr()[StrName::get(name)];
         __cached_op_funcs.insert(name, func);
     } else {
         func = *it;
@@ -283,11 +283,11 @@ PyVar VM::py_next(PyVar obj) {
 
 bool VM::py_callable(PyVar obj) {
     Type cls = vm->_tp(obj);
-    switch(cls.index) {
-        case VM::tp_function.index: return true;
-        case VM::tp_native_func.index: return true;
-        case VM::tp_bound_method.index: return true;
-        case VM::tp_type.index: return true;
+    switch(cls) {
+        case VM::tp_function: return true;
+        case VM::tp_native_func: return true;
+        case VM::tp_bound_method: return true;
+        case VM::tp_type: return true;
     }
     return vm->find_name_in_mro(cls, __call__) != nullptr;
 }
@@ -538,7 +538,7 @@ i64 VM::py_hash(PyVar obj) {
         has_custom_eq = true;
     else {
         f = get_unbound_method(obj, __eq__, &self, false);
-        has_custom_eq = f != _t(tp_object)->attr(__eq__);
+        has_custom_eq = f != _t(tp_object)->attr()[__eq__];
     }
     if(has_custom_eq) {
         TypeError(_S("unhashable type: ", ti->name.escape()));
@@ -1228,11 +1228,11 @@ PyVar VM::getattr(PyVar obj, StrName name, bool throw_err) {
     if(cls_var != nullptr) {
         // bound method is non-data descriptor
         if(!is_tagged(*cls_var)) {
-            switch(cls_var->type.index) {
-                case tp_function.index: return VAR(BoundMethod(obj, *cls_var));
-                case tp_native_func.index: return VAR(BoundMethod(obj, *cls_var));
-                case tp_staticmethod.index: return PK_OBJ_GET(StaticMethod, *cls_var).func;
-                case tp_classmethod.index: return VAR(BoundMethod(_t(objtype), PK_OBJ_GET(ClassMethod, *cls_var).func));
+            switch(cls_var->type) {
+                case tp_function: return VAR(BoundMethod(obj, *cls_var));
+                case tp_native_func: return VAR(BoundMethod(obj, *cls_var));
+                case tp_staticmethod: return PK_OBJ_GET(StaticMethod, *cls_var).func;
+                case tp_classmethod: return VAR(BoundMethod(_t(objtype), PK_OBJ_GET(ClassMethod, *cls_var).func));
             }
         }
         return *cls_var;
@@ -1291,11 +1291,11 @@ PyVar VM::get_unbound_method(PyVar obj, StrName name, PyVar* self, bool throw_er
 
     if(cls_var != nullptr) {
         if(!is_tagged(*cls_var)) {
-            switch(cls_var->type.index) {
-                case tp_function.index: *self = obj; break;
-                case tp_native_func.index: *self = obj; break;
-                case tp_staticmethod.index: self->set_null(); return PK_OBJ_GET(StaticMethod, *cls_var).func;
-                case tp_classmethod.index: *self = _t(objtype); return PK_OBJ_GET(ClassMethod, *cls_var).func;
+            switch(cls_var->type) {
+                case tp_function: *self = obj; break;
+                case tp_native_func: *self = obj; break;
+                case tp_staticmethod: self->set_null(); return PK_OBJ_GET(StaticMethod, *cls_var).func;
+                case tp_classmethod: *self = _t(objtype); return PK_OBJ_GET(ClassMethod, *cls_var).func;
             }
         }
         return *cls_var;
@@ -1395,9 +1395,9 @@ PyObject* VM::bind_property(PyObject* obj, const char* name, NativeFuncC fget, N
     return prop;
 }
 
-void VM::__builtin_error(StrName type) { _error(call(builtins->attr(type))); }
+void VM::__builtin_error(StrName type) { _error(call(builtins->attr()[type])); }
 
-void VM::__builtin_error(StrName type, PyVar arg) { _error(call(builtins->attr(type), arg)); }
+void VM::__builtin_error(StrName type, PyVar arg) { _error(call(builtins->attr()[type], arg)); }
 
 void VM::__builtin_error(StrName type, const Str& msg) { __builtin_error(type, VAR(msg)); }
 
@@ -1796,11 +1796,8 @@ void VM::__breakpoint() {
 #endif
 }
 
-/**************************************************************************/
-
-PyVar PyObject::attr(StrName name) const {
-    assert(is_attr_valid());
-    return (*_attr)[name];
+PyVar PyObject::attr(StrName name) const{
+    return attr()[name];
 }
 
 /**************************************************************************/

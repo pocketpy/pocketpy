@@ -3,20 +3,22 @@
 #include "pocketpy/common/str.hpp"
 #include "pocketpy/common/config.h"
 #include "pocketpy/objects/base.hpp"
+#include "pocketpy/objects/object.h"
 
 namespace pkpy {
 
 struct NameDict;
 
-struct PyObject final {
-    Type type;        // we have a duplicated type here for convenience
-    bool gc_is_large;
-    bool gc_marked;
-    NameDict* _attr;  // gc will delete this on destruction
-
+struct PyObject final: ::PyObject {
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
 
     void* _value_ptr() noexcept { return (char*)this + 16; }
+
+    NameDict& attr() const{
+        return *(NameDict*)_attr;
+    }
+
+    PyVar attr(StrName name) const;
 
     template <typename T>
     T& as() noexcept {
@@ -24,14 +26,12 @@ struct PyObject final {
         return *reinterpret_cast<T*>(_value_ptr());
     }
 
-    NameDict& attr() {
-        assert(is_attr_valid());
-        return *_attr;
+    PyObject(Type type, bool gc_is_large){
+        this->type = type;
+        this->gc_is_large = gc_is_large;
+        this->gc_marked = false;
+        this->_attr = nullptr;
     }
-
-    PyObject(Type type, bool gc_is_large) : type(type), gc_is_large(gc_is_large), gc_marked(false), _attr(nullptr) {}
-
-    PyVar attr(StrName name) const;
 };
 
 static_assert(sizeof(PyObject) <= 16);
