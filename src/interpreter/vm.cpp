@@ -92,11 +92,11 @@ VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
     static ::PyObject __ellipsis_obj = {.type=tp_ellipsis, .gc_is_large=false, .gc_marked=false, ._attr=NULL};
 
     /* Must be heap objects to support `==` and `is` and `is not` */
-    this->True = (::PyVar){.type=tp_bool, .is_ptr=true, .extra=1, ._obj=&__true_obj};
-    this->False = (::PyVar){.type=tp_bool, .is_ptr=true, .extra=0, ._obj=&__false_obj};
-    this->None = (::PyVar){.type=tp_none_type, .is_ptr=true, ._obj=&__none_obj};
-    this->NotImplemented = (::PyVar){.type=tp_not_implemented_type, .is_ptr=true, ._obj=&__not_implemented_obj};
-    this->Ellipsis = (::PyVar){.type=tp_ellipsis, .is_ptr=true, ._obj=&__ellipsis_obj};
+    True.type = tp_bool; True.is_ptr = true; True.extra = 1; True._obj = &__true_obj;
+    False.type = tp_bool; False.is_ptr = true; False.extra = 0; False._obj = &__false_obj;
+    None.type = tp_none_type; None.is_ptr = true; None._obj = &__none_obj;
+    NotImplemented.type = tp_not_implemented_type; NotImplemented.is_ptr = true; NotImplemented._obj = &__not_implemented_obj;
+    Ellipsis.type = tp_ellipsis; Ellipsis.is_ptr = true; Ellipsis._obj = &__ellipsis_obj;
     
     this->vm = this;
     this->__c.error = nullptr;
