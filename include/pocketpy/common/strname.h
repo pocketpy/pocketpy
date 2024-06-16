@@ -14,6 +14,15 @@ const char* pkpy_StrName__rmap(uint16_t index);
 void pkpy_StrName__initialize();
 void pkpy_StrName__finalize();
 
+#ifdef __cplusplus
+}
+#endif
+
+/* global names */
+#ifdef __cplusplus
+extern "C" {
+namespace pkpy {
+#endif
 
 // unary operators
 extern uint16_t __repr__;
@@ -73,5 +82,6 @@ extern uint16_t pk_id_long;
 extern uint16_t pk_id_complex;
 
 #ifdef __cplusplus
-}
+}   // namespace pkpy
+}   // extern "C"
 #endif
