@@ -123,14 +123,14 @@ int CodeEmitContext::add_varname(StrName name) noexcept{
 }
 
 int CodeEmitContext::add_const_string(std::string_view key) noexcept{
-    int* val = _co_consts_string_dedup_map.try_get(key);
+    uint16_t* val = c11_smallmap_s2n__try_get(&_co_consts_string_dedup_map, {key.data(), (int)key.size()});
     if(val) {
         return *val;
     } else {
         co->consts.push_back(VAR(key));
         int index = co->consts.size() - 1;
         key = co->consts.back().obj_get<Str>().sv();
-        _co_consts_string_dedup_map.insert(key, index);
+        c11_smallmap_s2n__set(&_co_consts_string_dedup_map, {key.data(), (int)key.size()}, index);
         return index;
     }
 }

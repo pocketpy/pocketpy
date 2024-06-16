@@ -265,15 +265,8 @@ bool VM::py_eq(PyVar lhs, PyVar rhs) {
 }
 
 PyVar VM::py_op(std::string_view name) {
-    PyVar func;
-    auto it = __cached_op_funcs.try_get(name);
-    if(it == nullptr) {
-        func = py_import("operator")->attr()[StrName::get(name)];
-        __cached_op_funcs.insert(name, func);
-    } else {
-        func = *it;
-    }
-    return func;
+    // TODO: cache the result
+    return py_import("operator")->attr()[StrName::get(name)];
 }
 
 i64 VM::normalized_index(i64 index, int size) {
