@@ -4,12 +4,6 @@
 #include "pocketpy/common/traits.hpp"
 #include "pocketpy/objects/base.h"
 
-#include <cstddef>
-#include <cstdint>
-#include <cassert>
-#include <cstdlib>
-#include <cstring>
-
 namespace pkpy {
 
 struct Type {

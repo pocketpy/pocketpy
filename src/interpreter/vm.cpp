@@ -1455,9 +1455,9 @@ void VM::__raise_exc(bool re_raise) {
     int actual_ip = frame->ip();
     if(e._ip_on_error >= 0 && e._code_on_error == (void*)frame->co) actual_ip = e._ip_on_error;
     int current_line = frame->co->lines[actual_ip].lineno;  // current line
-    auto current_f_name = frame->co->name.sv();             // current function name
+    const char* current_f_name = frame->co->name.c_str();   // current function name
     if(frame->_callable == nullptr) current_f_name = "";    // not in a function
-    e.st_push(frame->co->src, current_line, nullptr, current_f_name);
+    e.stpush(frame->co->src, current_line, nullptr, current_f_name);
 
     if(next_ip >= 0) {
         throw InternalException(InternalExceptionType::Handled, next_ip);

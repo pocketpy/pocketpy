@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+typedef uint16_t pkpy_StrName;
+
 uint16_t pkpy_StrName__map(const char*);
 uint16_t pkpy_StrName__map2(c11_string);
 const char* pkpy_StrName__rmap(uint16_t index);

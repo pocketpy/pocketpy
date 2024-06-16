@@ -1,7 +1,9 @@
 #pragma once
 
 #include "pocketpy/common/str.hpp"
+#include "pocketpy/common/traits.hpp"
 #include "pocketpy/objects/sourcedata.h"
+#include "pocketpy/objects/error.h"
 
 namespace pkpy {
 
@@ -22,62 +24,24 @@ struct InternalException final {
     InternalException(InternalExceptionType type, int arg = -1) : type(type), arg(arg) {}
 };
 
-struct Exception {
-    StrName type;
-    Str msg;
-    bool is_re;
+struct Exception: pkpy_Exception{
+    PK_ALWAYS_PASS_BY_POINTER(Exception)
 
-    int _ip_on_error;
-    void* _code_on_error;
-
-    PyObject* _self;  // weak reference
-
-    struct Frame {
-        pkpy_SourceData_ src;
-        int lineno;
-        const char* cursor;
-        std::string name;
-
-        Str snapshot() const {
-            return pkpy_SourceData__snapshot(src, lineno, cursor, name.empty() ? nullptr : name.c_str());
-        }
-
-        Frame(pkpy_SourceData_ src, int lineno, const char* cursor, std::string_view name) :
-            src(src), lineno(lineno), cursor(cursor), name(name) {
-                PK_INCREF(src);
-            }
-        // disable copy
-        Frame(const Frame&) = delete;
-        // allow move
-        Frame(Frame&& other) noexcept{
-            src = other.src;
-            lineno = other.lineno;
-            cursor = other.cursor;
-            name = std::move(other.name);
-            other.src = nullptr;
-        }
-
-        ~Frame() {
-            if(src) PK_DECREF(src);
-        }
-    };
-
-    vector<Frame> stacktrace;
-
-    Exception(StrName type) : type(type), is_re(true), _ip_on_error(-1), _code_on_error(nullptr), _self(nullptr) {}
-
-    PyObject* self() const {
-        assert(_self != nullptr);
-        return _self;
+    Exception(uint16_t type){
+        pkpy_Exception__ctor(this, type);
     }
 
-    template <typename... Args>
-    void st_push(Args&&... args) {
-        if(stacktrace.size() >= 7) return;
-        stacktrace.emplace_back(std::forward<Args>(args)...);
+    ~Exception(){
+        pkpy_Exception__dtor(this);
     }
 
-    Str summary() const;
+    void stpush(pkpy_SourceData_ src, int lineno, const char* cursor, const char* name){
+        pkpy_Exception__stpush(this, src, lineno, cursor, name);
+    }
+
+    Str summary(){
+        return pkpy_Exception__summary(this);
+    }
 };
 
 struct TopLevelException : std::exception {

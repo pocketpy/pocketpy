@@ -77,7 +77,7 @@ pkpy_Str pkpy_SourceData__snapshot(const struct pkpy_SourceData* self, int linen
         lineno
     );
 
-    if(name) {
+    if(name && *name) {
         pkpy_SStream__write_cstr(&ss, ", in ");
         pkpy_SStream__write_cstr(&ss, name);
     }

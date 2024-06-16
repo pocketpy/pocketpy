@@ -1539,30 +1539,31 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(VM::tp_exception, __new__, -1, [](VM* vm, ArgsView args) -> PyVar {
         Type cls = PK_OBJ_GET(Type, args[0]);
         StrName cls_name = _type_name(vm, cls);
-        PyObject* e_obj = vm->heap.gcnew<Exception>(cls, cls_name);
+        PyObject* e_obj = vm->heap.gcnew<Exception>(cls, cls_name.index);
         e_obj->_attr = new NameDict();
-        e_obj->as<Exception>()._self = e_obj;
+        e_obj->as<Exception>().self = e_obj;
         return e_obj;
     });
 
     _vm->bind(_vm->_t(VM::tp_exception), "__init__(self, msg=...)", [](VM* vm, ArgsView args) {
         Exception& self = _CAST(Exception&, args[0]);
-        if(args[1].type == tp_ellipsis) {
-            self.msg = "";
-        } else {
-            self.msg = CAST(Str, args[1]);
+        if(args[1].type != tp_ellipsis) {
+            const char* msg = CAST(Str&, args[1]).c_str();
+            pkpy_Str__dtor(&self.msg);
+            pkpy_Str__ctor(&self.msg, msg);
         }
         return vm->None;
     });
 
     _vm->bind__repr__(VM::tp_exception, [](VM* vm, PyVar _0) -> Str {
         Exception& self = _CAST(Exception&, _0);
-        return _S(_type_name(vm, _0.type), '(', self.msg.escape(), ')');
+        const char* msg_s = pkpy_Str__data(&self.msg);
+        return _S(_type_name(vm, _0.type), '(', Str(msg_s).escape(), ')');
     });
 
     _vm->bind__str__(VM::tp_exception, [](VM* vm, PyVar _0) -> Str {
         Exception& self = _CAST(Exception&, _0);
-        return self.msg;
+        return pkpy_Str__copy(&self.msg);
     });
 
     _vm->register_user_class<RangeIter>(_vm->builtins, "_range_iter");
@@ -1743,7 +1744,7 @@ void VM::__compile_error(Error* err){
         VAR((const char*)err->msg)
     ).get();
     Exception& e = __last_exception->as<Exception>();
-    e.st_push(err->src, err->lineno, err->cursor, "");
+    e.stpush(err->src, err->lineno, err->cursor, "");
     PK_DECREF(err->src);
     std::free(err);
     _error(__last_exception);
