@@ -11,7 +11,12 @@ typedef struct RefCounted {
 } RefCounted;
 
 #define PK_INCREF(obj) (obj)->rc.count++
-#define PK_DECREF(obj) if (--(obj)->rc.count == 0) (obj)->rc.dtor(obj)
+#define PK_DECREF(obj) do { \
+    if(--(obj)->rc.count == 0) { \
+        (obj)->rc.dtor(obj); \
+        free(obj); \
+    } \
+} while(0)
 
 #ifdef __cplusplus
 }
