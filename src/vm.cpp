@@ -1081,8 +1081,10 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
             ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
         }else{
-            if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
-            f.check_size(this, args);
+            if(f.argc != -1){
+                if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
+                f.check_size(this, args);
+            }
             ret = f.call(this, args);
         }
         s_data.reset(p0);
