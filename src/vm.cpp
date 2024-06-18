@@ -522,7 +522,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
     if(!callstack.empty()) frame = &callstack.top();
 
     // fast path
-    if(frame && globals == vm->None && locals == vm->None) {
+    if(frame && globals == vm->None && locals == vm->None){
         return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
     }
 
