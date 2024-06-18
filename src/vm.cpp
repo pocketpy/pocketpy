@@ -518,10 +518,11 @@ i64 VM::py_hash(PyVar obj){
 }
 
 PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar locals){
-    Frame* frame = &vm->callstack.top();
+    Frame* frame = nullptr;
+    if(!callstack.empty()) frame = &callstack.top();
 
     // fast path
-    if(globals == vm->None && locals == vm->None){
+    if(frame && globals == vm->None && locals == vm->None){
         return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
     }
 
@@ -534,7 +535,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
     Dict* locals_dict = nullptr;
 
     if(globals == vm->None){
-        globals_obj = frame->_module;
+        globals_obj = frame ? frame->_module : _main;
     }else{
         if(is_type(globals, VM::tp_mappingproxy)){
             globals_obj = PK_OBJ_GET(MappingProxy, globals).obj;
