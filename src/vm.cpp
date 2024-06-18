@@ -554,7 +554,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
     PyVar retval = nullptr;
 
     if(locals == vm->None){
-        retval = vm->_exec(code, globals_obj); // only globals
+        retval = vm->_exec(code, globals_obj);  // only globals
     }else{
         check_compatible_type(locals, VM::tp_dict);
         locals_dict = &PK_OBJ_GET(Dict, locals);
