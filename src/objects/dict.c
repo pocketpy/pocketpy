@@ -58,8 +58,9 @@ pkpy_Dict pkpy_Dict__copy(const pkpy_Dict* self) {
 
 static int pkpy_Dict__htget(const pkpy_Dict* self, int h) {
 #if PK_DICT_COMPACT_MODE
-    const int *p = (const int*)(((const char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
-    return (*p) & pkpy_Dict__idx_null(self);
+    const int loc = pkpy_Dict__idx_size(self) * h;
+    const int *p = (const int*)(((const char*)self->_hashtable) + (loc & (~3)));
+    return (*p >> ((loc & 3) * 8)) & pkpy_Dict__idx_null(self);
 #else
     return ((const int*)self->_hashtable)[h];
 #endif
@@ -67,8 +68,10 @@ static int pkpy_Dict__htget(const pkpy_Dict* self, int h) {
 
 static void pkpy_Dict__htset(pkpy_Dict* self, int h, int v) {
 #if PK_DICT_COMPACT_MODE
-    int *p = (int*)(((char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
-    *p = v | (*p & ~pkpy_Dict__idx_null(self));
+    const int loc = pkpy_Dict__idx_size(self) * h;
+    int *p = (int*)(((char*)self->_hashtable) + (loc & (~3)));
+    const int shift = (loc & 3) * 8;
+    *p = (v << shift) | (*p & ~(pkpy_Dict__idx_null(self) << shift));
 #else
     ((int*)self->_hashtable)[h] = v;
 #endif
