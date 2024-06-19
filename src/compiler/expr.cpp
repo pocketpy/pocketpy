@@ -231,10 +231,10 @@ void OrExpr::emit_(CodeEmitContext* ctx) {
 
 void Literal0Expr::emit_(CodeEmitContext* ctx) {
     switch(token) {
-        case TK("None"): ctx->emit_(OP_LOAD_NONE, BC_NOARG, line); break;
-        case TK("True"): ctx->emit_(OP_LOAD_TRUE, BC_NOARG, line); break;
-        case TK("False"): ctx->emit_(OP_LOAD_FALSE, BC_NOARG, line); break;
-        case TK("..."): ctx->emit_(OP_LOAD_ELLIPSIS, BC_NOARG, line); break;
+        case TK_NONE: ctx->emit_(OP_LOAD_NONE, BC_NOARG, line); break;
+        case TK_TRUE: ctx->emit_(OP_LOAD_TRUE, BC_NOARG, line); break;
+        case TK_FALSE: ctx->emit_(OP_LOAD_FALSE, BC_NOARG, line); break;
+        case TK_DOTDOTDOT: ctx->emit_(OP_LOAD_ELLIPSIS, BC_NOARG, line); break;
         default: assert(false);
     }
 }
@@ -681,12 +681,12 @@ void CallExpr::emit_(CodeEmitContext* ctx) {
 
 bool BinaryExpr::is_compare() const {
     switch(op) {
-        case TK("<"):
-        case TK("<="):
-        case TK("=="):
-        case TK("!="):
-        case TK(">"):
-        case TK(">="): return true;
+        case TK_LT:
+        case TK_LE:
+        case TK_EQ:
+        case TK_NE:
+        case TK_GT:
+        case TK_GE: return true;
         default: return false;
     }
 }
@@ -701,12 +701,12 @@ void BinaryExpr::_emit_compare(CodeEmitContext* ctx, small_vector_2<int, 8>& jmp
     ctx->emit_(OP_DUP_TOP, BC_NOARG, line);    // [a, b, b]
     ctx->emit_(OP_ROT_THREE, BC_NOARG, line);  // [b, a, b]
     switch(op) {
-        case TK("<"): ctx->emit_(OP_COMPARE_LT, BC_NOARG, line); break;
-        case TK("<="): ctx->emit_(OP_COMPARE_LE, BC_NOARG, line); break;
-        case TK("=="): ctx->emit_(OP_COMPARE_EQ, BC_NOARG, line); break;
-        case TK("!="): ctx->emit_(OP_COMPARE_NE, BC_NOARG, line); break;
-        case TK(">"): ctx->emit_(OP_COMPARE_GT, BC_NOARG, line); break;
-        case TK(">="): ctx->emit_(OP_COMPARE_GE, BC_NOARG, line); break;
+        case TK_LT: ctx->emit_(OP_COMPARE_LT, BC_NOARG, line); break;
+        case TK_LE: ctx->emit_(OP_COMPARE_LE, BC_NOARG, line); break;
+        case TK_EQ: ctx->emit_(OP_COMPARE_EQ, BC_NOARG, line); break;
+        case TK_NE: ctx->emit_(OP_COMPARE_NE, BC_NOARG, line); break;
+        case TK_GT: ctx->emit_(OP_COMPARE_GT, BC_NOARG, line); break;
+        case TK_GE: ctx->emit_(OP_COMPARE_GE, BC_NOARG, line); break;
         default: PK_UNREACHABLE()
     }
     // [b, RES]
@@ -731,34 +731,34 @@ void BinaryExpr::emit_(CodeEmitContext* ctx) {
 
     rhs->emit_(ctx);
     switch(op) {
-        case TK("+"): ctx->emit_(OP_BINARY_ADD, BC_NOARG, line); break;
-        case TK("-"): ctx->emit_(OP_BINARY_SUB, BC_NOARG, line); break;
-        case TK("*"): ctx->emit_(OP_BINARY_MUL, BC_NOARG, line); break;
-        case TK("/"): ctx->emit_(OP_BINARY_TRUEDIV, BC_NOARG, line); break;
-        case TK("//"): ctx->emit_(OP_BINARY_FLOORDIV, BC_NOARG, line); break;
-        case TK("%"): ctx->emit_(OP_BINARY_MOD, BC_NOARG, line); break;
-        case TK("**"): ctx->emit_(OP_BINARY_POW, BC_NOARG, line); break;
+        case TK_ADD: ctx->emit_(OP_BINARY_ADD, BC_NOARG, line); break;
+        case TK_SUB: ctx->emit_(OP_BINARY_SUB, BC_NOARG, line); break;
+        case TK_MUL: ctx->emit_(OP_BINARY_MUL, BC_NOARG, line); break;
+        case TK_DIV: ctx->emit_(OP_BINARY_TRUEDIV, BC_NOARG, line); break;
+        case TK_FLOORDIV: ctx->emit_(OP_BINARY_FLOORDIV, BC_NOARG, line); break;
+        case TK_MOD: ctx->emit_(OP_BINARY_MOD, BC_NOARG, line); break;
+        case TK_POW: ctx->emit_(OP_BINARY_POW, BC_NOARG, line); break;
 
-        case TK("<"): ctx->emit_(OP_COMPARE_LT, BC_NOARG, line); break;
-        case TK("<="): ctx->emit_(OP_COMPARE_LE, BC_NOARG, line); break;
-        case TK("=="): ctx->emit_(OP_COMPARE_EQ, BC_NOARG, line); break;
-        case TK("!="): ctx->emit_(OP_COMPARE_NE, BC_NOARG, line); break;
-        case TK(">"): ctx->emit_(OP_COMPARE_GT, BC_NOARG, line); break;
-        case TK(">="): ctx->emit_(OP_COMPARE_GE, BC_NOARG, line); break;
+        case TK_LT: ctx->emit_(OP_COMPARE_LT, BC_NOARG, line); break;
+        case TK_LE: ctx->emit_(OP_COMPARE_LE, BC_NOARG, line); break;
+        case TK_EQ: ctx->emit_(OP_COMPARE_EQ, BC_NOARG, line); break;
+        case TK_NE: ctx->emit_(OP_COMPARE_NE, BC_NOARG, line); break;
+        case TK_GT: ctx->emit_(OP_COMPARE_GT, BC_NOARG, line); break;
+        case TK_GE: ctx->emit_(OP_COMPARE_GE, BC_NOARG, line); break;
 
-        case TK("in"): ctx->emit_(OP_CONTAINS_OP, 0, line); break;
-        case TK("not in"): ctx->emit_(OP_CONTAINS_OP, 1, line); break;
-        case TK("is"): ctx->emit_(OP_IS_OP, BC_NOARG, line); break;
-        case TK("is not"): ctx->emit_(OP_IS_NOT_OP, BC_NOARG, line); break;
+        case TK_IN: ctx->emit_(OP_CONTAINS_OP, 0, line); break;
+        case TK_NOT_IN: ctx->emit_(OP_CONTAINS_OP, 1, line); break;
+        case TK_IS: ctx->emit_(OP_IS_OP, BC_NOARG, line); break;
+        case TK_IS_NOT: ctx->emit_(OP_IS_NOT_OP, BC_NOARG, line); break;
 
-        case TK("<<"): ctx->emit_(OP_BITWISE_LSHIFT, BC_NOARG, line); break;
-        case TK(">>"): ctx->emit_(OP_BITWISE_RSHIFT, BC_NOARG, line); break;
-        case TK("&"): ctx->emit_(OP_BITWISE_AND, BC_NOARG, line); break;
-        case TK("|"): ctx->emit_(OP_BITWISE_OR, BC_NOARG, line); break;
-        case TK("^"): ctx->emit_(OP_BITWISE_XOR, BC_NOARG, line); break;
+        case TK_LSHIFT: ctx->emit_(OP_BITWISE_LSHIFT, BC_NOARG, line); break;
+        case TK_RSHIFT: ctx->emit_(OP_BITWISE_RSHIFT, BC_NOARG, line); break;
+        case TK_AND: ctx->emit_(OP_BITWISE_AND, BC_NOARG, line); break;
+        case TK_OR: ctx->emit_(OP_BITWISE_OR, BC_NOARG, line); break;
+        case TK_XOR: ctx->emit_(OP_BITWISE_XOR, BC_NOARG, line); break;
 
-        case TK("@"): ctx->emit_(OP_BINARY_MATMUL, BC_NOARG, line); break;
-        default: PK_FATAL_ERROR("unknown binary operator: %s\n", TK_STR(op));
+        case TK_DECORATOR: ctx->emit_(OP_BINARY_MATMUL, BC_NOARG, line); break;
+        default: PK_FATAL_ERROR("unknown binary operator: %s\n", pk_TokenSymbols[op]);
     }
 
     for(int i: jmps)

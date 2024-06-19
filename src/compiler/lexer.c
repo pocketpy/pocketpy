@@ -3,6 +3,30 @@
 #include "pocketpy/common/smallmap.h"
 #include "pocketpy/compiler/lexer.h"
 
+const char* pk_TokenSymbols[] = {
+    "@eof", "@eol", "@sof",
+    "@id", "@num", "@str", "@fstr", "@long", "@bytes", "@imag",
+    "@indent", "@dedent",
+    // These 3 are compound keywords which are generated on the fly
+    "is not", "not in", "yield from",
+    /*****************************************/
+    "+", "+=", "-", "-=",   // (INPLACE_OP - 1) can get '=' removed
+    "*", "*=", "/", "/=", "//", "//=", "%", "%=",
+    "&", "&=", "|", "|=", "^", "^=", 
+    "<<", "<<=", ">>", ">>=",
+    /*****************************************/
+    "(", ")", "[", "]", "{", "}",
+    ".", "..", "...", ",", ":", ";",
+    "**", "->", "#", "@",
+    ">", "<", "=", "==", "!=", ">=", "<=", "~",
+    /** KW_BEGIN **/
+    // NOTE: These keywords should be sorted in ascending order!!
+    "False", "None", "True", "and", "as", "assert", "break", "class", "continue",
+    "def", "del", "elif", "else", "except", "finally", "for", "from", "global",
+    "if", "import", "in", "is", "lambda", "not", "or", "pass", "raise", "return",
+    "try", "while", "with", "yield",
+};
+
 void pkpy_TokenDeserializer__ctor(pkpy_TokenDeserializer* self, const char* source){
     self->curr = source;
     self->source = source;

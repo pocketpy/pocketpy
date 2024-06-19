@@ -2,58 +2,15 @@
 
 #include "pocketpy/objects/error.hpp"
 #include "pocketpy/objects/sourcedata.h"
+#include "pocketpy/compiler/lexer.h"
 
 #include <variant>
 
 namespace pkpy {
 
-typedef uint8_t TokenIndex;
-
-// clang-format off
-constexpr const char* kTokens[] = {
-    "@eof", "@eol", "@sof",
-    "@id", "@num", "@str", "@fstr", "@long", "@bytes", "@imag",
-    "@indent", "@dedent",
-    // These 3 are compound keywords which are generated on the fly
-    "is not", "not in", "yield from",
-    /*****************************************/
-    "+", "+=", "-", "-=",   // (INPLACE_OP - 1) can get '=' removed
-    "*", "*=", "/", "/=", "//", "//=", "%", "%=",
-    "&", "&=", "|", "|=", "^", "^=", 
-    "<<", "<<=", ">>", ">>=",
-    /*****************************************/
-    "(", ")", "[", "]", "{", "}",
-    ".", "..", "...", ",", ":", ";",
-    "**", "->", "#", "@",
-    ">", "<", "=", "==", "!=", ">=", "<=", "~",
-    /** KW_BEGIN **/
-    // NOTE: These keywords should be sorted in ascending order!!
-    "False", "None", "True", "and", "as", "assert", "break", "class", "continue",
-    "def", "del", "elif", "else", "except", "finally", "for", "from", "global",
-    "if", "import", "in", "is", "lambda", "not", "or", "pass", "raise", "return",
-    "try", "while", "with", "yield",
-};
-// clang-format on
-
 using TokenValue = std::variant<std::monostate, i64, f64, Str>;
-const int kTokenCount = sizeof(kTokens) / sizeof(kTokens[0]);
 
-constexpr TokenIndex TK(const char token[]) {
-    for(int k = 0; k < kTokenCount; k++) {
-        const char* i = kTokens[k];
-        const char* j = token;
-        while(*i && *j && *i == *j) {
-            i++;
-            j++;
-        }
-        if(*i == *j) return k;
-    }
-    return 255;
-}
-
-constexpr inline bool is_raw_string_used(TokenIndex t) noexcept{ return t == TK("@id") || t == TK("@long"); }
-
-#define TK_STR(t) kTokens[t]
+constexpr inline bool is_raw_string_used(TokenIndex t) noexcept{ return t == TK_ID || t == TK_LONG; }
 
 struct Token {
     TokenIndex type;

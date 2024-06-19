@@ -201,6 +201,7 @@ struct Random {
                 f64 key = self.gen.uniform(0.0, cum_weights[size - 1]);
                 int index;
                 c11__lower_bound(f64, cum_weights.begin(), cum_weights.size(), key, c11__less, &index);
+                assert(index != cum_weights.size());
                 result[i] = data[index];
             }
             return VAR(std::move(result));

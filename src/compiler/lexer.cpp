@@ -62,11 +62,11 @@ bool Lexer::eat_indentation() noexcept{
     // https://docs.python.org/3/reference/lexical_analysis.html#indentation
     if(spaces > indents.back()) {
         indents.push_back(spaces);
-        nexts.push_back(Token{TK("@indent"), token_start, 0, current_line, brackets_level, {}});
+        nexts.push_back(Token{TK_INDENT, token_start, 0, current_line, brackets_level, {}});
     } else if(spaces < indents.back()) {
         while(spaces < indents.back()) {
             indents.pop_back();
-            nexts.push_back(Token{TK("@dedent"), token_start, 0, current_line, brackets_level, {}});
+            nexts.push_back(Token{TK_DEDENT, token_start, 0, current_line, brackets_level, {}});
         }
         if(spaces != indents.back()) { return false; }
     }
@@ -129,29 +129,32 @@ Error* Lexer::eat_name() noexcept{
 
     int length = (int)(curr_char - token_start);
     if(length == 0) return SyntaxError("@id contains invalid char");
-    std::string_view name(token_start, length);
+    c11_string name = {token_start, length};
 
     if(src->mode == JSON_MODE) {
-        if(name == "true") {
-            add_token(TK("True"));
-        } else if(name == "false") {
-            add_token(TK("False"));
-        } else if(name == "null") {
-            add_token(TK("None"));
+        if(c11_string__cmp3(name, "true") == 0) {
+            add_token(TK_TRUE);
+        } else if(c11_string__cmp3(name, "false") == 0) {
+            add_token(TK_FALSE);
+        } else if(c11_string__cmp3(name, "null") == 0) {
+            add_token(TK_NONE);
         } else {
             return SyntaxError("invalid JSON token");
         }
         return NULL;
     }
 
-    const auto KW_BEGIN = kTokens + TK("False");
-    const auto KW_END = kTokens + kTokenCount;
+    const char** KW_BEGIN = pk_TokenSymbols + TK_FALSE;
+    int KW_COUNT = TK__COUNT__ - TK_FALSE;
+    #define less(a, b) (c11_string__cmp3(b, a) > 0)
+    int out;
+    c11__lower_bound(const char*, KW_BEGIN, KW_COUNT, name, less, &out);
+    #undef less
 
-    auto it = lower_bound(KW_BEGIN, KW_END, name);
-    if(it != KW_END && *it == name) {
-        add_token(it - kTokens);
+    if(out != KW_COUNT && c11_string__cmp3(name, KW_BEGIN[out]) == 0) {
+        add_token((TokenIndex)(out + TK_FALSE));
     } else {
-        add_token(TK("@id"));
+        add_token(TK_ID);
     }
     return NULL;
 }
@@ -172,32 +175,33 @@ bool Lexer::matchchar(char c) noexcept{
 
 void Lexer::add_token(TokenIndex type, TokenValue value) noexcept{
     switch(type) {
-        case TK("{"):
-        case TK("["):
-        case TK("("): brackets_level++; break;
-        case TK(")"):
-        case TK("]"):
-        case TK("}"): brackets_level--; break;
+        case TK_LBRACE:
+        case TK_LBRACKET:
+        case TK_LPAREN: brackets_level++; break;
+        case TK_RPAREN:
+        case TK_RBRACKET:
+        case TK_RBRACE: brackets_level--; break;
+        default: break;
     }
     auto token = Token{type,
                        token_start,
                        (int)(curr_char - token_start),
-                       current_line - ((type == TK("@eol")) ? 1 : 0),
+                       current_line - ((type == TK_EOL) ? 1 : 0),
                        brackets_level,
                        value};
     // handle "not in", "is not", "yield from"
     if(!nexts.empty()) {
         auto& back = nexts.back();
-        if(back.type == TK("not") && type == TK("in")) {
-            back.type = TK("not in");
+        if(back.type == TK_NOT_KW && type == TK_IN) {
+            back.type = TK_NOT_IN;
             return;
         }
-        if(back.type == TK("is") && type == TK("not")) {
-            back.type = TK("is not");
+        if(back.type == TK_IS && type == TK_NOT_KW) {
+            back.type = TK_IS_NOT;
             return;
         }
-        if(back.type == TK("yield") && type == TK("from")) {
-            back.type = TK("yield from");
+        if(back.type == TK_YIELD && type == TK_FROM) {
+            back.type = TK_YIELD_FROM;
             return;
         }
         nexts.push_back(token);
@@ -271,11 +275,11 @@ Error* Lexer::eat_string(char quote, StringType type) noexcept{
     Error* err = eat_string_until(quote, type == StringType::RAW_STRING, &s);
     if(err) return err;
     if(type == StringType::F_STRING) {
-        add_token(TK("@fstr"), s);
+        add_token(TK_FSTR, s);
     }else if(type == StringType::NORMAL_BYTES) {
-        add_token(TK("@bytes"), s);
+        add_token(TK_BYTES, s);
     }else{
-        add_token(TK("@str"), s);
+        add_token(TK_STR, s);
     }
     return NULL;
 }
@@ -299,13 +303,13 @@ Error* Lexer::eat_number() noexcept{
     if(text[0] != '.' && !is_scientific_notation) {
         // try long
         if(i[-1] == 'L') {
-            add_token(TK("@long"));
+            add_token(TK_LONG);
             return NULL;
         }
         // try integer
         i64 int_out;
         switch(parse_uint(text, &int_out, -1)) {
-            case IntParsingResult::Success: add_token(TK("@num"), int_out); return NULL;
+            case IntParsingResult::Success: add_token(TK_NUM, int_out); return NULL;
             case IntParsingResult::Overflow: return SyntaxError("int literal is too large");
             case IntParsingResult::Failure: break;  // do nothing
         }
@@ -321,12 +325,12 @@ Error* Lexer::eat_number() noexcept{
     }
 
     if(p_end == text.data() + text.size()) {
-        add_token(TK("@num"), (f64)float_out);
+        add_token(TK_NUM, (f64)float_out);
         return NULL;
     }
 
     if(i[-1] == 'j' && p_end == text.data() + text.size() - 1) {
-        add_token(TK("@imag"), (f64)float_out);
+        add_token(TK_IMAG, (f64)float_out);
         return NULL;
     }
 
@@ -346,17 +350,17 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
                 return NULL;
             }
             case '#': skip_line_comment(); break;
-            case '~': add_token(TK("~")); return NULL;
-            case '{': add_token(TK("{")); return NULL;
-            case '}': add_token(TK("}")); return NULL;
-            case ',': add_token(TK(",")); return NULL;
-            case ':': add_token(TK(":")); return NULL;
-            case ';': add_token(TK(";")); return NULL;
-            case '(': add_token(TK("(")); return NULL;
-            case ')': add_token(TK(")")); return NULL;
-            case '[': add_token(TK("[")); return NULL;
-            case ']': add_token(TK("]")); return NULL;
-            case '@': add_token(TK("@")); return NULL;
+            case '~': add_token(TK_INVERT); return NULL;
+            case '{': add_token(TK_LBRACE); return NULL;
+            case '}': add_token(TK_RBRACE); return NULL;
+            case ',': add_token(TK_COMMA); return NULL;
+            case ':': add_token(TK_COLON); return NULL;
+            case ';': add_token(TK_SEMICOLON); return NULL;
+            case '(': add_token(TK_LPAREN); return NULL;
+            case ')': add_token(TK_RPAREN); return NULL;
+            case '[': add_token(TK_LBRACKET); return NULL;
+            case ']': add_token(TK_RBRACKET); return NULL;
+            case '@': add_token(TK_DECORATOR); return NULL;
             case '\\': {
                 // line continuation character
                 char c = eatchar_include_newline();
@@ -367,16 +371,16 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
                 eat_spaces();
                 return NULL;
             }
-            case '%': add_token_2('=', TK("%"), TK("%=")); return NULL;
-            case '&': add_token_2('=', TK("&"), TK("&=")); return NULL;
-            case '|': add_token_2('=', TK("|"), TK("|=")); return NULL;
-            case '^': add_token_2('=', TK("^"), TK("^=")); return NULL;
+            case '%': add_token_2('=', TK_MOD, TK_IMOD); return NULL;
+            case '&': add_token_2('=', TK_AND, TK_IAND); return NULL;
+            case '|': add_token_2('=', TK_OR, TK_IOR); return NULL;
+            case '^': add_token_2('=', TK_XOR, TK_IXOR); return NULL;
             case '.': {
                 if(matchchar('.')) {
                     if(matchchar('.')) {
-                        add_token(TK("..."));
+                        add_token(TK_DOTDOTDOT);
                     } else {
-                        add_token(TK(".."));
+                        add_token(TK_DOTDOT);
                     }
                 } else {
                     char next_char = peekchar();
@@ -384,43 +388,43 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
                         Error* err = eat_number();
                         if(err) return err;
                     } else {
-                        add_token(TK("."));
+                        add_token(TK_DOT);
                     }
                 }
                 return NULL;
             }
-            case '=': add_token_2('=', TK("="), TK("==")); return NULL;
-            case '+': add_token_2('=', TK("+"), TK("+=")); return NULL;
+            case '=': add_token_2('=', TK_ASSIGN, TK_EQ); return NULL;
+            case '+': add_token_2('=', TK_ADD, TK_IADD); return NULL;
             case '>': {
                 if(matchchar('='))
-                    add_token(TK(">="));
+                    add_token(TK_GE);
                 else if(matchchar('>'))
-                    add_token_2('=', TK(">>"), TK(">>="));
+                    add_token_2('=', TK_RSHIFT, TK_IRSHIFT);
                 else
-                    add_token(TK(">"));
+                    add_token(TK_GT);
                 return NULL;
             }
             case '<': {
                 if(matchchar('='))
-                    add_token(TK("<="));
+                    add_token(TK_LE);
                 else if(matchchar('<'))
-                    add_token_2('=', TK("<<"), TK("<<="));
+                    add_token_2('=', TK_LSHIFT, TK_ILSHIFT);
                 else
-                    add_token(TK("<"));
+                    add_token(TK_LT);
                 return NULL;
             }
             case '-': {
                 if(matchchar('='))
-                    add_token(TK("-="));
+                    add_token(TK_ISUB);
                 else if(matchchar('>'))
-                    add_token(TK("->"));
+                    add_token(TK_ARROW);
                 else
-                    add_token(TK("-"));
+                    add_token(TK_SUB);
                 return NULL;
             }
             case '!':
                 if(matchchar('=')){
-                    add_token(TK("!="));
+                    add_token(TK_NE);
                 }else{
                     Error* err = SyntaxError("expected '=' after '!'");
                     if(err) return err;
@@ -428,22 +432,22 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
                 break;
             case '*':
                 if(matchchar('*')) {
-                    add_token(TK("**"));  // '**'
+                    add_token(TK_POW);  // '**'
                 } else {
-                    add_token_2('=', TK("*"), TK("*="));
+                    add_token_2('=', TK_MUL, TK_IMUL);
                 }
                 return NULL;
             case '/':
                 if(matchchar('/')) {
-                    add_token_2('=', TK("//"), TK("//="));
+                    add_token_2('=', TK_FLOORDIV, TK_IFLOORDIV);
                 } else {
-                    add_token_2('=', TK("/"), TK("/="));
+                    add_token_2('=', TK_DIV, TK_IDIV);
                 }
                 return NULL;
             case ' ':
             case '\t': eat_spaces(); break;
             case '\n': {
-                add_token(TK("@eol"));
+                add_token(TK_EOL);
                 if(!eat_indentation()){
                     return IndentationError("unindent does not match any outer indentation level");
                 }
@@ -469,10 +473,10 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
     token_start = curr_char;
     while(indents.size() > 1) {
         indents.pop_back();
-        add_token(TK("@dedent"));
+        add_token(TK_DEDENT);
         return NULL;
     }
-    add_token(TK("@eof"));
+    add_token(TK_EOF);
     *eof = true;
     return NULL;
 }
@@ -496,7 +500,7 @@ Error* Lexer::_error(bool lexer_err, const char* type, const char* msg, va_list*
     if(args){
         vsnprintf(err->msg, sizeof(err->msg), msg, *args);
     }else{
-        std::strncpy(err->msg, msg, sizeof(err->msg));
+        strncpy(err->msg, msg, sizeof(err->msg));
     }
     err->userdata = userdata;
     return err;
@@ -517,7 +521,7 @@ Error* Lexer::run() noexcept{
         return from_precompiled();
     }
     // push initial tokens
-    this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line, brackets_level, {}});
+    this->nexts.push_back(Token{TK_SOF, token_start, 0, current_line, brackets_level, {}});
     this->indents.push_back(0);
 
     bool eof = false;
@@ -554,7 +558,7 @@ Error* Lexer::from_precompiled() noexcept{
     count = pkpy_TokenDeserializer__read_count(&deserializer);
     for(int i = 0; i < count; i++) {
         Token t;
-        t.type = (unsigned char)pkpy_TokenDeserializer__read_uint(&deserializer, ',');
+        t.type = (TokenIndex)pkpy_TokenDeserializer__read_uint(&deserializer, ',');
         if(is_raw_string_used(t.type)) {
             i64 index = pkpy_TokenDeserializer__read_uint(&deserializer, ',');
             pkpy_Str* p = c11__at(pkpy_Str, precompiled_tokens, index);

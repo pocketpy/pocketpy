@@ -17,7 +17,7 @@ struct PrattRule {
 struct Compiler {
     PK_ALWAYS_PASS_BY_POINTER(Compiler)
 
-    static PrattRule rules[kTokenCount];
+    static PrattRule rules[TK__COUNT__];
 
     Lexer lexer;
     vector<CodeEmitContext> contexts;
@@ -43,7 +43,7 @@ struct Compiler {
             printf("%s:%d %s %s\n",
                 lexer.src.filename().c_str(),
                 curr().line,
-                TK_STR(curr().type),
+                pk_TokenSymbols(curr().type),
                 curr().str().escape().c_str()
             );
         }
