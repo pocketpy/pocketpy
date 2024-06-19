@@ -2,7 +2,7 @@
 
 ## Quick Start
 
-remember to use `py::scoped_interpreter guard{}` to start the interpreter before using any Python objects. Or explicitly call `py::interpreter::initialize()` and `py::nterpreter::finalize()`.
+remember to use `py::scoped_interpreter guard{}` to start the interpreter before using any Python objects. Or explicitly call `py::interpreter::initialize()` and `py::interpreter::finalize()`.
 
 ### module
 
