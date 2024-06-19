@@ -10,7 +10,8 @@ v2.0 branch is a complete refactor of pocketpy in C11,
 which enables users to run pocketpy on platforms that do not support C++.
 Also we redesign the core interpreter to be more efficient and maintainable
 by using modern C11 language features.
-This document describes the API changes from v1.x to v2.0.
+
+> v2.0 will be released on 2024/08.
 
 ## API compatibility
 
