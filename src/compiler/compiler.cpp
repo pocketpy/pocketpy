@@ -101,6 +101,7 @@ Error* Compiler::pop_context() noexcept{
 
         assert(func->type != FuncType::UNSET);
     }
+    contexts.back().s_clean();
     contexts.pop_back();
     return NULL;
 }

@@ -583,7 +583,6 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
             check_compatible_type(globals, VM::tp_dict);
             // make a temporary object and copy globals into it
             globals_obj = new_object<DummyInstance>(VM::tp_object).get();
-            globals_obj->_attr = new NameDict();
             globals_dict = &PK_OBJ_GET(Dict, globals);
             globals_dict->apply([&](PyVar k, PyVar v) {
                 globals_obj->attr().set(CAST(Str&, k), v);
@@ -1893,6 +1892,8 @@ void ManagedHeap::mark() {
 void ManagedHeap::_delete(PyObject* obj) {
     const PyTypeInfo* ti = vm->_tp_info(obj->type);
     if(ti->vt._dtor) ti->vt._dtor(obj->_value_ptr());
+    if (obj->_attr)
+        c11_vector__dtor(obj->_attr);
     delete obj->_attr;  // delete __dict__ if exists
     if(obj->gc_is_large){
         std::free(obj);
