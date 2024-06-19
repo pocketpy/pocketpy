@@ -10,7 +10,48 @@ struct Expr;
 
 typedef small_vector<Expr*, 4> Expr_vector;
 
+static bool default_false(const Expr*) { return false; }
+static int default_zero(const Expr*) { return 0; }
+static void default_dtor(Expr*) {}
+
+struct ExprVt{
+    void (*dtor)(Expr*);
+    /* reflections */
+    bool (*is_literal)(const Expr*);
+    bool (*is_json_object)(const Expr*);
+    bool (*is_attrib)(const Expr*);
+    bool (*is_subscr)(const Expr*);
+    bool (*is_compare)(const Expr*);
+    int (*star_level)(const Expr*);
+    bool (*is_tuple)(const Expr*);
+    bool (*is_name)(const Expr*);
+    /* emit */
+    void (*emit_)(Expr*, CodeEmitContext*);
+    bool (*emit_del)(Expr*, CodeEmitContext*);
+    bool (*emit_store)(Expr*, CodeEmitContext*);
+    void (*emit_inplace)(Expr*, CodeEmitContext*);
+    bool (*emit_store_inplace)(Expr*, CodeEmitContext*);
+};
+
+void ExprVt__ctor(ExprVt* vt){
+    vt->dtor = default_dtor;
+    vt->is_literal = default_false;
+    vt->is_json_object = default_false;
+    vt->is_attrib = default_false;
+    vt->is_subscr = default_false;
+    vt->is_compare = default_false;
+    vt->star_level = default_zero;
+    vt->is_tuple = default_false;
+    vt->is_name = default_false;
+    vt->emit_ = NULL;   // must be set
+    vt->emit_del = NULL;
+    vt->emit_store = NULL;
+    vt->emit_inplace = NULL;
+    vt->emit_store_inplace = NULL;
+}
+
 struct Expr {
+    ExprVt* vt;
     int line = 0;
     virtual ~Expr() = default;
     virtual void emit_(CodeEmitContext* ctx) = 0;
@@ -22,33 +63,52 @@ struct Expr {
     Expr& operator=(Expr&&) = delete;
 
     virtual bool is_literal() const { return false; }
-
     virtual bool is_json_object() const { return false; }
-
     virtual bool is_attrib() const { return false; }
-
     virtual bool is_subscr() const { return false; }
-
     virtual bool is_compare() const { return false; }
-
     virtual int star_level() const { return 0; }
-
     virtual bool is_tuple() const { return false; }
-
     virtual bool is_name() const { return false; }
-
     bool is_starred() const { return star_level() > 0; }
 
     // for OP_DELETE_XXX
     [[nodiscard]] virtual bool emit_del(CodeEmitContext* ctx) { return false; }
-
     // for OP_STORE_XXX
     [[nodiscard]] virtual bool emit_store(CodeEmitContext* ctx) { return false; }
-
     virtual void emit_inplace(CodeEmitContext* ctx) { emit_(ctx); }
-
     [[nodiscard]] virtual bool emit_store_inplace(CodeEmitContext* ctx) { return emit_store(ctx); }
 };
+
+void pk_Expr__emit_(Expr* self, CodeEmitContext* ctx){
+    assert(self->vt->emit_);
+    self->vt->emit_(self, ctx);
+}
+
+bool pk_Expr__emit_del(Expr* self, CodeEmitContext* ctx){
+    if(!self->vt->emit_del) return false;
+    return self->vt->emit_del(self, ctx);
+}
+
+bool pk_Expr__emit_store(Expr* self, CodeEmitContext* ctx){
+    if(!self->vt->emit_store) return false;
+    return self->vt->emit_store(self, ctx);
+}
+
+void pk_Expr__emit_inplace(Expr* self, CodeEmitContext* ctx){
+    if(!self->vt->emit_inplace){
+        pk_Expr__emit_(self, ctx);
+        return;
+    }
+    self->vt->emit_inplace(self, ctx);
+}
+
+bool pk_Expr__emit_store_inplace(Expr* self, CodeEmitContext* ctx){
+    if(!self->vt->emit_store_inplace){
+        return pk_Expr__emit_store(self, ctx);
+    }
+    return self->vt->emit_store_inplace(self, ctx);
+}
 
 inline void delete_expr(Expr* p) noexcept{
     if(!p) return;
