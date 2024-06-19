@@ -18,8 +18,8 @@ This document describes the API changes from v1.x to v2.0.
 | --- | --- | --- |
 | legacy C++ API (v1.x only) | ✅ | ❌ |
 | legacy C API (v1.x only) | ✅ | ❌ |
-| C11 API (v2.0 only) | ❌ | ✅ |
-| pybind11 API (both) | ✅ | ✅ |
+| C11 API (v2.0 only) | ❌ | ✅ (work-in-progress) |
+| pybind11 API (both) | ✅ | ✅ (work-in-progress) |
 
 ## Suggestions
 
