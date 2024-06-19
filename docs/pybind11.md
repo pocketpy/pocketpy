@@ -1,8 +1,15 @@
-# pybind11 user guide
+---
+icon: log
+title: 'pybind11 User Guide'
+order: 21
+---
 
 ## Quick Start
 
-remember to use `py::scoped_interpreter guard{}` to start the interpreter before using any Python objects. Or explicitly call `py::interpreter::initialize()` and `py::interpreter::finalize()`.
+pkpy provides a [pybind11](https://pybind11.readthedocs.io/en/stable/) compatible layer which allows users to do convenient bindings.
+
+To begin with, use `py::scoped_interpreter guard{}` to start the interpreter before using any Python objects.
+Or explicitly call `py::interpreter::initialize()` and `py::interpreter::finalize()`.
 
 ### module
 
