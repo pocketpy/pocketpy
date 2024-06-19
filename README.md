@@ -91,39 +91,33 @@ python scripts/run_tests.py
 ### Example
 
 ```cpp
-#include "pocketpy.h"
+#include <pybind11/pybind11.h>
 
-using namespace pkpy;
+namespace py = pybind11;
 
-int main(){
-    // Create a virtual machine
-    VM* vm = new VM();
+int main() {
+    // Start the interpreter
+    py::scoped_interpreter guard{};
 
     // Hello world!
-    vm->exec("print('Hello world!')");
+    py::exec("print('Hello world!')");
 
     // Create a list
-    vm->exec("a = [1, 2, 3]");
+    py::exec("a = [1, 2, 3]");
 
     // Eval the sum of the list
-    PyVar result = vm->eval("sum(a)");
-    std::cout << "Sum of the list: "<< py_cast<int>(vm, result) << std::endl;   // 6
+    auto result = py::eval("sum(a)");
+    std::cout << "Sum of the list: " << result.cast<int>() << std::endl;  // 6
 
     // Bindings
-    vm->bind(vm->_main, "add(a: int, b: int)",
-      [](VM* vm, ArgsView args){
-        int a = py_cast<int>(vm, args[0]);
-        int b = py_cast<int>(vm, args[1]);
-        return py_var(vm, a + b);
-      });
+    auto m = py::module_::__main__();
+    m.def("add", [](int a, int b) {
+        return a + b;
+    });
 
     // Call the function
-    PyVar f_add = vm->_main->attr("add");
-    result = vm->call(f_add, py_var(vm, 3), py_var(vm, 7));
-    std::cout << "Sum of 2 variables: "<< py_cast<int>(vm, result) << std::endl;   // 10
+    std::cout << "Sum of 2 variables: " << m.attr("add")(1, 2).cast<int>() << std::endl;  // 10
 
-    // Dispose the virtual machine
-    delete vm;
     return 0;
 }
 ```
@@ -135,26 +129,26 @@ for a quick overview of the supported features.
 
 | Name            | Example                         | Supported |
 | --------------- | ------------------------------- | --------- |
-| If Else         | `if..else..elif`                | ✅       |
-| Loop            | `for/while/break/continue`      | ✅       |
-| Function        | `def f(x,*args,y=1):`           | ✅       |
-| Subclass        | `class A(B):`                   | ✅       |
-| List            | `[1, 2, 'a']`                   | ✅       |
-| ListComp        | `[i for i in range(5)]`         | ✅       |
-| Slice           | `a[1:2], a[:2], a[1:]`          | ✅       |
-| Tuple           | `(1, 2, 'a')`                   | ✅       |
-| Dict            | `{'a': 1, 'b': 2}`              | ✅       |
-| F-String        | `f'value is {x}'`               | ✅       |
-| Unpacking       | `a, b = 1, 2`                   | ✅       |
-| Star Unpacking  | `a, *b = [1, 2, 3]`             | ✅       |
-| Exception       | `raise/try..catch..finally`     | ✅       |
-| Dynamic Code    | `eval()/exec()`                 | ✅       |
-| Reflection      | `hasattr()/getattr()/setattr()` | ✅       |
-| Import          | `import/from..import`           | ✅       |
-| Context Block   | `with <expr> as <id>:`          | ✅       |
-| Type Annotation | `def f(a:int, b:float=1)`       | ✅       |
-| Generator       | `yield i`                       | ✅       |
-| Decorator       | `@cache`                        | ✅       |
+| If Else         | `if..else..elif`                | ✅         |
+| Loop            | `for/while/break/continue`      | ✅         |
+| Function        | `def f(x,*args,y=1):`           | ✅         |
+| Subclass        | `class A(B):`                   | ✅         |
+| List            | `[1, 2, 'a']`                   | ✅         |
+| ListComp        | `[i for i in range(5)]`         | ✅         |
+| Slice           | `a[1:2], a[:2], a[1:]`          | ✅         |
+| Tuple           | `(1, 2, 'a')`                   | ✅         |
+| Dict            | `{'a': 1, 'b': 2}`              | ✅         |
+| F-String        | `f'value is {x}'`               | ✅         |
+| Unpacking       | `a, b = 1, 2`                   | ✅         |
+| Star Unpacking  | `a, *b = [1, 2, 3]`             | ✅         |
+| Exception       | `raise/try..catch..finally`     | ✅         |
+| Dynamic Code    | `eval()/exec()`                 | ✅         |
+| Reflection      | `hasattr()/getattr()/setattr()` | ✅         |
+| Import          | `import/from..import`           | ✅         |
+| Context Block   | `with <expr> as <id>:`          | ✅         |
+| Type Annotation | `def f(a:int, b:float=1)`       | ✅         |
+| Generator       | `yield i`                       | ✅         |
+| Decorator       | `@cache`                        | ✅         |
 
 ## Performance
 
@@ -165,17 +159,17 @@ See https://pocketpy.dev/performance/ for details.
 
 And these are the results of the primes benchmark on Intel i5-12400F, WSL (Ubuntu 20.04 LTS), which *roughly* reflects the performance among c++, lua, pkpy and cpython.
 
-| name | version | time | file |
-| ---- | ---- | ---- | ---- |
-| c++ | gnu++11 | `0.104s ■□□□□□□□□□□□□□□□` | [benchmarks/primes.cpp](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.cpp) |
-| lua | 5.3.3 | `1.576s ■■■■■■■■■□□□□□□□` | [benchmarks/primes.lua](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.lua) |
-| pkpy | 1.2.7 | `2.385s ■■■■■■■■■■■■■□□□` | [benchmarks/primes.py](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py) |
-| cpython | 3.8.10 | `2.871s ■■■■■■■■■■■■■■■■` | [benchmarks/primes.py](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py) |
+| name    | version | time                      | file                                                                                                                              |
+| ------- | ------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| c++     | gnu++11 | `0.104s ■□□□□□□□□□□□□□□□` | [benchmarks/primes.cpp](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.cpp) |
+| lua     | 5.3.3   | `1.576s ■■■■■■■■■□□□□□□□` | [benchmarks/primes.lua](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.lua) |
+| pkpy    | 1.2.7   | `2.385s ■■■■■■■■■■■■■□□□` | [benchmarks/primes.py](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py)   |
+| cpython | 3.8.10  | `2.871s ■■■■■■■■■■■■■■■■` | [benchmarks/primes.py](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py)   |
 
 ## Used By
 
 |                                                                 | Description                                                              |
-|-----------------------------------------------------------------|--------------------------------------------------------------------------|
+| --------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | [TIC-80](https://github.com/nesbox/TIC-80)                      | TIC-80 is a fantasy computer for making, playing and sharing tiny games. |
 | [MiniPythonIDE](https://github.com/CU-Production/MiniPythonIDE) | A python ide base on pocketpy                                            |
 | [py-js](https://github.com/shakfu/py-js)                        | Python3 externals for Max / MSP                                          |
