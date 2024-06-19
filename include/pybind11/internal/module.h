@@ -19,8 +19,10 @@ public:
     }
 
     module_ def_submodule(const char* name, const char* doc = nullptr) {
-        auto package = this->package()._as<pkpy::Str>() + "." + this->name()._as<pkpy::Str>();
-        auto m = vm->new_module(name, package);
+        // TODO: resolve package
+        //auto package = this->package()._as<pkpy::Str>() + "." + this->name()._as<pkpy::Str>();
+        auto fname = this->name()._as<pkpy::Str>() + "." + name;
+        auto m = vm->new_module(fname, "");
         setattr(*this, name, m);
         return m;
     }

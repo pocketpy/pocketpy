@@ -176,7 +176,7 @@ public:
 template <typename Fn, std::size_t... Is, typename... Args>
 handle invoke(Fn&& fn,
               std::index_sequence<Is...>,
-              std::tuple<type_caster<Args>...>& casters,
+              std::tuple<impl::type_caster<Args>...>& casters,
               return_value_policy policy,
               handle parent) {
     using underlying_type = std::decay_t<Fn>;
@@ -361,10 +361,10 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
 
         // resolve keyword arguments
         const auto n = vm->s_data._sp - view.end();
-        std::size_t index = 0;
+        int index = 0;
 
         if constexpr(named_argc > 0) {
-            std::size_t arg_index = 0;
+            int arg_index = 0;
             auto& arguments = *record.arguments;
 
             while(arg_index < named_argc && index < n) {
@@ -403,7 +403,7 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
         }
 
         // ok, all the arguments are valid, call the function
-        std::tuple<type_caster<Args>...> casters;
+        std::tuple<impl::type_caster<Args>...> casters;
 
         // check type compatibility
         if(((std::get<Is>(casters).load(stack[Is], convert)) && ...)) {
@@ -489,14 +489,14 @@ pkpy::PyVar setter_wrapper(pkpy::VM* vm, pkpy::ArgsView view) {
 
         if constexpr(std::is_member_object_pointer_v<Setter>) {
             // specialize for pointer to data member
-            type_caster<member_type_t<Setter>> caster;
+            impl::type_caster<member_type_t<Setter>> caster;
             if(caster.load(view[1], true)) {
                 self.*setter = caster.value;
                 return vm->None;
             }
         } else {
             // specialize for pointer to member function
-            type_caster<std::tuple_element_t<1, callable_args_t<Setter>>> caster;
+            impl::type_caster<std::tuple_element_t<1, callable_args_t<Setter>>> caster;
             if(caster.load(view[1], true)) {
                 (self.*setter)(caster.value);
                 return vm->None;
@@ -507,7 +507,7 @@ pkpy::PyVar setter_wrapper(pkpy::VM* vm, pkpy::ArgsView view) {
         using Self = remove_cvref_t<std::tuple_element_t<0, callable_args_t<Setter>>>;
         auto& self = handle(view[0])._as<instance>()._as<Self>();
 
-        type_caster<std::tuple_element_t<1, callable_args_t<Setter>>> caster;
+        impl::type_caster<std::tuple_element_t<1, callable_args_t<Setter>>> caster;
         if(caster.load(view[1], true)) {
             setter(self, caster.value);
             return vm->None;

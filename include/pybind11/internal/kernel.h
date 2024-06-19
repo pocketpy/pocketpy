@@ -37,7 +37,7 @@ class handle;
 class object;
 class iterator;
 class str;
-class arg;
+struct arg;
 struct args_proxy;
 struct kwargs_proxy;
 
@@ -210,12 +210,7 @@ constexpr inline bool is_pyobject_v = std::is_base_of_v<object, T>;
 #if PK_VERSION_MAJOR == 2
 using error_already_set = pkpy::TopLevelException;
 #else
-class error_already_set : std::exception {
-public:
-    error_already_set() = default;
-
-    const char* what() const noexcept override { return "An error occurred while calling a Python function."; }
-};
+using error_already_set = pkpy::Exception;
 #endif
 
 inline void setattr(const handle& obj, const handle& name, const handle& value);
