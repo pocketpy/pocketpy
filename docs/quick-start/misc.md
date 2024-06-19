@@ -9,7 +9,7 @@ order: 0
 Sometimes you need to use the following code to prevent the gc from collecting objects.
 
 ```cpp
-auto _lock = vm->heap.gc_scope_lock();
+auto _lock = vm->gc_scope_lock();
 ```
 
 The scope lock is required if you create a PyVar and then try to run python-level bytecodes.
@@ -34,7 +34,7 @@ The scope lock prevents this from happening.
 void some_func(VM* vm){
     PyVar obj = VAR(List(5));
     // safe
-    auto _lock = vm->heap.gc_scope_lock();
+    auto _lock = vm->gc_scope_lock();
     PyVar iter = vm->py_iter(obj);
     PyVar next = vm->py_next(iter);
 }

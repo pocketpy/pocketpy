@@ -111,7 +111,7 @@ PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field) {
         };
         _1 = new_object<NativeFunc>(tp_native_func, fset, 2, field);
     }
-    PyObject* prop = heap.gcnew<Property>(tp_property, _0, _1);
+    PyObject* prop = new_object<Property>(tp_property, _0, _1).get();
     obj->attr().set(StrName(name_sv), prop);
     return prop;
 }

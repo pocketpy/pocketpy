@@ -4,7 +4,7 @@
 #include "pocketpy/objects/dict.hpp"
 #include "pocketpy/objects/error.hpp"
 #include "pocketpy/objects/builtins.hpp"
-#include "pocketpy/interpreter/gc.hpp"
+#include "pocketpy/interpreter/gc.h"
 #include "pocketpy/interpreter/frame.hpp"
 #include "pocketpy/interpreter/profiler.hpp"
 
@@ -162,7 +162,7 @@ class VM {
     VM* vm;  // self reference to simplify code
 
 public:
-    ManagedHeap heap;
+    pk_ManagedHeap heap;
     ValueStack s_data;
     CallStack callstack;
     vector<PyTypeInfo> _all_types;
@@ -446,7 +446,31 @@ public:
     template<typename T, typename ...Args>
     PyVar new_object(Type type, Args&&... args){
         static_assert(!is_sso_v<T>);
-        return heap.gcnew<T>(type, std::forward<Args>(args)...);
+        static_assert(std::is_same_v<T, std::decay_t<T>>);
+        PyObject* p = (PyObject*)pk_ManagedHeap__new(&heap, type, py_sizeof<T>, true);
+        new (p->_value_ptr()) T(std::forward<Args>(args)...);
+        // backdoor for important builtin types
+        if constexpr(std::is_same_v<T, DummyInstance>
+            || std::is_same_v<T, Type>
+            || std::is_same_v<T, DummyModule>) {
+            p->_attr = new NameDict();
+        }
+        return p;
+    }
+
+    template<typename T, typename ...Args>
+    PyVar new_object_no_gc(Type type, Args&&... args){
+        static_assert(!is_sso_v<T>);
+        static_assert(std::is_same_v<T, std::decay_t<T>>);
+        PyObject* p = (PyObject*)pk_ManagedHeap__new(&heap, type, py_sizeof<T>, false);
+        new (p->_value_ptr()) T(std::forward<Args>(args)...);
+        // backdoor for important builtin types
+        if constexpr(std::is_same_v<T, DummyInstance>
+            || std::is_same_v<T, Type>
+            || std::is_same_v<T, DummyModule>) {
+            p->_attr = new NameDict();
+        }
+        return p;
     }
 #endif
 
@@ -456,7 +480,14 @@ public:
         if(it == nullptr) PK_FATAL_ERROR("T not found in cxx_typeid_map\n")
         return *it;
     }
-
+    /********** old heap op **********/
+    struct HeapScopeLock {
+        PK_ALWAYS_PASS_BY_POINTER(HeapScopeLock)
+        pk_ManagedHeap* heap;
+        HeapScopeLock(pk_ManagedHeap* heap) : heap(heap) { pk_ManagedHeap__push_lock(heap);}
+        ~HeapScopeLock() { pk_ManagedHeap__pop_lock(heap); }
+    };
+    HeapScopeLock gc_scope_lock(){ return {&heap}; }
     /********** private **********/
     virtual ~VM();
 
@@ -569,13 +600,13 @@ PyVar py_var(VM* vm, __T&& value) {
             if constexpr(is_sso_v<T>)
                 return PyVar(const_type, value);
             else
-                return vm->heap.gcnew<T>(const_type, std::forward<__T>(value));
+                return vm->new_object<T>(const_type, std::forward<__T>(value));
         } else {
             Type type = vm->_find_type_in_cxx_typeid_map<T>();
             if constexpr(is_sso_v<T>)
                 return PyVar(type, value);
             else
-                return vm->heap.gcnew<T>(type, std::forward<__T>(value));
+                return vm->new_object<T>(type, std::forward<__T>(value));
         }
     }
 }

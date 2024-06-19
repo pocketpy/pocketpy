@@ -78,8 +78,8 @@ void add_module_sys(VM* vm) {
     vm->setattr(mod, "version", VAR(PK_VERSION));
     vm->setattr(mod, "platform", VAR(kPlatformStrings[PK_SYS_PLATFORM]));
 
-    PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
-    PyObject* stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
+    PyObject* stdout_ = vm->new_object<DummyInstance>(vm->tp_object).get();
+    PyObject* stderr_ = vm->new_object<DummyInstance>(vm->tp_object).get();
     vm->setattr(mod, "stdout", stdout_);
     vm->setattr(mod, "stderr", stderr_);
 
@@ -240,7 +240,7 @@ void add_module_dis(VM* vm) {
 
 void add_module_gc(VM* vm) {
     PyObject* mod = vm->new_module("gc");
-    vm->bind_func(mod, "collect", 0, PK_LAMBDA(VAR(vm->heap.collect())));
+    vm->bind_func(mod, "collect", 0, PK_LAMBDA(VAR(pk_ManagedHeap__collect(&vm->heap))));
 }
 
 void add_module_enum(VM* vm) {

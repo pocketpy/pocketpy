@@ -52,7 +52,7 @@ void VM::__op_unpack_sequence(uint16_t arg) {
             ValueError(_S("expected ", (int)arg, " values to unpack, got ", (int)tuple.size()));
         }
     } else {
-        auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
+        auto _lock = gc_scope_lock();  // lock the gc via RAII!!
         _0 = py_iter(_0);
         const PyTypeInfo* ti = _tp_info(_0);
         for(int i = 0; i < arg; i++) {
@@ -802,7 +802,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     case OP_REPR: TOP() = VAR(py_repr(TOP())); DISPATCH()
                     case OP_CALL: {
-                        if(heap._should_auto_collect()) heap._auto_collect();
+                        pk_ManagedHeap__collect_if_needed(&heap);
                         PyVar _0 = vectorcall(byte.arg & 0xFF,         // ARGC
                                               (byte.arg >> 8) & 0xFF,  // KWARGC
                                               true);
@@ -814,7 +814,7 @@ PyVar VM::__run_top_frame() {
                     }
                         DISPATCH()
                     case OP_CALL_TP: {
-                        if(heap._should_auto_collect()) heap._auto_collect();
+                        pk_ManagedHeap__collect_if_needed(&heap);
                         PyVar _0;
                         PyVar _1;
                         PyVar _2;
@@ -1000,7 +1000,7 @@ PyVar VM::__run_top_frame() {
                     }
                         DISPATCH()
                     case OP_UNPACK_EX: {
-                        auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
+                        auto _lock = gc_scope_lock();  // lock the gc via RAII!!
                         PyVar _0 = py_iter(POPX());
                         const PyTypeInfo* _ti = _tp_info(_0);
                         PyVar _1;

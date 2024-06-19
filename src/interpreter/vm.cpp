@@ -1,6 +1,7 @@
 #include "pocketpy/interpreter/vm.hpp"
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/objects/base.h"
+#include "pocketpy/objects/public.h"
 
 #include <cstddef>
 #include <iostream>
@@ -77,16 +78,17 @@ struct JsonSerializer {
     }
 
     Str serialize() {
-        auto _lock = vm->heap.gc_scope_lock();
+        auto _lock = vm->gc_scope_lock();
         write_object(root);
         return ss.str();
     }
 };
 
-VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
+VM::VM(bool enable_os) : enable_os(enable_os) {
+    pkpy_g.vm = (pkpy_VM*)this;    // setup the current VM
     Pools_initialize();
     pkpy_StrName__initialize();
-    pkpy_g.vm = (pkpy_VM*)this;    // setup the current VM
+    pk_ManagedHeap__ctor(&heap, (pkpy_VM*)this);
 
     static ::PyObject __true_obj = {tp_bool, false, false, NULL};
     static ::PyObject __false_obj = {tp_bool, false, false, NULL};
@@ -226,7 +228,7 @@ PyVar VM::exec(std::string_view source) { return exec(source, "main.py", EXEC_MO
 PyVar VM::eval(std::string_view source) { return exec(source, "<eval>", EVAL_MODE); }
 
 PyObject* VM::new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled, PyTypeInfo::Vt vt) {
-    PyObject* obj = heap._new<Type>(tp_type, Type(_all_types.size()));
+    PyObject* obj = new_object_no_gc<Type>(tp_type, Type(_all_types.size())).get();
     const PyTypeInfo& base_info = _all_types[base];
     if(!base_info.subclass_enabled) {
         Str error = _S("type ", base_info.name.escape(), " is not `subclass_enabled`");
@@ -302,7 +304,7 @@ bool VM::py_callable(PyVar obj) {
 }
 
 PyVar VM::__minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key) {
-    auto _lock = heap.gc_scope_lock();
+    auto _lock = gc_scope_lock();
     const Tuple& args_tuple = PK_OBJ_GET(Tuple, args);  // from *args, it must be a tuple
     if(is_none(key) && args_tuple.size() == 2) {
         // fast path
@@ -328,7 +330,7 @@ PyVar VM::__minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key) {
             if((this->*op)(view[i], res)) res = view[i];
         }
     } else {
-        auto _lock = heap.gc_scope_lock();
+        auto _lock = gc_scope_lock();
         for(int i = 1; i < view.size(); i++) {
             PyVar a = call(key, view[i]);
             PyVar b = call(key, res);
@@ -418,11 +420,8 @@ PyObject* VM::py_import(Str path, bool throw_err) {
 }
 
 VM::~VM() {
-    // clear managed heap
-    for(PyObject* obj: heap.gen)
-        heap._delete(obj);
-    for(PyObject* obj: heap._no_gc)
-        heap._delete(obj);
+    // destroy all objects
+    pk_ManagedHeap__dtor(&heap);
     // clear everything
     callstack.clear();
     s_data.clear();
@@ -472,7 +471,7 @@ void VM::__stack_gc_mark(PyVar* begin, PyVar* end) {
 }
 
 List VM::py_list(PyVar it) {
-    auto _lock = heap.gc_scope_lock();
+    auto _lock = gc_scope_lock();
     it = py_iter(it);
     List list;
     const PyTypeInfo* info = _tp_info(it);
@@ -566,7 +565,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
         return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
     }
 
-    auto _lock = heap.gc_scope_lock();  // for safety
+    auto _lock = gc_scope_lock();  // for safety
 
     PyObject* globals_obj = nullptr;
     Dict* globals_dict = nullptr;
@@ -602,7 +601,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
             locals_closure->set(CAST(Str&, k), v);
         });
         PyObject* _callable =
-            heap.gcnew<Function>(tp_function, __dynamic_func_decl, globals_obj, nullptr, locals_closure);
+            new_object<Function>(tp_function, __dynamic_func_decl, globals_obj, nullptr, locals_closure).get();
         retval = vm->_exec(code.get(), globals_obj, _callable, vm->s_data._sp);
     }
 
@@ -722,7 +721,7 @@ PyVar VM::__format_object(PyVar obj, Str spec) {
 }
 
 PyObject* VM::new_module(Str name, Str package) {
-    PyObject* obj = heap._new<DummyModule>(tp_module);
+    PyObject* obj = new_object_no_gc<DummyModule>(tp_module).get();
     obj->attr().set(__name__, VAR(name));
     obj->attr().set(__package__, VAR(package));
     // convert to fullname
@@ -872,8 +871,8 @@ void VM::__log_s_data(const char* title) {
 
 void VM::__init_builtin_types() {
     _all_types.emplace_back(nullptr, Type(), nullptr, "", false);  // 0 is not used
-    _all_types.emplace_back(heap._new<Type>(tp_type, tp_object), Type(), nullptr, "object", true);
-    _all_types.emplace_back(heap._new<Type>(tp_type, tp_type), tp_object, nullptr, "type", false);
+    _all_types.emplace_back(new_object_no_gc<Type>(tp_type, tp_object).get(), Type(), nullptr, "object", true);
+    _all_types.emplace_back(new_object_no_gc<Type>(tp_type, tp_type).get(), tp_object, nullptr, "type", false);
 
     auto validate = [](Type type, PyObject* ret) {
         Type ret_t = ret->as<Type>();
@@ -945,7 +944,7 @@ void VM::__init_builtin_types() {
 }
 
 void VM::__unpack_as_list(ArgsView args, List& list) {
-    auto _lock = heap.gc_scope_lock();
+    auto _lock = gc_scope_lock();
     for(PyVar obj: args) {
         if(is_type(obj, tp_star_wrapper)) {
             const StarWrapper& w = _CAST(StarWrapper&, obj);
@@ -965,7 +964,7 @@ void VM::__unpack_as_list(ArgsView args, List& list) {
 }
 
 void VM::__unpack_as_dict(ArgsView args, Dict& dict) {
-    auto _lock = heap.gc_scope_lock();
+    auto _lock = gc_scope_lock();
     for(PyVar obj: args) {
         if(is_type(obj, tp_star_wrapper)) {
             const StarWrapper& w = _CAST(StarWrapper&, obj);
@@ -1359,11 +1358,11 @@ void VM::setattr(PyVar obj, StrName name, PyVar value) {
 }
 
 PyObject* VM::bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, any userdata, BindType bt) {
-    PyObject* nf = heap.gcnew<NativeFunc>(tp_native_func, fn, argc, std::move(userdata));
+    PyObject* nf = new_object<NativeFunc>(tp_native_func, fn, argc, std::move(userdata)).get();
     switch(bt) {
         case BindType::DEFAULT: break;
-        case BindType::STATICMETHOD: nf = heap.gcnew<StaticMethod>(tp_staticmethod, nf); break;
-        case BindType::CLASSMETHOD: nf = heap.gcnew<ClassMethod>(tp_classmethod, nf); break;
+        case BindType::STATICMETHOD: nf = new_object<StaticMethod>(tp_staticmethod, nf).get(); break;
+        case BindType::CLASSMETHOD: nf = new_object<ClassMethod>(tp_classmethod, nf).get(); break;
     }
     if(obj != nullptr) obj->attr().set(name, nf);
     return nf;
@@ -1383,11 +1382,11 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     
     FuncDecl_ decl = co->func_decls[0];
     decl->docstring = docstring;
-    PyObject* f_obj = heap.gcnew<NativeFunc>(tp_native_func, fn, decl, std::move(userdata));
+    PyObject* f_obj = new_object<NativeFunc>(tp_native_func, fn, decl, std::move(userdata)).get();
 
     switch(bt) {
-        case BindType::STATICMETHOD: f_obj = heap.gcnew<StaticMethod>(tp_staticmethod, f_obj); break;
-        case BindType::CLASSMETHOD: f_obj = heap.gcnew<ClassMethod>(tp_classmethod, f_obj); break;
+        case BindType::STATICMETHOD: f_obj = new_object<StaticMethod>(tp_staticmethod, f_obj).get(); break;
+        case BindType::CLASSMETHOD: f_obj = new_object<ClassMethod>(tp_classmethod, f_obj).get(); break;
         case BindType::DEFAULT: break;
     }
     if(obj != nullptr) obj->attr().set(decl->code->name, f_obj);
@@ -1402,7 +1401,7 @@ PyObject* VM::bind_property(PyObject* obj, const char* name, NativeFuncC fget, N
     PyVar _0 = new_object<NativeFunc>(tp_native_func, fget, 1);
     PyVar _1 = vm->None;
     if(fset != nullptr) _1 = new_object<NativeFunc>(tp_native_func, fset, 2);
-    PyObject* prop = heap.gcnew<Property>(tp_property, _0, _1);
+    PyObject* prop = new_object<Property>(tp_property, _0, _1).get();
     obj->attr().set(StrName(name_sv), prop);
     return prop;
 }
@@ -1876,29 +1875,35 @@ void Frame::_gc_mark(VM* vm) const {
     vm->obj_gc_mark(_callable);
 }
 
-void ManagedHeap::mark() {
-    for(PyObject* obj: _no_gc)
-        vm->__obj_gc_mark(obj);
-    vm->callstack.apply([this](Frame& frame) {
-        frame._gc_mark(vm);
-    });
-    vm->obj_gc_mark(vm->__last_exception);
-    vm->obj_gc_mark(vm->__curr_class);
-    vm->obj_gc_mark(vm->__c.error);
-    vm->__stack_gc_mark(vm->s_data.begin(), vm->s_data.end());
-    if(_gc_marker_ex) _gc_marker_ex(vm);
-}
+extern "C"{
+    void pk_ManagedHeap__mark(pk_ManagedHeap* self){
+        VM* vm = (VM*)self->vm;
+        for(int i=0; i<self->no_gc.count; i++){
+            PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
+            vm->__obj_gc_mark(obj);
+        }
+        vm->callstack.apply([vm](Frame& frame) {
+            frame._gc_mark(vm);
+        });
+        vm->obj_gc_mark(vm->__last_exception);
+        vm->obj_gc_mark(vm->__curr_class);
+        vm->obj_gc_mark(vm->__c.error);
+        vm->__stack_gc_mark(vm->s_data.begin(), vm->s_data.end());
+        if(self->_gc_marker_ex) self->_gc_marker_ex((pkpy_VM*)vm);
+    }
 
-void ManagedHeap::_delete(PyObject* obj) {
-    const PyTypeInfo* ti = vm->_tp_info(obj->type);
-    if(ti->vt._dtor) ti->vt._dtor(obj->_value_ptr());
-    if (obj->_attr)
-        c11_vector__dtor(obj->_attr);
-    delete obj->_attr;  // delete __dict__ if exists
-    if(obj->gc_is_large){
-        std::free(obj);
-    }else{
-        PoolObject_dealloc(obj);
+    void pk_ManagedHeap__delete_obj(pk_ManagedHeap* self, ::PyObject* __obj){
+        PyObject* obj = (PyObject*)__obj;
+        const PyTypeInfo* ti = ((VM*)(self->vm))->_tp_info(obj->type);
+        if(ti->vt._dtor) ti->vt._dtor(obj->_value_ptr());
+        if (obj->_attr)
+            c11_vector__dtor(obj->_attr);
+        delete obj->_attr;  // delete __dict__ if exists
+        if(obj->gc_is_large){
+            std::free(obj);
+        }else{
+            PoolObject_dealloc(obj);
+        }
     }
 }
 

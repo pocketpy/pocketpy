@@ -151,7 +151,7 @@ void add_module_io(VM* vm) {
 
 void add_module_os(VM* vm) {
     PyObject* mod = vm->new_module("os");
-    PyObject* path_obj = vm->heap.gcnew<DummyInstance>(VM::tp_object);
+    PyObject* path_obj = vm->new_object<DummyInstance>(VM::tp_object).get();
     mod->attr().set("path", path_obj);
 
     // Working directory is shared by all VMs!!

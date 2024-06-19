@@ -428,7 +428,7 @@ bool pkpy_unpack_sequence(pkpy_vm* vm_handle, int n) {
     VM* vm = (VM*)vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
-    auto _lock = vm->heap.gc_scope_lock();
+    auto _lock = vm->gc_scope_lock();
     PK_PROTECTED(
         PyVar _0 = vm->py_iter(vm->s_data.popx());
         for(int i=0; i<n; i++){

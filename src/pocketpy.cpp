@@ -94,7 +94,7 @@ void __init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_func(_vm->builtins, "super", -1, [](VM* vm, ArgsView args) {
+    _vm->bind_func(_vm->builtins, "super", -1, [](VM* vm, ArgsView args)->PyVar  {
         PyObject* class_arg = nullptr;
         PyVar self_arg = nullptr;
         if(args.size() == 2) {
@@ -122,13 +122,13 @@ void __init_builtins(VM* _vm) {
         return vm->new_object<Super>(vm->tp_super, self_arg, vm->_all_types[type].base);
     });
 
-    _vm->bind_func(_vm->builtins, "staticmethod", 1, [](VM* vm, ArgsView args) {
+    _vm->bind_func(_vm->builtins, "staticmethod", 1, [](VM* vm, ArgsView args)->PyVar {
         PyVar func = args[0];
         vm->check_type(func, vm->tp_function);
         return vm->new_object<StaticMethod>(vm->tp_staticmethod, args[0]);
     });
 
-    _vm->bind_func(_vm->builtins, "classmethod", 1, [](VM* vm, ArgsView args) {
+    _vm->bind_func(_vm->builtins, "classmethod", 1, [](VM* vm, ArgsView args)->PyVar  {
         PyVar func = args[0];
         vm->check_type(func, vm->tp_function);
         return vm->new_object<ClassMethod>(vm->tp_classmethod, args[0]);
@@ -380,7 +380,7 @@ void __init_builtins(VM* _vm) {
         return _0._obj == _1._obj ? vm->True : vm->False;
     });
 
-    _vm->__cached_object_new = _vm->bind_func(VM::tp_object, __new__, 1, [](VM* vm, ArgsView args) {
+    _vm->__cached_object_new = _vm->bind_func(VM::tp_object, __new__, 1, [](VM* vm, ArgsView args) ->PyVar {
         vm->check_type(args[0], vm->tp_type);
         Type t = PK_OBJ_GET(Type, args[0]);
         return vm->new_object<DummyInstance>(t);
@@ -734,7 +734,7 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind_func(VM::tp_str, "join", 2, [](VM* vm, ArgsView args) {
-        auto _lock = vm->heap.gc_scope_lock();
+        auto _lock = vm->gc_scope_lock();
         const Str& self = _CAST(Str&, args[0]);
         SStream ss;
         PyVar it = vm->py_iter(args[1]);  // strong ref
@@ -964,7 +964,7 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind_func(VM::tp_list, "extend", 2, [](VM* vm, ArgsView args) {
-        auto _lock = vm->heap.gc_scope_lock();
+        auto _lock = vm->gc_scope_lock();
         List& self = _CAST(List&, args[0]);
         PyVar it = vm->py_iter(args[1]);  // strong ref
         const PyTypeInfo* info = vm->_tp_info(args[1]);
@@ -1342,7 +1342,7 @@ void __init_builtins(VM* _vm) {
     });
 
     // tp_dict
-    _vm->bind_func(VM::tp_dict, __new__, -1, [](VM* vm, ArgsView args) {
+    _vm->bind_func(VM::tp_dict, __new__, -1, [](VM* vm, ArgsView args)->PyVar {
         Type cls_t = PK_OBJ_GET(Type, args[0]);
         return vm->new_object<Dict>(cls_t);
     });
@@ -1350,7 +1350,7 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(VM::tp_dict, __init__, -1, [](VM* vm, ArgsView args) {
         if(args.size() == 1 + 0) return vm->None;
         if(args.size() == 1 + 1) {
-            auto _lock = vm->heap.gc_scope_lock();
+            auto _lock = vm->gc_scope_lock();
             Dict& self = PK_OBJ_GET(Dict, args[0]);
             if(is_type(args[1], vm->tp_dict)) {
                 Dict& other = CAST(Dict&, args[1]);
@@ -1539,7 +1539,7 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(VM::tp_exception, __new__, -1, [](VM* vm, ArgsView args) -> PyVar {
         Type cls = PK_OBJ_GET(Type, args[0]);
         StrName cls_name = _type_name(vm, cls);
-        PyObject* e_obj = vm->heap.gcnew<Exception>(cls, cls_name.index);
+        PyObject* e_obj = vm->new_object<Exception>(cls, cls_name.index).get();
         e_obj->_attr = new NameDict();
         e_obj->as<Exception>().self = e_obj;
         return e_obj;
