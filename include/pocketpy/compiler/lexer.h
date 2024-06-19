@@ -9,12 +9,12 @@ extern "C" {
 
 extern const char* pk_TokenSymbols[];
 
-typedef struct pkpy_TokenDeserializer {
+typedef struct pk_TokenDeserializer {
     const char* curr;
     const char* source;
-} pkpy_TokenDeserializer;
+} pk_TokenDeserializer;
 
-enum TokenIndex{
+typedef enum TokenIndex{
     TK_EOF, TK_EOL, TK_SOF,
     TK_ID, TK_NUM, TK_STR, TK_FSTR, TK_LONG, TK_BYTES, TK_IMAG,
     TK_INDENT, TK_DEDENT,
@@ -37,15 +37,15 @@ enum TokenIndex{
     TK_TRY, TK_WHILE, TK_WITH, TK_YIELD,
     /***************/
     TK__COUNT__
-};
+} TokenIndex;
 
-void pkpy_TokenDeserializer__ctor(pkpy_TokenDeserializer* self, const char* source);
-bool pkpy_TokenDeserializer__match_char(pkpy_TokenDeserializer* self, char c);
-c11_string pkpy_TokenDeserializer__read_string(pkpy_TokenDeserializer* self, char c);
-pkpy_Str pkpy_TokenDeserializer__read_string_from_hex(pkpy_TokenDeserializer* self, char c);
-int pkpy_TokenDeserializer__read_count(pkpy_TokenDeserializer* self);
-int64_t pkpy_TokenDeserializer__read_uint(pkpy_TokenDeserializer* self, char c);
-double pkpy_TokenDeserializer__read_float(pkpy_TokenDeserializer* self, char c);
+void pk_TokenDeserializer__ctor(pk_TokenDeserializer* self, const char* source);
+bool pk_TokenDeserializer__match_char(pk_TokenDeserializer* self, char c);
+c11_string pk_TokenDeserializer__read_string(pk_TokenDeserializer* self, char c);
+pkpy_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, char c);
+int pk_TokenDeserializer__read_count(pk_TokenDeserializer* self);
+int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c);
+double pk_TokenDeserializer__read_float(pk_TokenDeserializer* self, char c);
 
 #ifdef __cplusplus
 }

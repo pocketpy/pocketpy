@@ -27,12 +27,12 @@ const char* pk_TokenSymbols[] = {
     "try", "while", "with", "yield",
 };
 
-void pkpy_TokenDeserializer__ctor(pkpy_TokenDeserializer* self, const char* source){
+void pk_TokenDeserializer__ctor(pk_TokenDeserializer* self, const char* source){
     self->curr = source;
     self->source = source;
 }
 
-bool pkpy_TokenDeserializer__match_char(pkpy_TokenDeserializer* self, char c){
+bool pk_TokenDeserializer__match_char(pk_TokenDeserializer* self, char c){
     if(*self->curr == c) {
         self->curr++;
         return true;
@@ -40,7 +40,7 @@ bool pkpy_TokenDeserializer__match_char(pkpy_TokenDeserializer* self, char c){
     return false;
 }
 
-c11_string pkpy_TokenDeserializer__read_string(pkpy_TokenDeserializer* self, char c){
+c11_string pk_TokenDeserializer__read_string(pk_TokenDeserializer* self, char c){
     const char* start = self->curr;
     while(*self->curr != c)
         self->curr++;
@@ -49,8 +49,8 @@ c11_string pkpy_TokenDeserializer__read_string(pkpy_TokenDeserializer* self, cha
     return retval;
 }
 
-pkpy_Str pkpy_TokenDeserializer__read_string_from_hex(pkpy_TokenDeserializer* self, char c){
-    c11_string sv = pkpy_TokenDeserializer__read_string(self, c);
+pkpy_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, char c){
+    c11_string sv = pk_TokenDeserializer__read_string(self, c);
     const char* s = sv.data;
     char* buffer = (char*)malloc(sv.size / 2 + 1);
     for(int i = 0; i < sv.size; i += 2) {
@@ -79,13 +79,13 @@ pkpy_Str pkpy_TokenDeserializer__read_string_from_hex(pkpy_TokenDeserializer* se
     };
 }
 
-int pkpy_TokenDeserializer__read_count(pkpy_TokenDeserializer* self){
+int pk_TokenDeserializer__read_count(pk_TokenDeserializer* self){
     assert(*self->curr == '=');
     self->curr++;
-    return pkpy_TokenDeserializer__read_uint(self, '\n');
+    return pk_TokenDeserializer__read_uint(self, '\n');
 }
 
-int64_t pkpy_TokenDeserializer__read_uint(pkpy_TokenDeserializer* self, char c){
+int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c){
     int64_t out = 0;
     while(*self->curr != c) {
         out = out * 10 + (*self->curr - '0');
@@ -95,8 +95,8 @@ int64_t pkpy_TokenDeserializer__read_uint(pkpy_TokenDeserializer* self, char c){
     return out;
 }
 
-double pkpy_TokenDeserializer__read_float(pkpy_TokenDeserializer* self, char c){
-    c11_string sv = pkpy_TokenDeserializer__read_string(self, c);
+double pk_TokenDeserializer__read_float(pk_TokenDeserializer* self, char c){
+    c11_string sv = pk_TokenDeserializer__read_string(self, c);
     pkpy_Str nullterm;
     pkpy_Str__ctor2(&nullterm, sv.data, sv.size);
     char* end;

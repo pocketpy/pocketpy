@@ -533,34 +533,34 @@ Error* Lexer::run() noexcept{
 }
 
 Error* Lexer::from_precompiled() noexcept{
-    pkpy_TokenDeserializer deserializer;
-    pkpy_TokenDeserializer__ctor(&deserializer, pkpy_Str__data(&src->source));
+    pk_TokenDeserializer deserializer;
+    pk_TokenDeserializer__ctor(&deserializer, pkpy_Str__data(&src->source));
 
     deserializer.curr += 5;  // skip "pkpy:"
-    c11_string version = pkpy_TokenDeserializer__read_string(&deserializer, '\n');
+    c11_string version = pk_TokenDeserializer__read_string(&deserializer, '\n');
 
     if(c11_string__cmp3(version, PK_VERSION) != 0) {
         return SyntaxError("precompiled version mismatch");
     }
-    if(pkpy_TokenDeserializer__read_uint(&deserializer, '\n') != (i64)src->mode){
+    if(pk_TokenDeserializer__read_uint(&deserializer, '\n') != (i64)src->mode){
         return SyntaxError("precompiled mode mismatch");
     }
 
-    int count = pkpy_TokenDeserializer__read_count(&deserializer);
+    int count = pk_TokenDeserializer__read_count(&deserializer);
     c11_vector* precompiled_tokens = &src->_precompiled_tokens;
     for(int i = 0; i < count; i++) {
-        c11_string item = pkpy_TokenDeserializer__read_string(&deserializer, '\n');
+        c11_string item = pk_TokenDeserializer__read_string(&deserializer, '\n');
         pkpy_Str copied_item;
         pkpy_Str__ctor2(&copied_item, item.data, item.size);
         c11_vector__push(pkpy_Str, precompiled_tokens, copied_item);
     }
 
-    count = pkpy_TokenDeserializer__read_count(&deserializer);
+    count = pk_TokenDeserializer__read_count(&deserializer);
     for(int i = 0; i < count; i++) {
         Token t;
-        t.type = (TokenIndex)pkpy_TokenDeserializer__read_uint(&deserializer, ',');
+        t.type = (TokenIndex)pk_TokenDeserializer__read_uint(&deserializer, ',');
         if(is_raw_string_used(t.type)) {
-            i64 index = pkpy_TokenDeserializer__read_uint(&deserializer, ',');
+            i64 index = pk_TokenDeserializer__read_uint(&deserializer, ',');
             pkpy_Str* p = c11__at(pkpy_Str, precompiled_tokens, index);
             t.start = pkpy_Str__data(p);
             t.length = c11__getitem(pkpy_Str, precompiled_tokens, index).size;
@@ -569,28 +569,28 @@ Error* Lexer::from_precompiled() noexcept{
             t.length = 0;
         }
 
-        if(pkpy_TokenDeserializer__match_char(&deserializer, ',')) {
+        if(pk_TokenDeserializer__match_char(&deserializer, ',')) {
             t.line = nexts.back().line;
         } else {
-            t.line = (int)pkpy_TokenDeserializer__read_uint(&deserializer, ',');
+            t.line = (int)pk_TokenDeserializer__read_uint(&deserializer, ',');
         }
 
-        if(pkpy_TokenDeserializer__match_char(&deserializer, ',')) {
+        if(pk_TokenDeserializer__match_char(&deserializer, ',')) {
             t.brackets_level = nexts.back().brackets_level;
         } else {
-            t.brackets_level = (int)pkpy_TokenDeserializer__read_uint(&deserializer, ',');
+            t.brackets_level = (int)pk_TokenDeserializer__read_uint(&deserializer, ',');
         }
 
         char type = (*deserializer.curr++);      // read_char
         switch(type) {
             case 'I':
-                t.value = pkpy_TokenDeserializer__read_uint(&deserializer, '\n');
+                t.value = pk_TokenDeserializer__read_uint(&deserializer, '\n');
                 break;
             case 'F':
-                t.value = pkpy_TokenDeserializer__read_float(&deserializer, '\n');
+                t.value = pk_TokenDeserializer__read_float(&deserializer, '\n');
                 break;
             case 'S': {
-                pkpy_Str res = pkpy_TokenDeserializer__read_string_from_hex(&deserializer, '\n');
+                pkpy_Str res = pk_TokenDeserializer__read_string_from_hex(&deserializer, '\n');
                 t.value = Str(std::move(res));
             } break;
             default:
