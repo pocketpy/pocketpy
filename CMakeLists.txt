@@ -61,13 +61,32 @@ endif()
 # PK_IS_MAIN determines whether the project is being used from root
 # or if it is added as a dependency (through add_subdirectory for example).
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-  set(PK_IS_MAIN TRUE)
-  option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
-  option(PK_BUILD_STATIC_LIB "Build static library" OFF)
+    set(PK_IS_MAIN TRUE)
+    option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
+    option(PK_BUILD_STATIC_LIB "Build static library" OFF)
+
+    # @szdytom favored testing
+    # disabled by default because @blueloveTH doesn't like it :C
+    option(BUILD_TESTING "Build the testing tree." OFF)
+    if (BUILD_TESTING)
+        option(BUILD_TESTING_SANITIZE "Build the source with sanitizers" OFF)
+        if (BUILD_TESTING_SANITIZE)
+            if (MSVC)
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address /fno-omit-frame-pointer")
+                set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /fsanitize=address /fno-omit-frame-pointer")
+            else()
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,leak,undefined")
+                set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address,leak,undefined")
+            endif()
+        endif()
+
+        enable_testing()
+        add_subdirectory(tests/)
+    endif()
 else()
-  set(PK_IS_MAIN FALSE)
-  option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
-  option(PK_BUILD_STATIC_LIB "Build static library" ON)
+    set(PK_IS_MAIN FALSE)
+    option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
+    option(PK_BUILD_STATIC_LIB "Build static library" ON)
 endif()
 
 if(PK_BUILD_SHARED_LIB)
@@ -77,12 +96,15 @@ elseif(PK_BUILD_STATIC_LIB)
 else()
     set(PROJECT_EXE_NAME main)
     add_executable(${PROJECT_EXE_NAME} src2/main.cpp)
-    # shared linked main
-    add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
-    target_link_libraries(${PROJECT_EXE_NAME} ${PROJECT_NAME} ${CMAKE_DL_LIBS})
-    # static linked main
-    # add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC})
-    # target_link_libraries(${PROJECT_EXE_NAME} ${PROJECT_NAME})
+    if (BUILD_TESTING_SANITIZE)
+        # static linked main, for sanitizing purpose
+        add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC})
+        target_link_libraries(${PROJECT_EXE_NAME} ${PROJECT_NAME})
+    else()
+      # shared linked main, used by default, for CI and others
+        add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
+        target_link_libraries(${PROJECT_EXE_NAME} ${PROJECT_NAME} ${CMAKE_DL_LIBS})
+    endif()
 endif()
 
 if(PK_USE_CJSON)
