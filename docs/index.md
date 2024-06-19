@@ -5,6 +5,12 @@ label: Welcome
 
 # Welcome to pocketpy
 
+!!!
+We are moving to v2.0 branch, which is a complete refactor of this project in C11. 
+
+See [Migration Guide](migrate.md) for more details.
+!!!
+
 pkpy is a lightweight(~15K LOC) Python interpreter for game scripting, built on C++17 with STL.
 
 It aims to be an alternative to lua for game scripting, with elegant syntax, powerful features and competitive performance.
