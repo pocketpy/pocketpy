@@ -1,4 +1,10 @@
-# module
+# pybind11 user guide
+
+## Quick Start
+
+remember to use `py::scoped_interpreter guard{}` to start the interpreter before using any Python objects. Or explicitly call `py::interpreter::initialize()` and `py::nterpreter::finalize()`.
+
+### module
 
 ```cpp
 #include <pybind11/pybind11.h>
@@ -13,7 +19,7 @@ PYBIND11_MODULE(example, m) {
 }
 ```
 
-# function
+### function
 
 ```cpp
 int add(int a, int b) { return a + b; }
@@ -52,7 +58,7 @@ void register_function(py::module_& m)
 }
 ```
 
-# class
+### class
 
 ```cpp
 struct Point
@@ -104,11 +110,10 @@ void bind_class(py::module_& m)
 }
 ```
 
-# operators
+### operators
 
 ```cpp
 #include <pybind11/operators.h>
-
 namespace py = pybind11;
 
 struct Int {
@@ -141,10 +146,11 @@ void bind_operators(py::module_& m)
         .def(py::self - py::self)
         .def(py::self == py::self)
         .def(py::self != py::self);
+        // other operators are similar
 }
 ```
 
-# py::object
+### py::object
 
 `py::object` is just simple wrapper around `PyVar`. It supports some convenient methods to interact with Python objects.
 
@@ -185,4 +191,94 @@ py::tuple t = {1, 2, 3};
 // ...
 ```
 
+
+
+## More Examples
+
 More examples please see the test [folder](https://github.com/pocketpy/gsoc-2024-dev/tree/main/pybind11/tests) in the GSoC repository. All tested features are supported.
+
+## Limits and Comparison
+
+This is a feature list of pybind11 for pocketpy. It lists all completed and pending features. It also lists the features that cannot be implemented in the current version of pocketpy.
+
+### [Function](https://pybind11.readthedocs.io/en/stable/advanced/functions.html)
+
+- [x] Function overloading
+- [x] Return value policy
+- [x] is_prepend
+- [x] `*args` and `**kwargs`
+- [ ] Keep-alive
+- [ ] Call Guard
+- [x] Default arguments
+- [ ] Keyword-Only arguments
+- [ ] Positional-Only arguments
+- [ ] Allow/Prohibiting None arguments
+
+### [Class](https://pybind11.readthedocs.io/en/stable/classes.html)
+
+- [x] Creating bindings for a custom type
+- [x] Binding lambda functions
+- [x] Dynamic attributes
+- [x] Inheritance and automatic downcasting
+- [x] Enumerations and internal types
+- [ ] Instance and static fields
+
+> Binding static fields may never be implemented in pocketpy because it requires a metaclass, which is a heavy and infrequently used feature.
+
+### [Exceptions](https://pybind11.readthedocs.io/en/stable/advanced/exceptions.html)
+
+Need further discussion.
+
+### [Smart pointers](https://pybind11.readthedocs.io/en/stable/advanced/smart_ptrs.html)
+
+- [ ] std::shared_ptr
+- [ ] std::unique_ptr
+- [ ] Custom smart pointers
+
+### [Type conversions](https://pybind11.readthedocs.io/en/stable/advanced/cast/index.html)
+
+- [x] Python built-in types
+- [x] STL Containers
+- [ ] Functional
+- [ ] Chrono
+
+### [Python C++ interface](https://pybind11.readthedocs.io/en/stable/advanced/pycpp/object.html)
+
+Need further discussion.
+
+- [x] `object`
+- [x] `none`
+- [x] `type`
+- [x] `bool_`
+- [x] `int_`
+- [x] `float_`
+- [x] `str`
+- [ ] `bytes`
+- [ ] `bytearray`
+- [x] `tuple`
+- [x] `list`
+- [ ] `set`
+- [x] `dict`
+- [ ] `slice`
+- [x] `iterable`
+- [x] `iterator`
+- [ ] `function`
+- [ ] `buffer`
+- [ ] `memoryview`
+- [x] `capsule`
+
+### [Miscellaneous](https://pybind11.readthedocs.io/en/stable/advanced/misc.html)
+
+- [ ] Global Interpreter Lock (GIL)
+- [ ] Binding sequence data types, iterators, the slicing protocol, etc.
+- [x] Convenient operators binding
+
+### Differences between CPython and pocketpy
+
+- only `add`, `sub` and `mul` have corresponding right versions in pocketpy. So if you bind `int() >> py::self`, it will has no effect in pocketpy.
+
+- `__new__` and `__del__` are not supported in pocketpy.
+
+- in-place operators, such as `+=`, `-=`, `*=`, etc., are not supported in pocketpy.
+
+- thre return value of `globals` is immutable in pocketpy.
