@@ -25,7 +25,6 @@ pkpy is extremely easy to embed via a single header file `pocketpy.h`, without e
 
 Please see https://pocketpy.dev for details and try the following resources.
 + [Live Python Demo](https://pocketpy.dev/static/web/): Python REPL of the latest version
-+ [Live C++ Examples](https://pocketpy.github.io/examples/): Common usage of pkpy in C++
 
 > We are moving to v2.0 branch, which is a complete refactor of this project in C11. See [Migration Guide](https://pocketpy.dev/migrate/) for more details.
 
