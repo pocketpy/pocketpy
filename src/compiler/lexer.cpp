@@ -390,13 +390,7 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
                 return NULL;
             }
             case '=': add_token_2('=', TK("="), TK("==")); return NULL;
-            case '+':
-                if(matchchar('+')) {
-                    add_token(TK("++"));
-                } else {
-                    add_token_2('=', TK("+"), TK("+="));
-                }
-                return NULL;
+            case '+': add_token_2('=', TK("+"), TK("+=")); return NULL;
             case '>': {
                 if(matchchar('='))
                     add_token(TK(">="));
@@ -416,16 +410,12 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
                 return NULL;
             }
             case '-': {
-                if(matchchar('-')) {
-                    add_token(TK("--"));
-                } else {
-                    if(matchchar('='))
-                        add_token(TK("-="));
-                    else if(matchchar('>'))
-                        add_token(TK("->"));
-                    else
-                        add_token(TK("-"));
-                }
+                if(matchchar('='))
+                    add_token(TK("-="));
+                else if(matchchar('>'))
+                    add_token(TK("->"));
+                else
+                    add_token(TK("-"));
                 return NULL;
             }
             case '!':

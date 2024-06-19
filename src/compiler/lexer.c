@@ -20,7 +20,7 @@ c11_string pkpy_TokenDeserializer__read_string(pkpy_TokenDeserializer* self, cha
     const char* start = self->curr;
     while(*self->curr != c)
         self->curr++;
-    c11_string retval = {start, self->curr - start};
+    c11_string retval = {start, (int)(self->curr-start)};
     self->curr++;  // skip the delimiter
     return retval;
 }

@@ -11,19 +11,21 @@ typedef uint8_t TokenIndex;
 
 // clang-format off
 constexpr const char* kTokens[] = {
-    "is not", "not in", "yield from",
     "@eof", "@eol", "@sof",
     "@id", "@num", "@str", "@fstr", "@long", "@bytes", "@imag",
     "@indent", "@dedent",
+    // These 3 are compound keywords which are generated on the fly
+    "is not", "not in", "yield from",
     /*****************************************/
     "+", "+=", "-", "-=",   // (INPLACE_OP - 1) can get '=' removed
     "*", "*=", "/", "/=", "//", "//=", "%", "%=",
     "&", "&=", "|", "|=", "^", "^=", 
     "<<", "<<=", ">>", ">>=",
     /*****************************************/
-    ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}",
-    "**", "=", ">", "<", "..", "...", "->", "@", "==", "!=", ">=", "<=",
-    "++", "--", "~",
+    "(", ")", "[", "]", "{", "}",
+    ".", "..", "...", ",", ":", ";",
+    "**", "->", "#", "@",
+    ">", "<", "=", "==", "!=", ">=", "<=", "~",
     /** KW_BEGIN **/
     // NOTE: These keywords should be sorted in ascending order!!
     "False", "None", "True", "and", "as", "assert", "break", "class", "continue",

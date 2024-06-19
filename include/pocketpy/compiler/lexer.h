@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdbool.h>
 #include "pocketpy/common/str.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

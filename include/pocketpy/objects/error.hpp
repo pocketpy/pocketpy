@@ -59,13 +59,6 @@ struct TopLevelException : std::exception {
     }
 };
 
-struct Error{
-    const char* type;
-    pkpy_SourceData_ src;
-    int lineno;
-    const char* cursor;
-    char msg[100];
-    i64 userdata;
-};
+
 
 }  // namespace pkpy

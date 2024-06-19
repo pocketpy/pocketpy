@@ -34,6 +34,15 @@ void pkpy_Exception__dtor(pkpy_Exception* self);
 void pkpy_Exception__stpush(pkpy_Exception* self, pkpy_SourceData_ src, int lineno, const char* cursor, const char* name);
 pkpy_Str pkpy_Exception__summary(pkpy_Exception* self);
 
+struct Error{
+    const char* type;
+    pkpy_SourceData_ src;
+    int lineno;
+    const char* cursor;
+    char msg[100];
+    int64_t userdata;
+};
+
 #ifdef __cplusplus
 }
 #endif
