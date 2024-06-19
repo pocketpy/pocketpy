@@ -9,7 +9,7 @@
 #include <map>
 #include <unordered_map>
 
-namespace pybind11 {
+namespace pybind11::impl {
 
 template <typename T, std::size_t N>
 struct type_caster<std::array<T, N>> {
@@ -140,5 +140,5 @@ struct type_caster<T, std::enable_if_t<is_py_map_like_v<T>>> {
     }
 };
 
-}  // namespace pybind11
+}  // namespace pybind11::impl
 

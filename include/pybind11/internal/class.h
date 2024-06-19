@@ -169,15 +169,15 @@ public:
     }
 
     enum_& value(const char* name, T value) {
-        handle var = type_caster<T>::cast(value, return_value_policy::copy);
-        this->m_ptr->attr().set(name, var.ptr());
+        handle var = pybind11::cast(value, return_value_policy::copy);
+        setattr(*this, name, var);
         m_values.emplace_back(name, var);
         return *this;
     }
 
     enum_& export_values() {
         for(auto& [name, value]: m_values) {
-            Base::m_scope.ptr()->attr().set(name, value.ptr());
+            setattr(Base::m_scope, name, value);
         }
         return *this;
     }

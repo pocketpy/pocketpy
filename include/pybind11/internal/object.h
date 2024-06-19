@@ -69,15 +69,19 @@ public:
     template <typename T>
     decltype(auto) _as() const {
         static_assert(!std::is_reference_v<T>, "T must not be a reference type.");
-#if PK_VERSION_MAJOR == 2
-        if constexpr(pkpy::is_sso_v<T>) {
-            return pkpy::_py_cast<T>(vm, ptr());
+        if constexpr(std::is_same_v<T, empty>) {
+            return empty();
         } else {
-            return ptr().template obj_get<T>();
-        }
+#if PK_VERSION_MAJOR == 2
+            if constexpr(pkpy::is_sso_v<T>) {
+                return pkpy::_py_cast<T>(vm, ptr());
+            } else {
+                return ptr().template obj_get<T>();
+            }
 #else
-        return (((pkpy::Py_<T>*)ptr())->_value);
+            return (((pkpy::Py_<T>*)ptr())->_value);
 #endif
+        }
     }
 };
 

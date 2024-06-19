@@ -385,11 +385,11 @@ public:
 };
 
 class args : public tuple {
-    PYBIND11_TYPE_IMPLEMENT(tuple, struct empty, vm->tp_tuple);
+    PYBIND11_TYPE_IMPLEMENT(tuple, pybind11::empty, vm->tp_tuple);
 };
 
 class kwargs : public dict {
-    PYBIND11_TYPE_IMPLEMENT(dict, struct empty, vm->tp_dict);
+    PYBIND11_TYPE_IMPLEMENT(dict, pybind11::empty, vm->tp_dict);
 };
 
 }  // namespace pybind11

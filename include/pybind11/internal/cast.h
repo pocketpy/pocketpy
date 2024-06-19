@@ -2,7 +2,7 @@
 #include "instance.h"
 #include "accessor.h"
 
-namespace pybind11 {
+namespace pybind11::impl {
 
 using pkpy::is_floating_point_v;
 using pkpy::is_integral_v;

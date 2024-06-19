@@ -81,8 +81,12 @@ inline bool isinstance(const handle& obj, const handle& type) {
 
 inline int64_t hash(const handle& obj) { return vm->py_hash(obj.ptr()); }
 
+namespace impl {
+
 template <typename T, typename SFINAE = void>
 struct type_caster;
+
+}
 
 template <typename T>
 handle cast(T&& value, return_value_policy policy, handle parent) {
@@ -107,7 +111,7 @@ handle cast(T&& value, return_value_policy policy, handle parent) {
                                                         : return_value_policy::move;
         }
 
-        return type_caster<underlying_type>::cast(std::forward<T>(value), policy, parent);
+        return impl::type_caster<underlying_type>::cast(std::forward<T>(value), policy, parent);
     }
 }
 
@@ -115,7 +119,7 @@ template <typename T>
 T cast(const handle& obj, bool convert) {
     assert(obj.ptr() != nullptr);
 
-    type_caster<T> caster = {};
+    impl::type_caster<T> caster = {};
 
     if(caster.load(obj, convert)) {
         return caster.value;
