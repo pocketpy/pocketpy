@@ -49,6 +49,11 @@ public:
         return type_visitor::type<T>();
     }
 
+    template <typename T>
+    static type of() {
+        return type_visitor::type<T>();
+    }
+    
     static type of(const handle& obj) { return type(vm->_t(obj.ptr())); }
 };
 
