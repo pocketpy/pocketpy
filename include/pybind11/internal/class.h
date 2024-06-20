@@ -47,11 +47,11 @@ public:
 
     /// bind constructor
     template <typename... Args, typename... Extra>
-    class_& def(init<Args...>, const Extra&... extra) {
+    class_& def(impl::constructor<Args...>, const Extra&... extra) {
         if constexpr(!std::is_constructible_v<T, Args...>) {
             static_assert(std::is_constructible_v<T, Args...>, "Invalid constructor arguments");
         } else {
-            impl::bind_function(
+            impl::bind_function<true>(
                 *this,
                 "__init__",
                 [](T* self, Args... args) {
@@ -63,17 +63,29 @@ public:
         }
     }
 
+    template <typename Fn, typename... Extra>
+    class_& def(impl::factory<Fn> factory, const Extra&... extra) {
+        using ret = callable_return_t<Fn>;
+
+        if constexpr(!std::is_same_v<T, ret>) {
+            static_assert(std::is_same_v<T, ret>, "Factory function must return the class type");
+        } else {
+            impl::bind_function<true>(*this, "__init__", factory.make(), pkpy::BindType::DEFAULT, extra...);
+            return *this;
+        }
+    }
+
     /// bind member function
     template <typename Fn, typename... Extra>
     class_& def(const char* name, Fn&& f, const Extra&... extra) {
-        using first = std::tuple_element_t<0, callable_args_t<remove_cvref_t<Fn>>>;
-        constexpr bool is_first_base_of_v = std::is_base_of_v<remove_cvref_t<first>, T>;
+        using first = remove_cvref_t<std::tuple_element_t<0, callable_args_t<remove_cvref_t<Fn>>>>;
+        constexpr bool is_first_base_of_v = std::is_base_of_v<first, T> || std::is_same_v<first, T>;
 
         if constexpr(!is_first_base_of_v) {
             static_assert(is_first_base_of_v,
                           "If you want to bind member function, the first argument must be the base class");
         } else {
-            impl::bind_function(*this, name, std::forward<Fn>(f), pkpy::BindType::DEFAULT, extra...);
+            impl::bind_function<true>(*this, name, std::forward<Fn>(f), pkpy::BindType::DEFAULT, extra...);
         }
 
         return *this;
@@ -91,7 +103,7 @@ public:
     /// bind static function
     template <typename Fn, typename... Extra>
     class_& def_static(const char* name, Fn&& f, const Extra&... extra) {
-        impl::bind_function(*this, name, std::forward<Fn>(f), pkpy::BindType::STATICMETHOD, extra...);
+        impl::bind_function<false>(*this, name, std::forward<Fn>(f), pkpy::BindType::STATICMETHOD, extra...);
         return *this;
     }
 
@@ -163,6 +175,15 @@ public:
     template <typename... Args>
     enum_(const handle& scope, const char* name, Args&&... args) :
         class_<T, Others...>(scope, name, std::forward<Args>(args)...) {
+
+        Base::def(init([](int value) {
+            return static_cast<T>(value);
+        }));
+
+        Base::def("__eq__", [](T& self, T& other) {
+            return self == other;
+        });
+
         Base::def_property_readonly("value", [](T& self) {
             return int_(static_cast<std::underlying_type_t<T>>(self));
         });

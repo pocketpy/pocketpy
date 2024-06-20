@@ -29,7 +29,7 @@ public:
 
     template <typename Fn, typename... Extras>
     module_& def(const char* name, Fn&& fn, const Extras... extras) {
-        impl::bind_function(*this, name, std::forward<Fn>(fn), pkpy::BindType::DEFAULT, extras...);
+        impl::bind_function<false>(*this, name, std::forward<Fn>(fn), pkpy::BindType::DEFAULT, extras...);
         return *this;
     }
 };
