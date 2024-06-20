@@ -252,6 +252,14 @@ int c11_string__cmp3(c11_string self, const char *other){
     return c11_string__cmp2(self, other, strlen(other));
 }
 
+bool c11_string_startswith(c11_string self, c11_string prefix) {
+    return strncmp(self.data, prefix.data, PK_MIN(self.size, prefix.size)) == 0;
+}
+
+bool c11_string_startswith_cstrn(c11_string self, const char *prefix, int size) {
+    return strncmp(self.data, prefix, PK_MIN(self.size, size)) == 0;
+}
+
 int pkpy_Str__cmp(const pkpy_Str *self, const pkpy_Str *other){
     return pkpy_Str__cmp2(self, pkpy_Str__data(other), other->size);
 }

@@ -18,6 +18,9 @@ int c11_string__cmp(c11_string self, c11_string other);
 int c11_string__cmp2(c11_string self, const char* other, int size);
 int c11_string__cmp3(c11_string self, const char* other);
 
+bool c11_string_startswith(c11_string self, c11_string prefix);
+bool c11_string_startswith_cstrn(c11_string self, const char* prefix, int size);
+
 typedef struct pkpy_Str{
     int size;
     bool is_ascii;
