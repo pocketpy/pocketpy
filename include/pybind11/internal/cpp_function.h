@@ -7,8 +7,37 @@ namespace pybind11 {
 // append the overload to the beginning of the overload list
 struct prepend {};
 
+namespace impl {
+
 template <typename... Args>
-struct init {};
+struct constructor {};
+
+template <typename Fn, typename Args = callable_args_t<Fn>>
+struct factory;
+
+template <typename Fn, typename... Args>
+struct factory<Fn, std::tuple<Args...>> {
+    Fn fn;
+
+    auto make() {
+        using Self = callable_return_t<Fn>;
+        return [fn = std::move(fn)](Self* self, Args... args) {
+            new (self) Self(fn(args...));
+        };
+    }
+};
+
+}  // namespace impl
+
+template <typename... Args>
+impl::constructor<Args...> init() {
+    return {};
+}
+
+template <typename Fn>
+impl::factory<Fn> init(Fn&& fn) {
+    return {std::forward<Fn>(fn)};
+}
 
 //  TODO: support more customized tags
 //
@@ -256,6 +285,7 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
         constexpr auto named_argc = types_count_v<arg, Extras...>;
         constexpr auto normal_argc =
             sizeof...(Args) - (arguments_info.args_pos != -1) - (arguments_info.kwargs_pos != -1);
+
         static_assert(named_argc == 0 || named_argc == normal_argc,
                       "named arguments must be the same as the number of function arguments");
 
@@ -419,24 +449,32 @@ inline auto _wrapper(pkpy::VM* vm, pkpy::ArgsView view) {
     return record(view).ptr();
 }
 
-template <typename Fn, typename... Extras>
+template <bool is_method, typename Fn, typename... Extras>
 handle bind_function(const handle& obj, const char* name, Fn&& fn, pkpy::BindType type, const Extras&... extras) {
     // do not use cpp_function directly to avoid unnecessary reference count change
     pkpy::PyVar var = obj.ptr();
     cpp_function callable = var->attr().try_get(name);
+    function_record* record = nullptr;
 
-    // if the function is not bound yet, bind it
-    if(!callable) {
-        auto record = function_record(std::forward<Fn>(fn), extras...);
-        void* data = interpreter::take_ownership(std::move(record));
-        callable = interpreter::bind_func(var, name, -1, _wrapper, data);
+    if constexpr(is_method && types_count_v<arg, Extras...> > 0) {
+        // if the function is a method and has named arguments
+        // prepend self to the arguments list
+        record = new function_record(std::forward<Fn>(fn), arg("self"), extras...);
     } else {
-        function_record* record = new function_record(std::forward<Fn>(fn), extras...);
+        record = new function_record(std::forward<Fn>(fn), extras...);
+    }
+
+    if(!callable) {
+        // if the function is not bound yet, bind it
+        void* data = interpreter::take_ownership(std::move(*record));
+        callable = interpreter::bind_func(var, name, -1, _wrapper, data, type);
+    } else {
+        // if the function is already bound, append the new record to the function
         function_record* last = callable.get_userdata_as<function_record*>();
 
         if constexpr((types_count_v<prepend, Extras...> != 0)) {
             // if prepend is specified, append the new record to the beginning of the list
-            fn.set_userdata(record);
+            callable.set_userdata(record);
             record->append(last);
         } else {
             // otherwise, append the new record to the end of the list
