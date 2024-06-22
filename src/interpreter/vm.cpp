@@ -738,7 +738,7 @@ PyObject* VM::new_module(Str name, Str package) {
 
 static std::string _opcode_argstr(VM* vm, int i, Bytecode byte, const CodeObject* co) {
     SStream ss;
-    if(byte.is_forward_jump()) {
+    if(Bytecode__is_forward_jump(&byte)){
         std::string argStr = std::to_string((int16_t)byte.arg);
         ss << (i64)(int16_t)byte.arg;
         ss << " (to " << (i64)((int16_t)byte.arg + i) << ")";
@@ -784,7 +784,9 @@ Str VM::disassemble(CodeObject_ co) {
     vector<int> jumpTargets;
     for(int i = 0; i < co->codes.size(); i++) {
         Bytecode byte = co->codes[i];
-        if(byte.is_forward_jump()) { jumpTargets.push_back((int16_t)byte.arg + i); }
+        if(Bytecode__is_forward_jump(&byte)) {
+            jumpTargets.push_back((int16_t)byte.arg + i);
+        }
     }
     SStream ss;
     int prev_line = -1;
@@ -1070,14 +1072,14 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
         const CodeObject* co = fn.decl->code.get();
 
         switch(fn.decl->type) {
-            case FuncType::NORMAL:
+            case FuncType_NORMAL:
                 __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
                 // copy buffer back to stack
                 s_data.reset(_base + co->nlocals);
                 for(int j = 0; j < co->nlocals; j++)
                     _base[j] = __vectorcall_buffer[j];
                 break;
-            case FuncType::SIMPLE:
+            case FuncType_SIMPLE:
                 if(args.size() != fn.decl->args.size())
                     TypeError(_S(co->name,
                                  "() takes ",
@@ -1092,7 +1094,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
                 // initialize local variables to PY_NULL
                 std::memset(p1, 0, (char*)s_data._sp - (char*)p1);
                 break;
-            case FuncType::EMPTY:
+            case FuncType_EMPTY:
                 if(args.size() != fn.decl->args.size())
                     TypeError(_S(co->name,
                                  "() takes ",
@@ -1103,7 +1105,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
                 if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
                 s_data.reset(p0);
                 return None;
-            case FuncType::GENERATOR:
+            case FuncType_GENERATOR:
                 __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
                 s_data.reset(p0);
                 callstack.emplace(nullptr, co, fn._module, callable.get(), nullptr);
@@ -1360,9 +1362,9 @@ void VM::setattr(PyVar obj, StrName name, PyVar value) {
 PyObject* VM::bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, any userdata, BindType bt) {
     PyObject* nf = new_object<NativeFunc>(tp_native_func, fn, argc, std::move(userdata)).get();
     switch(bt) {
-        case BindType::DEFAULT: break;
-        case BindType::STATICMETHOD: nf = new_object<StaticMethod>(tp_staticmethod, nf).get(); break;
-        case BindType::CLASSMETHOD: nf = new_object<ClassMethod>(tp_classmethod, nf).get(); break;
+        case BindType_FUNCTION: break;
+        case BindType_STATICMETHOD: nf = new_object<StaticMethod>(tp_staticmethod, nf).get(); break;
+        case BindType_CLASSMETHOD: nf = new_object<ClassMethod>(tp_classmethod, nf).get(); break;
     }
     if(obj != nullptr) obj->attr().set(name, nf);
     return nf;
@@ -1385,9 +1387,9 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     PyObject* f_obj = new_object<NativeFunc>(tp_native_func, fn, decl, std::move(userdata)).get();
 
     switch(bt) {
-        case BindType::STATICMETHOD: f_obj = new_object<StaticMethod>(tp_staticmethod, f_obj).get(); break;
-        case BindType::CLASSMETHOD: f_obj = new_object<ClassMethod>(tp_classmethod, f_obj).get(); break;
-        case BindType::DEFAULT: break;
+        case BindType_STATICMETHOD: f_obj = new_object<StaticMethod>(tp_staticmethod, f_obj).get(); break;
+        case BindType_CLASSMETHOD: f_obj = new_object<ClassMethod>(tp_classmethod, f_obj).get(); break;
+        case BindType_FUNCTION: break;
     }
     if(obj != nullptr) obj->attr().set(decl->code->name, f_obj);
     return f_obj;

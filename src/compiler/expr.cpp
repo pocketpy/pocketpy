@@ -101,7 +101,7 @@ int CodeEmitContext::emit_int(i64 value, int line) noexcept{
 
 void CodeEmitContext::patch_jump(int index) noexcept{
     int target = co->codes.size();
-    co->codes[index].set_signed_arg(target - index);
+    Bytecode__set_signed_arg(&co->codes[index], target - index);
 }
 
 bool CodeEmitContext::add_label(StrName name) noexcept{

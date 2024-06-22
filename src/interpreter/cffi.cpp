@@ -84,7 +84,7 @@ void Struct::_register(VM* vm, PyObject* mod, PyObject* type) {
             return vm->new_user_object<Struct>(std::move(buffer));
         },
         {},
-        BindType::STATICMETHOD);
+        BindType_STATICMETHOD);
 
     vm->bind__repr__(type->as<Type>(), [](VM* vm, PyVar obj) {
         Struct& self = _CAST(Struct&, obj);

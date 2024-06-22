@@ -6,48 +6,11 @@
 #include "pocketpy/objects/namedict.hpp"
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/common/smallmap.h"
+#include "pocketpy/objects/codeobject.h"
 
 namespace pkpy {
 
 typedef PyVar (*NativeFuncC)(VM*, ArgsView);
-
-enum class BindType {
-    DEFAULT,
-    STATICMETHOD,
-    CLASSMETHOD,
-};
-
-enum NameScope { NAME_LOCAL, NAME_GLOBAL, NAME_GLOBAL_UNKNOWN };
-
-enum Opcode : uint8_t {
-
-#define OPCODE(name) OP_##name,
-#include "pocketpy/xmacros/opcodes.h"
-#undef OPCODE
-};
-
-struct Bytecode {
-    uint8_t op;
-    uint16_t arg;
-
-    void set_signed_arg(int arg) {
-        assert(arg >= INT16_MIN && arg <= INT16_MAX);
-        this->arg = (int16_t)arg;
-    }
-
-    bool is_forward_jump() const { return op >= OP_JUMP_FORWARD && op <= OP_LOOP_BREAK; }
-};
-
-enum class CodeBlockType {
-    NO_BLOCK,
-    FOR_LOOP,
-    WHILE_LOOP,
-    CONTEXT_MANAGER,
-    TRY_EXCEPT,
-};
-
-const inline uint8_t BC_NOARG = 0;
-const inline int BC_KEEPLINE = -1;
 
 struct CodeBlock {
     CodeBlockType type;
@@ -116,14 +79,6 @@ struct CodeObject {
     }
 };
 
-enum class FuncType {
-    UNSET,
-    NORMAL,
-    SIMPLE,
-    EMPTY,
-    GENERATOR,
-};
-
 struct FuncDecl {
     struct KwArg {
         int index;    // index in co->varnames
@@ -142,7 +97,7 @@ struct FuncDecl {
 
     const char* docstring;  // docstring of this function (weak ref)
 
-    FuncType type = FuncType::UNSET;
+    FuncType type = FuncType_UNSET;
     c11_smallmap_n2i kw_to_index;
 
     void add_kwarg(int index, StrName key, PyVar value) {

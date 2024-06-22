@@ -60,9 +60,9 @@ Error* Compiler::pop_context() noexcept{
     for(int i = 0; i < codes.size(); i++) {
         Bytecode& bc = codes[i];
         if(bc.op == OP_LOOP_CONTINUE) {
-            bc.set_signed_arg(ctx()->co->blocks[bc.arg].start - i);
+            Bytecode__set_signed_arg(&bc, ctx()->co->blocks[bc.arg].start - i);
         } else if(bc.op == OP_LOOP_BREAK) {
-            bc.set_signed_arg(ctx()->co->blocks[bc.arg].get_break_end() - i);
+            Bytecode__set_signed_arg(&bc, ctx()->co->blocks[bc.arg].get_break_end() - i);
         }
     }
     // pre-compute func->is_simple
@@ -71,7 +71,7 @@ Error* Compiler::pop_context() noexcept{
         // check generator
         for(Bytecode bc: func->code->codes) {
             if(bc.op == OP_YIELD_VALUE || bc.op == OP_FOR_ITER_YIELD_VALUE) {
-                func->type = FuncType::GENERATOR;
+                func->type = FuncType_GENERATOR;
                 for(Bytecode bc: func->code->codes) {
                     if(bc.op == OP_RETURN_VALUE && bc.arg == BC_NOARG) {
                         return SyntaxError("'return' with argument inside generator function");
@@ -80,26 +80,26 @@ Error* Compiler::pop_context() noexcept{
                 break;
             }
         }
-        if(func->type == FuncType::UNSET) {
+        if(func->type == FuncType_UNSET) {
             bool is_simple = true;
             if(func->kwargs.size() > 0) is_simple = false;
             if(func->starred_arg >= 0) is_simple = false;
             if(func->starred_kwarg >= 0) is_simple = false;
 
             if(is_simple) {
-                func->type = FuncType::SIMPLE;
+                func->type = FuncType_SIMPLE;
 
                 bool is_empty = false;
                 if(func->code->codes.size() == 1) {
                     Bytecode bc = func->code->codes[0];
                     if(bc.op == OP_RETURN_VALUE && bc.arg == 1) { is_empty = true; }
                 }
-                if(is_empty) func->type = FuncType::EMPTY;
+                if(is_empty) func->type = FuncType_EMPTY;
             } else
-                func->type = FuncType::NORMAL;
+                func->type = FuncType_NORMAL;
         }
 
-        assert(func->type != FuncType::UNSET);
+        assert(func->type != FuncType_UNSET);
     }
     contexts.back().s_clean();
     contexts.pop_back();
@@ -822,7 +822,7 @@ Error* Compiler::compile_try_except() noexcept{
         i64 target = ctx()->co->codes.size() + 2;
         ctx()->emit_(OP_LOAD_CONST, ctx()->add_const(VAR(target)), BC_KEEPLINE);
         int i = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
-        ctx()->co->codes[i].set_signed_arg(finally_entry - i);
+        Bytecode__set_signed_arg(&ctx()->co->codes[i], finally_entry - i);
     }
     ctx()->emit_(OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
 
@@ -833,7 +833,7 @@ Error* Compiler::compile_try_except() noexcept{
         i64 target = ctx()->co->codes.size() + 2;
         ctx()->emit_(OP_LOAD_CONST, ctx()->add_const(VAR(target)), BC_KEEPLINE);
         int i = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
-        ctx()->co->codes[i].set_signed_arg(finally_entry - i);
+        Bytecode__set_signed_arg(&ctx()->co->codes[i], finally_entry - i);
     }
     return NULL;
 }

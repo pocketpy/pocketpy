@@ -152,7 +152,7 @@ void Vec2::_register(VM* vm, PyObject* mod, PyObject* type) {
             return VAR(Tuple(VAR(ret), VAR(current_velocity_)));
         },
         {},
-        BindType::STATICMETHOD);
+        BindType_STATICMETHOD);
 
     // @staticmethod
     vm->bind(
@@ -168,7 +168,7 @@ void Vec2::_register(VM* vm, PyObject* mod, PyObject* type) {
             return VAR(val);
         },
         {},
-        BindType::STATICMETHOD);
+        BindType_STATICMETHOD);
 
     vm->bind__repr__(type->as<Type>(), [](VM* vm, PyVar obj) -> Str {
         Vec2 self = _CAST(Vec2, obj);
@@ -452,7 +452,7 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
             return vm->new_user_object<Mat3x3>(Mat3x3::zeros());
         },
         {},
-        BindType::STATICMETHOD);
+        BindType_STATICMETHOD);
 
     // @staticmethod
     vm->bind_func(
@@ -463,7 +463,7 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
             return vm->new_user_object<Mat3x3>(Mat3x3::ones());
         },
         {},
-        BindType::STATICMETHOD);
+        BindType_STATICMETHOD);
 
     // @staticmethod
     vm->bind_func(
@@ -474,7 +474,7 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
             return vm->new_user_object<Mat3x3>(Mat3x3::identity());
         },
         {},
-        BindType::STATICMETHOD);
+        BindType_STATICMETHOD);
 
     /*************** affine transformations ***************/
     // @staticmethod
@@ -488,7 +488,7 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
             return vm->new_user_object<Mat3x3>(Mat3x3::trs(t, r, s));
         },
         {},
-        BindType::STATICMETHOD);
+        BindType_STATICMETHOD);
 
     vm->bind(type, "copy_trs_(self, t: vec2, r: float, s: vec2)", [](VM* vm, ArgsView args) {
         Mat3x3& self = _CAST(Mat3x3&, args[0]);

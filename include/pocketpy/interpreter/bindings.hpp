@@ -175,7 +175,7 @@ PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field) {
             return obj;                                                                                                \
         },                                                                                                             \
         {},                                                                                                            \
-        BindType::STATICMETHOD);                                                                                       \
+        BindType_STATICMETHOD);                                                                                       \
     vm->bind_func(type, "tostruct", 1, [](VM* vm, ArgsView args) {                                                     \
         wT& self = _CAST(wT&, args[0]);                                                                                \
         return vm->new_user_object<Struct>(&self, sizeof(wT));                                                         \
