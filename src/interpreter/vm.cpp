@@ -201,13 +201,16 @@ bool VM::issubclass(Type cls, Type base) {
 
 PyVar VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject* _module) {
     if(_module == nullptr) _module = _main;
+    CodeObject* code = NULL;
     try {
 #if PK_DEBUG_PRECOMPILED_EXEC == 1
         Str precompiled = vm->precompile(source, filename, mode);
         source = precompiled.sv();
 #endif
-        CodeObject_ code = compile(source, filename, mode);
-        return _exec(code, _module);
+        code = compile(source, filename, mode);
+        PyVar retval = _exec(code, _module);
+        delete code;    // leak if exception occurs
+        return retval;
     } catch(TopLevelException e) {
         stderr_write(e.summary() + "\n");
     } catch(const std::exception& e) {
@@ -218,6 +221,7 @@ PyVar VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject
         Str msg = "An unknown exception occurred! It could be a bug. Please report it to @blueloveTH on GitHub.\n";
         stderr_write(msg);
     }
+    delete code;
     callstack.clear();
     s_data.clear();
     return nullptr;
@@ -410,12 +414,12 @@ PyObject* VM::py_import(Str path, bool throw_err) {
         // _lazy_modules.erase(it);  // no need to erase
     }
     auto _ = __import_context.scope(path, is_init);
-    CodeObject_ code = compile(source, filename, EXEC_MODE);
-
     Str name_cpnt = path_cpnts.back();
     path_cpnts.pop_back();
     PyObject* new_mod = new_module(name_cpnt, f_join(path_cpnts));
+    CodeObject* code = compile(source, filename, EXEC_MODE);
     _exec(code, new_mod);
+    delete code;    // leak if exception occurs
     return new_mod;
 }
 
@@ -556,13 +560,13 @@ i64 VM::py_hash(PyVar obj) {
     }
 }
 
-PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar locals) {
+PyVar VM::__py_exec_internal(const CodeObject* code, PyVar globals, PyVar locals) {
     Frame* frame = nullptr;
     if(!callstack.empty()) frame = &callstack.top();
 
     // fast path
     if(frame && is_none(globals) && is_none(locals)) {
-        return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
+        return vm->_exec(code, frame->_module, frame->_callable, frame->_locals);
     }
 
     auto _lock = gc_scope_lock();  // for safety
@@ -602,7 +606,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
         });
         PyObject* _callable =
             new_object<Function>(tp_function, __dynamic_func_decl, globals_obj, nullptr, locals_closure).get();
-        retval = vm->_exec(code.get(), globals_obj, _callable, vm->s_data._sp);
+        retval = vm->_exec(code, globals_obj, _callable, vm->s_data._sp);
     }
 
     if(globals_dict) {
@@ -622,12 +626,12 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
 }
 
 void VM::py_exec(std::string_view source, PyVar globals, PyVar locals) {
-    CodeObject_ code = vm->compile(source, "<exec>", EXEC_MODE, true);
+    CodeObject* code = vm->compile(source, "<exec>", EXEC_MODE, true);
     __py_exec_internal(code, globals, locals);
 }
 
 PyVar VM::py_eval(std::string_view source, PyVar globals, PyVar locals) {
-    CodeObject_ code = vm->compile(source, "<eval>", EVAL_MODE, true);
+    CodeObject* code = vm->compile(source, "<eval>", EVAL_MODE, true);
     return __py_exec_internal(code, globals, locals);
 }
 
@@ -775,7 +779,7 @@ static std::string _opcode_argstr(VM* vm, int i, Bytecode byte, const CodeObject
     return ss.str().str();
 }
 
-Str VM::disassemble(CodeObject_ co) {
+Str VM::disassemble(CodeObject* co) {
     auto pad = [](const Str& s, const int n) {
         if(s.length() >= n) return s.slice(0, n);
         return s + std::string(n - s.length(), ' ');
@@ -810,7 +814,7 @@ Str VM::disassemble(CodeObject_ co) {
         std::string bc_name(OP_NAMES[byte.op]);
         if(co->lines[i].is_virtual) bc_name += '*';
         ss << " " << pad(bc_name, 25) << " ";
-        std::string argStr = _opcode_argstr(this, i, byte, co.get());
+        std::string argStr = _opcode_argstr(this, i, byte, co);
         ss << argStr;
         if(i != co->codes.size() - 1) ss << '\n';
     }
@@ -983,7 +987,7 @@ void VM::__unpack_as_dict(ArgsView args, Dict& dict) {
 }
 
 void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const FuncDecl_& decl) {
-    const CodeObject* co = decl->code.get();
+    const CodeObject* co = decl->code;
     int decl_argc = decl->args.size();
 
     if(args.size() < decl_argc) {
@@ -1070,7 +1074,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
         if(s_data.is_overflow()) StackOverflowError();
 
         const Function& fn = PK_OBJ_GET(Function, callable);
-        const CodeObject* co = fn.decl->code.get();
+        const CodeObject* co = fn.decl->code;
 
         switch(fn.decl->type) {
             case FuncType_NORMAL:
@@ -1380,10 +1384,10 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     int length = snprintf(buffer, sizeof(buffer), "def %s : pass", sig);
     std::string_view source(buffer, length);
     // fn(a, b, *c, d=1) -> None
-    CodeObject_ co = compile(source, "<bind>", EXEC_MODE);
-    assert(co->func_decls.size() == 1);
-    
-    FuncDecl_ decl = co->func_decls[0];
+    CodeObject* code = compile(source, "<bind>", EXEC_MODE);
+    assert(code->func_decls.size() == 1);
+    FuncDecl_ decl = code->func_decls[0];
+    delete code;  // may leak if exception occurs
     decl->docstring = docstring;
     PyObject* f_obj = new_object<NativeFunc>(tp_native_func, fn, decl, std::move(userdata)).get();
 
@@ -1796,13 +1800,15 @@ void VM::__breakpoint() {
             std::string arg = line.substr(space + 1);
             if(arg.empty()) continue;  // ignore empty command
             if(cmd == "p" || cmd == "print") {
-                CodeObject_ code = compile(arg, "<stdin>", EVAL_MODE, true);
-                PyVar retval = vm->_exec(code.get(), frame_0->_module, frame_0->_callable, frame_0->_locals);
+                CodeObject* code = compile(arg, "<stdin>", EVAL_MODE, true);
+                PyVar retval = vm->_exec(code, frame_0->_module, frame_0->_callable, frame_0->_locals);
+                delete code;
                 stdout_write(vm->py_repr(retval));
                 stdout_write("\n");
             } else if(cmd == "!") {
-                CodeObject_ code = compile(arg, "<stdin>", EXEC_MODE, true);
-                vm->_exec(code.get(), frame_0->_module, frame_0->_callable, frame_0->_locals);
+                CodeObject* code = compile(arg, "<stdin>", EXEC_MODE, true);
+                vm->_exec(code, frame_0->_module, frame_0->_callable, frame_0->_locals);
+                delete code;
             }
             continue;
         }

@@ -106,8 +106,10 @@ void add_module_json(VM* vm) {
         } else {
             sv = CAST(Str&, args[0]).sv();
         }
-        CodeObject_ code = vm->compile(sv, "<json>", JSON_MODE);
-        return vm->_exec(code, vm->callstack.top()._module);
+        CodeObject* code = vm->compile(sv, "<json>", JSON_MODE);
+        PyVar retval = vm->_exec(code, vm->callstack.top()._module);
+        delete code;    // leak on error
+        return retval;
     });
 
     vm->bind_func(mod, "dumps", 1, [](VM* vm, ArgsView args) {
@@ -224,16 +226,19 @@ void add_module_dis(VM* vm) {
     PyObject* mod = vm->new_module("dis");
 
     vm->bind_func(mod, "dis", 1, [](VM* vm, ArgsView args) {
-        CodeObject_ code;
+        CodeObject* code;
+        bool need_delete = false;
         PyVar obj = args[0];
         if(is_type(obj, vm->tp_str)) {
             const Str& source = CAST(Str, obj);
             code = vm->compile(source, "<dis>", EXEC_MODE);
+            need_delete = true;
         }
         PyVar f = obj;
         if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, obj).func;
         code = CAST(Function&, f).decl->code;
         vm->stdout_write(vm->disassemble(code));
+        if(need_delete) delete code;
         return vm->None;
     });
 }
@@ -245,8 +250,9 @@ void add_module_gc(VM* vm) {
 
 void add_module_enum(VM* vm) {
     PyObject* mod = vm->new_module("enum");
-    CodeObject_ code = vm->compile(kPythonLibs__enum, "enum.py", EXEC_MODE);
+    CodeObject* code = vm->compile(kPythonLibs__enum, "enum.py", EXEC_MODE);
     vm->_exec(code, mod);
+    delete code;    // leak on error
     PyVar Enum = mod->attr("Enum");
     vm->_all_types[PK_OBJ_GET(Type, Enum)].on_end_subclass = [](VM* vm, PyTypeInfo* new_ti) {
         new_ti->subclass_enabled = false;  // Enum class cannot be subclassed twice

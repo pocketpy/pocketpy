@@ -60,8 +60,9 @@ bool pkpy_exec(pkpy_vm* vm_handle, const char* source) {
     PK_ASSERT_NO_ERROR()
     PyVar res;
     PK_PROTECTED(
-        CodeObject_ code = vm->compile(source, "main.py", EXEC_MODE);
+        CodeObject* code = vm->compile(source, "main.py", EXEC_MODE);
         res = vm->_exec(code, vm->_main);
+        delete code;    // TODO: _exec may raise, so code may leak
     )
     return res != nullptr;
 }
@@ -76,8 +77,9 @@ bool pkpy_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, i
         }else{
                         mod = vm->_modules[module].get();  // may raise
         }
-        CodeObject_ code = vm->compile(source, filename, (CompileMode)mode);
+        CodeObject* code = vm->compile(source, filename, (CompileMode)mode);
         res = vm->_exec(code, mod);
+        delete code;    // TODO: _exec may raise, so code may leak
     )
     return res != nullptr;
 }
@@ -417,9 +419,10 @@ bool pkpy_eval(pkpy_vm* vm_handle, const char* source) {
     VM* vm = (VM*)vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        CodeObject_ co = vm->compile(source, "<eval>", EVAL_MODE);
+        CodeObject* co = vm->compile(source, "<eval>", EVAL_MODE);
         PyVar ret = vm->_exec(co, vm->_main);
         vm->s_data.push(ret);
+        delete co;  // TODO: _exec may raise, so code may leak
     )
     return true;
 }

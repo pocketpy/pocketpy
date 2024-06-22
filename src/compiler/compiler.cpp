@@ -1,6 +1,7 @@
 #include "pocketpy/compiler/compiler.hpp"
 #include "pocketpy/common/config.h"
 #include "pocketpy/interpreter/vm.hpp"
+#include "pocketpy/objects/codeobject.hpp"
 
 #include <cstdarg>
 
@@ -19,16 +20,16 @@ NameScope Compiler::name_scope() const noexcept{
     return s;
 }
 
-CodeObject_ Compiler::push_global_context() noexcept{
-    CodeObject_ co = std::make_shared<CodeObject>(lexer.src, static_cast<const Str&>(lexer.src->filename));
+CodeObject* Compiler::push_global_context() noexcept{
+    CodeObject* co = new CodeObject(lexer.src, static_cast<const Str&>(lexer.src->filename));
     co->start_line = __i == 0 ? 1 : prev().line;
     contexts.push_back(CodeEmitContext(vm, co, contexts.size()));
     return co;
 }
 
 FuncDecl_ Compiler::push_f_context(Str name) noexcept{
-    FuncDecl_ decl = std::make_shared<FuncDecl>();
-    decl->code = std::make_shared<CodeObject>(lexer.src, name);
+    CodeObject* co = new CodeObject(lexer.src, name);
+    FuncDecl_ decl = std::make_shared<FuncDecl>(co);
     decl->code->start_line = __i == 0 ? 1 : prev().line;
     decl->nested = name_scope() == NAME_LOCAL;
     contexts.push_back(CodeEmitContext(vm, decl->code, contexts.size()));
@@ -1290,7 +1291,7 @@ Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, Compile
     init_pratt_rules();
 }
 
-Error* Compiler::compile(CodeObject_* out) noexcept{
+Error* Compiler::compile(CodeObject** out) noexcept{
     assert(__i == 0);  // make sure it is the first time to compile
 
     Error* err;
@@ -1303,7 +1304,7 @@ Error* Compiler::compile(CodeObject_* out) noexcept{
     //     }
     // }
 
-    CodeObject_ code = push_global_context();
+    CodeObject* code = push_global_context();
 
     assert(curr().type == TK_SOF);
     advance();         // skip @sof, so prev() is always valid

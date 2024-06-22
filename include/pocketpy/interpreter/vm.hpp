@@ -265,7 +265,7 @@ public:
     ArgsView cast_array_view(PyVar obj);
     void set_main_argv(int argc, char** argv);
     i64 normalized_index(i64 index, int size);
-    Str disassemble(CodeObject_ co);
+    Str disassemble(CodeObject* co);
     void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
     void obj_gc_mark(PyVar obj) { if(obj.is_ptr) __obj_gc_mark(obj.get()); }
     void obj_gc_mark(PyObject* p) { if(p) __obj_gc_mark(p); }
@@ -280,7 +280,7 @@ public:
 #endif
 
 #if PK_REGION("Source Execution Methods")
-    CodeObject_ compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
+    CodeObject* compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
     Str precompile(std::string_view source, const Str& filename, CompileMode mode);
     PyVar exec(std::string_view source, Str filename, CompileMode mode, PyObject* _module=nullptr);
     PyVar exec(std::string_view source);
@@ -494,7 +494,7 @@ public:
 #if PK_DEBUG_CEVAL_STEP
     void __log_s_data(const char* title = nullptr);
 #endif
-    PyVar __py_exec_internal(const CodeObject_& code, PyVar globals, PyVar locals);
+    PyVar __py_exec_internal(const CodeObject* code, PyVar globals, PyVar locals);
     void __breakpoint();
     PyVar __format_object(PyVar, Str);
     PyVar __run_top_frame();

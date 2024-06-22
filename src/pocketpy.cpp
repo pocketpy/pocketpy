@@ -1691,13 +1691,16 @@ void VM::__post_init_builtin_types() {
 
     try {
         // initialize dummy func_decl for exec/eval
-        CodeObject_ dynamic_co = compile("def _(): pass", "<dynamic>", EXEC_MODE);
-        __dynamic_func_decl = dynamic_co->func_decls[0];
+        CodeObject* code = compile("def _(): pass", "<dynamic>", EXEC_MODE);
+        __dynamic_func_decl = code->func_decls[0];
+        delete code;    // may leak on error
         // initialize builtins
-        CodeObject_ code = compile(kPythonLibs_builtins, "<builtins>", EXEC_MODE);
+        code = compile(kPythonLibs_builtins, "<builtins>", EXEC_MODE);
         this->_exec(code, this->builtins);
+        delete code;    // may leak on error
         code = compile(kPythonLibs__set, "<set>", EXEC_MODE);
         this->_exec(code, this->builtins);
+        delete code;    // may leak on error
     } catch(TopLevelException e) {
         std::cerr << e.summary() << std::endl;
         std::cerr << "failed to load builtins module!!" << std::endl;
@@ -1723,9 +1726,9 @@ void VM::__post_init_builtin_types() {
 #endif
 }
 
-CodeObject_ VM::compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope) {
+CodeObject* VM::compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope) {
     Compiler compiler(this, source, filename, mode, unknown_global_scope);
-    CodeObject_ code;
+    CodeObject* code;
     Error* err = compiler.compile(&code);
     if(err) __compile_error(err);
     return code;

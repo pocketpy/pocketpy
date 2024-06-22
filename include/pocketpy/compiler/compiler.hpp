@@ -54,7 +54,7 @@ struct Compiler {
     CompileMode mode() const noexcept{ return lexer.src->mode; }
 
     NameScope name_scope() const noexcept;
-    CodeObject_ push_global_context() noexcept;
+    CodeObject* push_global_context() noexcept;
     FuncDecl_ push_f_context(Str name) noexcept;
 
     static void init_pratt_rules() noexcept;
@@ -134,7 +134,7 @@ struct Compiler {
 
 public:
     Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope = false) noexcept;
-    [[nodiscard]] Error* compile(CodeObject_* out) noexcept;
+    [[nodiscard]] Error* compile(CodeObject** out) noexcept;
     ~Compiler();
 };
 

@@ -48,12 +48,12 @@ inline void delete_expr(Expr* p) noexcept{
 struct CodeEmitContext{
     VM* vm;
     FuncDecl_ func;  // optional
-    CodeObject_ co;  // 1 CodeEmitContext <=> 1 CodeObject_
+    CodeObject* co;  // 1 CodeEmitContext <=> 1 CodeObject*
     vector<Expr*> _s_expr;
     int level;
     vector<StrName> global_names;
 
-    CodeEmitContext(VM* vm, CodeObject_ co, int level) : vm(vm), co(co), level(level) {
+    CodeEmitContext(VM* vm, CodeObject* co, int level) : vm(vm), co(co), level(level) {
         c11_smallmap_s2n__ctor(&_co_consts_string_dedup_map);
     }
 

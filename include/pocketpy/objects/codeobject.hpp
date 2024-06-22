@@ -14,7 +14,6 @@ typedef PyVar (*NativeFuncC)(VM*, ArgsView);
 
 struct CodeObject;
 struct FuncDecl;
-using CodeObject_ = std::shared_ptr<CodeObject>;
 using FuncDecl_ = std::shared_ptr<FuncDecl>;
 
 struct CodeObject {
@@ -69,7 +68,7 @@ struct FuncDecl {
         PyVar value;  // default value
     };
 
-    CodeObject_ code;  // code object of this function
+    CodeObject* code;  // strong ref
 
     small_vector_2<int, 8> args;    // indices in co->varnames
     c11_vector/*T=KwArg*/ kwargs;   // indices in co->varnames
@@ -90,12 +89,14 @@ struct FuncDecl {
 
     void _gc_mark(VM*) const;
 
-    FuncDecl(){
+    FuncDecl(CodeObject* code){
+        this->code = code;
         c11_vector__ctor(&kwargs, sizeof(KwArg));
         c11_smallmap_n2i__ctor(&kw_to_index);
     }
 
     ~FuncDecl(){
+        delete code;
         c11_vector__dtor(&kwargs);
         c11_smallmap_n2i__dtor(&kw_to_index);
     }

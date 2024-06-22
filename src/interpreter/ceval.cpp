@@ -795,8 +795,9 @@ PyVar VM::__run_top_frame() {
                         PyVar _0 = frame->co->consts[byte.arg];
                         std::string_view string = CAST(Str&, _0).sv();
                         // TODO: optimize this
-                        CodeObject_ code = vm->compile(string, "<eval>", EVAL_MODE, true);
-                        _0 = vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
+                        CodeObject* code = vm->compile(string, "<eval>", EVAL_MODE, true);
+                        _0 = vm->_exec(code, frame->_module, frame->_callable, frame->_locals);
+                        delete code;    // leak on error
                         PUSH(_0);
                     }
                         DISPATCH()

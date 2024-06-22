@@ -130,9 +130,9 @@ struct Frame {
         _uw_list(nullptr) {}
 
     // global scope
-    Frame(PyVar* p0, const CodeObject_& co, PyObject* _module) :
-        _ip(co->codes.data() - 1), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr),
-        _locals(co.get(), p0), _uw_list(nullptr) {}
+    Frame(PyVar* p0, const CodeObject* co, PyObject* _module) :
+        _ip(co->codes.data() - 1), _sp_base(p0), co(co), _module(_module), _callable(nullptr),
+        _locals(co, p0), _uw_list(nullptr) {}
 
     PyVar* actual_sp_base() const { return _locals.a; }
 
