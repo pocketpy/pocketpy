@@ -64,13 +64,13 @@ Error* Compiler::pop_context() noexcept{
     }
     // pre-compute LOOP_BREAK and LOOP_CONTINUE
     for(int i = 0; i < codes.count; i++) {
-        Bytecode bc = c11__getitem(Bytecode, &codes, i);
-        if(bc.op == OP_LOOP_CONTINUE) {
-            CodeBlock* block = c11__at(CodeBlock, &ctx()->co->blocks, bc.arg);
-            Bytecode__set_signed_arg(&bc, block->start - i);
-        } else if(bc.op == OP_LOOP_BREAK) {
-            CodeBlock* block = c11__at(CodeBlock, &ctx()->co->blocks, bc.arg);
-            Bytecode__set_signed_arg(&bc, (block->end2 != -1 ? block->end2 : block->end) - i);
+        Bytecode* bc = c11__at(Bytecode, &codes, i);
+        if(bc->op == OP_LOOP_CONTINUE) {
+            CodeBlock* block = c11__at(CodeBlock, &ctx()->co->blocks, bc->arg);
+            Bytecode__set_signed_arg(bc, block->start - i);
+        } else if(bc->op == OP_LOOP_BREAK) {
+            CodeBlock* block = c11__at(CodeBlock, &ctx()->co->blocks, bc->arg);
+            Bytecode__set_signed_arg(bc, (block->end2 != -1 ? block->end2 : block->end) - i);
         }
     }
     // pre-compute func->is_simple

@@ -858,7 +858,7 @@ void VM::__log_s_data(const char* title) {
     });
     Frame* frame = &callstack.top();
     int line = frame->curr_lineno();
-    ss << frame->co->name << ":" << line << " [";
+    ss << pkpy_Str__data(&frame->co->name) << ":" << line << " [";
     for(PyVar* p = s_data.begin(); p != s_data.end(); p++) {
         ss << std::string(sp_bases[p], '|');
         if(sp_bases[p] > 0) ss << " ";
@@ -869,9 +869,9 @@ void VM::__log_s_data(const char* title) {
                 case tp_none_type: ss << "None"; break;
                 case tp_int: ss << _CAST(i64, *p); break;
                 case tp_float: ss << _CAST(f64, *p); break;
-                case tp_bool: ss << (p->_bool ? "True" : "False"); break;
+                case tp_bool: ss << (p->extra ? "True" : "False"); break;
                 case tp_str: ss << _CAST(Str, *p).escape(); break;
-                case tp_function: ss << p->obj_get<Function>().decl->code->name << "()"; break;
+                case tp_function: ss << pkpy_Str__data(&p->obj_get<Function>().decl->code->name) << "()"; break;
                 case tp_type: ss << "<class " + _type_name(this, p->obj_get<Type>()).escape() + ">"; break;
                 case tp_list: ss << "list(size=" << p->obj_get<List>().size() << ")"; break;
                 case tp_tuple: ss << "tuple(size=" << p->obj_get<Tuple>().size() << ")"; break;

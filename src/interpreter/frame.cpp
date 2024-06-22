@@ -54,8 +54,7 @@ int Frame::_exit_block(ValueStack* _s, int i) {
 void Frame::prepare_jump_break(ValueStack* _s, int target) {
     int i = c11__at(BytecodeEx, &co->codes_ex, ip())->iblock;
     if(target >= co->codes.count) {
-        while(i >= 0)
-            i = _exit_block(_s, i);
+        while(i >= 0) i = _exit_block(_s, i);
     } else {
         // BUG (solved)
         // for i in range(4):
