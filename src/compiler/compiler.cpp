@@ -84,7 +84,7 @@ Error* Compiler::pop_context() noexcept{
         }
         if(func->type == FuncType_UNSET) {
             bool is_simple = true;
-            if(func->kwargs.size() > 0) is_simple = false;
+            if(func->kwargs.count > 0) is_simple = false;
             if(func->starred_arg >= 0) is_simple = false;
             if(func->starred_kwarg >= 0) is_simple = false;
 
@@ -1165,8 +1165,8 @@ Error* Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) noexcep
         for(int j: decl->args) {
             if(decl->code->varnames[j] == name) return SyntaxError("duplicate argument name");
         }
-        for(auto& kv: decl->kwargs) {
-            if(decl->code->varnames[kv.index] == name) return SyntaxError("duplicate argument name");
+        c11_vector__foreach(FuncDecl::KwArg, &decl->kwargs, kv) {
+            if(decl->code->varnames[kv->index] == name) return SyntaxError("duplicate argument name");
         }
         if(decl->starred_arg != -1 && decl->code->varnames[decl->starred_arg] == name) {
             return SyntaxError("duplicate argument name");

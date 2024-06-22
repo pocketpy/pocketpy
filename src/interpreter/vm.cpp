@@ -996,8 +996,9 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
     for(int index: decl->args)
         buffer[index] = args[i++];
     // prepare kwdefaults
-    for(auto& kv: decl->kwargs)
-        buffer[kv.index] = kv.value;
+    c11_vector__foreach(FuncDecl::KwArg, &decl->kwargs, kv) {
+        buffer[kv->index] = kv->value;
+    }
 
     // handle *args
     if(decl->starred_arg != -1) {
@@ -1006,9 +1007,9 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
         i += vargs.size();
     } else {
         // kwdefaults override
-        for(auto& kv: decl->kwargs) {
+        c11_vector__foreach(FuncDecl::KwArg, &decl->kwargs, kv) {
             if(i >= args.size()) break;
-            buffer[kv.index] = args[i++];
+            buffer[kv->index] = args[i++];
         }
         if(i < args.size()) TypeError(_S("too many arguments", " (", decl->code->name, ')'));
     }
@@ -1830,8 +1831,9 @@ void NativeFunc::_gc_mark(VM* vm) const {
 
 void FuncDecl::_gc_mark(VM* vm) const {
     code->_gc_mark(vm);
-    for(int i = 0; i < kwargs.size(); i++)
-        vm->obj_gc_mark(kwargs[i].value);
+    c11_vector__foreach(FuncDecl::KwArg, &kwargs, kv) {
+        vm->obj_gc_mark(kv->value);
+    }
 }
 
 void List::_gc_mark(VM* vm) const {

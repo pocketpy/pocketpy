@@ -62,6 +62,7 @@ struct CodeObject {
 };
 
 struct FuncDecl {
+    PK_ALWAYS_PASS_BY_POINTER(FuncDecl)
     struct KwArg {
         int index;    // index in co->varnames
         StrName key;  // name of this argument
@@ -70,8 +71,8 @@ struct FuncDecl {
 
     CodeObject_ code;  // code object of this function
 
-    small_vector_2<int, 8> args;      // indices in co->varnames
-    small_vector_2<KwArg, 6> kwargs;  // indices in co->varnames
+    small_vector_2<int, 8> args;    // indices in co->varnames
+    c11_vector/*T=KwArg*/ kwargs;   // indices in co->varnames
 
     int starred_arg = -1;    // index in co->varnames, -1 if no *arg
     int starred_kwarg = -1;  // index in co->varnames, -1 if no **kwarg
@@ -84,16 +85,18 @@ struct FuncDecl {
 
     void add_kwarg(int index, StrName key, PyVar value) {
         c11_smallmap_n2i__set(&kw_to_index, key.index, index);
-        kwargs.push_back(KwArg{index, key, value});
+        c11_vector__push(KwArg, &kwargs, (KwArg{index, key.index, value}));
     }
 
     void _gc_mark(VM*) const;
 
     FuncDecl(){
+        c11_vector__ctor(&kwargs, sizeof(KwArg));
         c11_smallmap_n2i__ctor(&kw_to_index);
     }
 
     ~FuncDecl(){
+        c11_vector__dtor(&kwargs);
         c11_smallmap_n2i__dtor(&kw_to_index);
     }
 };

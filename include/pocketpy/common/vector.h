@@ -88,6 +88,9 @@ void* c11_vector__emplace(c11_vector* self);
         } \
     }while(0)
 
+#define c11_vector__foreach(T, self, it) \
+    for(T* it = (T*)(self)->data; it != (T*)(self)->data + (self)->count; it++)
+
 #ifdef __cplusplus
 }
 #endif
