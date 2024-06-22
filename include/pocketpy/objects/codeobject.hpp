@@ -44,8 +44,6 @@ struct CodeObject {
     int start_line;
     int end_line;
 
-    const CodeBlock& _get_block_codei(int codei) const { return blocks[lines[codei].iblock]; }
-
     void _gc_mark(VM*) const;
 
     CodeObject(pkpy_SourceData_ src, const Str& name) :

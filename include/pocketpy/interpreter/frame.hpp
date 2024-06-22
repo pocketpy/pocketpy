@@ -143,7 +143,7 @@ struct Frame {
     int _exit_block(ValueStack*, int);
 
     [[nodiscard]] int prepare_loop_break(ValueStack* s_data) {
-        int target = co->_get_block_codei(ip()).end;
+        int target = co->blocks[co->lines[ip()].iblock].end;
         prepare_jump_break(s_data, target);
         return target;
     }
