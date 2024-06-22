@@ -2,6 +2,7 @@
 
 #include "pocketpy/common/_generated.h"
 
+#include "pocketpy/common/refcount.h"
 #include "pocketpy/modules/array2d.hpp"
 #include "pocketpy/modules/base64.hpp"
 #include "pocketpy/modules/csv.hpp"
@@ -12,6 +13,7 @@
 #include "pocketpy/modules/random.hpp"
 #include "pocketpy/modules/modules.hpp"
 #include "pocketpy/objects/base.h"
+#include "pocketpy/objects/codeobject.h"
 
 #include <iostream>
 #include <algorithm>
@@ -1692,15 +1694,16 @@ void VM::__post_init_builtin_types() {
     try {
         // initialize dummy func_decl for exec/eval
         CodeObject* code = compile("def _(): pass", "<dynamic>", EXEC_MODE);
-        __dynamic_func_decl = code->func_decls[0];
-        delete code;    // may leak on error
+        __dynamic_func_decl = c11__getitem(FuncDecl_, &code->func_decls, 0);
+        PK_INCREF(__dynamic_func_decl);
+        CodeObject__delete(code);
         // initialize builtins
         code = compile(kPythonLibs_builtins, "<builtins>", EXEC_MODE);
         this->_exec(code, this->builtins);
-        delete code;    // may leak on error
+        CodeObject__delete(code);
         code = compile(kPythonLibs__set, "<set>", EXEC_MODE);
         this->_exec(code, this->builtins);
-        delete code;    // may leak on error
+        CodeObject__delete(code);
     } catch(TopLevelException e) {
         std::cerr << e.summary() << std::endl;
         std::cerr << "failed to load builtins module!!" << std::endl;

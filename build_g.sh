@@ -5,7 +5,7 @@ python prebuild.py
 SRC_C=$(find src/ -name "*.c")
 SRC_CPP=$(find src/ -name "*.cpp")
 
-COMMON_FLAGS="-Iinclude -O0 -Wfatal-errors -g -DDEBUG -DPK_ENABLE_OS=1"
+COMMON_FLAGS="-Iinclude -O0 -Wfatal-errors -g -DDEBUG -DPK_ENABLE_OS=1" # -fsanitize=address,leak,undefined"
 
 FLAGS_C="-std=c11 $COMMON_FLAGS"
 FLAGS_CPP="-std=c++17 -stdlib=libc++ -frtti $COMMON_FLAGS"

@@ -3,6 +3,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "pocketpy/common/vector.h"
+#include "pocketpy/common/smallmap.h"
+#include "pocketpy/objects/base.h"
+#include "pocketpy/objects/sourcedata.h"
+#include "pocketpy/common/refcount.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -52,7 +58,6 @@ typedef struct Bytecode {
 void Bytecode__set_signed_arg(Bytecode* self, int arg);
 bool Bytecode__is_forward_jump(const Bytecode* self);
 
-
 typedef struct CodeBlock {
     CodeBlockType type;
     int parent;  // parent index in blocks
@@ -60,6 +65,67 @@ typedef struct CodeBlock {
     int end;     // end index of this block in codes, exclusive
     int end2;    // ...
 } CodeBlock;
+
+typedef struct BytecodeEx {
+    int lineno;       // line number for each bytecode
+    bool is_virtual;  // whether this bytecode is virtual (not in source code)
+    int iblock;       // block index
+} BytecodeEx;
+
+typedef struct CodeObject {
+    pkpy_SourceData_ src;
+    pkpy_Str name;
+
+    c11_vector/*T=Bytecode*/                codes;
+    c11_vector/*T=CodeObjectByteCodeEx*/    codes_ex;
+
+    c11_vector/*T=PyVar*/   consts;     // constants
+    c11_vector/*T=StrName*/ varnames;   // local variables
+    int nlocals;                        // cached varnames.size()
+
+    c11_smallmap_n2i varnames_inv;
+    c11_smallmap_n2i labels;
+
+    c11_vector/*T=CodeBlock*/ blocks;
+    c11_vector/*T=FuncDecl_*/ func_decls;
+
+    int start_line;
+    int end_line;
+} CodeObject;
+
+CodeObject* CodeObject__new(pkpy_SourceData_ src, c11_string name);
+void CodeObject__delete(CodeObject* self);
+void CodeObject__gc_mark(const CodeObject* self);
+
+typedef struct FuncDeclKwArg{
+    int index;    // index in co->varnames
+    uint16_t key;  // name of this argument
+    PyVar value;  // default value
+} FuncDeclKwArg;
+
+typedef struct FuncDecl {
+    RefCounted rc;
+    CodeObject* code;  // strong ref
+
+    c11_vector/*T=int*/     args;   // indices in co->varnames
+    c11_vector/*T=KwArg*/ kwargs;   // indices in co->varnames
+
+    int starred_arg;    // index in co->varnames, -1 if no *arg
+    int starred_kwarg;  // index in co->varnames, -1 if no **kwarg
+    bool nested;        // whether this function is nested
+
+    const char* docstring;  // docstring of this function (weak ref)
+
+    FuncType type;
+    c11_smallmap_n2i kw_to_index;
+} FuncDecl;
+
+typedef FuncDecl* FuncDecl_;
+
+FuncDecl_ FuncDecl__rcnew(pkpy_SourceData_ src, c11_string name);
+void FuncDecl__dtor(FuncDecl* self);
+void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const PyVar* value);
+void FuncDecl__gc_mark(const FuncDecl* self);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,7 @@
 #include "pocketpy/interpreter/vm.hpp"
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/objects/base.h"
+#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/public.h"
 
 #include <cstddef>
@@ -209,7 +210,7 @@ PyVar VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject
 #endif
         code = compile(source, filename, mode);
         PyVar retval = _exec(code, _module);
-        delete code;    // leak if exception occurs
+        CodeObject__delete(code);
         return retval;
     } catch(TopLevelException e) {
         stderr_write(e.summary() + "\n");
@@ -221,7 +222,7 @@ PyVar VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject
         Str msg = "An unknown exception occurred! It could be a bug. Please report it to @blueloveTH on GitHub.\n";
         stderr_write(msg);
     }
-    delete code;
+    CodeObject__delete(code);
     callstack.clear();
     s_data.clear();
     return nullptr;
@@ -419,11 +420,12 @@ PyObject* VM::py_import(Str path, bool throw_err) {
     PyObject* new_mod = new_module(name_cpnt, f_join(path_cpnts));
     CodeObject* code = compile(source, filename, EXEC_MODE);
     _exec(code, new_mod);
-    delete code;    // leak if exception occurs
+    CodeObject__delete(code);
     return new_mod;
 }
 
 VM::~VM() {
+    PK_DECREF(__dynamic_func_decl);
     // destroy all objects
     pk_ManagedHeap__dtor(&heap);
     // clear everything
@@ -628,11 +630,14 @@ PyVar VM::__py_exec_internal(const CodeObject* code, PyVar globals, PyVar locals
 void VM::py_exec(std::string_view source, PyVar globals, PyVar locals) {
     CodeObject* code = vm->compile(source, "<exec>", EXEC_MODE, true);
     __py_exec_internal(code, globals, locals);
+    CodeObject__delete(code);
 }
 
 PyVar VM::py_eval(std::string_view source, PyVar globals, PyVar locals) {
     CodeObject* code = vm->compile(source, "<eval>", EVAL_MODE, true);
-    return __py_exec_internal(code, globals, locals);
+    PyVar retval = __py_exec_internal(code, globals, locals);
+    CodeObject__delete(code);
+    return retval;
 }
 
 PyVar VM::__format_object(PyVar obj, Str spec) {
@@ -752,9 +757,11 @@ static std::string _opcode_argstr(VM* vm, int i, Bytecode byte, const CodeObject
     switch(byte.op) {
         case OP_LOAD_CONST:
         case OP_FORMAT_STRING:
-        case OP_IMPORT_PATH:
-            if(vm != nullptr) ss << " (" << vm->py_repr(co->consts[byte.arg]) << ")";
+        case OP_IMPORT_PATH: {
+            PyVar obj = c11__getitem(PyVar, &co->consts, byte.arg);
+            if(vm != nullptr) ss << " (" << vm->py_repr(obj) << ")";
             break;
+        }
         case OP_LOAD_NAME:
         case OP_LOAD_GLOBAL:
         case OP_LOAD_NONLOCAL:
@@ -773,8 +780,16 @@ static std::string _opcode_argstr(VM* vm, int i, Bytecode byte, const CodeObject
         case OP_DELETE_FAST:
         case OP_FOR_ITER_STORE_FAST:
         case OP_LOAD_SUBSCR_FAST:
-        case OP_STORE_SUBSCR_FAST: ss << " (" << co->varnames[byte.arg].sv() << ")"; break;
-        case OP_LOAD_FUNCTION: ss << " (" << co->func_decls[byte.arg]->code->name << ")"; break;
+        case OP_STORE_SUBSCR_FAST:{
+            StrName name = c11__getitem(StrName, &co->varnames, byte.arg);
+            ss << " (" << name.sv() << ")";
+            break;
+        }
+        case OP_LOAD_FUNCTION: {
+            const FuncDecl* decl = c11__getitem(FuncDecl*, &co->func_decls, byte.arg);
+            ss << " (" << pkpy_Str__data(&decl->code->name) << ")";
+            break;
+        }
     }
     return ss.str().str();
 }
@@ -786,22 +801,23 @@ Str VM::disassemble(CodeObject* co) {
     };
 
     vector<int> jumpTargets;
-    for(int i = 0; i < co->codes.size(); i++) {
-        Bytecode byte = co->codes[i];
-        if(Bytecode__is_forward_jump(&byte)) {
-            jumpTargets.push_back((int16_t)byte.arg + i);
+    for(int i=0; i<co->codes.count; i++) {
+        Bytecode* bc = c11__at(Bytecode, &co->codes, i);
+        if(Bytecode__is_forward_jump(bc)) {
+            jumpTargets.push_back((int16_t)bc->arg + i);
         }
     }
     SStream ss;
     int prev_line = -1;
-    for(int i = 0; i < co->codes.size(); i++) {
-        const Bytecode& byte = co->codes[i];
-        Str line = std::to_string(co->lines[i].lineno);
-        if(co->lines[i].lineno == prev_line)
+    for(int i = 0; i < co->codes.count; i++) {
+        Bytecode byte = c11__getitem(Bytecode, &co->codes, i);
+        BytecodeEx ex = c11__getitem(BytecodeEx, &co->codes_ex, i);
+        Str line = std::to_string(ex.lineno);
+        if(ex.lineno == prev_line)
             line = "";
         else {
             if(prev_line != -1) ss << "\n";
-            prev_line = co->lines[i].lineno;
+            prev_line = ex.lineno;
         }
 
         std::string pointer;
@@ -812,16 +828,17 @@ Str VM::disassemble(CodeObject* co) {
         }
         ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
         std::string bc_name(OP_NAMES[byte.op]);
-        if(co->lines[i].is_virtual) bc_name += '*';
+        if(ex.is_virtual) bc_name += '*';
         ss << " " << pad(bc_name, 25) << " ";
         std::string argStr = _opcode_argstr(this, i, byte, co);
         ss << argStr;
-        if(i != co->codes.size() - 1) ss << '\n';
+        if(i != co->codes.count - 1) ss << '\n';
     }
 
-    for(auto& decl: co->func_decls) {
+    c11_vector__foreach(FuncDecl*, &co->func_decls, it) {
+        FuncDecl* decl = *it;
         ss << "\n\n"
-           << "Disassembly of " << decl->code->name << ":\n";
+           << "Disassembly of " << pkpy_Str__data(&decl->code->name) << ":\n";
         ss << disassemble(decl->code);
     }
     ss << "\n";
@@ -986,21 +1003,22 @@ void VM::__unpack_as_dict(ArgsView args, Dict& dict) {
     }
 }
 
-void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const FuncDecl_& decl) {
+void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const FuncDecl* decl) {
     const CodeObject* co = decl->code;
-    int decl_argc = decl->args.size();
+    int decl_argc = decl->args.count;
 
     if(args.size() < decl_argc) {
-        vm->TypeError(_S(co->name, "() takes ", decl_argc, " positional arguments but ", args.size(), " were given"));
+        vm->TypeError(_S(pkpy_Str__data(&co->name), "() takes ", decl_argc, " positional arguments but ", args.size(), " were given"));
     }
 
     int i = 0;
     // prepare args
     std::memset(buffer, 0, co->nlocals * sizeof(PyVar));
-    for(int index: decl->args)
-        buffer[index] = args[i++];
+    c11_vector__foreach(int, &decl->args, index) {
+        buffer[*index] = args[i++];
+    }
     // prepare kwdefaults
-    c11_vector__foreach(FuncDecl::KwArg, &decl->kwargs, kv) {
+    c11_vector__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
         buffer[kv->index] = kv->value;
     }
 
@@ -1011,11 +1029,11 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
         i += vargs.size();
     } else {
         // kwdefaults override
-        c11_vector__foreach(FuncDecl::KwArg, &decl->kwargs, kv) {
+        c11_vector__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
             if(i >= args.size()) break;
             buffer[kv->index] = args[i++];
         }
-        if(i < args.size()) TypeError(_S("too many arguments", " (", decl->code->name, ')'));
+        if(i < args.size()) TypeError(_S("too many arguments", " (", pkpy_Str__data(&decl->code->name), ')'));
     }
 
     PyVar vkwargs;
@@ -1035,7 +1053,7 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
         } else {
             // otherwise, set as **kwargs if possible
             if(!vkwargs) {
-                TypeError(_S(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
+                TypeError(_S(key.escape(), " is an invalid keyword argument for ", pkpy_Str__data(&co->name), "()"));
             } else {
                 Dict& dict = _CAST(Dict&, vkwargs);
                 dict.set(this, VAR(key.sv()), kwargs[j + 1]);
@@ -1085,14 +1103,15 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
                     _base[j] = __vectorcall_buffer[j];
                 break;
             case FuncType_SIMPLE:
-                if(args.size() != fn.decl->args.size())
-                    TypeError(_S(co->name,
-                                 "() takes ",
-                                 fn.decl->args.size(),
-                                 " positional arguments but ",
-                                 args.size(),
-                                 " were given"));
-                if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
+                if(args.size() != fn.decl->args.count){
+                    TypeError(pk_format(
+                        "{} takes {} positional arguments but {} were given",
+                        &co->name, fn.decl->args.count, args.size()
+                    ));
+                }
+                if(!kwargs.empty()){
+                    TypeError(pk_format("{} takes no keyword arguments", &co->name));
+                }
                 // [callable, <self>, args..., local_vars...]
                 //      ^p0                    ^p1      ^_sp
                 s_data.reset(_base + co->nlocals);
@@ -1100,14 +1119,15 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
                 std::memset(p1, 0, (char*)s_data._sp - (char*)p1);
                 break;
             case FuncType_EMPTY:
-                if(args.size() != fn.decl->args.size())
-                    TypeError(_S(co->name,
-                                 "() takes ",
-                                 fn.decl->args.size(),
-                                 " positional arguments but ",
-                                 args.size(),
-                                 " were given"));
-                if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
+                if(args.size() != fn.decl->args.count){
+                    TypeError(pk_format(
+                        "{} takes {} positional arguments but {} were given",
+                        &co->name, fn.decl->args.count, args.size()
+                    ));
+                }
+                if(!kwargs.empty()){
+                    TypeError(pk_format("{} takes no keyword arguments", &co->name));
+                }
                 s_data.reset(p0);
                 return None;
             case FuncType_GENERATOR:
@@ -1385,9 +1405,10 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     std::string_view source(buffer, length);
     // fn(a, b, *c, d=1) -> None
     CodeObject* code = compile(source, "<bind>", EXEC_MODE);
-    assert(code->func_decls.size() == 1);
-    FuncDecl_ decl = code->func_decls[0];
-    delete code;  // may leak if exception occurs
+    assert(code->func_decls.count == 1);
+    FuncDecl_ decl = c11__getitem(FuncDecl_, &code->func_decls, 0);
+    c11_vector__clear(&code->func_decls);   // move decl
+    CodeObject__delete(code);   // may leak if exception occurs
     decl->docstring = docstring;
     PyObject* f_obj = new_object<NativeFunc>(tp_native_func, fn, decl, std::move(userdata)).get();
 
@@ -1396,7 +1417,10 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
         case BindType_CLASSMETHOD: f_obj = new_object<ClassMethod>(tp_classmethod, f_obj).get(); break;
         case BindType_FUNCTION: break;
     }
-    if(obj != nullptr) obj->attr().set(decl->code->name, f_obj);
+    if(obj != nullptr){
+        StrName name = pkpy_Str__data(&decl->code->name);
+        obj->attr().set(name, f_obj);
+    }
     return f_obj;
 }
 
@@ -1459,9 +1483,9 @@ void VM::__raise_exc(bool re_raise) {
 
     int actual_ip = frame->ip();
     if(e._ip_on_error >= 0 && e._code_on_error == (void*)frame->co) actual_ip = e._ip_on_error;
-    int current_line = frame->co->lines[actual_ip].lineno;  // current line
-    const char* current_f_name = frame->co->name.c_str();   // current function name
-    if(frame->_callable == nullptr) current_f_name = "";    // not in a function
+    int current_line = c11__at(BytecodeEx, &frame->co->codes_ex, actual_ip)->lineno;
+    const char* current_f_name = pkpy_Str__data(&frame->co->name);  // current function name
+    if(frame->_callable == nullptr) current_f_name = "";            // not in a function
     e.stpush(frame->co->src, current_line, nullptr, current_f_name);
 
     if(next_ip >= 0) {
@@ -1802,13 +1826,13 @@ void VM::__breakpoint() {
             if(cmd == "p" || cmd == "print") {
                 CodeObject* code = compile(arg, "<stdin>", EVAL_MODE, true);
                 PyVar retval = vm->_exec(code, frame_0->_module, frame_0->_callable, frame_0->_locals);
-                delete code;
+                CodeObject__delete(code);
                 stdout_write(vm->py_repr(retval));
                 stdout_write("\n");
             } else if(cmd == "!") {
                 CodeObject* code = compile(arg, "<stdin>", EXEC_MODE, true);
                 vm->_exec(code, frame_0->_module, frame_0->_callable, frame_0->_locals);
-                delete code;
+                CodeObject__delete(code);
             }
             continue;
         }
@@ -1822,7 +1846,7 @@ PyVar PyObject::attr(StrName name) const{
 
 /**************************************************************************/
 void Function::_gc_mark(VM* vm) const {
-    decl->_gc_mark(vm);
+    FuncDecl__gc_mark(decl);
     if(_closure) {
         _closure->apply([](StrName _, PyVar obj, void* userdata) {
             VM* vm = (VM*)userdata;
@@ -1832,13 +1856,28 @@ void Function::_gc_mark(VM* vm) const {
 }
 
 void NativeFunc::_gc_mark(VM* vm) const {
-    if(decl) decl->_gc_mark(vm);
+    if(decl){
+        FuncDecl__gc_mark(decl);
+    }
 }
 
-void FuncDecl::_gc_mark(VM* vm) const {
-    code->_gc_mark(vm);
-    c11_vector__foreach(FuncDecl::KwArg, &kwargs, kv) {
-        vm->obj_gc_mark(kv->value);
+extern "C"{
+    void FuncDecl__gc_mark(const FuncDecl *self){
+        VM* vm = (VM*)pkpy_g.vm;
+        CodeObject__gc_mark(self->code);
+        c11_vector__foreach(FuncDeclKwArg, &self->kwargs, kv) {
+            vm->obj_gc_mark(kv->value);
+        }
+    }
+
+    void CodeObject__gc_mark(const CodeObject* self) {
+        VM* vm = (VM*)pkpy_g.vm;
+        c11_vector__foreach(PyVar, &self->consts, v) {
+            vm->obj_gc_mark(*v);
+        }
+        c11_vector__foreach(FuncDecl*, &self->func_decls, decl) {
+            FuncDecl__gc_mark(*decl);
+        }
     }
 }
 
@@ -1880,7 +1919,7 @@ void Super::_gc_mark(VM* vm) const { vm->obj_gc_mark(first); }
 
 void Frame::_gc_mark(VM* vm) const {
     vm->obj_gc_mark(_module);
-    co->_gc_mark(vm);
+    CodeObject__gc_mark(co);
     // Frame could be stored in a generator, so mark _callable for safety
     vm->obj_gc_mark(_callable);
 }
@@ -1922,13 +1961,6 @@ void Dict::_gc_mark(VM* vm) const {
         vm->obj_gc_mark(k);
         vm->obj_gc_mark(v);
     });
-}
-
-void CodeObject::_gc_mark(VM* vm) const {
-    for(PyVar v: consts)
-        vm->obj_gc_mark(v);
-    for(auto& decl: func_decls)
-        decl->_gc_mark(vm);
 }
 
 }  // namespace pkpy

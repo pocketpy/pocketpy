@@ -1,5 +1,7 @@
 #include "pocketpy/compiler/expr.hpp"
 #include "pocketpy/interpreter/vm.hpp"
+#include "pocketpy/objects/codeobject.h"
+#include "pocketpy/objects/public.h"
 
 namespace pkpy {
 
@@ -16,23 +18,26 @@ inline bool is_small_int(i64 value) { return value >= INT16_MIN && value <= INT1
 int CodeEmitContext::get_loop() const noexcept{
     int index = curr_iblock;
     while(index >= 0) {
-        if(co->blocks[index].type == CodeBlockType_FOR_LOOP) break;
-        if(co->blocks[index].type == CodeBlockType_WHILE_LOOP) break;
-        index = co->blocks[index].parent;
+        CodeBlock* block = c11__at(CodeBlock, &co->blocks, index);
+        if(block->type == CodeBlockType_FOR_LOOP) break;
+        if(block->type == CodeBlockType_WHILE_LOOP) break;
+        index = block->parent;
     }
     return index;
 }
 
 CodeBlock* CodeEmitContext::enter_block(CodeBlockType type) noexcept{
-    co->blocks.push_back(CodeBlock{type, curr_iblock, (int)co->codes.size(), -1, -1});
-    curr_iblock = co->blocks.size() - 1;
-    return &co->blocks[curr_iblock];
+    CodeBlock block = {type, curr_iblock, co->codes.count, -1, -1};
+    c11_vector__push(CodeBlock, &co->blocks, block);
+    curr_iblock = co->blocks.count - 1;
+    return c11__at(CodeBlock, &co->blocks, curr_iblock);
 }
 
 void CodeEmitContext::exit_block() noexcept{
-    auto curr_type = co->blocks[curr_iblock].type;
-    co->blocks[curr_iblock].end = co->codes.size();
-    curr_iblock = co->blocks[curr_iblock].parent;
+    CodeBlock* block = c11__at(CodeBlock, &co->blocks, curr_iblock);
+    CodeBlockType curr_type = block->type;
+    block->end = co->codes.count;
+    curr_iblock = block->parent;
     assert(curr_iblock >= 0);
     if(curr_type == CodeBlockType_FOR_LOOP) {
         // add a no op here to make block check work
@@ -55,38 +60,37 @@ void CodeEmitContext::s_emit_decorators(int count) noexcept{
 }
 
 int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual) noexcept{
-    co->codes.push_back(Bytecode{(uint8_t)opcode, arg});
-    co->lines.push_back(CodeObject::LineInfo{line, is_virtual, curr_iblock});
-    int i = co->codes.size() - 1;
+    c11_vector__push(Bytecode, &co->codes, (Bytecode{(uint8_t)opcode, arg}));
+    c11_vector__push(BytecodeEx, &co->codes_ex, (BytecodeEx{line, is_virtual, curr_iblock}));
+    int i = co->codes.count - 1;
+    BytecodeEx* codes_ex = (BytecodeEx*)co->codes_ex.data;
     if(line == BC_KEEPLINE) {
-        if(i >= 1)
-            co->lines[i].lineno = co->lines[i - 1].lineno;
-        else
-            co->lines[i].lineno = 1;
+        codes_ex[i].lineno = i>=1 ? codes_ex[i-1].lineno : 1;
     }
     return i;
 }
 
 void CodeEmitContext::revert_last_emit_() noexcept{
-    co->codes.pop_back();
-    co->lines.pop_back();
+    c11_vector__pop(Bytecode, &co->codes);
+    c11_vector__pop(BytecodeEx, &co->codes_ex);
 }
 
 void CodeEmitContext::try_merge_for_iter_store(int i) noexcept{
     // [FOR_ITER, STORE_?, ]
-    if(co->codes[i].op != OP_FOR_ITER) return;
-    if(co->codes.size() - i != 2) return;
-    uint16_t arg = co->codes[i + 1].arg;
-    if(co->codes[i + 1].op == OP_STORE_FAST) {
+    Bytecode* co_codes = (Bytecode*)co->codes.data;
+    if(co_codes[i].op != OP_FOR_ITER) return;
+    if(co->codes.count - i != 2) return;
+    uint16_t arg = co_codes[i + 1].arg;
+    if(co_codes[i + 1].op == OP_STORE_FAST) {
         revert_last_emit_();
-        co->codes[i].op = OP_FOR_ITER_STORE_FAST;
-        co->codes[i].arg = arg;
+        co_codes[i].op = OP_FOR_ITER_STORE_FAST;
+        co_codes[i].arg = arg;
         return;
     }
-    if(co->codes[i + 1].op == OP_STORE_GLOBAL) {
+    if(co_codes[i + 1].op == OP_STORE_GLOBAL) {
         revert_last_emit_();
-        co->codes[i].op = OP_FOR_ITER_STORE_GLOBAL;
-        co->codes[i].arg = arg;
+        co_codes[i].op = OP_FOR_ITER_STORE_GLOBAL;
+        co_codes[i].arg = arg;
         return;
     }
 }
@@ -100,14 +104,15 @@ int CodeEmitContext::emit_int(i64 value, int line) noexcept{
 }
 
 void CodeEmitContext::patch_jump(int index) noexcept{
-    int target = co->codes.size();
-    Bytecode__set_signed_arg(&co->codes[index], target - index);
+    Bytecode* co_codes = (Bytecode*)co->codes.data;
+    int target = co->codes.count;
+    Bytecode__set_signed_arg(&co_codes[index], target - index);
 }
 
 bool CodeEmitContext::add_label(StrName name) noexcept{
     bool ok = c11_smallmap_n2i__contains(&co->labels, name.index);
     if(ok) return false;
-    c11_smallmap_n2i__set(&co->labels, name.index, co->codes.size());
+    c11_smallmap_n2i__set(&co->labels, name.index, co->codes.count);
     return true;
 }
 
@@ -115,9 +120,9 @@ int CodeEmitContext::add_varname(StrName name) noexcept{
     // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
     int index = c11_smallmap_n2i__get(&co->varnames_inv, name.index, -1);
     if(index >= 0) return index;
-    co->varnames.push_back(name);
+    c11_vector__push(uint16_t, &co->varnames, name.index);
     co->nlocals++;
-    index = co->varnames.size() - 1;
+    index = co->varnames.count - 1;
     c11_smallmap_n2i__set(&co->varnames_inv, name.index, index);
     return index;
 }
@@ -127,9 +132,10 @@ int CodeEmitContext::add_const_string(std::string_view key) noexcept{
     if(val) {
         return *val;
     } else {
-        co->consts.push_back(VAR(key));
-        int index = co->consts.size() - 1;
-        key = co->consts.back().obj_get<Str>().sv();
+        // co->consts.push_back(VAR(key));
+        c11_vector__push(PyVar, &co->consts, VAR(key));
+        int index = co->consts.count - 1;
+        key = c11__getitem(PyVar, &co->consts, index).obj_get<Str>().sv();
         c11_smallmap_s2n__set(&_co_consts_string_dedup_map, {key.data(), (int)key.size()}, index);
         return index;
     }
@@ -137,14 +143,8 @@ int CodeEmitContext::add_const_string(std::string_view key) noexcept{
 
 int CodeEmitContext::add_const(PyVar v) noexcept{
     assert(!is_type(v, VM::tp_str));
-    co->consts.push_back(v);
-    int index = co->consts.size() - 1;
-    return index;
-}
-
-int CodeEmitContext::add_func_decl(FuncDecl_ decl) noexcept{
-    co->func_decls.push_back(decl);
-    return co->func_decls.size() - 1;
+    c11_vector__push(PyVar, &co->consts, v);
+    return co->consts.count - 1;
 }
 
 void CodeEmitContext::emit_store_name(NameScope scope, StrName name, int line) noexcept{
@@ -340,14 +340,14 @@ bool TupleExpr::emit_store(CodeEmitContext* ctx) {
     }
 
     if(starred_i == -1) {
-        Bytecode& prev = ctx->co->codes.back();
-        if(prev.op == OP_BUILD_TUPLE && prev.arg == items.size()) {
+        Bytecode* prev = c11__at(Bytecode, &ctx->co->codes, ctx->co->codes.count - 1);
+        if(prev->op == OP_BUILD_TUPLE && prev->arg == items.size()) {
             // build tuple and unpack it is meaningless
             ctx->revert_last_emit_();
         } else {
-            if(prev.op == OP_FOR_ITER) {
-                prev.op = OP_FOR_ITER_UNPACK;
-                prev.arg = items.size();
+            if(prev->op == OP_FOR_ITER) {
+                prev->op = OP_FOR_ITER_UNPACK;
+                prev->arg = items.size();
             } else {
                 ctx->emit_(OP_UNPACK_SEQUENCE, items.size(), line);
             }
@@ -543,7 +543,7 @@ void FStringExpr::emit_(CodeEmitContext* ctx) {
 void SubscrExpr::emit_(CodeEmitContext* ctx) {
     lhs->emit_(ctx);
     rhs->emit_(ctx);
-    Bytecode last_bc = ctx->co->codes.back();
+    Bytecode last_bc = c11__getitem(Bytecode, &ctx->co->codes, ctx->co->codes.count-1);
     if(rhs->is_name() && last_bc.op == OP_LOAD_FAST) {
         ctx->revert_last_emit_();
         ctx->emit_(OP_LOAD_SUBSCR_FAST, last_bc.arg, line);
@@ -558,7 +558,7 @@ void SubscrExpr::emit_(CodeEmitContext* ctx) {
 bool SubscrExpr::emit_store(CodeEmitContext* ctx) {
     lhs->emit_(ctx);
     rhs->emit_(ctx);
-    Bytecode last_bc = ctx->co->codes.back();
+    Bytecode last_bc = c11__getitem(Bytecode, &ctx->co->codes, ctx->co->codes.count-1);
     if(rhs->is_name() && last_bc.op == OP_LOAD_FAST) {
         ctx->revert_last_emit_();
         ctx->emit_(OP_STORE_SUBSCR_FAST, last_bc.arg, line);

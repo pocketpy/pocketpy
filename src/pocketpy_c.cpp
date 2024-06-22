@@ -1,3 +1,4 @@
+#include "pocketpy/objects/codeobject.h"
 #ifndef PK_NO_EXPORT_C_API
 
 #include "pocketpy/pocketpy.hpp"
@@ -62,7 +63,7 @@ bool pkpy_exec(pkpy_vm* vm_handle, const char* source) {
     PK_PROTECTED(
         CodeObject* code = vm->compile(source, "main.py", EXEC_MODE);
         res = vm->_exec(code, vm->_main);
-        delete code;    // TODO: _exec may raise, so code may leak
+        CodeObject__delete(code);
     )
     return res != nullptr;
 }
@@ -78,8 +79,8 @@ bool pkpy_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, i
                         mod = vm->_modules[module].get();  // may raise
         }
         CodeObject* code = vm->compile(source, filename, (CompileMode)mode);
-        res = vm->_exec(code, mod);
-        delete code;    // TODO: _exec may raise, so code may leak
+        res = vm->_exec(code, mod); 
+        CodeObject__delete(code);   // TODO: _exec may raise, so code may leak
     )
     return res != nullptr;
 }
@@ -419,10 +420,10 @@ bool pkpy_eval(pkpy_vm* vm_handle, const char* source) {
     VM* vm = (VM*)vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        CodeObject* co = vm->compile(source, "<eval>", EVAL_MODE);
-        PyVar ret = vm->_exec(co, vm->_main);
+        CodeObject* code = vm->compile(source, "<eval>", EVAL_MODE);
+        PyVar ret = vm->_exec(code, vm->_main);
         vm->s_data.push(ret);
-        delete co;  // TODO: _exec may raise, so code may leak
+        CodeObject__delete(code);
     )
     return true;
 }

@@ -501,7 +501,7 @@ public:
     void __pop_frame();
     PyVar __py_generator(LinkedFrame* frame, ArgsView buffer);
     void __op_unpack_sequence(uint16_t arg);
-    void __prepare_py_call(PyVar*, ArgsView, ArgsView, const FuncDecl_&);
+    void __prepare_py_call(PyVar*, ArgsView, ArgsView, const FuncDecl*);
     void __unpack_as_list(ArgsView args, List& list);
     void __unpack_as_dict(ArgsView args, Dict& dict);
     [[noreturn]] void __raise_exc(bool re_raise = false);

@@ -1,5 +1,6 @@
 #include "pocketpy/compiler/compiler.hpp"
 #include "pocketpy/common/config.h"
+#include "pocketpy/compiler/expr.hpp"
 #include "pocketpy/interpreter/vm.hpp"
 #include "pocketpy/objects/codeobject.hpp"
 
@@ -21,17 +22,21 @@ NameScope Compiler::name_scope() const noexcept{
 }
 
 CodeObject* Compiler::push_global_context() noexcept{
-    CodeObject* co = new CodeObject(lexer.src, static_cast<const Str&>(lexer.src->filename));
+    CodeObject* co = CodeObject__new(lexer.src, pkpy_Str__sv(&lexer.src->filename));
     co->start_line = __i == 0 ? 1 : prev().line;
     contexts.push_back(CodeEmitContext(vm, co, contexts.size()));
     return co;
 }
 
-FuncDecl_ Compiler::push_f_context(Str name) noexcept{
-    CodeObject* co = new CodeObject(lexer.src, name);
-    FuncDecl_ decl = std::make_shared<FuncDecl>(co);
+FuncDecl_ Compiler::push_f_context(c11_string name, int* out_index) noexcept{
+    FuncDecl_ decl = FuncDecl__rcnew(lexer.src, name);
     decl->code->start_line = __i == 0 ? 1 : prev().line;
     decl->nested = name_scope() == NAME_LOCAL;
+    // add_func_decl
+    CodeEmitContext* ctx = &contexts.back();
+    c11_vector__push(FuncDecl_, &ctx->co->func_decls, decl);
+    *out_index = ctx->co->func_decls.count - 1;
+    // push new context
     contexts.push_back(CodeEmitContext(vm, decl->code, contexts.size()));
     contexts.back().func = decl;
     return decl;
@@ -54,29 +59,29 @@ Error* Compiler::pop_context() noexcept{
     if(ctx()->co->nlocals > PK_MAX_CO_VARNAMES) {
         return SyntaxError("maximum number of local variables exceeded");
     }
-    if(ctx()->co->consts.size() > 65530) {
+    if(ctx()->co->consts.count > 65530) {
         return SyntaxError("maximum number of constants exceeded");
     }
     // pre-compute LOOP_BREAK and LOOP_CONTINUE
-    for(int i = 0; i < codes.size(); i++) {
-        Bytecode& bc = codes[i];
+    for(int i = 0; i < codes.count; i++) {
+        Bytecode bc = c11__getitem(Bytecode, &codes, i);
         if(bc.op == OP_LOOP_CONTINUE) {
-            CodeBlock* block = &ctx()->co->blocks[bc.arg];
+            CodeBlock* block = c11__at(CodeBlock, &ctx()->co->blocks, bc.arg);
             Bytecode__set_signed_arg(&bc, block->start - i);
         } else if(bc.op == OP_LOOP_BREAK) {
-            CodeBlock* block = &ctx()->co->blocks[bc.arg];
+            CodeBlock* block = c11__at(CodeBlock, &ctx()->co->blocks, bc.arg);
             Bytecode__set_signed_arg(&bc, (block->end2 != -1 ? block->end2 : block->end) - i);
         }
     }
     // pre-compute func->is_simple
-    FuncDecl_ func = contexts.back().func;
+    FuncDecl* func = contexts.back().func;
     if(func) {
         // check generator
-        for(Bytecode bc: func->code->codes) {
-            if(bc.op == OP_YIELD_VALUE || bc.op == OP_FOR_ITER_YIELD_VALUE) {
+        c11_vector__foreach(Bytecode, &func->code->codes, bc) {
+            if(bc->op == OP_YIELD_VALUE || bc->op == OP_FOR_ITER_YIELD_VALUE) {
                 func->type = FuncType_GENERATOR;
-                for(Bytecode bc: func->code->codes) {
-                    if(bc.op == OP_RETURN_VALUE && bc.arg == BC_NOARG) {
+                c11_vector__foreach(Bytecode, &func->code->codes, bc) {
+                    if(bc->op == OP_RETURN_VALUE && bc->arg == BC_NOARG) {
                         return SyntaxError("'return' with argument inside generator function");
                     }
                 }
@@ -93,9 +98,11 @@ Error* Compiler::pop_context() noexcept{
                 func->type = FuncType_SIMPLE;
 
                 bool is_empty = false;
-                if(func->code->codes.size() == 1) {
-                    Bytecode bc = func->code->codes[0];
-                    if(bc.op == OP_RETURN_VALUE && bc.arg == 1) { is_empty = true; }
+                if(func->code->codes.count == 1) {
+                    Bytecode bc = c11__getitem(Bytecode, &func->code->codes, 0);
+                    if(bc.op == OP_RETURN_VALUE && bc.arg == 1) {
+                        is_empty = true;
+                    }
                 }
                 if(is_empty) func->type = FuncType_EMPTY;
             } else
@@ -261,7 +268,8 @@ Error* Compiler::exprFString() noexcept{
 
 Error* Compiler::exprLambda() noexcept{
     Error* err;
-    FuncDecl_ decl = push_f_context("<lambda>");
+    int decl_index;
+    FuncDecl_ decl = push_f_context({"<lambda>", 8}, &decl_index);
     int line = prev().line;     // backup line
     if(!match(TK_COLON)) {
         check(_compile_f_args(decl, false));
@@ -272,7 +280,7 @@ Error* Compiler::exprLambda() noexcept{
     ctx()->s_emit_top();
     ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
     check(pop_context());
-    LambdaExpr* e = make_expr<LambdaExpr>(decl);
+    LambdaExpr* e = make_expr<LambdaExpr>(decl_index);
     e->line = line;
     ctx()->s_push(e);
     return NULL;
@@ -744,7 +752,7 @@ Error* Compiler::compile_while_loop() noexcept{
     // optional else clause
     if(match(TK_ELSE)) {
         check(compile_block_body());
-        block->end2 = ctx()->co->codes.size();
+        block->end2 = ctx()->co->codes.count;
     }
     return NULL;
 }
@@ -769,7 +777,7 @@ Error* Compiler::compile_for_loop() noexcept{
     // optional else clause
     if(match(TK_ELSE)) {
         check(compile_block_body());
-        block->end2 = ctx()->co->codes.size();
+        block->end2 = ctx()->co->codes.count;
     }
     return NULL;
 }
@@ -815,17 +823,18 @@ Error* Compiler::compile_try_except() noexcept{
 
     if(match(TK_FINALLY)) {
         int patch = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
-        finally_entry = ctx()->co->codes.size();
+        finally_entry = ctx()->co->codes.count;
         check(compile_block_body());
         ctx()->emit_(OP_JUMP_ABSOLUTE_TOP, BC_NOARG, BC_KEEPLINE);
         ctx()->patch_jump(patch);
     }
     // no match, re-raise
     if(finally_entry != -1) {
-        i64 target = ctx()->co->codes.size() + 2;
+        i64 target = ctx()->co->codes.count + 2;
         ctx()->emit_(OP_LOAD_CONST, ctx()->add_const(VAR(target)), BC_KEEPLINE);
         int i = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
-        Bytecode__set_signed_arg(&ctx()->co->codes[i], finally_entry - i);
+        Bytecode* bc = c11__at(Bytecode, &ctx()->co->codes, i);
+        Bytecode__set_signed_arg(bc, finally_entry - i);
     }
     ctx()->emit_(OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
 
@@ -833,10 +842,11 @@ Error* Compiler::compile_try_except() noexcept{
     for(int patch: patches)
         ctx()->patch_jump(patch);
     if(finally_entry != -1) {
-        i64 target = ctx()->co->codes.size() + 2;
+        i64 target = ctx()->co->codes.count + 2;
         ctx()->emit_(OP_LOAD_CONST, ctx()->add_const(VAR(target)), BC_KEEPLINE);
         int i = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
-        Bytecode__set_signed_arg(&ctx()->co->codes[i], finally_entry - i);
+        Bytecode* bc = c11__at(Bytecode, &ctx()->co->codes, i);
+        Bytecode__set_signed_arg(bc, finally_entry - i);
     }
     return NULL;
 }
@@ -1144,7 +1154,7 @@ Error* Compiler::compile_class(int decorators) noexcept{
     return NULL;
 }
 
-Error* Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) noexcept{
+Error* Compiler::_compile_f_args(FuncDecl* decl, bool enable_type_hints) noexcept{
     int state = 0;  // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
     Error* err;
     do {
@@ -1163,17 +1173,23 @@ Error* Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) noexcep
         StrName name(prev().sv());
 
         // check duplicate argument name
-        for(int j: decl->args) {
-            if(decl->code->varnames[j] == name) return SyntaxError("duplicate argument name");
+        uint16_t tmp_name;
+        c11_vector__foreach(int, &decl->args, j) {
+            tmp_name = c11__getitem(uint16_t, &decl->args, *j);
+            if(tmp_name == name.index) return SyntaxError("duplicate argument name");
         }
-        c11_vector__foreach(FuncDecl::KwArg, &decl->kwargs, kv) {
-            if(decl->code->varnames[kv->index] == name) return SyntaxError("duplicate argument name");
+        c11_vector__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
+            tmp_name = c11__getitem(uint16_t, &decl->code->varnames, kv->index);
+            if(tmp_name == name.index) return SyntaxError("duplicate argument name");
         }
-        if(decl->starred_arg != -1 && decl->code->varnames[decl->starred_arg] == name) {
-            return SyntaxError("duplicate argument name");
+        
+        if(decl->starred_arg != -1) {
+            tmp_name = c11__getitem(uint16_t, &decl->code->varnames, decl->starred_arg);
+            if(tmp_name == name.index) return SyntaxError("duplicate argument name");
         }
-        if(decl->starred_kwarg != -1 && decl->code->varnames[decl->starred_kwarg] == name) {
-            return SyntaxError("duplicate argument name");
+        if(decl->starred_kwarg != -1) {
+            tmp_name = c11__getitem(uint16_t, &decl->code->varnames, decl->starred_kwarg);
+            if(tmp_name == name.index) return SyntaxError("duplicate argument name");
         }
 
         // eat type hints
@@ -1181,7 +1197,9 @@ Error* Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) noexcep
         if(state == 0 && curr().type == TK_ASSIGN) state = 2;
         int index = ctx()->add_varname(name);
         switch(state) {
-            case 0: decl->args.push_back(index); break;
+            case 0:
+                c11_vector__push(int, &decl->args, index);
+                break;
             case 1:
                 decl->starred_arg = index;
                 state += 1;
@@ -1191,7 +1209,7 @@ Error* Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) noexcep
                 PyVar value;
                 check(read_literal(&value));
                 if(value == nullptr) return SyntaxError("default argument must be a literal");
-                decl->add_kwarg(index, name, value);
+                FuncDecl__add_kwarg(decl, index, name.index, (const ::PyVar*)&value);
             } break;
             case 3:
                 decl->starred_kwarg = index;
@@ -1205,8 +1223,9 @@ Error* Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) noexcep
 Error* Compiler::compile_function(int decorators) noexcept{
     Error* err;
     consume(TK_ID);
-    Str decl_name = prev().str();
-    FuncDecl_ decl = push_f_context(decl_name);
+    std::string_view decl_name = prev().sv();
+    int decl_index;
+    FuncDecl_ decl = push_f_context({decl_name.data(), (int)decl_name.size()}, &decl_index);
     consume(TK_LPAREN);
     if(!match(TK_RPAREN)) {
         check(_compile_f_args(decl, true));
@@ -1216,22 +1235,24 @@ Error* Compiler::compile_function(int decorators) noexcept{
     check(compile_block_body());
     check(pop_context());
 
-    decl->docstring = nullptr;
-    if(decl->code->codes.size() >= 2 && decl->code->codes[0].op == OP_LOAD_CONST &&
-       decl->code->codes[1].op == OP_POP_TOP) {
-        PyVar c = decl->code->consts[decl->code->codes[0].arg];
-        if(is_type(c, vm->tp_str)) {
-            decl->code->codes[0].op = OP_NO_OP;
-            decl->code->codes[1].op = OP_NO_OP;
-            decl->docstring = PK_OBJ_GET(Str, c).c_str();
+    if(decl->code->codes.count >= 2) {
+        Bytecode* codes = (Bytecode*)decl->code->codes.data;
+        if(codes[0].op == OP_LOAD_CONST && codes[1].op == OP_POP_TOP) {
+            // handle optional docstring
+            PyVar* c = c11__at(PyVar, &decl->code->consts, codes[0].arg);
+            if(is_type(*c, vm->tp_str)) {
+                codes[0].op = OP_NO_OP;
+                codes[1].op = OP_NO_OP;
+                decl->docstring = PK_OBJ_GET(Str, *c).c_str();
+            }
         }
     }
-    ctx()->emit_(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
+    ctx()->emit_(OP_LOAD_FUNCTION, decl_index, prev().line);
 
     ctx()->s_emit_decorators(decorators);
 
     if(!ctx()->is_compiling_class) {
-        NameExpr* e = make_expr<NameExpr>(decl_name, name_scope());
+        NameExpr* e = make_expr<NameExpr>(StrName(decl_name), name_scope());
         e->emit_store(ctx());
         delete_expr(e);
     } else {

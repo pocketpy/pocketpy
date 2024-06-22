@@ -55,7 +55,7 @@ struct Compiler {
 
     NameScope name_scope() const noexcept;
     CodeObject* push_global_context() noexcept;
-    FuncDecl_ push_f_context(Str name) noexcept;
+    FuncDecl_ push_f_context(c11_string name, int* out_index) noexcept;
 
     static void init_pratt_rules() noexcept;
 
@@ -118,7 +118,7 @@ struct Compiler {
     [[nodiscard]] Error* try_compile_assignment(bool* is_assign) noexcept;
     [[nodiscard]] Error* compile_stmt() noexcept;
     [[nodiscard]] Error* consume_type_hints() noexcept;
-    [[nodiscard]] Error* _compile_f_args(FuncDecl_ decl, bool enable_type_hints) noexcept;
+    [[nodiscard]] Error* _compile_f_args(FuncDecl* decl, bool enable_type_hints) noexcept;
     [[nodiscard]] Error* compile_function(int decorators = 0) noexcept;
     [[nodiscard]] Error* compile_class(int decorators = 0) noexcept;
 

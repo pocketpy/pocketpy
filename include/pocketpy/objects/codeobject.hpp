@@ -12,96 +12,6 @@ namespace pkpy {
 
 typedef PyVar (*NativeFuncC)(VM*, ArgsView);
 
-struct CodeObject;
-struct FuncDecl;
-using FuncDecl_ = std::shared_ptr<FuncDecl>;
-
-struct CodeObject {
-    PK_ALWAYS_PASS_BY_POINTER(CodeObject)
-    
-    struct LineInfo {
-        int lineno;       // line number for each bytecode
-        bool is_virtual;  // whether this bytecode is virtual (not in source code)
-        int iblock;       // block index
-    };
-
-    pkpy_SourceData_ src;
-    Str name;
-
-    vector<Bytecode> codes;
-    vector<LineInfo> lines;
-
-    small_vector_2<PyVar, 8> consts;      // constants
-    small_vector_2<StrName, 8> varnames;  // local variables
-    int nlocals;                          // varnames.size()
-
-    c11_smallmap_n2i varnames_inv;
-    vector<CodeBlock> blocks;
-    c11_smallmap_n2i labels;
-    vector<FuncDecl_> func_decls;
-
-    int start_line;
-    int end_line;
-
-    void _gc_mark(VM*) const;
-
-    CodeObject(pkpy_SourceData_ src, const Str& name) :
-        src(src), name(name), nlocals(0), start_line(-1), end_line(-1) {
-        blocks.push_back(CodeBlock{CodeBlockType_NO_BLOCK, -1, 0, -1, -1});
-        c11_smallmap_n2i__ctor(&varnames_inv);
-        c11_smallmap_n2i__ctor(&labels);
-        PK_INCREF(src);
-    }
-
-    ~CodeObject() {
-        c11_smallmap_n2i__dtor(&varnames_inv);
-        c11_smallmap_n2i__dtor(&labels);
-        PK_DECREF(src);
-    }
-};
-
-struct FuncDecl {
-    PK_ALWAYS_PASS_BY_POINTER(FuncDecl)
-    struct KwArg {
-        int index;    // index in co->varnames
-        StrName key;  // name of this argument
-        PyVar value;  // default value
-    };
-
-    CodeObject* code;  // strong ref
-
-    small_vector_2<int, 8> args;    // indices in co->varnames
-    c11_vector/*T=KwArg*/ kwargs;   // indices in co->varnames
-
-    int starred_arg = -1;    // index in co->varnames, -1 if no *arg
-    int starred_kwarg = -1;  // index in co->varnames, -1 if no **kwarg
-    bool nested = false;     // whether this function is nested
-
-    const char* docstring;  // docstring of this function (weak ref)
-
-    FuncType type = FuncType_UNSET;
-    c11_smallmap_n2i kw_to_index;
-
-    void add_kwarg(int index, StrName key, PyVar value) {
-        c11_smallmap_n2i__set(&kw_to_index, key.index, index);
-        c11_vector__push(KwArg, &kwargs, (KwArg{index, key.index, value}));
-    }
-
-    void _gc_mark(VM*) const;
-
-    FuncDecl(CodeObject* code){
-        this->code = code;
-        c11_vector__ctor(&kwargs, sizeof(KwArg));
-        c11_smallmap_n2i__ctor(&kw_to_index);
-    }
-
-    ~FuncDecl(){
-        delete code;
-        c11_vector__dtor(&kwargs);
-        c11_smallmap_n2i__dtor(&kw_to_index);
-    }
-};
-
 struct NativeFunc {
     NativeFuncC f;
     int argc;        // old style argc-based call
@@ -117,6 +27,10 @@ struct NativeFunc {
     PyVar call(VM* vm, ArgsView args) const { return f(vm, args); }
 
     void _gc_mark(VM*) const;
+
+    ~NativeFunc() {
+        if(decl) PK_DECREF(decl);
+    }
 };
 
 struct Function {
@@ -128,11 +42,14 @@ struct Function {
     NameDict* _closure; // strong ref
 
     Function(FuncDecl_ decl, PyObject* _module, PyObject* _class, NameDict* _closure) :
-        decl(decl), _module(_module), _class(_class), _closure(_closure) {}
+        decl(decl), _module(_module), _class(_class), _closure(_closure) {
+            PK_INCREF(decl);
+        }
 
     void _gc_mark(VM*) const;
 
     ~Function() {
+        PK_DECREF(decl);
         delete _closure;
     }
 };

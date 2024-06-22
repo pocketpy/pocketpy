@@ -115,7 +115,7 @@ bool VM::py_ge(PyVar _0, PyVar _1) {
     }
 #define DISPATCH_JUMP_ABSOLUTE(__target)                                                                               \
     {                                                                                                                  \
-        frame->_ip = &frame->co->codes[__target];                                                                      \
+        frame->_ip = c11__at(Bytecode, &frame->co->codes, __target);                                                   \
         goto __NEXT_STEP;                                                                                              \
     }
 
@@ -136,7 +136,7 @@ PyVar VM::__run_top_frame() {
                     frame->_ip++;
                 } else if(__internal_exception.type == InternalExceptionType::Handled) {
                     // HandledException + continue
-                    frame->_ip = &frame->co->codes[__internal_exception.arg];
+                    frame->_ip = c11__at(Bytecode, &frame->co->codes, __internal_exception.arg);
                     __internal_exception = {};
                 } else {
                     // UnhandledException + continue (need_raise = true)
@@ -176,7 +176,9 @@ PyVar VM::__run_top_frame() {
                         POP();
                         DISPATCH()
                     /*****************************************/
-                    case OP_LOAD_CONST: PUSH(frame->co->consts[byte.arg]); DISPATCH()
+                    case OP_LOAD_CONST:
+                        PUSH(c11__getitem(PyVar, &frame->co->consts, byte.arg));
+                        DISPATCH()
                     case OP_LOAD_NONE: PUSH(None); DISPATCH()
                     case OP_LOAD_TRUE: PUSH(True); DISPATCH()
                     case OP_LOAD_FALSE: PUSH(False); DISPATCH()
@@ -185,12 +187,13 @@ PyVar VM::__run_top_frame() {
                     /*****************************************/
                     case OP_LOAD_ELLIPSIS: PUSH(Ellipsis); DISPATCH()
                     case OP_LOAD_FUNCTION: {
-                        const FuncDecl_& decl = frame->co->func_decls[byte.arg];
+                        FuncDecl_ decl = c11__getitem(FuncDecl_, &frame->co->func_decls, byte.arg);
                         PyVar obj;
                         if(decl->nested) {
                             NameDict* captured = frame->_locals.to_namedict();
                             obj = new_object<Function>(tp_function, decl, frame->_module, nullptr, captured);
-                            captured->set(decl->code->name, obj);
+                            uint16_t name = pkpy_StrName__map2(pkpy_Str__sv(&decl->code->name));
+                            captured->set(name, obj);
                         } else {
                             obj = new_object<Function>(tp_function, decl, frame->_module, nullptr, nullptr);
                         }
@@ -201,7 +204,7 @@ PyVar VM::__run_top_frame() {
                     /*****************************************/
                     case OP_LOAD_FAST: {
                         PyVar _0 = frame->_locals[byte.arg];
-                        if(_0 == PY_NULL) vm->UnboundLocalError(frame->co->varnames[byte.arg]);
+                        if(_0 == PY_NULL) vm->UnboundLocalError(c11__getitem(uint16_t, &frame->co->varnames, byte.arg));
                         PUSH(_0);
                     }
                         DISPATCH()
@@ -311,7 +314,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     case OP_LOAD_SUBSCR_FAST: {
                         PyVar _1 = frame->_locals[byte.arg];
-                        if(_1 == PY_NULL) vm->UnboundLocalError(frame->co->varnames[byte.arg]);
+                        if(_1 == PY_NULL) vm->UnboundLocalError(c11__getitem(uint16_t, &frame->co->varnames, byte.arg));
                         PyVar _0 = TOP();  // a
                         auto _ti = _tp_info(_0);
                         if(_ti->m__getitem__) {
@@ -376,7 +379,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     case OP_STORE_SUBSCR_FAST: {
                         PyVar _2 = frame->_locals[byte.arg];  // b
-                        if(_2 == PY_NULL) vm->UnboundLocalError(frame->co->varnames[byte.arg]);
+                        if(_2 == PY_NULL) vm->UnboundLocalError(c11__getitem(uint16_t, &frame->co->varnames, byte.arg));
                         PyVar _1 = POPX();  // a
                         PyVar _0 = POPX();  // val
                         auto _ti = _tp_info(_1);
@@ -389,7 +392,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     case OP_DELETE_FAST: {
                         PyVar _0 = frame->_locals[byte.arg];
-                        if(_0 == PY_NULL) vm->UnboundLocalError(frame->co->varnames[byte.arg]);
+                        if(_0 == PY_NULL) vm->UnboundLocalError(c11__getitem(uint16_t, &frame->co->varnames, byte.arg));
                         frame->_locals[byte.arg].set_null();
                     }
                         DISPATCH()
@@ -792,12 +795,12 @@ PyVar VM::__run_top_frame() {
                     }
                     /*****************************************/
                     case OP_FSTRING_EVAL: {
-                        PyVar _0 = frame->co->consts[byte.arg];
+                        PyVar _0 = c11__getitem(PyVar, &frame->co->consts, byte.arg);
                         std::string_view string = CAST(Str&, _0).sv();
                         // TODO: optimize this
                         CodeObject* code = vm->compile(string, "<eval>", EVAL_MODE, true);
                         _0 = vm->_exec(code, frame->_module, frame->_callable, frame->_locals);
-                        delete code;    // leak on error
+                        CodeObject__delete(code);
                         PUSH(_0);
                     }
                         DISPATCH()
@@ -968,7 +971,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     /*****************************************/
                     case OP_IMPORT_PATH: {
-                        PyVar _0 = frame->co->consts[byte.arg];
+                        PyVar _0 = c11__getitem(PyVar, &frame->co->consts, byte.arg);
                         PUSH(py_import(CAST(Str&, _0)));
                     }
                         DISPATCH()
@@ -1103,7 +1106,7 @@ PyVar VM::__run_top_frame() {
                     /*****************************************/
                     case OP_FORMAT_STRING: {
                         PyVar _0 = POPX();
-                        const Str& spec = CAST(Str&, frame->co->consts[byte.arg]);
+                        const Str& spec = CAST(Str&, c11__getitem(PyVar, &frame->co->consts, byte.arg));
                         PUSH(__format_object(_0, spec));
                     }
                         DISPATCH()

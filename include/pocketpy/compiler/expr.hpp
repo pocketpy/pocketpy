@@ -47,13 +47,14 @@ inline void delete_expr(Expr* p) noexcept{
 
 struct CodeEmitContext{
     VM* vm;
-    FuncDecl_ func;  // optional
+    FuncDecl* func;  // optional, weakref
     CodeObject* co;  // 1 CodeEmitContext <=> 1 CodeObject*
     vector<Expr*> _s_expr;
     int level;
     vector<StrName> global_names;
 
     CodeEmitContext(VM* vm, CodeObject* co, int level) : vm(vm), co(co), level(level) {
+        func = NULL;
         c11_smallmap_s2n__ctor(&_co_consts_string_dedup_map);
     }
 
@@ -73,7 +74,6 @@ struct CodeEmitContext{
     int add_varname(StrName name) noexcept;
     int add_const(PyVar) noexcept;
     int add_const_string(std::string_view) noexcept;
-    int add_func_decl(FuncDecl_ decl) noexcept;
     void emit_store_name(NameScope scope, StrName name, int line) noexcept;
     void try_merge_for_iter_store(int) noexcept;
     // emit top -> pop -> delete
@@ -366,12 +366,11 @@ struct CompExpr : Expr {
 };
 
 struct LambdaExpr : Expr {
-    FuncDecl_ decl;
+    int index;
 
-    LambdaExpr(FuncDecl_ decl) : decl(decl) {}
+    LambdaExpr(int index) : index(index) {}
 
     void emit_(CodeEmitContext* ctx) override {
-        int index = ctx->add_func_decl(decl);
         ctx->emit_(OP_LOAD_FUNCTION, index, line);
     }
 };

@@ -27,32 +27,33 @@ PyVar* Frame::f_closure_try_get(StrName name) {
 
 int Frame::prepare_jump_exception_handler(ValueStack* _s) {
     // try to find a parent try block
-    int i = co->lines[ip()].iblock;
+    int i = c11__at(BytecodeEx, &co->codes_ex, ip())->iblock;
     while(i >= 0) {
-        if(co->blocks[i].type == CodeBlockType_TRY_EXCEPT) break;
-        i = co->blocks[i].parent;
+        CodeBlock* block = c11__at(CodeBlock, &co->blocks, i);
+        if(block->type == CodeBlockType_TRY_EXCEPT) break;
+        i = block->parent;
     }
     if(i < 0) return -1;
     PyVar obj = _s->popx();  // pop exception object
     UnwindTarget* uw = find_unwind_target(i);
     _s->reset(actual_sp_base() + uw->offset);  // unwind the stack
     _s->push(obj);                             // push it back
-    return co->blocks[i].end;
+    return c11__at(CodeBlock, &co->blocks, i)->end;
 }
 
 int Frame::_exit_block(ValueStack* _s, int i) {
-    auto type = co->blocks[i].type;
-    if(type == CodeBlockType_FOR_LOOP) {
+    CodeBlock* block = c11__at(CodeBlock, &co->blocks, i);
+    if(block->type == CodeBlockType_FOR_LOOP) {
         _s->pop();  // pop the iterator
-    } else if(type == CodeBlockType_CONTEXT_MANAGER) {
+    } else if(block->type == CodeBlockType_CONTEXT_MANAGER) {
         _s->pop();
     }
-    return co->blocks[i].parent;
+    return block->parent;
 }
 
 void Frame::prepare_jump_break(ValueStack* _s, int target) {
-    int i = co->lines[ip()].iblock;
-    if(target >= co->codes.size()) {
+    int i = c11__at(BytecodeEx, &co->codes_ex, ip())->iblock;
+    if(target >= co->codes.count) {
         while(i >= 0)
             i = _exit_block(_s, i);
     } else {
@@ -61,7 +62,7 @@ void Frame::prepare_jump_break(ValueStack* _s, int target) {
         //     _ = 0
         // # if there is no op here, the block check will fail
         // while i: --i
-        int next_block = co->lines[target].iblock;
+        int next_block = c11__at(BytecodeEx, &co->codes_ex, target)->iblock;
         while(i >= 0 && i != next_block)
             i = _exit_block(_s, i);
         assert(i == next_block);
@@ -69,7 +70,7 @@ void Frame::prepare_jump_break(ValueStack* _s, int target) {
 }
 
 void Frame::set_unwind_target(PyVar* _sp) {
-    int iblock = co->lines[ip()].iblock;
+    int iblock = c11__at(BytecodeEx, &co->codes_ex, ip())->iblock;
     UnwindTarget* existing = find_unwind_target(iblock);
     if(existing) {
         existing->offset = _sp - actual_sp_base();
