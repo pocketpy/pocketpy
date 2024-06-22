@@ -16,15 +16,15 @@ inline bool is_small_int(i64 value) { return value >= INT16_MIN && value <= INT1
 int CodeEmitContext::get_loop() const noexcept{
     int index = curr_iblock;
     while(index >= 0) {
-        if(co->blocks[index].type == CodeBlockType::FOR_LOOP) break;
-        if(co->blocks[index].type == CodeBlockType::WHILE_LOOP) break;
+        if(co->blocks[index].type == CodeBlockType_FOR_LOOP) break;
+        if(co->blocks[index].type == CodeBlockType_WHILE_LOOP) break;
         index = co->blocks[index].parent;
     }
     return index;
 }
 
 CodeBlock* CodeEmitContext::enter_block(CodeBlockType type) noexcept{
-    co->blocks.push_back(CodeBlock(type, curr_iblock, (int)co->codes.size()));
+    co->blocks.push_back(CodeBlock{type, curr_iblock, (int)co->codes.size(), -1, -1});
     curr_iblock = co->blocks.size() - 1;
     return &co->blocks[curr_iblock];
 }
@@ -34,7 +34,7 @@ void CodeEmitContext::exit_block() noexcept{
     co->blocks[curr_iblock].end = co->codes.size();
     curr_iblock = co->blocks[curr_iblock].parent;
     assert(curr_iblock >= 0);
-    if(curr_type == CodeBlockType::FOR_LOOP) {
+    if(curr_type == CodeBlockType_FOR_LOOP) {
         // add a no op here to make block check work
         emit_(OP_NO_OP, BC_NOARG, BC_KEEPLINE, true);
     }
@@ -381,7 +381,7 @@ void CompExpr::emit_(CodeEmitContext* ctx) {
     ctx->emit_(op0, 0, line);
     iter->emit_(ctx);
     ctx->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
-    ctx->enter_block(CodeBlockType::FOR_LOOP);
+    ctx->enter_block(CodeBlockType_FOR_LOOP);
     int curr_iblock = ctx->curr_iblock;
     int for_codei = ctx->emit_(OP_FOR_ITER, curr_iblock, BC_KEEPLINE);
     bool ok = vars->emit_store(ctx);

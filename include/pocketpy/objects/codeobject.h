@@ -31,11 +31,11 @@ typedef enum NameScope {
 } NameScope;
 
 typedef enum CodeBlockType {
-    NO_BLOCK,
-    FOR_LOOP,
-    WHILE_LOOP,
-    CONTEXT_MANAGER,
-    TRY_EXCEPT,
+    CodeBlockType_NO_BLOCK,
+    CodeBlockType_FOR_LOOP,
+    CodeBlockType_WHILE_LOOP,
+    CodeBlockType_CONTEXT_MANAGER,
+    CodeBlockType_TRY_EXCEPT,
 } CodeBlockType;
 
 typedef enum Opcode {
@@ -51,6 +51,15 @@ typedef struct Bytecode {
 
 void Bytecode__set_signed_arg(Bytecode* self, int arg);
 bool Bytecode__is_forward_jump(const Bytecode* self);
+
+
+typedef struct CodeBlock {
+    CodeBlockType type;
+    int parent;  // parent index in blocks
+    int start;   // start index of this block in codes, inclusive
+    int end;     // end index of this block in codes, exclusive
+    int end2;    // ...
+} CodeBlock;
 
 #ifdef __cplusplus
 }

@@ -60,9 +60,11 @@ Error* Compiler::pop_context() noexcept{
     for(int i = 0; i < codes.size(); i++) {
         Bytecode& bc = codes[i];
         if(bc.op == OP_LOOP_CONTINUE) {
-            Bytecode__set_signed_arg(&bc, ctx()->co->blocks[bc.arg].start - i);
+            CodeBlock* block = &ctx()->co->blocks[bc.arg];
+            Bytecode__set_signed_arg(&bc, block->start - i);
         } else if(bc.op == OP_LOOP_BREAK) {
-            Bytecode__set_signed_arg(&bc, ctx()->co->blocks[bc.arg].get_break_end() - i);
+            CodeBlock* block = &ctx()->co->blocks[bc.arg];
+            Bytecode__set_signed_arg(&bc, (block->end2 != -1 ? block->end2 : block->end) - i);
         }
     }
     // pre-compute func->is_simple
@@ -730,7 +732,7 @@ Error* Compiler::compile_if_stmt() noexcept{
 
 Error* Compiler::compile_while_loop() noexcept{
     Error* err;
-    CodeBlock* block = ctx()->enter_block(CodeBlockType::WHILE_LOOP);
+    CodeBlock* block = ctx()->enter_block(CodeBlockType_WHILE_LOOP);
     check(EXPR());  // condition
     ctx()->s_emit_top();
     int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
@@ -753,7 +755,7 @@ Error* Compiler::compile_for_loop() noexcept{
     check(EXPR_TUPLE());    // [vars, iter]
     ctx()->s_emit_top();     // [vars]
     ctx()->emit_(OP_GET_ITER_NEW, BC_NOARG, BC_KEEPLINE);
-    CodeBlock* block = ctx()->enter_block(CodeBlockType::FOR_LOOP);
+    CodeBlock* block = ctx()->enter_block(CodeBlockType_FOR_LOOP);
     int for_codei = ctx()->emit_(OP_FOR_ITER, ctx()->curr_iblock, BC_KEEPLINE);
     Expr* vars = ctx()->s_popx();
     bool ok = vars->emit_store(ctx());
@@ -773,7 +775,7 @@ Error* Compiler::compile_for_loop() noexcept{
 
 Error* Compiler::compile_try_except() noexcept{
     Error* err;
-    ctx()->enter_block(CodeBlockType::TRY_EXCEPT);
+    ctx()->enter_block(CodeBlockType_TRY_EXCEPT);
     ctx()->emit_(OP_TRY_ENTER, BC_NOARG, prev().line);
     check(compile_block_body());
     small_vector_2<int, 8> patches;
@@ -954,7 +956,7 @@ Error* Compiler::compile_stmt() noexcept{
             ctx()->s_emit_top();
 
             ctx()->emit_(OP_GET_ITER_NEW, BC_NOARG, kw_line);
-            ctx()->enter_block(CodeBlockType::FOR_LOOP);
+            ctx()->enter_block(CodeBlockType_FOR_LOOP);
             ctx()->emit_(OP_FOR_ITER_YIELD_VALUE, BC_NOARG, kw_line);
             ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), kw_line);
             ctx()->exit_block();
@@ -1019,7 +1021,7 @@ Error* Compiler::compile_stmt() noexcept{
         case TK_WITH: {
             check(EXPR());  // [ <expr> ]
             ctx()->s_emit_top();
-            ctx()->enter_block(CodeBlockType::CONTEXT_MANAGER);
+            ctx()->enter_block(CodeBlockType_CONTEXT_MANAGER);
             Expr* as_name = nullptr;
             if(match(TK_AS)) {
                 consume(TK_ID);

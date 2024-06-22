@@ -12,22 +12,6 @@ namespace pkpy {
 
 typedef PyVar (*NativeFuncC)(VM*, ArgsView);
 
-struct CodeBlock {
-    CodeBlockType type;
-    int parent;  // parent index in blocks
-    int start;   // start index of this block in codes, inclusive
-    int end;     // end index of this block in codes, exclusive
-    int end2;    // ...
-
-    CodeBlock(CodeBlockType type, int parent, int start) :
-        type(type), parent(parent), start(start), end(-1), end2(-1) {}
-
-    int get_break_end() const {
-        if(end2 != -1) return end2;
-        return end;
-    }
-};
-
 struct CodeObject;
 struct FuncDecl;
 using CodeObject_ = std::shared_ptr<CodeObject>;
@@ -66,7 +50,7 @@ struct CodeObject {
 
     CodeObject(pkpy_SourceData_ src, const Str& name) :
         src(src), name(name), nlocals(0), start_line(-1), end_line(-1) {
-        blocks.push_back(CodeBlock(CodeBlockType::NO_BLOCK, -1, 0));
+        blocks.push_back(CodeBlock{CodeBlockType_NO_BLOCK, -1, 0, -1, -1});
         c11_smallmap_n2i__ctor(&varnames_inv);
         c11_smallmap_n2i__ctor(&labels);
         PK_INCREF(src);

@@ -29,7 +29,7 @@ int Frame::prepare_jump_exception_handler(ValueStack* _s) {
     // try to find a parent try block
     int i = co->lines[ip()].iblock;
     while(i >= 0) {
-        if(co->blocks[i].type == CodeBlockType::TRY_EXCEPT) break;
+        if(co->blocks[i].type == CodeBlockType_TRY_EXCEPT) break;
         i = co->blocks[i].parent;
     }
     if(i < 0) return -1;
@@ -42,9 +42,9 @@ int Frame::prepare_jump_exception_handler(ValueStack* _s) {
 
 int Frame::_exit_block(ValueStack* _s, int i) {
     auto type = co->blocks[i].type;
-    if(type == CodeBlockType::FOR_LOOP) {
+    if(type == CodeBlockType_FOR_LOOP) {
         _s->pop();  // pop the iterator
-    } else if(type == CodeBlockType::CONTEXT_MANAGER) {
+    } else if(type == CodeBlockType_CONTEXT_MANAGER) {
         _s->pop();
     }
     return co->blocks[i].parent;
