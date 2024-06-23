@@ -1,5 +1,6 @@
 #include "pocketpy/interpreter/vm.hpp"
 #include "pocketpy/common/memorypool.h"
+#include "pocketpy/interpreter/frame.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/public.h"
@@ -86,10 +87,11 @@ struct JsonSerializer {
 };
 
 VM::VM(bool enable_os) : enable_os(enable_os) {
-    pkpy_g.vm = (pkpy_VM*)this;    // setup the current VM
+    pkpy_g.vm = (pk_VM*)this;    // setup the current VM
     Pools_initialize();
-    pkpy_StrName__initialize();
-    pk_ManagedHeap__ctor(&heap, (pkpy_VM*)this);
+    pk_StrName__initialize();
+
+    pk_ManagedHeap__ctor(&heap, (pk_VM*)this);
 
     static ::PyObject __true_obj = {tp_bool, false, false, NULL};
     static ::PyObject __false_obj = {tp_bool, false, false, NULL};
@@ -127,7 +129,7 @@ Str VM::py_str(PyVar obj) {
     if(ti->m__str__) return ti->m__str__(this, obj);
     PyVar self;
     PyVar f = get_unbound_method(obj, __str__, &self, false);
-    if(self) {
+    if(self.type) {
         PyVar retval = call_method(self, f);
         if(!is_type(retval, tp_str)) { throw std::runtime_error("object.__str__ must return str"); }
         return PK_OBJ_GET(Str, retval);
@@ -153,7 +155,7 @@ PyVar VM::py_iter(PyVar obj) {
     if(ti->m__iter__) return ti->m__iter__(this, obj);
     PyVar self;
     PyVar iter_f = get_unbound_method(obj, __iter__, &self, false);
-    if(self) return call_method(self, iter_f);
+    if(self.type) return call_method(self, iter_f);
     TypeError(_type_name(vm, _tp(obj)).escape() + " object is not iterable");
     return nullptr;
 }
@@ -223,8 +225,8 @@ PyVar VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject
         stderr_write(msg);
     }
     CodeObject__delete(code);
-    callstack.clear();
-    s_data.clear();
+    while(top_frame) __pop_frame(); // this changes s_data.sp, it must put before ValueStack__clear();
+    ValueStack__clear(&s_data);
     return nullptr;
 }
 
@@ -320,7 +322,7 @@ PyVar VM::__minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key) {
 
     if(args_tuple.size() == 0) TypeError("expected at least 1 argument, got 0");
 
-    ArgsView view(nullptr, nullptr);
+    ArgsView view;
     if(args_tuple.size() == 1) {
         view = cast_array_view(args_tuple[0]);
     } else {
@@ -428,11 +430,11 @@ VM::~VM() {
     PK_DECREF(__dynamic_func_decl);
     // destroy all objects
     pk_ManagedHeap__dtor(&heap);
+    pk_NameDict__dtor(&_modules);
     // clear everything
-    callstack.clear();
-    s_data.clear();
+    while(top_frame) __pop_frame(); // this changes s_data.sp, it must put before ValueStack__clear();
+    ValueStack__clear(&s_data);
     _all_types.clear();
-    _modules.clear();
     _lazy_modules.clear();
 }
 
@@ -608,7 +610,7 @@ PyVar VM::__py_exec_internal(const CodeObject* code, PyVar globals, PyVar locals
         });
         PyObject* _callable =
             new_object<Function>(tp_function, __dynamic_func_decl, globals_obj, nullptr, locals_closure).get();
-        retval = vm->_exec(code, globals_obj, _callable, vm->s_data._sp);
+        retval = vm->_exec(code, globals_obj, _callable, vm->s_data.sp);
     }
 
     if(globals_dict) {
@@ -1063,7 +1065,7 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
 }
 
 PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
-    PyVar* p1 = s_data._sp - KWARGC * 2;
+    PyVar* p1 = (PyVar*)(s_data.sp - KWARGC * 2);
     PyVar* p0 = p1 - ARGC - 2;
     // [callable, <self>, args..., kwargs...]
     //      ^p0                    ^p1      ^_sp
@@ -1082,14 +1084,14 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
     }
 
     ArgsView args((!p0[1]) ? (p0 + 2) : (p0 + 1), p1);
-    ArgsView kwargs(p1, s_data._sp);
+    ArgsView kwargs(p1, s_data.sp);
 
     PyVar* _base = args.begin();
 
     if(callable_t == tp_function) {
         /*****************_py_call*****************/
         // check stack overflow
-        if(s_data.is_overflow()) StackOverflowError();
+        if(s_data.sp > s_data.end) StackOverflowError();
 
         const Function& fn = PK_OBJ_GET(Function, callable);
         const CodeObject* co = fn.decl->code;
@@ -1098,7 +1100,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
             case FuncType_NORMAL:
                 __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
                 // copy buffer back to stack
-                s_data.reset(_base + co->nlocals);
+                s_data.sp = (_base + co->nlocals);
                 for(int j = 0; j < co->nlocals; j++)
                     _base[j] = __vectorcall_buffer[j];
                 break;
@@ -1114,9 +1116,9 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
                 }
                 // [callable, <self>, args..., local_vars...]
                 //      ^p0                    ^p1      ^_sp
-                s_data.reset(_base + co->nlocals);
+                s_data.sp = (_base + co->nlocals);
                 // initialize local variables to PY_NULL
-                std::memset(p1, 0, (char*)s_data._sp - (char*)p1);
+                std::memset(p1, 0, (char*)s_data.sp - (char*)p1);
                 break;
             case FuncType_EMPTY:
                 if(args.size() != fn.decl->args.count){
@@ -1128,11 +1130,11 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
                 if(!kwargs.empty()){
                     TypeError(pk_format("{} takes no keyword arguments", &co->name));
                 }
-                s_data.reset(p0);
+                s_data.sp = p0;
                 return None;
             case FuncType_GENERATOR:
                 __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
-                s_data.reset(p0);
+                s_data.sp = p0;
                 callstack.emplace(nullptr, co, fn._module, callable.get(), nullptr);
                 return __py_generator(callstack.popx(),
                                       ArgsView(__vectorcall_buffer, __vectorcall_buffer + co->nlocals));
@@ -1141,7 +1143,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
 
         // simple or normal
         callstack.emplace(p0, co, fn._module, callable.get(), args.begin());
-        if(op_call) return pkpy_OP_CALL;
+        if(op_call) return PY_OP_CALL;
         return __run_top_frame();
         /*****************_py_call*****************/
     }
@@ -1153,10 +1155,10 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
             int co_nlocals = f.decl->code->nlocals;
             __prepare_py_call(__vectorcall_buffer, args, kwargs, f.decl);
             // copy buffer back to stack
-            s_data.reset(_base + co_nlocals);
+            s_data.sp = (_base + co_nlocals);
             for(int j = 0; j < co_nlocals; j++)
                 _base[j] = __vectorcall_buffer[j];
-            ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
+            ret = f.call(vm, ArgsView(s_data.sp - co_nlocals, s_data.sp));
         } else {
             if(f.argc != -1) {
                 if(KWARGC != 0)
@@ -1166,7 +1168,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
             }
             ret = f.call(this, args);
         }
-        s_data.reset(p0);
+        s_data.sp = (p0);
         return ret;
     }
 
@@ -1180,7 +1182,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
             obj = vm->new_object<DummyInstance>(PK_OBJ_GET(Type, callable));
         } else {
             PUSH(new_f);
-            PUSH(PY_NULL);
+            PUSH_NULL();
             PUSH(callable);  // cls
             for(PyVar o: args)
                 PUSH(o);
@@ -1204,7 +1206,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
             // in cpython it raises a TypeError if the return value is not None
         } else {
             // manually reset the stack
-            s_data.reset(p0);
+            s_data.sp = (p0);
         }
         return obj;
     }
@@ -1474,7 +1476,7 @@ void VM::_error(PyVar e_obj) {
 
 void VM::__raise_exc(bool re_raise) {
     Frame* frame = &callstack.top();
-    Exception& e = PK_OBJ_GET(Exception, s_data.top());
+    Exception& e = PK_OBJ_GET(Exception, (PyVar&)s_data.sp[-1]);
     if(!re_raise) {
         e._ip_on_error = frame->ip();
         e._code_on_error = (void*)frame->co;
@@ -1537,9 +1539,10 @@ void VM::bind__delitem__(Type type, void (*f)(VM*, PyVar, PyVar)) {
 
 PyVar VM::__pack_next_retval(unsigned n) {
     if(n == 0) return StopIteration;
-    if(n == 1) return s_data.popx();
-    PyVar retval = VAR(s_data.view(n).to_tuple());
-    s_data._sp -= n;
+    if(n == 1) return *--s_data.sp;
+    ArgsView view(s_data.sp - n, s_data.sp);
+    PyVar retval = VAR(view.to_tuple());
+    s_data.sp -= n;
     return retval;
 }
 
@@ -1692,8 +1695,12 @@ void NextBreakpoint::_step(VM* vm) {
 #endif
 
 void VM::__pop_frame() {
-    s_data.reset(callstack.top()._sp_base);
-    callstack.pop();
+    assert(top_frame);
+    s_data.sp = top_frame->p0;
+    // callstack.pop()
+    Frame* p = top_frame;
+    top_frame = p->f_back;
+    Frame__delete(p);
 
 #if PK_ENABLE_PROFILER
     if(!_next_breakpoint.empty() && callstack.size() < _next_breakpoint.callstack_size) {
@@ -1937,8 +1944,8 @@ extern "C"{
         vm->obj_gc_mark(vm->__last_exception);
         vm->obj_gc_mark(vm->__curr_class);
         vm->obj_gc_mark(vm->__c.error);
-        vm->__stack_gc_mark(vm->s_data.begin(), vm->s_data.end());
-        if(self->_gc_marker_ex) self->_gc_marker_ex((pkpy_VM*)vm);
+        vm->__stack_gc_mark((PyVar*)vm->s_data.begin, (PyVar*)vm->s_data.end);
+        if(self->_gc_marker_ex) self->_gc_marker_ex((pk_VM*)vm);
     }
 
     void pk_ManagedHeap__delete_obj(pk_ManagedHeap* self, ::PyObject* __obj){

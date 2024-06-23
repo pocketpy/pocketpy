@@ -1,7 +1,7 @@
 #include "pocketpy/interpreter/gc.h"
 #include "pocketpy/common/memorypool.h"
 
-void pk_ManagedHeap__ctor(pk_ManagedHeap *self, pkpy_VM *vm){
+void pk_ManagedHeap__ctor(pk_ManagedHeap *self, pk_VM *vm){
     c11_vector__ctor(&self->no_gc, sizeof(PyObject*));
     c11_vector__ctor(&self->gen, sizeof(PyObject*));
 
@@ -88,9 +88,8 @@ int pk_ManagedHeap__sweep(pk_ManagedHeap *self){
     return freed;
 }
 
-PyObject* pk_ManagedHeap__new(pk_ManagedHeap *self, pkpy_Type type, int size, bool gc){
+PyObject* pk_ManagedHeap__new(pk_ManagedHeap *self, Type type, int size){
     PyObject* obj;
-    // TODO: can we use compile time check?
     if(size <= kPoolObjectBlockSize){
         obj = PoolObject_alloc();
         PyObject__ctor(obj, type, false);
@@ -98,12 +97,21 @@ PyObject* pk_ManagedHeap__new(pk_ManagedHeap *self, pkpy_Type type, int size, bo
         obj = malloc(size);
         PyObject__ctor(obj, type, true);
     }
-    // TODO: can we use compile time check?
-    if(gc){
-        c11_vector__push(PyObject*, &self->gen, obj);
-        self->gc_counter++;
-    }else{
-        c11_vector__push(PyObject*, &self->no_gc, obj);
-    }
+    c11_vector__push(PyObject*, &self->no_gc, obj);
     return obj;
 }
+
+PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap *self, Type type, int size){
+    PyObject* obj;
+    if(size <= kPoolObjectBlockSize){
+        obj = PoolObject_alloc();
+        PyObject__ctor(obj, type, false);
+    }else{
+        obj = malloc(size);
+        PyObject__ctor(obj, type, true);
+    }
+    c11_vector__push(PyObject*, &self->gen, obj);
+    self->gc_counter++;
+    return obj;
+}
+

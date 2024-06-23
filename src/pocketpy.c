@@ -1,9 +1,22 @@
-#include "pocketpy/objects/public.h"
+#include "pocketpy/pocketpy.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
+pk_VM* pk_vm;
+static pk_VM pk_default_vm;
+
 void py_initialize(){
-    // initialize the global VM
+    Pools_initialize();
+    pk_StrName__initialize();
+    pk_vm = &pk_default_vm;
+    pk_VM__ctor(&pk_default_vm);
+}
+
+void py_finalize(){
+    pk_VM__dtor(&pk_default_vm);
+    pk_vm = NULL;
+    pk_StrName__finalize();
+    Pools_finalize();
 }
 
 void py_newint(PyVar* self, int64_t val){

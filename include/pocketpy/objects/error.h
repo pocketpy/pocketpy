@@ -17,7 +17,7 @@ typedef struct pkpy_ExceptionFrame {
 } pkpy_ExceptionFrame;
 
 typedef struct pkpy_Exception {
-    pkpy_StrName type;
+    pk_StrName type;
     pkpy_Str msg;
     bool is_re;
 
@@ -29,7 +29,7 @@ typedef struct pkpy_Exception {
     c11_vector/*T=pkpy_ExceptionFrame*/ stacktrace;
 } pkpy_Exception;
 
-void pkpy_Exception__ctor(pkpy_Exception* self, pkpy_StrName type);
+void pkpy_Exception__ctor(pkpy_Exception* self, pk_StrName type);
 void pkpy_Exception__dtor(pkpy_Exception* self);
 void pkpy_Exception__stpush(pkpy_Exception* self, pkpy_SourceData_ src, int lineno, const char* cursor, const char* name);
 pkpy_Str pkpy_Exception__summary(pkpy_Exception* self);

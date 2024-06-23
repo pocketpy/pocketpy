@@ -13,13 +13,13 @@ typedef struct pk_ManagedHeap{
     int gc_threshold;
     int gc_counter;
     int gc_lock_counter;
-    pkpy_VM* vm;
+    pk_VM* vm;
 
-    void (*_gc_on_delete)(pkpy_VM*, PyObject*);
-    void (*_gc_marker_ex)(pkpy_VM*);
+    void (*_gc_on_delete)(pk_VM*, PyObject*);
+    void (*_gc_marker_ex)(pk_VM*);
 } pk_ManagedHeap;
 
-void pk_ManagedHeap__ctor(pk_ManagedHeap* self, pkpy_VM* vm);
+void pk_ManagedHeap__ctor(pk_ManagedHeap* self, pk_VM* vm);
 void pk_ManagedHeap__dtor(pk_ManagedHeap* self);
 
 void pk_ManagedHeap__push_lock(pk_ManagedHeap* self);
@@ -29,7 +29,8 @@ void pk_ManagedHeap__collect_if_needed(pk_ManagedHeap* self);
 int pk_ManagedHeap__collect(pk_ManagedHeap* self);
 int pk_ManagedHeap__sweep(pk_ManagedHeap* self);
 
-PyObject* pk_ManagedHeap__new(pk_ManagedHeap* self, pkpy_Type type, int size, bool gc);
+PyObject* pk_ManagedHeap__new(pk_ManagedHeap* self, Type type, int size);
+PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap* self, Type type, int size);
 
 // external implementation
 void pk_ManagedHeap__mark(pk_ManagedHeap* self);

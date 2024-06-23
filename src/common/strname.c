@@ -10,7 +10,7 @@ static c11_smallmap_s2n _interned;
 static c11_vector/*T=char* */ _r_interned;
 static bool _initialized = false;
 
-void pkpy_StrName__initialize(){
+void pk_StrName__initialize(){
     if(_initialized) return;
     c11_smallmap_s2n__ctor(&_interned);
     for(int i=0; i<_r_interned.count; i++){
@@ -20,77 +20,77 @@ void pkpy_StrName__initialize(){
     _initialized = true;
 
     // unary operators
-    __repr__ = pkpy_StrName__map("__repr__");
-    __str__ = pkpy_StrName__map("__str__");
-    __hash__ = pkpy_StrName__map("__hash__");
-    __len__ = pkpy_StrName__map("__len__");
-    __iter__ = pkpy_StrName__map("__iter__");
-    __next__ = pkpy_StrName__map("__next__");
-    __neg__ = pkpy_StrName__map("__neg__");
+    __repr__ = pk_StrName__map("__repr__");
+    __str__ = pk_StrName__map("__str__");
+    __hash__ = pk_StrName__map("__hash__");
+    __len__ = pk_StrName__map("__len__");
+    __iter__ = pk_StrName__map("__iter__");
+    __next__ = pk_StrName__map("__next__");
+    __neg__ = pk_StrName__map("__neg__");
     // logical operators
-    __eq__ = pkpy_StrName__map("__eq__");
-    __lt__ = pkpy_StrName__map("__lt__");
-    __le__ = pkpy_StrName__map("__le__");
-    __gt__ = pkpy_StrName__map("__gt__");
-    __ge__ = pkpy_StrName__map("__ge__");
-    __contains__ = pkpy_StrName__map("__contains__");
+    __eq__ = pk_StrName__map("__eq__");
+    __lt__ = pk_StrName__map("__lt__");
+    __le__ = pk_StrName__map("__le__");
+    __gt__ = pk_StrName__map("__gt__");
+    __ge__ = pk_StrName__map("__ge__");
+    __contains__ = pk_StrName__map("__contains__");
     // binary operators
-    __add__ = pkpy_StrName__map("__add__");
-    __radd__ = pkpy_StrName__map("__radd__");
-    __sub__ = pkpy_StrName__map("__sub__");
-    __rsub__ = pkpy_StrName__map("__rsub__");
-    __mul__ = pkpy_StrName__map("__mul__");
-    __rmul__ = pkpy_StrName__map("__rmul__");
-    __truediv__ = pkpy_StrName__map("__truediv__");
-    __floordiv__ = pkpy_StrName__map("__floordiv__");
-    __mod__ = pkpy_StrName__map("__mod__");
-    __pow__ = pkpy_StrName__map("__pow__");
-    __matmul__ = pkpy_StrName__map("__matmul__");
-    __lshift__ = pkpy_StrName__map("__lshift__");
-    __rshift__ = pkpy_StrName__map("__rshift__");
-    __and__ = pkpy_StrName__map("__and__");
-    __or__ = pkpy_StrName__map("__or__");
-    __xor__ = pkpy_StrName__map("__xor__");
-    __invert__ = pkpy_StrName__map("__invert__");
+    __add__ = pk_StrName__map("__add__");
+    __radd__ = pk_StrName__map("__radd__");
+    __sub__ = pk_StrName__map("__sub__");
+    __rsub__ = pk_StrName__map("__rsub__");
+    __mul__ = pk_StrName__map("__mul__");
+    __rmul__ = pk_StrName__map("__rmul__");
+    __truediv__ = pk_StrName__map("__truediv__");
+    __floordiv__ = pk_StrName__map("__floordiv__");
+    __mod__ = pk_StrName__map("__mod__");
+    __pow__ = pk_StrName__map("__pow__");
+    __matmul__ = pk_StrName__map("__matmul__");
+    __lshift__ = pk_StrName__map("__lshift__");
+    __rshift__ = pk_StrName__map("__rshift__");
+    __and__ = pk_StrName__map("__and__");
+    __or__ = pk_StrName__map("__or__");
+    __xor__ = pk_StrName__map("__xor__");
+    __invert__ = pk_StrName__map("__invert__");
     // indexer
-    __getitem__ = pkpy_StrName__map("__getitem__");
-    __setitem__ = pkpy_StrName__map("__setitem__");
-    __delitem__ = pkpy_StrName__map("__delitem__");
+    __getitem__ = pk_StrName__map("__getitem__");
+    __setitem__ = pk_StrName__map("__setitem__");
+    __delitem__ = pk_StrName__map("__delitem__");
 
     // specials
-    __new__ = pkpy_StrName__map("__new__");
-    __init__ = pkpy_StrName__map("__init__");
-    __call__ = pkpy_StrName__map("__call__");
-    __divmod__ = pkpy_StrName__map("__divmod__");
-    __enter__ = pkpy_StrName__map("__enter__");
-    __exit__ = pkpy_StrName__map("__exit__");
-    __name__ = pkpy_StrName__map("__name__");
-    __all__ = pkpy_StrName__map("__all__");
-    __package__ = pkpy_StrName__map("__package__");
-    __path__ = pkpy_StrName__map("__path__");
-    __class__ = pkpy_StrName__map("__class__");
-    __missing__ = pkpy_StrName__map("__missing__");
+    __new__ = pk_StrName__map("__new__");
+    __init__ = pk_StrName__map("__init__");
+    __call__ = pk_StrName__map("__call__");
+    __divmod__ = pk_StrName__map("__divmod__");
+    __enter__ = pk_StrName__map("__enter__");
+    __exit__ = pk_StrName__map("__exit__");
+    __name__ = pk_StrName__map("__name__");
+    __all__ = pk_StrName__map("__all__");
+    __package__ = pk_StrName__map("__package__");
+    __path__ = pk_StrName__map("__path__");
+    __class__ = pk_StrName__map("__class__");
+    __missing__ = pk_StrName__map("__missing__");
 
-    pk_id_add = pkpy_StrName__map("add");
-    pk_id_set = pkpy_StrName__map("set");
-    pk_id_long = pkpy_StrName__map("long");
-    pk_id_complex = pkpy_StrName__map("complex");
+    pk_id_add = pk_StrName__map("add");
+    pk_id_set = pk_StrName__map("set");
+    pk_id_long = pk_StrName__map("long");
+    pk_id_complex = pk_StrName__map("complex");
 }
 
-void pkpy_StrName__finalize(){
+void pk_StrName__finalize(){
     if(!_initialized) return;
     c11_smallmap_s2n__dtor(&_interned);
     c11_vector__dtor(&_r_interned);
 }
 
-uint16_t pkpy_StrName__map(const char* name){
-    return pkpy_StrName__map2((c11_string){name, strlen(name)});
+uint16_t pk_StrName__map(const char* name){
+    return pk_StrName__map2((c11_string){name, strlen(name)});
 }
 
-uint16_t pkpy_StrName__map2(c11_string name){
+uint16_t pk_StrName__map2(c11_string name){
     // TODO: PK_GLOBAL_SCOPE_LOCK()
     if(!_initialized){
-        pkpy_StrName__initialize(); // lazy init
+        pk_StrName__initialize(); // lazy init
     }
     uint16_t index = c11_smallmap_s2n__get(&_interned, name, 0);
     if(index != 0) return index;
@@ -110,7 +110,7 @@ uint16_t pkpy_StrName__map2(c11_string name){
     return index;
 }
 
-const char* pkpy_StrName__rmap(uint16_t index){
+const char* pk_StrName__rmap(uint16_t index){
     assert(_initialized);
     assert(index > 0 && index <= _interned.count);
     return c11__getitem(char*, &_r_interned, index - 1);

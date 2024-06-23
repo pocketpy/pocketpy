@@ -1,11 +1,12 @@
 #pragma once
 
-#include "pocketpy/objects/object.hpp"
+#include "pocketpy/objects/object.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/objects/dict.hpp"
 #include "pocketpy/objects/error.hpp"
 #include "pocketpy/objects/builtins.hpp"
 #include "pocketpy/interpreter/gc.h"
-#include "pocketpy/interpreter/frame.hpp"
+#include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/profiler.hpp"
 
 #include <typeindex>
@@ -14,14 +15,15 @@ namespace pkpy {
 
 /* Stack manipulation macros */
 // https://github.com/python/cpython/blob/3.9/Python/ceval.c#L1123
-#define TOP() (s_data.top())
-#define SECOND() (s_data.second())
-#define THIRD() (s_data.third())
-#define STACK_SHRINK(n) (s_data.shrink(n))
-#define PUSH(v) (s_data.push(v))
-#define POP() (s_data.pop())
-#define POPX() (s_data.popx())
-#define STACK_VIEW(n) (s_data.view(n))
+#define TOP() (s_data.sp[-1])
+#define SECOND() (s_data.sp[-2])
+#define THIRD() (s_data.sp[-3])
+#define STACK_SHRINK(n) (s_data.sp -= (n))
+#define PUSH(v) (*s_data.sp++ = (v))
+#define PUSH_NULL() memset(s_data.sp++, 0, sizeof(PyVar))
+#define POP() (--s_data.sp)
+#define POPX() (*--s_data.sp)
+#define STACK_VIEW(n) (ArgsView(s_data.sp - (n), s_data.sp))
 
 typedef PyVar (*BinaryFuncC)(VM*, PyVar, PyVar);
 typedef void (*RegisterFunc)(VM*, PyObject*, PyObject*);
@@ -163,12 +165,11 @@ class VM {
 
 public:
     pk_ManagedHeap heap;
-    ValueStack s_data;
-    CallStack callstack;
+    Frame* top_frame;
     vector<PyTypeInfo> _all_types;
 
-    NameDict _modules;                      // loaded modules
-    small_map<StrName, Str> _lazy_modules;  // lazy loaded modules
+    pk_NameDict _modules;                       // loaded modules
+    small_map<StrName, Str> _lazy_modules;      // lazy loaded modules
 
     struct {
         PyObject* error;
@@ -200,13 +201,10 @@ public:
     void (*_stdout)(const char*, int);
     void (*_stderr)(const char*, int);
     unsigned char* (*_import_handler)(const char*, int*);
-    // function<void(const char*, int)> _stdout;
-    // function<void(const char*, int)> _stderr;
-    // function<unsigned char*(const char*, int*)> _import_handler;
 
     // for quick access
     constexpr static Type tp_object = Type(1), tp_type = Type(2);
-    constexpr static Type tp_int = Type(kTpIntIndex), tp_float = Type(kTpFloatIndex), tp_bool = Type(5),
+    constexpr static Type tp_int = Type(3), tp_float = Type(4), tp_bool = Type(5),
                           tp_str = Type(6);
     constexpr static Type tp_list = Type(7), tp_tuple = Type(8);
     constexpr static Type tp_slice = Type(9), tp_range = Type(10), tp_module = Type(11);
@@ -214,7 +212,7 @@ public:
     constexpr static Type tp_super = Type(15), tp_exception = Type(16), tp_bytes = Type(17), tp_mappingproxy = Type(18);
     constexpr static Type tp_dict = Type(19), tp_property = Type(20), tp_star_wrapper = Type(21);
     constexpr static Type tp_staticmethod = Type(22), tp_classmethod = Type(23);
-    constexpr static Type tp_none_type = Type(kTpNoneTypeIndex), tp_not_implemented_type = Type(kTpNotImplementedTypeIndex);
+    constexpr static Type tp_none_type = Type(24), tp_not_implemented_type = Type(25);
     constexpr static Type tp_ellipsis = Type(26);
 
     PyVar True;
@@ -224,6 +222,10 @@ public:
     PyVar Ellipsis;
 
     const bool enable_os;
+
+    // put s_data at the end of VM struct to improve cache locality
+    ValueStack s_data;
+
     VM(bool enable_os = true);
 
     // clang-format off
@@ -255,10 +257,10 @@ public:
         return !py_eq(lhs, rhs);
     }
 
-    PyVar py_op(std::string_view name);                 // (name) -> operator.name
+    PyVar py_op(const char* name);                 // (name) -> operator.name
 
-    void py_exec(std::string_view, PyVar, PyVar);       // exec(source, globals, locals)
-    PyVar py_eval(std::string_view, PyVar, PyVar);      // eval(source, globals, locals)
+    void py_exec(const char*, PyVar, PyVar);       // exec(source, globals, locals)
+    PyVar py_eval(const char*, PyVar, PyVar);      // eval(source, globals, locals)
 #endif
 
 #if PK_REGION("Utility Methods")
@@ -267,7 +269,7 @@ public:
     i64 normalized_index(i64 index, int size);
     Str disassemble(CodeObject* co);
     void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
-    void obj_gc_mark(PyVar obj) { if(obj.is_ptr) __obj_gc_mark(obj.get()); }
+    void obj_gc_mark(PyVar obj) { if(obj.is_ptr) __obj_gc_mark(obj._obj); }
     void obj_gc_mark(PyObject* p) { if(p) __obj_gc_mark(p); }
 #endif
 
@@ -288,7 +290,7 @@ public:
 
     template<typename ...Args>
     PyVar _exec(Args&&... args){
-        callstack.emplace(s_data._sp, std::forward<Args>(args)...);
+        callstack.emplace(s_data.sp, std::forward<Args>(args)...);
         return __run_top_frame();
     }
 #endif
@@ -298,7 +300,7 @@ public:
 
     template<typename... Args>
     PyVar call(PyVar callable, Args&&... args){
-        PUSH(callable); PUSH(PY_NULL);
+        PUSH(callable); PUSH_NULL();
         __push_varargs(args...);
         return vectorcall(sizeof...(args));
     }
@@ -433,44 +435,44 @@ public:
     template<typename T>
     bool is_user_type(PyVar obj){ return _tp(obj) == _tp_user<T>(); }
 
-    template<typename T>
-    PyObject* register_user_class(PyObject*, StrName, RegisterFunc, Type base=tp_object, bool subclass_enabled=false);
-    template<typename T>
-    PyObject* register_user_class(PyObject*, StrName, Type base=tp_object, bool subclass_enabled=false);
+    // template<typename T>
+    // PyObject* register_user_class(PyObject*, StrName, RegisterFunc, Type base=tp_object, bool subclass_enabled=false);
+    // template<typename T>
+    // PyObject* register_user_class(PyObject*, StrName, Type base=tp_object, bool subclass_enabled=false);
 
-    template<typename T, typename ...Args>
-    PyVar new_user_object(Args&&... args){
-        return new_object<T>(_tp_user<T>(), std::forward<Args>(args)...);
-    }
+    // template<typename T, typename ...Args>
+    // PyVar new_user_object(Args&&... args){
+    //     return new_object<T>(_tp_user<T>(), std::forward<Args>(args)...);
+    // }
 
     template<typename T, typename ...Args>
     PyVar new_object(Type type, Args&&... args){
         static_assert(!is_sso_v<T>);
         static_assert(std::is_same_v<T, std::decay_t<T>>);
-        PyObject* p = (PyObject*)pk_ManagedHeap__new(&heap, type, py_sizeof<T>, true);
-        new (p->_value_ptr()) T(std::forward<Args>(args)...);
+        PyObject* p = pk_ManagedHeap__new(&heap, type, py_sizeof<T>, true);
+        new (PyObject__value_ptr(p)) T(std::forward<Args>(args)...);
         // backdoor for important builtin types
         if constexpr(std::is_same_v<T, DummyInstance>
             || std::is_same_v<T, Type>
             || std::is_same_v<T, DummyModule>) {
-            p->_attr = new NameDict();
+            p->_attr = pk_NameDict__new();
         }
-        return p;
+        return PyVar__fromobj(p);
     }
 
     template<typename T, typename ...Args>
     PyVar new_object_no_gc(Type type, Args&&... args){
         static_assert(!is_sso_v<T>);
         static_assert(std::is_same_v<T, std::decay_t<T>>);
-        PyObject* p = (PyObject*)pk_ManagedHeap__new(&heap, type, py_sizeof<T>, false);
-        new (p->_value_ptr()) T(std::forward<Args>(args)...);
+        PyObject* p = pk_ManagedHeap__new(&heap, type, py_sizeof<T>, true);
+        new (PyObject__value_ptr(p)) T(std::forward<Args>(args)...);
         // backdoor for important builtin types
         if constexpr(std::is_same_v<T, DummyInstance>
             || std::is_same_v<T, Type>
             || std::is_same_v<T, DummyModule>) {
-            p->_attr = new NameDict();
+            p->_attr = pk_NameDict__new();
         }
-        return p;
+        return PyVar__fromobj(p);
     }
 #endif
 
@@ -499,7 +501,7 @@ public:
     PyVar __format_object(PyVar, Str);
     PyVar __run_top_frame();
     void __pop_frame();
-    PyVar __py_generator(LinkedFrame* frame, ArgsView buffer);
+    PyVar __py_generator(Frame* frame, ArgsView buffer);
     void __op_unpack_sequence(uint16_t arg);
     void __prepare_py_call(PyVar*, ArgsView, ArgsView, const FuncDecl*);
     void __unpack_as_list(ArgsView args, List& list);
@@ -686,32 +688,32 @@ __T _py_cast(VM* vm, PyVar obj) {
     return _py_cast__internal<__T, false>(vm, obj);
 }
 
-template <typename T>
-PyObject*
-    VM::register_user_class(PyObject* mod, StrName name, RegisterFunc _register, Type base, bool subclass_enabled) {
-    PyObject* type = new_type_object(mod, name, base, subclass_enabled, PyTypeInfo::Vt::get<T>());
-    mod->attr().set(name, type);
-    _cxx_typeid_map.insert(typeid(T), type->as<Type>());
-    _register(this, mod, type);
-    if(!type->attr().contains(__new__)) {
-        if constexpr(std::is_default_constructible_v<T>) {
-            bind_func(type, __new__, -1, [](VM* vm, ArgsView args) {
-                Type cls_t = args[0]->as<Type>();
-                return vm->new_object<T>(cls_t);
-            });
-        } else {
-            bind_func(type, __new__, -1, [](VM* vm, ArgsView args) {
-                vm->NotImplementedError();
-                return vm->None;
-            });
-        }
-    }
-    return type;
-}
+// template <typename T>
+// PyObject*
+//     VM::register_user_class(PyObject* mod, StrName name, RegisterFunc _register, Type base, bool subclass_enabled) {
+//     PyObject* type = new_type_object(mod, name, base, subclass_enabled, PyTypeInfo::Vt::get<T>());
+//     mod->attr().set(name, type);
+//     _cxx_typeid_map.insert(typeid(T), type->as<Type>());
+//     _register(this, mod, type);
+//     if(!type->attr().contains(__new__)) {
+//         if constexpr(std::is_default_constructible_v<T>) {
+//             bind_func(type, __new__, -1, [](VM* vm, ArgsView args) {
+//                 Type cls_t = args[0]->as<Type>();
+//                 return vm->new_object<T>(cls_t);
+//             });
+//         } else {
+//             bind_func(type, __new__, -1, [](VM* vm, ArgsView args) {
+//                 vm->NotImplementedError();
+//                 return vm->None;
+//             });
+//         }
+//     }
+//     return type;
+// }
 
-template <typename T>
-PyObject* VM::register_user_class(PyObject* mod, StrName name, Type base, bool subclass_enabled) {
-    return register_user_class<T>(mod, name, &T::_register, base, subclass_enabled);
-}
+// template <typename T>
+// PyObject* VM::register_user_class(PyObject* mod, StrName name, Type base, bool subclass_enabled) {
+//     return register_user_class<T>(mod, name, &T::_register, base, subclass_enabled);
+// }
 
 }  // namespace pkpy

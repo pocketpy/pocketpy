@@ -7,14 +7,14 @@
 extern "C" {
 #endif
 
-typedef uint16_t pkpy_StrName;
+typedef uint16_t StrName;
 
-uint16_t pkpy_StrName__map(const char*);
-uint16_t pkpy_StrName__map2(c11_string);
-const char* pkpy_StrName__rmap(uint16_t index);
+uint16_t pk_StrName__map(const char*);
+uint16_t pk_StrName__map2(c11_string);
+const char* pk_StrName__rmap(uint16_t index);
 
-void pkpy_StrName__initialize();
-void pkpy_StrName__finalize();
+void pk_StrName__initialize();
+void pk_StrName__finalize();
 
 #ifdef __cplusplus
 }

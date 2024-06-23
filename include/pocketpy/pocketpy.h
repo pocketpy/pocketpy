@@ -1,5 +1,3 @@
-#pragma once
-
 #include "stdint.h"
 #include "stdbool.h"
 
@@ -7,18 +5,26 @@
 extern "C" {
 #endif
 
-typedef int16_t pkpy_Type;
 typedef struct PyObject PyObject;
 typedef struct PyVar PyVar;
-typedef struct pkpy_VM pkpy_VM;
+typedef struct pk_VM pk_VM;
+typedef struct py_Error py_Error;
 
-struct pkpy_G {
-    pkpy_VM* vm;
-} extern pkpy_g;
+typedef unsigned (*py_CFunction)(const PyVar*, int);
+
+extern pk_VM* pk_vm;
 
 void py_initialize();
-void py_switch_vm(const char* name);
+// void py_switch_vm(const char* name);
 void py_finalize();
+
+py_Error* py_exec_simple(const char*);
+py_Error* py_eval_simple(const char*, PyVar*);
+
+/* py_error */
+void py_Error__print(const py_Error*);
+void py_Error__delete(py_Error*);
+
 
 bool py_eq(const PyVar*, const PyVar*);
 bool py_le(const PyVar*, const PyVar*);
@@ -33,6 +39,8 @@ void py_newstr(PyVar*, const char*);
 void py_newstr2(PyVar*, const char*, int);
 void py_newbytes(PyVar*, const uint8_t*, int);
 void py_newnone(PyVar*);
+
+#define py_isnull(self) ((self)->type == 0)
 
 #ifdef __cplusplus
 }

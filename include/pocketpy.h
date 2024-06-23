@@ -1,3 +1,3 @@
 #pragma once
 
-#include "pocketpy/pocketpy.hpp"
+#include "pocketpy/pocketpy.h"

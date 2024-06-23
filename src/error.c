@@ -2,7 +2,7 @@
 #include "pocketpy/common/strname.h"
 #include "pocketpy/common/sstream.h"
 
-void pkpy_Exception__ctor(pkpy_Exception* self, pkpy_StrName type){
+void pkpy_Exception__ctor(pkpy_Exception* self, pk_StrName type){
     self->type = type;
     self->is_re = true;
     self->_ip_on_error = -1;
@@ -48,7 +48,7 @@ pkpy_Str pkpy_Exception__summary(pkpy_Exception* self){
         pk_SStream__write_cstr(&ss, "\n");
     }
 
-    const char* name = pkpy_StrName__rmap(self->type);
+    const char* name = pk_StrName__rmap(self->type);
     pk_SStream__write_cstr(&ss, name);
 
     if(self->msg.size > 0){

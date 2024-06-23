@@ -25,7 +25,7 @@ namespace pkpy {
     } else {                                                                                                           \
         PyVar self;                                                                                                    \
         PyVar _2 = get_unbound_method(_0, func, &self, false);                                                         \
-        if(_2)                                                                                              \
+        if(_2.type)                                                                                              \
             ret = call_method(self, _2, _1);                                                                           \
         else                                                                                                           \
             ret = NotImplemented;                                                                                      \
@@ -33,7 +33,7 @@ namespace pkpy {
     if(is_not_implemented(ret)) {                                                                                      \
         PyVar self;                                                                                                    \
         PyVar _2 = get_unbound_method(_1, rfunc, &self, false);                                                        \
-        if(_2)                                                                                              \
+        if(_2.type)                                                                                              \
             ret = call_method(self, _2, _0);                                                                           \
         else                                                                                                           \
             BinaryOptError(op, _0, _1);                                                                                \
@@ -192,7 +192,7 @@ PyVar VM::__run_top_frame() {
                         if(decl->nested) {
                             NameDict* captured = frame->_locals.to_namedict();
                             obj = new_object<Function>(tp_function, decl, frame->_module, nullptr, captured);
-                            uint16_t name = pkpy_StrName__map2(pkpy_Str__sv(&decl->code->name));
+                            uint16_t name = pk_StrName__map2(pkpy_Str__sv(&decl->code->name));
                             captured->set(name, obj);
                         } else {
                             obj = new_object<Function>(tp_function, decl, frame->_module, nullptr, nullptr);
@@ -863,7 +863,7 @@ PyVar VM::__run_top_frame() {
                         }
                     }
                         DISPATCH()
-                    case OP_YIELD_VALUE: return pkpy_OP_YIELD;
+                    case OP_YIELD_VALUE: return PY_OP_YIELD;
                     /*****************************************/
                     case OP_LIST_APPEND: {
                         PyVar _0 = POPX();
@@ -935,7 +935,7 @@ PyVar VM::__run_top_frame() {
                             DISPATCH_JUMP_ABSOLUTE(target)
                         } else {
                             PUSH(_0);
-                            return pkpy_OP_YIELD;
+                            return PY_OP_YIELD;
                         }
                     }
                     case OP_FOR_ITER_UNPACK: {
@@ -1075,7 +1075,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     /*****************************************/
                     case OP_TRY_ENTER: {
-                        frame->set_unwind_target(s_data._sp);
+                        frame->set_unwind_target(s_data.sp);
                         DISPATCH()
                     }
                     case OP_EXCEPTION_MATCH: {

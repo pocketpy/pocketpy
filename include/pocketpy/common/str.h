@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "pocketpy/common/vector.h"
 #include "pocketpy/common/utils.h"
 

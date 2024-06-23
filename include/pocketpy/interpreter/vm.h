@@ -1,12 +1,82 @@
-#include "pocketpy/objects/object.h"
+#pragma once
 
-typedef struct pkpy_VM{
-    PyVar True;
-    PyVar False;
-    PyVar None;
-    PyVar NotImplemented;
-    PyVar Ellipsis;
-} pkpy_VM;
+#include "pocketpy/pocketpy.h"
+#include "pocketpy/interpreter/gc.h"
+#include "pocketpy/interpreter/frame.h"
 
-void pkpy_VM__ctor(pkpy_VM* self);
-void pkpy_VM__dtor(pkpy_VM* self);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct pk_TypeInfo{
+    StrName name;
+    Type base;
+
+    PyObject* obj;      // the type object itself
+    PyObject* module;   // the module where the type is defined
+    bool subclass_enabled;
+
+    void (*dtor)(void*);
+    void (*gc_mark)(void*);
+
+    c11_vector/*T=StrName*/ annotated_fields;
+
+    /* Magic Caches */
+    // unary operators
+    py_CFunction m__repr__, m__str__, m__hash__, m__len__;
+    py_CFunction m__iter__, m__next__, m__neg__, m__invert__;
+    // binary operators
+    py_CFunction m__eq__, m__lt__, m__le__, m__gt__, m__ge__, m__contains__;
+    py_CFunction m__add__, m__sub__, m__mul__, m__truediv__, m__floordiv__;
+    py_CFunction m__mod__, m__pow__, m__matmul__;
+    py_CFunction m__lshift__, m__rshift__, m__and__, m__xor__, m__or__;
+    // indexer
+    py_CFunction m__getitem__, m__setitem__, m__delitem__;
+    // attribute access (internal use only)
+    py_CFunction m__getattr__, m__setattr__, m__delattr__;
+    // backdoors
+    py_CFunction on_end_subclass;   // for enum module
+} pk_TypeInfo;
+
+void pk_TypeInfo__ctor(pk_TypeInfo *self, StrName name, Type base, PyObject* obj, PyObject* module, bool subclass_enabled);
+void pk_TypeInfo__dtor(pk_TypeInfo* self);
+
+typedef struct pk_VM {
+    Frame* top_frame;
+    
+    pk_NameDict modules;
+    c11_vector/*T=pk_TypeInfo*/ types;
+
+    PyObject* StopIteration;    // a special Exception class
+    PyObject* builtins;         // builtins module
+    PyObject* main;             // __main__ module
+
+    void (*_ceval_on_step)(struct pk_VM*, Frame*, Bytecode);
+    unsigned char* (*_import_file)(struct pk_VM*, const char*);
+    void (*_stdout)(struct pk_VM*, const char*);
+    void (*_stderr)(struct pk_VM*, const char*);
+    
+    // singleton objects
+    PyVar True, False, None, NotImplemented, Ellipsis;
+
+    PyObject* __last_exception;
+    PyObject* __curr_class;
+    PyObject* __cached_object_new;
+    FuncDecl_ __dynamic_func_decl;
+    PyVar __vectorcall_buffer[PK_MAX_CO_VARNAMES];
+
+    void* userdata;     // for user-defined data (unused by pkpy itself)
+
+    pk_ManagedHeap heap;
+    ValueStack stack;   // put `stack` at the end for better cache locality
+} pk_VM;
+
+void pk_VM__ctor(pk_VM* self);
+void pk_VM__dtor(pk_VM* self);
+
+Type pk_VM__new_type(pk_VM* self, const char* name, Type base, PyObject* module, bool subclass_enabled);
+PyObject* pk_VM__new_module(pk_VM* self, const char* name, const char* package);
+
+#ifdef __cplusplus
+}
+#endif

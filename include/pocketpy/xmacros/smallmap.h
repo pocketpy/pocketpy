@@ -37,6 +37,8 @@ typedef c11_vector NAME;
 
 void METHOD(ctor)(NAME* self);
 void METHOD(dtor)(NAME* self);
+NAME* METHOD(new)();
+void METHOD(delete)(NAME* self);
 void METHOD(set)(NAME* self, K key, V value);
 V* METHOD(try_get)(const NAME* self, K key);
 V METHOD(get)(const NAME* self, K key, V default_value);
@@ -56,6 +58,17 @@ void METHOD(ctor)(NAME* self) {
 
 void METHOD(dtor)(NAME* self) {
     c11_vector__dtor(self);
+}
+
+NAME* METHOD(new)() {
+    NAME* self = malloc(sizeof(NAME));
+    METHOD(ctor)(self);
+    return self;
+}
+
+void METHOD(delete)(NAME* self) {
+    METHOD(dtor)(self);
+    free(self);
 }
 
 void METHOD(set)(NAME* self, K key, V value) {
