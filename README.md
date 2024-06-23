@@ -27,7 +27,11 @@
 <img src="https://img.shields.io/discord/1048978026131640390.svg" /></a>
 </p>
 
-pkpy is a lightweight(~15K LOC) Python interpreter for game scripting, built on C11 with C++17 wrappers.
+---
+## This branch is in heavy development. It is not ready for production use.
+---
+
+pkpy is a lightweight(~15K LOC) Python interpreter for game scripting, built on C11.
 
 It aims to be an alternative to lua for game scripting, with elegant syntax, powerful features and competitive performance.
 pkpy is extremely easy to embed via a single header file `pocketpy.h`, without external dependencies.
