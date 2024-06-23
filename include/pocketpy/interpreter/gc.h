@@ -1,5 +1,4 @@
 #include "pocketpy/objects/object.h"
-#include "pocketpy/objects/public.h"
 #include "pocketpy/common/config.h"
 
 #ifdef __cplusplus

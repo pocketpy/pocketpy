@@ -2,7 +2,7 @@
 #include "pocketpy/common/strname.h"
 #include "pocketpy/common/sstream.h"
 
-void pkpy_Exception__ctor(pkpy_Exception* self, pk_StrName type){
+void pkpy_Exception__ctor(pkpy_Exception* self, StrName type){
     self->type = type;
     self->is_re = true;
     self->_ip_on_error = -1;

@@ -32,7 +32,7 @@ PK_INLINE PyVar PyVar__fromobj(PyObject* obj){
     PyVar retval = {
         .type = obj->type,
         .is_ptr = true,
-        ._obj = obj;
+        ._obj = obj
     };
     return retval;
 }

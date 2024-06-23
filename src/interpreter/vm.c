@@ -6,10 +6,12 @@ static unsigned char* pk_default_import_file(pk_VM* vm, const char* path){
 
 static void pk_default_stdout(pk_VM* vm, const char* s){
     fprintf(stdout, "%s", s);
+    fflush(stdout);
 }
 
 static void pk_default_stderr(pk_VM* vm, const char* s){
     fprintf(stderr, "%s", s);
+    fflush(stderr);
 }
 
 void pk_TypeInfo__ctor(pk_TypeInfo *self, StrName name, Type base, PyObject* obj, PyObject* module, bool subclass_enabled){
@@ -70,7 +72,7 @@ void pk_VM__ctor(pk_VM* self){
 
     /* Init Builtin Types */
     // 0: unused
-    pk_TypeInfo__ctor(c11_vector__emplace(&self->types), 0, 0, NULL, NULL);
+    pk_TypeInfo__ctor(c11_vector__emplace(&self->types), 0, 0, NULL, NULL, false);
     #define validate(t, expr) if(t != (expr)) abort()
 
     validate(tp_object, pk_VM__new_type(self, "object", 0, NULL, true));
