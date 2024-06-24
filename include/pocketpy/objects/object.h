@@ -22,7 +22,7 @@ static_assert(sizeof(PyObject) <= 16, "!(sizeof(PyObject) <= 16)");
 #define PK_OBJ_SIZEOF(T)            (sizeof(T) + 16)
 
 PyObject* PyObject__new(Type type, int size);
-void PyObject__delete(PyObject* self);
+void PyObject__delete(pk_VM* vm, PyObject* self);
 
 PK_INLINE PyVar PyVar__fromobj(PyObject* obj){
     PyVar retval = {

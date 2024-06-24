@@ -154,6 +154,22 @@ void pk_VM__dtor(pk_VM* self){
     ValueStack__clear(&self->stack);
 }
 
+void pk_VM__push_frame(pk_VM* self, Frame* frame){
+    frame->f_back = self->top_frame;
+    self->top_frame = frame;
+}
+
+void pk_VM__pop_frame(pk_VM* self){
+    assert(self->top_frame);
+    Frame* frame = self->top_frame;
+    self->top_frame = frame->f_back;
+    Frame__delete(frame);
+}
+
+pk_FrameResult pk_VM__run_top_frame(pk_VM* self){
+    return RES_RETURN;
+}
+
 Type pk_VM__new_type(pk_VM* self, const char* name, Type base, PyObject* module, bool subclass_enabled){
     Type type = self->types.count;
     pk_TypeInfo* ti = c11_vector__emplace(&self->types);
@@ -165,7 +181,7 @@ Type pk_VM__new_type(pk_VM* self, const char* name, Type base, PyObject* module,
 
 /****************************************/
 void PyObject__delete(PyObject *self){
-    pk_TypeInfo* ti = c11__getitem(pk_TypeInfo*, &pk_vm->types, self->type);
+    pk_TypeInfo* ti = c11__getitem(pk_TypeInfo*, &pk_current_vm->types, self->type);
     if(ti->dtor) ti->dtor(PyObject__value_ptr(self));
     if(self->dict) pk_NameDict__delete(self->dict);
     if(self->gc_is_large){

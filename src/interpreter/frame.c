@@ -39,13 +39,13 @@ void UnwindTarget__delete(UnwindTarget* self){
     free(self);
 }
 
-Frame* Frame__new(Frame* f_back, const CodeObject* co, PyObject* module_, PyObject* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co){
+Frame* Frame__new(const CodeObject* co, PyObject* module, PyObject* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co){
     static_assert(sizeof(Frame) <= kPoolFrameBlockSize, "!(sizeof(Frame) <= kPoolFrameBlockSize)");
     Frame* self = PoolFrame_alloc();
-    self->f_back = f_back;
+    self->f_back = NULL;
     self->ip = (Bytecode*)co->codes.data - 1;
     self->co = co;
-    self->module_ = module_;
+    self->module = module;
     self->function = function;
     self->p0 = p0;
     self->locals = locals;

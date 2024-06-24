@@ -37,7 +37,7 @@ typedef struct Frame {
     struct Frame* f_back;   // TODO: set this
     const Bytecode* ip;
     const CodeObject* co;
-    PyObject* module_;
+    PyObject* module;
     PyObject* function;     // a function object or NULL (global scope)
     PyVar* p0;              // unwinding base
     PyVar* locals;          // locals base
@@ -46,7 +46,7 @@ typedef struct Frame {
 } Frame;
 
 
-Frame* Frame__new(Frame* f_back, const CodeObject* co, PyObject* module_, PyObject* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co);
+Frame* Frame__new(const CodeObject* co, PyObject* module, PyObject* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co);
 void Frame__delete(Frame* self);
 
 PK_INLINE int Frame__ip(const Frame* self){
@@ -64,11 +64,11 @@ PK_INLINE int Frame__iblock(const Frame* self){
 }
 
 PK_INLINE pk_NameDict* Frame__f_globals(Frame* self){
-    return self->module_->dict;
+    return self->module->dict;
 }
 
 PK_INLINE PyVar* Frame__f_globals_try_get(Frame* self, StrName name){
-    return pk_NameDict__try_get(self->module_->dict, name);
+    return pk_NameDict__try_get(self->module->dict, name);
 }
 
 PyVar* Frame__f_closure_try_get(Frame* self, StrName name);

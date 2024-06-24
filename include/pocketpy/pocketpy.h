@@ -12,7 +12,7 @@ typedef struct py_Error py_Error;
 
 typedef int (*py_CFunction)(const PyVar*, int);
 
-extern pk_VM* pk_vm;
+extern pk_VM* pk_current_vm;
 
 void py_initialize();
 // void py_switch_vm(const char* name);

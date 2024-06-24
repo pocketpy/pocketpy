@@ -58,8 +58,11 @@ typedef struct pk_VM {
     
     // singleton objects
     PyVar True, False, None, NotImplemented, Ellipsis;
+    // last error
+    py_Error* last_error;
+    // last retval
+    PyVar last_retval;
 
-    PyObject* __last_exception;
     PyObject* __curr_class;
     PyObject* __cached_object_new;
     FuncDecl_ __dynamic_func_decl;
@@ -73,6 +76,18 @@ typedef struct pk_VM {
 
 void pk_VM__ctor(pk_VM* self);
 void pk_VM__dtor(pk_VM* self);
+
+void pk_VM__push_frame(pk_VM* self, Frame* frame);
+void pk_VM__pop_frame(pk_VM* self);
+
+typedef enum pk_FrameResult{
+    RES_ERROR,
+    RES_CALL,
+    RES_YIELD,
+    RES_RETURN
+} pk_FrameResult;
+
+pk_FrameResult pk_VM__run_top_frame(pk_VM* self);
 
 Type pk_VM__new_type(pk_VM* self, const char* name, Type base, PyObject* module, bool subclass_enabled);
 PyObject* pk_VM__new_module(pk_VM* self, const char* name, const char* package);
