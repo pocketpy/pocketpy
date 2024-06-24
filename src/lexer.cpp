@@ -509,11 +509,11 @@ IntParsingResult parse_uint(std::string_view text, i64* out, int base){
   if(base == 10){
     // 10-base  12334
     if(text.length() == 0) return IntParsingResult::Failure;
+    constexpr i64 max_i64 = std::numeric_limits<i64>::max();
     for(char c : text){
       if(c >= '0' && c <= '9'){
-        i64 prev_out = *out;
+        if (*out > (max_i64 - (c - '0')) / 10) return IntParsingResult::Overflow;
         *out = (*out * 10) + (c - '0');
-        if(*out < prev_out) return IntParsingResult::Overflow;
       }else{
         return IntParsingResult::Failure;
       }
@@ -523,11 +523,11 @@ IntParsingResult parse_uint(std::string_view text, i64* out, int base){
     // 2-base   0b101010
     if(f_startswith_2(text, "0b")) text.remove_prefix(2);
     if(text.length() == 0) return IntParsingResult::Failure;
+    constexpr i64 mask = i64{1} << 63;
     for(char c : text){
       if(c == '0' || c == '1'){
-        i64 prev_out = *out;
+        if (*out & mask) return IntParsingResult::Overflow;
         *out = (*out << 1) | (c - '0');
-        if(*out < prev_out) return IntParsingResult::Overflow;
       }else{
         return IntParsingResult::Failure;
       }
@@ -537,11 +537,11 @@ IntParsingResult parse_uint(std::string_view text, i64* out, int base){
     // 8-base   0o123
     if(f_startswith_2(text, "0o")) text.remove_prefix(2);
     if(text.length() == 0) return IntParsingResult::Failure;
+    constexpr i64 mask = i64{7} << 60;
     for(char c : text){
       if(c >= '0' && c <= '7'){
-        i64 prev_out = *out;
+        if (*out & mask) return IntParsingResult::Overflow;
         *out = (*out << 3) | (c - '0');
-        if(*out < prev_out) return IntParsingResult::Overflow;
       }else{
         return IntParsingResult::Failure;
       }
@@ -551,17 +551,15 @@ IntParsingResult parse_uint(std::string_view text, i64* out, int base){
     // 16-base  0x123
     if(f_startswith_2(text, "0x")) text.remove_prefix(2);
     if(text.length() == 0) return IntParsingResult::Failure;
+    constexpr i64 mask = i64{15} << 59;
     for(char c : text){
-      i64 prev_out = *out;
+      if (*out & mask) return IntParsingResult::Overflow;
       if(c >= '0' && c <= '9'){
         *out = (*out << 4) | (c - '0');
-        if(*out < prev_out) return IntParsingResult::Overflow;
       }else if(c >= 'a' && c <= 'f'){
         *out = (*out << 4) | (c - 'a' + 10);
-        if(*out < prev_out) return IntParsingResult::Overflow;
       }else if(c >= 'A' && c <= 'F'){
         *out = (*out << 4) | (c - 'A' + 10);
-        if(*out < prev_out) return IntParsingResult::Overflow;
       }else{
         return IntParsingResult::Failure;
       }
