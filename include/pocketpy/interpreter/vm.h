@@ -12,8 +12,8 @@ typedef struct pk_TypeInfo{
     StrName name;
     Type base;
 
-    PyObject* obj;      // the type object itself
-    PyObject* module;   // the module where the type is defined
+    PyVar self;      // the type object itself
+    PyVar module;    // the module where the type is defined
     bool subclass_enabled;
 
     void (*dtor)(void*);
@@ -38,7 +38,7 @@ typedef struct pk_TypeInfo{
     py_CFunction on_end_subclass;   // for enum module
 } pk_TypeInfo;
 
-void pk_TypeInfo__ctor(pk_TypeInfo* self, StrName name, Type base, PyObject* obj, PyObject* module, bool subclass_enabled);
+void pk_TypeInfo__ctor(pk_TypeInfo* self, StrName name, Type base, PyObject* obj, const PyVar* module, bool subclass_enabled);
 void pk_TypeInfo__dtor(pk_TypeInfo* self);
 
 typedef struct pk_VM {
@@ -47,14 +47,14 @@ typedef struct pk_VM {
     pk_NameDict modules;
     c11_vector/*T=pk_TypeInfo*/ types;
 
-    PyObject* StopIteration;    // a special Exception class
-    PyObject* builtins;         // builtins module
-    PyObject* main;             // __main__ module
+    PyVar StopIteration;    // a special Exception class
+    PyVar builtins;         // builtins module
+    PyVar main;             // __main__ module
 
-    void (*_ceval_on_step)(struct pk_VM*, Frame*, Bytecode);
-    unsigned char* (*_import_file)(struct pk_VM*, const char*);
-    void (*_stdout)(struct pk_VM*, const char*);
-    void (*_stderr)(struct pk_VM*, const char*);
+    void (*_ceval_on_step)(Frame*, Bytecode);
+    unsigned char* (*_import_file)(const char*);
+    void (*_stdout)(const char*);
+    void (*_stderr)(const char*);
     
     // singleton objects
     PyVar True, False, None, NotImplemented, Ellipsis;
@@ -62,6 +62,8 @@ typedef struct pk_VM {
     py_Error* last_error;
     // last retval
     PyVar last_retval;
+    // registers
+    PyVar reg[8];
 
     PyObject* __curr_class;
     PyObject* __cached_object_new;
@@ -81,16 +83,15 @@ void pk_VM__push_frame(pk_VM* self, Frame* frame);
 void pk_VM__pop_frame(pk_VM* self);
 
 typedef enum pk_FrameResult{
-    RES_ERROR,
+    RES_RETURN,
     RES_CALL,
     RES_YIELD,
-    RES_RETURN
+    RES_ERROR,
 } pk_FrameResult;
 
 pk_FrameResult pk_VM__run_top_frame(pk_VM* self);
 
-Type pk_VM__new_type(pk_VM* self, const char* name, Type base, PyObject* module, bool subclass_enabled);
-PyObject* pk_VM__new_module(pk_VM* self, const char* name, const char* package);
+Type pk_VM__new_type(pk_VM* self, const char* name, Type base, const PyVar* module, bool subclass_enabled);
 
 #ifdef __cplusplus
 }

@@ -8,6 +8,7 @@
 #include "pocketpy/objects/base.h"
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/common/refcount.h"
+#include "pocketpy/pocketpy.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,12 +16,6 @@ extern "C" {
 
 #define BC_NOARG        0
 #define BC_KEEPLINE     -1
-
-typedef enum BindType {
-    BindType_FUNCTION,
-    BindType_STATICMETHOD,
-    BindType_CLASSMETHOD,
-} BindType;
 
 typedef enum FuncType {
     FuncType_UNSET,

@@ -43,7 +43,7 @@ static const Type tp_object = {1}, tp_type = {2};
 static const Type tp_int = {3}, tp_float = {4}, tp_bool = {5}, tp_str = {6};
 static const Type tp_list = {7}, tp_tuple = {8};
 static const Type tp_slice = {9}, tp_range = {10}, tp_module = {11};
-static const Type tp_function = {12}, tp_native_func = {13}, tp_bound_method = {14};
+static const Type tp_function = {12}, tp_nativefunc = {13}, tp_bound_method = {14};
 static const Type tp_super = {15}, tp_exception = {16}, tp_bytes = {17}, tp_mappingproxy = {18};
 static const Type tp_dict = {19}, tp_property = {20}, tp_star_wrapper = {21};
 static const Type tp_staticmethod = {22}, tp_classmethod = {23};

@@ -1,28 +1,28 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/memorypool.h"
 
-static unsigned char* pk_default_import_file(pk_VM* vm, const char* path){
+static unsigned char* pk_default_import_file(const char* path){
     return NULL;
 }
 
-static void pk_default_stdout(pk_VM* vm, const char* s){
+static void pk_default_stdout(const char* s){
     fprintf(stdout, "%s", s);
     fflush(stdout);
 }
 
-static void pk_default_stderr(pk_VM* vm, const char* s){
+static void pk_default_stderr(const char* s){
     fprintf(stderr, "%s", s);
     fflush(stderr);
 }
 
-void pk_TypeInfo__ctor(pk_TypeInfo *self, StrName name, Type base, PyObject* obj, PyObject* module, bool subclass_enabled){
+void pk_TypeInfo__ctor(pk_TypeInfo *self, StrName name, Type base, PyObject* obj, const PyVar* module, bool subclass_enabled){
     memset(self, 0, sizeof(pk_TypeInfo));
     
     self->name = name;
     self->base = base;
 
-    self->obj = obj;
-    self->module = module;
+    self->self = PyVar__fromobj(obj);
+    self->module = module ? *module : PY_NULL;
     self->subclass_enabled = subclass_enabled;
 
     c11_vector__ctor(&self->annotated_fields, sizeof(StrName));
@@ -32,22 +32,35 @@ void pk_TypeInfo__dtor(pk_TypeInfo *self){
     c11_vector__dtor(&self->annotated_fields);
 }
 
+static int _hello(const PyVar* args, int argc){
+    return 0;
+}
+
+static void do_builtin_bindings(){
+    pk_VM* vm = pk_current_vm;
+
+    py_new_nativefunc(&vm->reg[0], _hello, 2, BindType_FUNCTION);
+    py_setattr(&vm->builtins, pk_StrName__map("hello"), &vm->reg[0]);
+}
+
 void pk_VM__ctor(pk_VM* self){
     self->top_frame = NULL;
 
     pk_NameDict__ctor(&self->modules);
     c11_vector__ctor(&self->types, sizeof(pk_TypeInfo));
 
-    self->StopIteration = NULL;
-    self->builtins = NULL;
-    self->main = NULL;
+    self->StopIteration = PY_NULL;
+    self->builtins = PY_NULL;
+    self->main = PY_NULL;
 
     self->_ceval_on_step = NULL;
     self->_import_file = pk_default_import_file;
     self->_stdout = pk_default_stdout;
     self->_stderr = pk_default_stderr;
 
-    self->__last_exception = NULL;
+    self->last_error = NULL;
+    self->last_retval = PY_NULL;
+
     self->__curr_class = NULL;
     self->__cached_object_new = NULL;
     self->__dynamic_func_decl = NULL;
@@ -92,7 +105,7 @@ void pk_VM__ctor(pk_VM* self){
     validate(tp_module, pk_VM__new_type(self, "module", tp_object, NULL, false));
 
     validate(tp_function, pk_VM__new_type(self, "function", tp_object, NULL, false));
-    validate(tp_native_func, pk_VM__new_type(self, "native_func", tp_object, NULL, false));
+    validate(tp_nativefunc, pk_VM__new_type(self, "nativefunc", tp_object, NULL, false));
     validate(tp_bound_method, pk_VM__new_type(self, "bound_method", tp_object, NULL, false));
 
     validate(tp_super, pk_VM__new_type(self, "super", tp_object, NULL, false));
@@ -118,8 +131,8 @@ void pk_VM__ctor(pk_VM* self){
     validate(tp_stop_iteration, pk_VM__new_type(self, "StopIteration", tp_exception, NULL, false));
     #undef validate
 
-    self->StopIteration = c11__at(pk_TypeInfo, &self->types, tp_stop_iteration)->obj;
-    self->builtins = pk_VM__new_module(self, "builtins", NULL);
+    self->StopIteration = c11__at(pk_TypeInfo, &self->types, tp_stop_iteration)->self;
+    self->builtins = py_new_module("builtins");
     
     /* Setup Public Builtin Types */
     Type public_types[] = {
@@ -134,13 +147,13 @@ void pk_VM__ctor(pk_VM* self){
     for(int i=0; i<PK_ARRAY_COUNT(public_types); i++){
         Type t = public_types[i];
         pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, t);
-        pk_NameDict__set(self->builtins->dict, ti->name, PyVar__fromobj(ti->obj));
+        pk_NameDict__set(self->builtins._obj->dict, ti->name, ti->self);
     }
-    pk_NameDict__set(self->builtins->dict, pk_StrName__map("NotImplemented"), self->NotImplemented);
+    pk_NameDict__set(self->builtins._obj->dict, pk_StrName__map("NotImplemented"), self->NotImplemented);
 
     /* Do Buildin Bindings*/
-    // TODO: ...
-    self->main = pk_VM__new_module(self, "__main__", NULL);
+    do_builtin_bindings();
+    self->main = py_new_module("__main__");
 }
 
 void pk_VM__dtor(pk_VM* self){
@@ -170,7 +183,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self){
     return RES_RETURN;
 }
 
-Type pk_VM__new_type(pk_VM* self, const char* name, Type base, PyObject* module, bool subclass_enabled){
+Type pk_VM__new_type(pk_VM* self, const char* name, Type base, const PyVar* module, bool subclass_enabled){
     Type type = self->types.count;
     pk_TypeInfo* ti = c11_vector__emplace(&self->types);
     PyObject* typeobj = pk_ManagedHeap__gcnew(&self->heap, tp_type, PK_OBJ_SIZEOF(Type));
