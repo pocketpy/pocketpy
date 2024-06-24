@@ -17,11 +17,11 @@ void pk_ManagedHeap__ctor(pk_ManagedHeap *self, pk_VM *vm){
 void pk_ManagedHeap__dtor(pk_ManagedHeap *self){
     for(int i = 0; i < self->gen.count; i++){
         PyObject* obj = c11__getitem(PyObject*, &self->gen, i);
-        pk_ManagedHeap__delete_obj(self, obj);
+        PyObject__delete(obj);
     }
     for(int i = 0; i < self->no_gc.count; i++){
         PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
-        pk_ManagedHeap__delete_obj(self, obj);
+        PyObject__delete(obj);
     }
     c11_vector__dtor(&self->no_gc);
     c11_vector__dtor(&self->gen);
@@ -67,7 +67,7 @@ int pk_ManagedHeap__sweep(pk_ManagedHeap *self){
             if(self->_gc_on_delete){
                 self->_gc_on_delete(self->vm, obj);
             }
-            pk_ManagedHeap__delete_obj(self, obj);
+            PyObject__delete(obj);
         }
     }
 
@@ -89,29 +89,29 @@ int pk_ManagedHeap__sweep(pk_ManagedHeap *self){
 }
 
 PyObject* pk_ManagedHeap__new(pk_ManagedHeap *self, Type type, int size){
-    PyObject* obj;
-    if(size <= kPoolObjectBlockSize){
-        obj = PoolObject_alloc();
-        PyObject__ctor(obj, type, false);
-    }else{
-        obj = malloc(size);
-        PyObject__ctor(obj, type, true);
-    }
+    PyObject* obj = PyObject__new(type, size);
     c11_vector__push(PyObject*, &self->no_gc, obj);
     return obj;
 }
 
 PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap *self, Type type, int size){
-    PyObject* obj;
-    if(size <= kPoolObjectBlockSize){
-        obj = PoolObject_alloc();
-        PyObject__ctor(obj, type, false);
-    }else{
-        obj = malloc(size);
-        PyObject__ctor(obj, type, true);
-    }
+    PyObject* obj = PyObject__new(type, size);
     c11_vector__push(PyObject*, &self->gen, obj);
     self->gc_counter++;
     return obj;
 }
 
+PyObject* PyObject__new(Type type, int size){
+    PyObject* self;
+    if(size <= kPoolObjectBlockSize){
+        self = PoolObject_alloc();
+        self->gc_is_large = false;
+    }else{
+        self = malloc(size);
+        self->gc_is_large = true;
+    }
+    self->type = type;
+    self->gc_marked = false;
+    self->dict = NULL;
+    return self;
+}

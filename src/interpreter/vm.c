@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/common/memorypool.h"
 
 static unsigned char* pk_default_import_file(pk_VM* vm, const char* path){
     return NULL;
@@ -160,4 +161,31 @@ Type pk_VM__new_type(pk_VM* self, const char* name, Type base, PyObject* module,
     *PyObject__as(Type, typeobj) = type;
     pk_TypeInfo__ctor(ti, pk_StrName__map(name), base, typeobj, module, subclass_enabled);
     return type;
+}
+
+/****************************************/
+void PyObject__delete(PyObject *self){
+    pk_TypeInfo* ti = c11__getitem(pk_TypeInfo*, &pk_vm->types, self->type);
+    if(ti->dtor) ti->dtor(PyObject__value_ptr(self));
+    if(self->dict) pk_NameDict__delete(self->dict);
+    if(self->gc_is_large){
+        free(self);
+    }else{
+        PoolObject_dealloc(self);
+    }
+}
+
+void pk_ManagedHeap__mark(pk_ManagedHeap* self){
+    // for(int i=0; i<self->no_gc.count; i++){
+    //     PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
+    //     vm->__obj_gc_mark(obj);
+    // }
+    // vm->callstack.apply([vm](Frame& frame) {
+    //     frame._gc_mark(vm);
+    // });
+    // vm->obj_gc_mark(vm->__last_exception);
+    // vm->obj_gc_mark(vm->__curr_class);
+    // vm->obj_gc_mark(vm->__c.error);
+    // vm->__stack_gc_mark(vm->s_data.begin(), vm->s_data.end());
+    // if(self->_gc_marker_ex) self->_gc_marker_ex((pkpy_VM*)vm);
 }

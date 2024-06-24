@@ -33,7 +33,6 @@ PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap* self, Type type, int size);
 
 // external implementation
 void pk_ManagedHeap__mark(pk_ManagedHeap* self);
-void pk_ManagedHeap__delete_obj(pk_ManagedHeap* self, PyObject* obj);
 
 #ifdef __cplusplus
 }

@@ -10,7 +10,7 @@ typedef struct PyVar PyVar;
 typedef struct pk_VM pk_VM;
 typedef struct py_Error py_Error;
 
-typedef unsigned (*py_CFunction)(const PyVar*, int);
+typedef int (*py_CFunction)(const PyVar*, int);
 
 extern pk_VM* pk_vm;
 

@@ -21,12 +21,8 @@ static_assert(sizeof(PyObject) <= 16, "!(sizeof(PyObject) <= 16)");
 #define PK_OBJ_GET(T, val)          (*(T*)(PyObject__value_ptr((val)._obj)))
 #define PK_OBJ_SIZEOF(T)            (sizeof(T) + 16)
 
-PK_INLINE void PyObject__ctor(PyObject* self, Type type, bool gc_is_large){
-    self->type = type;
-    self->gc_is_large = gc_is_large;
-    self->gc_marked = false;
-    self->dict = NULL;
-}
+PyObject* PyObject__new(Type type, int size);
+void PyObject__delete(PyObject* self);
 
 PK_INLINE PyVar PyVar__fromobj(PyObject* obj){
     PyVar retval = {
