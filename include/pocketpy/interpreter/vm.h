@@ -64,6 +64,7 @@ typedef struct pk_VM {
     PyVar last_retval;
     // registers
     PyVar reg[8];
+    PyVar sysreg[8];
 
     PyObject* __curr_class;
     PyObject* __cached_object_new;

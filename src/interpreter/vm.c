@@ -34,53 +34,50 @@ void pk_TypeInfo__dtor(pk_TypeInfo *self){
     c11_vector__dtor(&self->annotated_fields);
 }
 
-static int _hello(const py_Ref args, int argc){
-    return 0;
-}
+// static int _py_print(const py_Ref args, int argc){
+//     int length = py_tuple__len(args+0);
+//     py_Str* sep;
+//     py_Str* end;
 
-// print(*args, sep=' ', end='\n')
-static int _py_print(const py_Ref args, int argc){
-    int length = py_tuple__len(args+0);
-    py_Str* sep;
-    py_Str* end;
+//     int err;
+//     err = py_tostr(args+1, &sep);
+//     if(err) return err;
+//     err = py_tostr(args+2, &end);
+//     if(err) return err;
 
-    int err;
-    err = py_tostr(args+1, &sep);
-    if(err) return err;
-    err = py_tostr(args+2, &end);
-    if(err) return err;
+//     pk_SStream ss;
+//     pk_SStream__ctor(&ss);
 
-    pk_SStream ss;
-    pk_SStream__ctor(&ss);
-
-    for(int i=0; i<length; i++){
-        const py_Ref item = py_tuple__getitem(args+0, i);
-        py_Str tmp;
-        int err = py_str(item, &tmp);
-        if(!err){
-            pk_SStream__write_Str(&ss, &tmp);
-            py_Str__dtor(&tmp);
-            if(i != length-1){
-                pk_SStream__write_Str(&ss, sep);
-            }
-        }else{
-            py_Str__dtor(&tmp);
-            pk_SStream__dtor(&ss);
-            return err;
-        }
-    }
-    pk_SStream__write_Str(&ss, end);
-    py_Str out = pk_SStream__submit(&ss);
-    pk_current_vm->_stdout(py_Str__data(&out));
-    py_Str__dtor(&out);
-    return 0;
-}
+//     for(int i=0; i<length; i++){
+//         const py_Ref item = py_tuple__getitem(args+0, i);
+//         py_Str tmp;
+//         int err = py_str(item, &tmp);
+//         if(!err){
+//             pk_SStream__write_Str(&ss, &tmp);
+//             py_Str__dtor(&tmp);
+//             if(i != length-1){
+//                 pk_SStream__write_Str(&ss, sep);
+//             }
+//         }else{
+//             py_Str__dtor(&tmp);
+//             pk_SStream__dtor(&ss);
+//             return err;
+//         }
+//     }
+//     pk_SStream__write_Str(&ss, end);
+//     py_Str out = pk_SStream__submit(&ss);
+//     pk_current_vm->_stdout(py_Str__data(&out));
+//     py_Str__dtor(&out);
+//     return 0;
+// }
 
 static void do_builtin_bindings(){
-    pk_VM* vm = pk_current_vm;
-
-    py_new_nativefunc(&vm->reg[0], _hello, 2, BindType_FUNCTION);
-    py_setdict(&vm->builtins, py_name("hello"), &vm->reg[0]);
+    // py_Ref builtins = py_getmodule("builtins");
+    // py_newfunction(py_reg(0), _py_print,
+    //     "print(*args, sep=' ', end='\\n')",
+    //     BindType_FUNCTION
+    // );
+    // py_setdict(builtins, py_name("hello"), py_reg(0));
 }
 
 void pk_VM__ctor(pk_VM* self){
@@ -172,7 +169,7 @@ void pk_VM__ctor(pk_VM* self){
     #undef validate
 
     self->StopIteration = c11__at(pk_TypeInfo, &self->types, tp_stop_iteration)->self;
-    self->builtins = *py_new_module("builtins");
+    self->builtins = *py_newmodule("builtins", NULL);
     
     /* Setup Public Builtin Types */
     Type public_types[] = {
@@ -193,7 +190,7 @@ void pk_VM__ctor(pk_VM* self){
 
     /* Do Buildin Bindings*/
     do_builtin_bindings();
-    self->main = *py_new_module("__main__");
+    self->main = *py_newmodule("__main__", NULL);
 }
 
 void pk_VM__dtor(pk_VM* self){
