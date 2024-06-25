@@ -60,10 +60,6 @@ typedef struct pk_VM {
     PyVar True, False, None, NotImplemented, Ellipsis;
     // last error
     py_Error* last_error;
-    // last retval
-    PyVar last_retval;
-    // registers
-    PyVar reg[8];
 
     PyObject* __curr_class;
     PyObject* __cached_object_new;

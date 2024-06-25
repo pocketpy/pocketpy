@@ -52,13 +52,6 @@ py_Ref py_peek(int i){
     return pk_current_vm->stack.sp + i;
 }
 
-py_Ref py_push(){
-    pk_VM* vm = pk_current_vm;
-    py_Ref top = vm->stack.sp;
-    vm->stack.sp++;
-    return top;
-}
-
 void py_pop(){
     pk_VM* vm = pk_current_vm;
     vm->stack.sp--;
@@ -70,13 +63,14 @@ void py_shrink(int n){
 }
 
 void py_pushref(const py_Ref src){
-    *py_push() = *src;
+    pk_VM* vm = pk_current_vm;
+    *vm->stack.sp++ = *src;
 }
 
 py_Ref py_pushtmp(){
-    py_Ref r = py_push();
-    py_newnull(r);
-    return r;
+    pk_VM* vm = pk_current_vm;
+    py_newnull(vm->stack.sp++);
+    return py_gettop();
 }
 
 void py_poptmp(int n){

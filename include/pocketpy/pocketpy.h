@@ -30,7 +30,9 @@ extern pk_VM* pk_current_vm;
 void py_initialize();
 void py_finalize();
 
+/// Run a simple source string. Do not change the stack.
 int py_exec(const char*);
+/// Eval a simple expression. If succeed, the result will be pushed onto the stack.
 int py_eval(const char*);
 
 /************* Values Creation *************/
@@ -101,8 +103,6 @@ void py_setsecond(const py_Ref);
 /// Returns a reference to the i-th object from the top of the stack.
 /// i should be negative, e.g. (-1) means TOS.
 py_Ref py_peek(int i);
-/// Prepares a push and returns an uninitialized reference.
-py_Ref py_push();
 /// Pops an object from the stack.
 void py_pop();
 void py_shrink(int n);

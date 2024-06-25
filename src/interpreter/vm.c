@@ -50,7 +50,6 @@ void pk_VM__ctor(pk_VM* self){
     self->_stderr = pk_default_stderr;
 
     self->last_error = NULL;
-    self->last_retval = PY_NULL;
 
     self->__curr_class = NULL;
     self->__cached_object_new = NULL;
