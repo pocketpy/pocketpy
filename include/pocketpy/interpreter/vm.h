@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 typedef struct pk_TypeInfo{
-    StrName name;
+    py_Name name;
     Type base;
 
     PyVar self;      // the type object itself
@@ -38,7 +38,7 @@ typedef struct pk_TypeInfo{
     py_CFunction on_end_subclass;   // for enum module
 } pk_TypeInfo;
 
-void pk_TypeInfo__ctor(pk_TypeInfo* self, StrName name, Type base, PyObject* obj, const PyVar* module, bool subclass_enabled);
+void pk_TypeInfo__ctor(pk_TypeInfo* self, py_Name name, Type base, PyObject* obj, const PyVar* module, bool subclass_enabled);
 void pk_TypeInfo__dtor(pk_TypeInfo* self);
 
 typedef struct pk_VM {

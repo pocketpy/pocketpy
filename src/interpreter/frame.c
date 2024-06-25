@@ -10,7 +10,7 @@ void ValueStack__clear(ValueStack* self) {
     self->sp = self->begin;
 }
 
-PyVar* FastLocals__try_get_by_name(PyVar* locals, const CodeObject* co, StrName name){
+PyVar* FastLocals__try_get_by_name(PyVar* locals, const CodeObject* co, py_Name name){
     int index = c11_smallmap_n2i__get(&co->varnames_inv, name, -1);
     if(index == -1) return NULL;
     return &locals[index];
@@ -39,14 +39,14 @@ void UnwindTarget__delete(UnwindTarget* self){
     free(self);
 }
 
-Frame* Frame__new(const CodeObject* co, PyObject* module, PyObject* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co){
+Frame* Frame__new(const CodeObject* co, const PyVar* module, const PyVar* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co){
     static_assert(sizeof(Frame) <= kPoolFrameBlockSize, "!(sizeof(Frame) <= kPoolFrameBlockSize)");
     Frame* self = PoolFrame_alloc();
     self->f_back = NULL;
     self->ip = (Bytecode*)co->codes.data - 1;
     self->co = co;
-    self->module = module;
-    self->function = function;
+    self->module = module->_obj;
+    self->function = function->_obj;
     self->p0 = p0;
     self->locals = locals;
     self->locals_co = locals_co;

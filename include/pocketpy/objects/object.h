@@ -11,17 +11,24 @@ typedef struct PyObject{
     Type type;          // we have a duplicated type here for convenience
     bool gc_is_large;
     bool gc_marked;
-    pk_NameDict* dict;  // gc will delete this on destruction
+    int slots;          // number of slots in the object
 } PyObject;
 
-static_assert(sizeof(PyObject) <= 16, "!(sizeof(PyObject) <= 16)");
+// slots >= 0, allocate N slots
+// slots == -1, allocate a dict
 
-#define PyObject__value_ptr(self)   ((char*)self + 16)
-#define PyObject__as(T, self)       (T*)(PyObject__value_ptr(self))
-#define PK_OBJ_GET(T, val)          (*(T*)(PyObject__value_ptr((val)._obj)))
-#define PK_OBJ_SIZEOF(T)            (sizeof(T) + 16)
+// | 8 bytes HEADER | <N slots> | <value>
+// | 8 bytes HEADER | <dict>    | <value>
 
-PyObject* PyObject__new(Type type, int size);
+static_assert(sizeof(PyObject) <= 8, "!(sizeof(PyObject) <= 8)");
+
+PyVar* PyObject__slots(PyObject* self);
+pk_NameDict* PyObject__dict(PyObject* self);
+void* PyObject__value(PyObject* self);
+
+#define PK_OBJ_HEADER_SIZE(slots) ((slots)>=0 ? 8+sizeof(PyVar)*(slots) : 8+sizeof(pk_NameDict))
+
+PyObject* PyObject__new(Type type, int slots, int size);
 void PyObject__delete(PyObject* self);
 
 PK_INLINE PyVar PyVar__fromobj(PyObject* obj){

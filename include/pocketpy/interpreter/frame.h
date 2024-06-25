@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-PyVar* FastLocals__try_get_by_name(PyVar* locals, const CodeObject* co, StrName name);
+PyVar* FastLocals__try_get_by_name(PyVar* locals, const CodeObject* co, py_Name name);
 pk_NameDict* FastLocals__to_namedict(PyVar* locals, const CodeObject* co);
 
 typedef struct ValueStack {
@@ -46,7 +46,7 @@ typedef struct Frame {
 } Frame;
 
 
-Frame* Frame__new(const CodeObject* co, PyObject* module, PyObject* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co);
+Frame* Frame__new(const CodeObject* co, const PyVar* module, const PyVar* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co);
 void Frame__delete(Frame* self);
 
 PK_INLINE int Frame__ip(const Frame* self){
@@ -64,14 +64,14 @@ PK_INLINE int Frame__iblock(const Frame* self){
 }
 
 PK_INLINE pk_NameDict* Frame__f_globals(Frame* self){
-    return self->module->dict;
+    return PyObject__dict(self->module);
 }
 
-PK_INLINE PyVar* Frame__f_globals_try_get(Frame* self, StrName name){
-    return pk_NameDict__try_get(self->module->dict, name);
+PK_INLINE PyVar* Frame__f_globals_try_get(Frame* self, py_Name name){
+    return pk_NameDict__try_get(Frame__f_globals(self), name);
 }
 
-PyVar* Frame__f_closure_try_get(Frame* self, StrName name);
+PyVar* Frame__f_closure_try_get(Frame* self, py_Name name);
 
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack*);
 void Frame__prepare_jump_break(Frame* self, ValueStack*, int);

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "pocketpy.h"
+#include "pocketpy/pocketpy.h"
 
 char* read_file(const char* path) {
     FILE* file = fopen(path, "r");
@@ -27,10 +28,9 @@ int main(int argc, char** argv) {
     char* source = read_file(argv[1]);
     py_initialize();
 
-    py_Error* err = py_exec_simple(source);
-    if(err){
+    if(py_exec_simple(source)){
+        py_Error* err = py_getlasterror();
         py_Error__print(err);
-        py_Error__delete(err);
     }
     
     py_finalize();

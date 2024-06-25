@@ -88,21 +88,23 @@ int pk_ManagedHeap__sweep(pk_ManagedHeap *self){
     return freed;
 }
 
-PyObject* pk_ManagedHeap__new(pk_ManagedHeap *self, Type type, int size){
-    PyObject* obj = PyObject__new(type, size);
+PyObject* pk_ManagedHeap__new(pk_ManagedHeap *self, Type type, int slots, int size){
+    PyObject* obj = PyObject__new(type, slots, size);
     c11_vector__push(PyObject*, &self->no_gc, obj);
     return obj;
 }
 
-PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap *self, Type type, int size){
-    PyObject* obj = PyObject__new(type, size);
+PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap *self, Type type, int slots, int size){
+    PyObject* obj = PyObject__new(type, slots, size);
     c11_vector__push(PyObject*, &self->gen, obj);
     self->gc_counter++;
     return obj;
 }
 
-PyObject* PyObject__new(Type type, int size){
+PyObject* PyObject__new(Type type, int slots, int size){
+    assert(slots >= 0 || slots == -1);
     PyObject* self;
+    size += PK_OBJ_HEADER_SIZE(slots);
     if(size <= kPoolObjectBlockSize){
         self = PoolObject_alloc();
         self->gc_is_large = false;
@@ -112,6 +114,6 @@ PyObject* PyObject__new(Type type, int size){
     }
     self->type = type;
     self->gc_marked = false;
-    self->dict = NULL;
+    self->slots = slots;
     return self;
 }

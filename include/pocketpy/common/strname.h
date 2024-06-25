@@ -9,6 +9,8 @@ extern "C" {
 
 typedef uint16_t StrName;
 
+#define py_name(name) pk_StrName__map(#name)
+
 uint16_t pk_StrName__map(const char*);
 uint16_t pk_StrName__map2(c11_string);
 const char* pk_StrName__rmap(uint16_t index);

@@ -15,7 +15,7 @@ static void pk_default_stderr(const char* s){
     fflush(stderr);
 }
 
-void pk_TypeInfo__ctor(pk_TypeInfo *self, StrName name, Type base, PyObject* obj, const PyVar* module, bool subclass_enabled){
+void pk_TypeInfo__ctor(pk_TypeInfo *self, py_Name name, Type base, PyObject* obj, const PyVar* module, bool subclass_enabled){
     memset(self, 0, sizeof(pk_TypeInfo));
     
     self->name = name;
@@ -25,14 +25,14 @@ void pk_TypeInfo__ctor(pk_TypeInfo *self, StrName name, Type base, PyObject* obj
     self->module = module ? *module : PY_NULL;
     self->subclass_enabled = subclass_enabled;
 
-    c11_vector__ctor(&self->annotated_fields, sizeof(StrName));
+    c11_vector__ctor(&self->annotated_fields, sizeof(py_Name));
 }
 
 void pk_TypeInfo__dtor(pk_TypeInfo *self){
     c11_vector__dtor(&self->annotated_fields);
 }
 
-static int _hello(const PyVar* args, int argc){
+static int _hello(const py_Ref args, int argc){
     return 0;
 }
 
@@ -40,7 +40,7 @@ static void do_builtin_bindings(){
     pk_VM* vm = pk_current_vm;
 
     py_new_nativefunc(&vm->reg[0], _hello, 2, BindType_FUNCTION);
-    py_setattr(&vm->builtins, pk_StrName__map("hello"), &vm->reg[0]);
+    py_setdict(&vm->builtins, py_name("hello"), &vm->reg[0]);
 }
 
 void pk_VM__ctor(pk_VM* self){
@@ -69,19 +69,19 @@ void pk_VM__ctor(pk_VM* self){
     ValueStack__ctor(&self->stack);
 
     self->True = (PyVar){.type=tp_bool, .is_ptr=true, .extra=1,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 1),
     };
     self->False = (PyVar){.type=tp_bool, .is_ptr=true, .extra=0,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 1),
     };
     self->None = (PyVar){.type=tp_none_type, .is_ptr=true,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_none_type, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_none_type, 0, 1),
     };
     self->NotImplemented = (PyVar){.type=tp_not_implemented_type, .is_ptr=true,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_not_implemented_type, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_not_implemented_type, 0, 1),
     };
     self->Ellipsis = (PyVar){.type=tp_ellipsis, .is_ptr=true,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_ellipsis, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_ellipsis, 0, 1),
     };
 
     /* Init Builtin Types */
@@ -132,7 +132,7 @@ void pk_VM__ctor(pk_VM* self){
     #undef validate
 
     self->StopIteration = c11__at(pk_TypeInfo, &self->types, tp_stop_iteration)->self;
-    self->builtins = py_new_module("builtins");
+    self->builtins = *py_new_module("builtins");
     
     /* Setup Public Builtin Types */
     Type public_types[] = {
@@ -147,13 +147,13 @@ void pk_VM__ctor(pk_VM* self){
     for(int i=0; i<PK_ARRAY_COUNT(public_types); i++){
         Type t = public_types[i];
         pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, t);
-        pk_NameDict__set(self->builtins._obj->dict, ti->name, ti->self);
+        py_setdict(&self->builtins, ti->name, &ti->self);
     }
-    pk_NameDict__set(self->builtins._obj->dict, pk_StrName__map("NotImplemented"), self->NotImplemented);
+    py_setdict(&self->builtins, py_name("NotImplemented"), &self->NotImplemented);
 
     /* Do Buildin Bindings*/
     do_builtin_bindings();
-    self->main = py_new_module("__main__");
+    self->main = *py_new_module("__main__");
 }
 
 void pk_VM__dtor(pk_VM* self){
@@ -186,17 +186,18 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self){
 Type pk_VM__new_type(pk_VM* self, const char* name, Type base, const PyVar* module, bool subclass_enabled){
     Type type = self->types.count;
     pk_TypeInfo* ti = c11_vector__emplace(&self->types);
-    PyObject* typeobj = pk_ManagedHeap__gcnew(&self->heap, tp_type, PK_OBJ_SIZEOF(Type));
-    *PyObject__as(Type, typeobj) = type;
-    pk_TypeInfo__ctor(ti, pk_StrName__map(name), base, typeobj, module, subclass_enabled);
+    PyObject* typeobj = pk_ManagedHeap__gcnew(&self->heap, tp_type, 0, sizeof(Type));
+    Type* value = PyObject__value(typeobj);
+    *value = type;
+    pk_TypeInfo__ctor(ti, py_name(name), base, typeobj, module, subclass_enabled);
     return type;
 }
 
 /****************************************/
 void PyObject__delete(PyObject *self){
     pk_TypeInfo* ti = c11__getitem(pk_TypeInfo*, &pk_current_vm->types, self->type);
-    if(ti->dtor) ti->dtor(PyObject__value_ptr(self));
-    if(self->dict) pk_NameDict__delete(self->dict);
+    if(ti->dtor) ti->dtor(PyObject__value(self));
+    if(self->slots == -1) pk_NameDict__dtor(PyObject__dict(self));
     if(self->gc_is_large){
         free(self);
     }else{

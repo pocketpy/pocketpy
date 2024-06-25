@@ -1,5 +1,6 @@
 #include "pocketpy/objects/dict.h"
 #include "pocketpy/common/utils.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
@@ -113,14 +114,18 @@ static void pkpy_Dict__extendht(pkpy_Dict* self) {
         struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, i);
         if(pkpy_Var__is_null(&entry->key)) continue;
 
-        int rhash = DICT_HASH_TRANS(py_hash(&entry->key));
+        int64_t out;
+        int err = py_hash(&entry->key, &out);
+        int rhash = DICT_HASH_TRANS(out);
         int h = pkpy_Dict__probe0(self, entry->key, rhash);
         pkpy_Dict__htset(self, h, i);
     }
 }
 
 bool pkpy_Dict__set(pkpy_Dict* self, PyVar key, PyVar val) {
-    int hash = DICT_HASH_TRANS(py_hash(&key));
+    int64_t out;
+    int err = py_hash(&key, &out);
+    int hash = DICT_HASH_TRANS(out);
     int h = pkpy_Dict__probe1(self, key, hash);
 
     int idx = pkpy_Dict__htget(self, h);
@@ -155,7 +160,9 @@ bool pkpy_Dict__set(pkpy_Dict* self, PyVar key, PyVar val) {
 }
 
 bool pkpy_Dict__contains(const pkpy_Dict* self, PyVar key) {
-    int hash = DICT_HASH_TRANS(py_hash(&key));
+    int64_t out;
+    int err = py_hash(&key, &out);
+    int hash = DICT_HASH_TRANS(out);
     int h = pkpy_Dict__probe1(self, key, hash);
 
     int idx = pkpy_Dict__htget(self, h);
@@ -187,7 +194,9 @@ static bool pkpy_Dict__refactor(pkpy_Dict* self) {
         struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, i);
         if(pkpy_Var__is_null(&entry->key)) continue;
 
-        int rhash = DICT_HASH_TRANS(py_hash(&entry->key));
+        int64_t out;
+        py_hash(&entry->key, &out);
+        int rhash = DICT_HASH_TRANS(out);
         int h = pkpy_Dict__probe0(self, entry->key, rhash);
         pkpy_Dict__htset(self, h, i);
     }
@@ -195,7 +204,9 @@ static bool pkpy_Dict__refactor(pkpy_Dict* self) {
 }
 
 bool pkpy_Dict__del(pkpy_Dict* self, PyVar key) {
-    int hash = DICT_HASH_TRANS(py_hash(&key));
+    int64_t out;
+    int err = py_hash(&key, &out);
+    int hash = DICT_HASH_TRANS(out);
     int h = pkpy_Dict__probe1(self, key, hash);
     int idx = pkpy_Dict__htget(self, h), null = pkpy_Dict__idx_null(self);
     if(idx == null) return false;
@@ -208,7 +219,9 @@ bool pkpy_Dict__del(pkpy_Dict* self, PyVar key) {
 }
 
 const PyVar *pkpy_Dict__try_get(const pkpy_Dict* self, PyVar key) {
-    int hash = DICT_HASH_TRANS(py_hash(&key));
+    int64_t out;
+    int err = py_hash(&key, &out);
+    int hash = DICT_HASH_TRANS(out);
     int h = pkpy_Dict__probe1(self, key, hash);
     
     int idx = pkpy_Dict__htget(self, h);
