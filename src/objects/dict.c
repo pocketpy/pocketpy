@@ -9,6 +9,8 @@
 #define DICT_HASH_NEXT(h) ((h) * 5 + 1)
 #define DICT_HASH_TRANS(h) ((int)((h) & 0xffffffff)) // used for tansform value from __hash__
 #define PK_DICT_COMPACT_MODE 1
+#define pkpy_Var__is_null(self) ((self)->type == 0)
+#define pkpy_Var__set_null(self) do { (self)->type = 0; } while(0)
 
 struct pkpy_DictEntry {
     PyVar key;
