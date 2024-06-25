@@ -8,14 +8,14 @@ typedef struct PyObject PyObject;
 typedef struct PyVar PyVar;
 typedef struct pk_VM pk_VM;
 typedef uint16_t py_Name;
-typedef int16_t Type;
+typedef int16_t py_Type;
 typedef PyVar* py_Ref;
 typedef int (*py_CFunction)(const py_Ref, int);
 
 typedef struct py_Str py_Str;
 
 typedef struct py_Error{
-    Type type;
+    py_Type type;
 } py_Error;
 
 typedef enum BindType {
@@ -139,9 +139,9 @@ int py_tofloat(py_Ref, double* out);
 int py_tostr(py_Ref, py_Str** out);
 int py_tobool(py_Ref, bool* out);
 
-bool py_istype(const py_Ref, Type);
-bool py_isinstance(const py_Ref obj, Type type);
-bool py_issubclass(Type derived, Type base);
+bool py_istype(const py_Ref, py_Type);
+bool py_isinstance(const py_Ref obj, py_Type type);
+bool py_issubclass(py_Type derived, py_Type base);
 
 #ifdef __cplusplus
 }

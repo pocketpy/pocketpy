@@ -88,20 +88,20 @@ int pk_ManagedHeap__sweep(pk_ManagedHeap *self){
     return freed;
 }
 
-PyObject* pk_ManagedHeap__new(pk_ManagedHeap *self, Type type, int slots, int size){
+PyObject* pk_ManagedHeap__new(pk_ManagedHeap *self, py_Type type, int slots, int size){
     PyObject* obj = PyObject__new(type, slots, size);
     c11_vector__push(PyObject*, &self->no_gc, obj);
     return obj;
 }
 
-PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap *self, Type type, int slots, int size){
+PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap *self, py_Type type, int slots, int size){
     PyObject* obj = PyObject__new(type, slots, size);
     c11_vector__push(PyObject*, &self->gen, obj);
     self->gc_counter++;
     return obj;
 }
 
-PyObject* PyObject__new(Type type, int slots, int size){
+PyObject* PyObject__new(py_Type type, int slots, int size){
     assert(slots >= 0 || slots == -1);
     PyObject* self;
     size += PK_OBJ_HEADER_SIZE(slots);

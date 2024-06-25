@@ -10,7 +10,7 @@ extern "C" {
 
 typedef struct pk_TypeInfo{
     py_Name name;
-    Type base;
+    py_Type base;
 
     PyVar self;      // the type object itself
     PyVar module;    // the module where the type is defined
@@ -38,7 +38,7 @@ typedef struct pk_TypeInfo{
     py_CFunction on_end_subclass;   // for enum module
 } pk_TypeInfo;
 
-void pk_TypeInfo__ctor(pk_TypeInfo* self, py_Name name, Type base, PyObject* obj, const PyVar* module, bool subclass_enabled);
+void pk_TypeInfo__ctor(pk_TypeInfo* self, py_Name name, py_Type base, PyObject* obj, const PyVar* module, bool subclass_enabled);
 void pk_TypeInfo__dtor(pk_TypeInfo* self);
 
 typedef struct pk_VM {
@@ -91,7 +91,7 @@ typedef enum pk_FrameResult{
 
 pk_FrameResult pk_VM__run_top_frame(pk_VM* self);
 
-Type pk_VM__new_type(pk_VM* self, const char* name, Type base, const PyVar* module, bool subclass_enabled);
+py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const PyVar* module, bool subclass_enabled);
 
 #ifdef __cplusplus
 }

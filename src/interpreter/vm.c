@@ -17,7 +17,7 @@ static void pk_default_stderr(const char* s){
     fflush(stderr);
 }
 
-void pk_TypeInfo__ctor(pk_TypeInfo *self, py_Name name, Type base, PyObject* obj, const PyVar* module, bool subclass_enabled){
+void pk_TypeInfo__ctor(pk_TypeInfo *self, py_Name name, py_Type base, PyObject* obj, const PyVar* module, bool subclass_enabled){
     memset(self, 0, sizeof(pk_TypeInfo));
     
     self->name = name;
@@ -172,7 +172,7 @@ void pk_VM__ctor(pk_VM* self){
     self->builtins = *py_newmodule("builtins", NULL);
     
     /* Setup Public Builtin Types */
-    Type public_types[] = {
+    py_Type public_types[] = {
         tp_object, tp_type,
         tp_int, tp_float, tp_bool, tp_str,
         tp_list, tp_tuple,
@@ -182,7 +182,7 @@ void pk_VM__ctor(pk_VM* self){
     };
 
     for(int i=0; i<PK_ARRAY_COUNT(public_types); i++){
-        Type t = public_types[i];
+        py_Type t = public_types[i];
         pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, t);
         py_setdict(&self->builtins, ti->name, &ti->self);
     }
@@ -220,11 +220,11 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self){
     return RES_RETURN;
 }
 
-Type pk_VM__new_type(pk_VM* self, const char* name, Type base, const PyVar* module, bool subclass_enabled){
-    Type type = self->types.count;
+py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const PyVar* module, bool subclass_enabled){
+    py_Type type = self->types.count;
     pk_TypeInfo* ti = c11_vector__emplace(&self->types);
-    PyObject* typeobj = pk_ManagedHeap__gcnew(&self->heap, tp_type, 0, sizeof(Type));
-    Type* value = PyObject__value(typeobj);
+    PyObject* typeobj = pk_ManagedHeap__gcnew(&self->heap, tp_type, 0, sizeof(py_Type));
+    py_Type* value = PyObject__value(typeobj);
     *value = type;
     pk_TypeInfo__ctor(ti, py_name(name), base, typeobj, module, subclass_enabled);
     return type;

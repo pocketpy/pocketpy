@@ -13,10 +13,10 @@
 extern "C" {
 #endif
 
-typedef int16_t Type;
+typedef int16_t py_Type;
 
 typedef struct PyVar{
-    Type type;
+    py_Type type;
     bool is_ptr;
     int extra;
     union {
@@ -39,23 +39,23 @@ typedef struct PyVar{
 static_assert(sizeof(PyVar) == 16, "sizeof(PyVar) != 16");
 
 /* predefined vars */
-static const Type tp_object = {1}, tp_type = {2};
-static const Type tp_int = {3}, tp_float = {4}, tp_bool = {5}, tp_str = {6};
-static const Type tp_list = {7}, tp_tuple = {8};
-static const Type tp_slice = {9}, tp_range = {10}, tp_module = {11};
-static const Type tp_function = {12}, tp_nativefunc = {13}, tp_bound_method = {14};
-static const Type tp_super = {15}, tp_exception = {16}, tp_bytes = {17}, tp_mappingproxy = {18};
-static const Type tp_dict = {19}, tp_property = {20}, tp_star_wrapper = {21};
-static const Type tp_staticmethod = {22}, tp_classmethod = {23};
-static const Type tp_none_type = {24}, tp_not_implemented_type = {25};
-static const Type tp_ellipsis = {26};
-static const Type tp_op_call = {27}, tp_op_yield = {28};
-static const Type tp_syntax_error = {29}, tp_stop_iteration = {30};
+static const py_Type tp_object = {1}, tp_type = {2};
+static const py_Type tp_int = {3}, tp_float = {4}, tp_bool = {5}, tp_str = {6};
+static const py_Type tp_list = {7}, tp_tuple = {8};
+static const py_Type tp_slice = {9}, tp_range = {10}, tp_module = {11};
+static const py_Type tp_function = {12}, tp_nativefunc = {13}, tp_bound_method = {14};
+static const py_Type tp_super = {15}, tp_exception = {16}, tp_bytes = {17}, tp_mappingproxy = {18};
+static const py_Type tp_dict = {19}, tp_property = {20}, tp_star_wrapper = {21};
+static const py_Type tp_staticmethod = {22}, tp_classmethod = {23};
+static const py_Type tp_none_type = {24}, tp_not_implemented_type = {25};
+static const py_Type tp_ellipsis = {26};
+static const py_Type tp_op_call = {27}, tp_op_yield = {28};
+static const py_Type tp_syntax_error = {29}, tp_stop_iteration = {30};
 
 PK_INLINE bool PyVar__is_null(const PyVar* self) { return self->type == 0; }
 PK_INLINE int64_t PyVar__hash(const PyVar* self) { return self->extra + self->_i64; }
 
-PK_INLINE void PyVar__ctor(PyVar* self, Type type, PyObject* obj){
+PK_INLINE void PyVar__ctor(PyVar* self, py_Type type, PyObject* obj){
     self->type = type;
     self->is_ptr = true;
     self->_obj = obj;

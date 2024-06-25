@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 typedef struct PyObject{
-    Type type;          // we have a duplicated type here for convenience
+    py_Type type;          // we have a duplicated type here for convenience
     bool gc_is_large;
     bool gc_marked;
     int slots;          // number of slots in the object
@@ -28,7 +28,7 @@ void* PyObject__value(PyObject* self);
 
 #define PK_OBJ_HEADER_SIZE(slots) ((slots)>=0 ? 8+sizeof(PyVar)*(slots) : 8+sizeof(pk_NameDict))
 
-PyObject* PyObject__new(Type type, int slots, int size);
+PyObject* PyObject__new(py_Type type, int slots, int size);
 void PyObject__delete(PyObject* self);
 
 PK_INLINE PyVar PyVar__fromobj(PyObject* obj){
