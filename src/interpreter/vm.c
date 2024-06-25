@@ -176,7 +176,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self){
 py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const PyVar* module, bool subclass_enabled){
     py_Type type = self->types.count;
     pk_TypeInfo* ti = c11_vector__emplace(&self->types);
-    PyObject* typeobj = pk_ManagedHeap__gcnew(&self->heap, tp_type, 0, sizeof(py_Type));
+    PyObject* typeobj = pk_ManagedHeap__gcnew(&self->heap, tp_type, -1, sizeof(py_Type));
     py_Type* value = PyObject__value(typeobj);
     *value = type;
     pk_TypeInfo__ctor(ti, py_name(name), base, typeobj, module, subclass_enabled);

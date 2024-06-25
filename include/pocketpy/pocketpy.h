@@ -124,6 +124,7 @@ void py_import(const char* name, py_Ref out);
 py_Error* py_getlasterror();
 void py_Error__print(py_Error*);
 
+/************* Operators *************/
 int py_eq(const py_Ref, const py_Ref);
 int py_le(const py_Ref, const py_Ref);
 int py_hash(const py_Ref, int64_t* out);

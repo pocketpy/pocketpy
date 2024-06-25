@@ -24,7 +24,7 @@ void py_newbool(py_Ref self, bool val) {
 void py_newstr(py_Ref self, const char* data) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_str, 0, sizeof(py_Str));
-    py_Str__ctor((py_Str*)PyObject__value(obj), data);
+    py_Str__ctor(PyObject__value(obj), data);
     self->type = tp_str;
     self->is_ptr = true;
     self->_obj = obj;

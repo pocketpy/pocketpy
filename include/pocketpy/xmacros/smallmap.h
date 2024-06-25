@@ -74,13 +74,15 @@ void METHOD(delete)(NAME* self) {
 void METHOD(set)(NAME* self, K key, V value) {
     int index;
     c11__lower_bound(KV, self->data, self->count, key, partial_less, &index);
-    KV* it = c11__at(KV, self, index);
-    if(index != self->count && equal(it->key, key)) {
-        it->value = value;
-    } else {
-        KV kv = {key, value};
-        c11_vector__insert(KV, self, index, kv);
+    if(index != self->count){
+        KV* it = c11__at(KV, self, index);
+        if(equal(it->key, key)){
+            it->value = value;
+            return;
+        }
     }
+    KV kv = {key, value};
+    c11_vector__insert(KV, self, index, kv);
 }
 
 V* METHOD(try_get)(const NAME* self, K key) {
@@ -113,10 +115,12 @@ bool METHOD(contains)(const NAME* self, K key) {
 bool METHOD(del)(NAME* self, K key) {
     int index;
     c11__lower_bound(KV, self->data, self->count, key, partial_less, &index);
-    KV* it = c11__at(KV, self, index);
-    if(index != self->count && equal(it->key, key)) {
-        c11_vector__erase(KV, self, index);
-        return true;
+    if(index != self->count){
+        KV* it = c11__at(KV, self, index);
+        if(equal(it->key, key)){
+            c11_vector__erase(KV, self, index);
+            return true;
+        }
     }
     return false;
 }
