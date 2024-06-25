@@ -106,19 +106,19 @@ void pk_VM__ctor(pk_VM* self){
     ValueStack__ctor(&self->stack);
 
     self->True = (PyVar){.type=tp_bool, .is_ptr=true, .extra=1,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 0),
     };
     self->False = (PyVar){.type=tp_bool, .is_ptr=true, .extra=0,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 0),
     };
     self->None = (PyVar){.type=tp_none_type, .is_ptr=true,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_none_type, 0, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_none_type, 0, 0),
     };
     self->NotImplemented = (PyVar){.type=tp_not_implemented_type, .is_ptr=true,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_not_implemented_type, 0, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_not_implemented_type, 0, 0),
     };
     self->Ellipsis = (PyVar){.type=tp_ellipsis, .is_ptr=true,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_ellipsis, 0, 1),
+        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_ellipsis, 0, 0),
     };
 
     /* Init Builtin Types */
