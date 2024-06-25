@@ -10,7 +10,7 @@ typedef struct pk_VM pk_VM;
 typedef uint16_t py_Name;
 typedef int16_t py_Type;
 typedef PyVar* py_Ref;
-typedef int (*py_CFunction)(const py_Ref, int);
+typedef int (*py_CFunction)(int argc, py_Ref argv);
 
 typedef struct py_Str py_Str;
 
@@ -48,11 +48,37 @@ void py_newtuple(py_Ref, int);
 // void py_newlist(py_Ref);
 
 // new style decl-based function
-void py_newfunction(py_Ref, py_CFunction, const char* sig, BindType bt);
-void py_newfunction2(py_Ref, py_CFunction, const char* sig, BindType bt, const char* docstring, const py_Ref userdata);
+void py_newfunction(py_Ref self, py_CFunction, const char* sig);
+void py_newfunction2(py_Ref self, py_CFunction, const char* sig, BindType bt, const char* docstring, const py_Ref userdata);
 // old style argc-based function
-void py_newnativefunc(py_Ref, py_CFunction, int argc, BindType bt);
-void py_newnativefunc2(py_Ref, py_CFunction, int argc, BindType bt, const char* docstring, const py_Ref userdata);
+void py_newnativefunc(py_Ref self, py_CFunction, int argc);
+void py_newnativefunc2(py_Ref self, py_CFunction, int argc, BindType bt, const char* docstring, const py_Ref userdata);
+
+/************* Stack Values Creation *************/
+void py_pushint(int64_t);
+void py_pushfloat(double);
+void py_pushbool(bool);
+void py_pushstr(const py_Str*);
+void py_pushcstr(const char*);
+void py_pushcstrn(const char*, int);
+void py_push_notimplemented();
+
+/************* Type Cast *************/
+int64_t py_toint(py_Ref);
+double py_tofloat(py_Ref);
+bool py_castfloat(py_Ref, double* out);
+bool py_tobool(py_Ref);
+const py_Str* py_tostr(py_Ref);
+const char* py_tocstr(py_Ref);
+
+#define py_isint(self) py_istype(self, tp_int)
+#define py_isfloat(self) py_istype(self, tp_float)
+#define py_isbool(self) py_istype(self, tp_bool)
+#define py_isstr(self) py_istype(self, tp_str)
+
+bool py_istype(const py_Ref, py_Type);
+// bool py_isinstance(const py_Ref obj, py_Type type);
+// bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
 py_Ref py_getdict(const py_Ref self, py_Name name);
@@ -133,15 +159,6 @@ void py_dict__clear(py_Ref self);
 
 int py_str(const py_Ref, py_Str* out);
 int py_repr(const py_Ref, py_Str* out);
-
-int py_toint(py_Ref, int64_t* out);
-int py_tofloat(py_Ref, double* out);
-int py_tostr(py_Ref, py_Str** out);
-int py_tobool(py_Ref, bool* out);
-
-bool py_istype(const py_Ref, py_Type);
-bool py_isinstance(const py_Ref obj, py_Type type);
-bool py_issubclass(py_Type derived, py_Type base);
 
 #ifdef __cplusplus
 }
