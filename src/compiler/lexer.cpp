@@ -534,7 +534,7 @@ Error* Lexer::run() noexcept{
 
 Error* Lexer::from_precompiled() noexcept{
     pk_TokenDeserializer deserializer;
-    pk_TokenDeserializer__ctor(&deserializer, pkpy_Str__data(&src->source));
+    pk_TokenDeserializer__ctor(&deserializer, py_Str__data(&src->source));
 
     deserializer.curr += 5;  // skip "pkpy:"
     c11_string version = pk_TokenDeserializer__read_string(&deserializer, '\n');
@@ -550,9 +550,9 @@ Error* Lexer::from_precompiled() noexcept{
     c11_vector* precompiled_tokens = &src->_precompiled_tokens;
     for(int i = 0; i < count; i++) {
         c11_string item = pk_TokenDeserializer__read_string(&deserializer, '\n');
-        pkpy_Str copied_item;
-        pkpy_Str__ctor2(&copied_item, item.data, item.size);
-        c11_vector__push(pkpy_Str, precompiled_tokens, copied_item);
+        py_Str copied_item;
+        py_Str__ctor2(&copied_item, item.data, item.size);
+        c11_vector__push(py_Str, precompiled_tokens, copied_item);
     }
 
     count = pk_TokenDeserializer__read_count(&deserializer);
@@ -561,9 +561,9 @@ Error* Lexer::from_precompiled() noexcept{
         t.type = (TokenIndex)pk_TokenDeserializer__read_uint(&deserializer, ',');
         if(is_raw_string_used(t.type)) {
             i64 index = pk_TokenDeserializer__read_uint(&deserializer, ',');
-            pkpy_Str* p = c11__at(pkpy_Str, precompiled_tokens, index);
-            t.start = pkpy_Str__data(p);
-            t.length = c11__getitem(pkpy_Str, precompiled_tokens, index).size;
+            py_Str* p = c11__at(py_Str, precompiled_tokens, index);
+            t.start = py_Str__data(p);
+            t.length = c11__getitem(py_Str, precompiled_tokens, index).size;
         } else {
             t.start = NULL;
             t.length = 0;
@@ -590,7 +590,7 @@ Error* Lexer::from_precompiled() noexcept{
                 t.value = pk_TokenDeserializer__read_float(&deserializer, '\n');
                 break;
             case 'S': {
-                pkpy_Str res = pk_TokenDeserializer__read_string_from_hex(&deserializer, '\n');
+                py_Str res = pk_TokenDeserializer__read_string_from_hex(&deserializer, '\n');
                 t.value = Str(std::move(res));
             } break;
             default:

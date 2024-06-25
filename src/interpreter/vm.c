@@ -1,5 +1,7 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/memorypool.h"
+#include "pocketpy/common/sstream.h"
+#include "pocketpy/pocketpy.h"
 
 static unsigned char* pk_default_import_file(const char* path){
     return NULL;
@@ -33,6 +35,44 @@ void pk_TypeInfo__dtor(pk_TypeInfo *self){
 }
 
 static int _hello(const py_Ref args, int argc){
+    return 0;
+}
+
+// print(*args, sep=' ', end='\n')
+static int _py_print(const py_Ref args, int argc){
+    int length = py_tuple__len(args+0);
+    py_Str* sep;
+    py_Str* end;
+
+    int err;
+    err = py_tostr(args+1, &sep);
+    if(err) return err;
+    err = py_tostr(args+2, &end);
+    if(err) return err;
+
+    pk_SStream ss;
+    pk_SStream__ctor(&ss);
+
+    for(int i=0; i<length; i++){
+        const py_Ref item = py_tuple__getitem(args+0, i);
+        py_Str tmp;
+        int err = py_str(item, &tmp);
+        if(!err){
+            pk_SStream__write_Str(&ss, &tmp);
+            py_Str__dtor(&tmp);
+            if(i != length-1){
+                pk_SStream__write_Str(&ss, sep);
+            }
+        }else{
+            py_Str__dtor(&tmp);
+            pk_SStream__dtor(&ss);
+            return err;
+        }
+    }
+    pk_SStream__write_Str(&ss, end);
+    py_Str out = pk_SStream__submit(&ss);
+    pk_current_vm->_stdout(py_Str__data(&out));
+    py_Str__dtor(&out);
     return 0;
 }
 

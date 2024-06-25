@@ -49,7 +49,7 @@ void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const PyVar* v
 CodeObject* CodeObject__new(pkpy_SourceData_ src, c11_string name){
     CodeObject* self = malloc(sizeof(CodeObject));
     self->src = src; PK_INCREF(src);
-    pkpy_Str__ctor2(&self->name, name.data, name.size);
+    py_Str__ctor2(&self->name, name.data, name.size);
 
     c11_vector__ctor(&self->codes, sizeof(Bytecode));
     c11_vector__ctor(&self->codes_ex, sizeof(BytecodeEx));
@@ -74,7 +74,7 @@ CodeObject* CodeObject__new(pkpy_SourceData_ src, c11_string name){
 
 void CodeObject__delete(CodeObject* self){
     PK_DECREF(self->src);
-    pkpy_Str__dtor(&self->name);
+    py_Str__dtor(&self->name);
     
     c11_vector__dtor(&self->codes);
     c11_vector__dtor(&self->codes_ex);

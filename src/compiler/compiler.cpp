@@ -22,7 +22,7 @@ NameScope Compiler::name_scope() const noexcept{
 }
 
 CodeObject* Compiler::push_global_context() noexcept{
-    CodeObject* co = CodeObject__new(lexer.src, pkpy_Str__sv(&lexer.src->filename));
+    CodeObject* co = CodeObject__new(lexer.src, py_Str__sv(&lexer.src->filename));
     co->start_line = __i == 0 ? 1 : prev().line;
     contexts.push_back(CodeEmitContext(vm, co, contexts.size()));
     return co;

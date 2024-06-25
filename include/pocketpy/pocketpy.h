@@ -15,6 +15,8 @@ typedef int16_t Type;
 typedef PyVar* py_Ref;
 typedef int (*py_CFunction)(const py_Ref, int);
 
+typedef struct py_Str py_Str;
+
 typedef struct py_Error{
     Type type;
 } py_Error;
@@ -92,8 +94,27 @@ int py_setattr(py_Ref self, py_Name name, const py_Ref val);
 /// Returns 0 | err
 int py_getattr(const py_Ref self, py_Name name, py_Ref out);
 
+/// Returns a reference to the i-th object in the stack.
+/// For example, `py_stackref(-1)` refers to the top of the stack.
+py_Ref py_stackref(int i);
+/// Pushes the object to the stack.
 void py_pushref(const py_Ref src);
+/// Pops the object from the stack.
 void py_copyref(const py_Ref src, py_Ref dst);
+
+
+/* tuple */
+
+// unchecked functions, if self is not a tuple, the behavior is undefined
+py_Ref py_tuple__getitem(const py_Ref self, int i);
+void py_tuple__setitem(py_Ref self, int i, const py_Ref val);
+int py_tuple__len(const py_Ref self);
+
+int py_str(const py_Ref, py_Str* out);
+int py_repr(const py_Ref, py_Str* out);
+
+int py_tostr(py_Ref, py_Str** out);
+int py_tobool(py_Ref, bool* out);
 
 #ifdef __cplusplus
 }

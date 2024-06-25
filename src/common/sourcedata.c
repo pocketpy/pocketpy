@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-pkpy_SourceData_ pkpy_SourceData__rcnew(c11_string source, const pkpy_Str* filename, enum CompileMode mode) {
+pkpy_SourceData_ pkpy_SourceData__rcnew(c11_string source, const py_Str* filename, enum CompileMode mode) {
     pkpy_SourceData_ self = malloc(sizeof(struct pkpy_SourceData));
     pkpy_SourceData__ctor(self, source, filename, mode);
     self->rc.count = 1;
@@ -14,12 +14,12 @@ pkpy_SourceData_ pkpy_SourceData__rcnew(c11_string source, const pkpy_Str* filen
 
 void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
                            c11_string source,       // may not be null-terminated
-                           const pkpy_Str* filename,
+                           const py_Str* filename,
                            enum CompileMode mode) {
-    self->filename = pkpy_Str__copy(filename);  // OPTIMIZEME?
+    self->filename = py_Str__copy(filename);  // OPTIMIZEME?
     self->mode = mode;
     c11_vector__ctor(&self->line_starts, sizeof(const char*));
-    c11_vector__ctor(&self->_precompiled_tokens, sizeof(pkpy_Str));
+    c11_vector__ctor(&self->_precompiled_tokens, sizeof(py_Str));
 
     int index = 0;
     // Skip utf8 BOM if there is any.
@@ -33,17 +33,17 @@ void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
         index++;
     }
     self->source = pk_SStream__submit(&ss);
-    self->is_precompiled = (strncmp(pkpy_Str__data(&self->source), "pkpy:", 5) == 0);
-    c11_vector__push(const char*, &self->line_starts, pkpy_Str__data(&self->source));
+    self->is_precompiled = (strncmp(py_Str__data(&self->source), "pkpy:", 5) == 0);
+    c11_vector__push(const char*, &self->line_starts, py_Str__data(&self->source));
 }
 
 void pkpy_SourceData__dtor(struct pkpy_SourceData* self) {
-    pkpy_Str__dtor(&self->filename);
-    pkpy_Str__dtor(&self->source);
+    py_Str__dtor(&self->filename);
+    py_Str__dtor(&self->source);
     c11_vector__dtor(&self->line_starts);
 
     for(int i=0; i<self->_precompiled_tokens.count; i++){
-        pkpy_Str__dtor(c11__at(pkpy_Str, &self->_precompiled_tokens, i));
+        py_Str__dtor(c11__at(py_Str, &self->_precompiled_tokens, i));
     }
     c11_vector__dtor(&self->_precompiled_tokens);
 }
@@ -62,7 +62,7 @@ bool pkpy_SourceData__get_line(const struct pkpy_SourceData* self, int lineno, c
     return true;
 }
 
-pkpy_Str pkpy_SourceData__snapshot(const struct pkpy_SourceData* self, int lineno, const char* cursor, const char* name) {
+py_Str pkpy_SourceData__snapshot(const struct pkpy_SourceData* self, int lineno, const char* cursor, const char* name) {
     pk_SStream ss;
     pk_SStream__ctor(&ss);
 

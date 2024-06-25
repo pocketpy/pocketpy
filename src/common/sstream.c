@@ -81,8 +81,8 @@ void pk_SStream__write_double(pk_SStream* self, double val, int precision){
     if(all_is_digit) pk_SStream__write_cstr(self, ".0");
 }
 
-void pk_SStream__write_Str(pk_SStream* self, const pkpy_Str* str) {
-    pk_SStream__write_cstrn(self, pkpy_Str__data(str), str->size);
+void pk_SStream__write_Str(pk_SStream* self, const py_Str* str) {
+    pk_SStream__write_cstrn(self, py_Str__data(str), str->size);
 }
 
 void pk_SStream__write_sv(pk_SStream* self, c11_string sv) {
@@ -150,9 +150,9 @@ void pk_SStream__write_any(pk_SStream* self, const char* fmt, const pk_AnyStr* a
     }
 }
 
-pkpy_Str pk_SStream__submit(pk_SStream* self) {
+py_Str pk_SStream__submit(pk_SStream* self) {
     c11_vector__push(char, &self->data, '\0');
-    pkpy_Str retval = {
+    py_Str retval = {
         .size = self->data.count - 1,
         .is_ascii = c11__isascii((char*)self->data.data, self->data.count),
         .is_sso = false,

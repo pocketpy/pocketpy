@@ -13,12 +13,12 @@ typedef struct pkpy_ExceptionFrame {
     pkpy_SourceData_ src;
     int lineno;
     const char* cursor;
-    pkpy_Str name;
+    py_Str name;
 } pkpy_ExceptionFrame;
 
 typedef struct pkpy_Exception {
     StrName type;
-    pkpy_Str msg;
+    py_Str msg;
     bool is_re;
 
     int _ip_on_error;
@@ -32,7 +32,7 @@ typedef struct pkpy_Exception {
 void pkpy_Exception__ctor(pkpy_Exception* self, StrName type);
 void pkpy_Exception__dtor(pkpy_Exception* self);
 void pkpy_Exception__stpush(pkpy_Exception* self, pkpy_SourceData_ src, int lineno, const char* cursor, const char* name);
-pkpy_Str pkpy_Exception__summary(pkpy_Exception* self);
+py_Str pkpy_Exception__summary(pkpy_Exception* self);
 
 struct Error{
     const char* type;

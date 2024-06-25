@@ -22,7 +22,7 @@ typedef struct pk_AnyStr {
         float _float;
         double _double;
         char _char;
-        const pkpy_Str* _str;
+        const py_Str* _str;
         c11_string _sv;
         const char* _cstr;
         void* _ptr;
@@ -34,7 +34,7 @@ PK_INLINE pk_AnyStr pk_AnyStr__i64(int64_t x) { pk_AnyStr s; s.type = 2; s._i64 
 PK_INLINE pk_AnyStr pk_AnyStr__float(float x) { pk_AnyStr s; s.type = 3; s._float = x; return s; }
 PK_INLINE pk_AnyStr pk_AnyStr__double(double x) { pk_AnyStr s; s.type = 4; s._double = x; return s; }
 PK_INLINE pk_AnyStr pk_AnyStr__char(char x) { pk_AnyStr s; s.type = 5; s._char = x; return s; }
-PK_INLINE pk_AnyStr pk_AnyStr__str(const pkpy_Str* x) { pk_AnyStr s; s.type = 6; s._str = x; return s; }
+PK_INLINE pk_AnyStr pk_AnyStr__str(const py_Str* x) { pk_AnyStr s; s.type = 6; s._str = x; return s; }
 PK_INLINE pk_AnyStr pk_AnyStr__sv(c11_string x) { pk_AnyStr s; s.type = 7; s._sv = x; return s; }
 PK_INLINE pk_AnyStr pk_AnyStr__cstr(const char* x) { pk_AnyStr s; s.type = 8; s._cstr = x; return s; }
 PK_INLINE pk_AnyStr pk_AnyStr__ptr(void* x) { pk_AnyStr s; s.type = 9; s._ptr = x; return s; }
@@ -48,7 +48,7 @@ void pk_SStream__write_i64(pk_SStream* self, int64_t);
 void pk_SStream__write_float(pk_SStream* self, float, int precision);
 void pk_SStream__write_double(pk_SStream* self, double, int precision);
 void pk_SStream__write_char(pk_SStream* self, char);
-void pk_SStream__write_Str(pk_SStream* self, const pkpy_Str*);
+void pk_SStream__write_Str(pk_SStream* self, const py_Str*);
 void pk_SStream__write_sv(pk_SStream* self, c11_string);
 void pk_SStream__write_cstr(pk_SStream* self, const char*);
 void pk_SStream__write_cstrn(pk_SStream* self, const char*, int);
@@ -59,7 +59,7 @@ void pk_SStream__write_any(pk_SStream* self, const char* fmt, const pk_AnyStr* a
 const char* pk_format_any(const char* fmt, const pk_AnyStr* args, int n);
 
 // Submit the stream and return the final string. The stream becomes invalid after this call
-pkpy_Str pk_SStream__submit(pk_SStream* self);
+py_Str pk_SStream__submit(pk_SStream* self);
 
 #define pk__anystr(x) _Generic((x), \
     int: pk_AnyStr__int, \
@@ -67,7 +67,7 @@ pkpy_Str pk_SStream__submit(pk_SStream* self);
     float: pk_AnyStr__float, \
     double: pk_AnyStr__double, \
     char: pk_AnyStr__char, \
-    const pkpy_Str*: pk_AnyStr__str, \
+    const py_Str*: pk_AnyStr__str, \
     c11_string: pk_AnyStr__sv, \
     const char*: pk_AnyStr__cstr, \
     void*: pk_AnyStr__ptr \

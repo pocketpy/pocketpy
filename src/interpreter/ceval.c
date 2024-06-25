@@ -192,7 +192,7 @@
 //                         if(decl->nested) {
 //                             NameDict* captured = frame->_locals.to_namedict();
 //                             obj = new_object<Function>(tp_function, decl, frame->_module, nullptr, captured);
-//                             uint16_t name = pk_StrName__map2(pkpy_Str__sv(&decl->code->name));
+//                             uint16_t name = pk_StrName__map2(py_Str__sv(&decl->code->name));
 //                             captured->set(name, obj);
 //                         } else {
 //                             obj = new_object<Function>(tp_function, decl, frame->_module, nullptr, nullptr);

@@ -42,7 +42,7 @@ typedef enum TokenIndex{
 void pk_TokenDeserializer__ctor(pk_TokenDeserializer* self, const char* source);
 bool pk_TokenDeserializer__match_char(pk_TokenDeserializer* self, char c);
 c11_string pk_TokenDeserializer__read_string(pk_TokenDeserializer* self, char c);
-pkpy_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, char c);
+py_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, char c);
 int pk_TokenDeserializer__read_count(pk_TokenDeserializer* self);
 int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c);
 double pk_TokenDeserializer__read_float(pk_TokenDeserializer* self, char c);

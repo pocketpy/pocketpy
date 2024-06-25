@@ -98,8 +98,8 @@ struct Lexer {
 
     Lexer(VM* vm, std::string_view source, const Str& filename, CompileMode mode) noexcept{
         src = pkpy_SourceData__rcnew({source.data(), (int)source.size()}, &filename, mode);
-        this->token_start = pkpy_Str__data(&src->source);
-        this->curr_char = pkpy_Str__data(&src->source);
+        this->token_start = py_Str__data(&src->source);
+        this->curr_char = py_Str__data(&src->source);
     }
 
     ~Lexer(){

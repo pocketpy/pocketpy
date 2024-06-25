@@ -49,7 +49,7 @@ c11_string pk_TokenDeserializer__read_string(pk_TokenDeserializer* self, char c)
     return retval;
 }
 
-pkpy_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, char c){
+py_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, char c){
     c11_string sv = pk_TokenDeserializer__read_string(self, c);
     const char* s = sv.data;
     char* buffer = (char*)malloc(sv.size / 2 + 1);
@@ -71,7 +71,7 @@ pkpy_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, 
         buffer[i / 2] = c;
     }
     buffer[sv.size / 2] = 0;
-    return (pkpy_Str){
+    return (py_Str){
         .size = sv.size / 2,
         .is_ascii = c11__isascii(buffer, sv.size / 2),
         .is_sso = false,
@@ -97,11 +97,11 @@ int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c){
 
 double pk_TokenDeserializer__read_float(pk_TokenDeserializer* self, char c){
     c11_string sv = pk_TokenDeserializer__read_string(self, c);
-    pkpy_Str nullterm;
-    pkpy_Str__ctor2(&nullterm, sv.data, sv.size);
+    py_Str nullterm;
+    py_Str__ctor2(&nullterm, sv.data, sv.size);
     char* end;
-    double retval = strtod(pkpy_Str__data(&nullterm), &end);
-    pkpy_Str__dtor(&nullterm);
+    double retval = strtod(py_Str__data(&nullterm), &end);
+    py_Str__dtor(&nullterm);
     assert(*end == 0);
     return retval;
 }

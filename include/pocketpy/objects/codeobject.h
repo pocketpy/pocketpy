@@ -69,7 +69,7 @@ typedef struct BytecodeEx {
 
 typedef struct CodeObject {
     pkpy_SourceData_ src;
-    pkpy_Str name;
+    py_Str name;
 
     c11_vector/*T=Bytecode*/                codes;
     c11_vector/*T=CodeObjectByteCodeEx*/    codes_ex;
