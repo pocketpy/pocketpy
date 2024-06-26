@@ -27,7 +27,7 @@ void py_setslot(py_Ref self, int i, const py_Ref val){
     PyObject__slots(self->_obj)[i] = *val;
 }
 
-void py_copyref(const py_Ref src, py_Ref dst){
+void py_assign(const py_Ref src, py_Ref dst){
     *dst = *src;
 }
 
@@ -75,7 +75,7 @@ void py_shrink(int n){
     vm->stack.sp -= n;
 }
 
-void py_pushref(const py_Ref src){
+void py_push(const py_Ref src){
     pk_VM* vm = pk_current_vm;
     *vm->stack.sp++ = *src;
 }
