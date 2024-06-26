@@ -4,15 +4,15 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
-int64_t py_toint(py_Ref self){
+int64_t py_toint(const py_Ref self){
     return self->_i64;
 }
 
-double py_tofloat(py_Ref self){
+double py_tofloat(const py_Ref self){
     return self->_f64;
 }
 
-bool py_castfloat(py_Ref self, double* out){
+bool py_castfloat(const py_Ref self, double* out){
     switch(self->type){
         case tp_int:
             *out = (double)self->_i64;
@@ -28,22 +28,22 @@ bool py_castfloat(py_Ref self, double* out){
     }
 }
 
-bool py_tobool(py_Ref self){
+bool py_tobool(const py_Ref self){
     return self->extra;
 }
 
-const char* py_tostr(py_Ref self){
+const char* py_tostr(const py_Ref self){
     py_Str* ud = PyObject__value(self->_obj);
     return py_Str__data(ud);
 }
 
-const char* py_tostrn(py_Ref self, int* out){
+const char* py_tostrn(const py_Ref self, int* out){
     py_Str* ud = PyObject__value(self->_obj);
     *out = ud->size;
     return py_Str__data(ud);
 }
 
-void* py_touserdata(py_Ref self){
+void* py_touserdata(const py_Ref self){
     assert(self && self->is_ptr);
     return PyObject__value(self->_obj);
 }

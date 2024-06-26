@@ -72,14 +72,14 @@ void py_pushnull();
 void py_push_notimplemented();
 
 /************* Type Cast *************/
-int64_t py_toint(py_Ref);
-double py_tofloat(py_Ref);
-bool py_castfloat(py_Ref, double* out);
-bool py_tobool(py_Ref);
-const char* py_tostr(py_Ref);
-const char* py_tostrn(py_Ref, int* out);
+int64_t py_toint(const py_Ref);
+double py_tofloat(const py_Ref);
+bool py_castfloat(const py_Ref, double* out);
+bool py_tobool(const py_Ref);
+const char* py_tostr(const py_Ref);
+const char* py_tostrn(const py_Ref, int* out);
 
-void* py_touserdata(py_Ref);
+void* py_touserdata(const py_Ref);
 
 #define py_isint(self) py_istype(self, tp_int)
 #define py_isfloat(self) py_istype(self, tp_float)
