@@ -32,13 +32,15 @@ bool py_tobool(py_Ref self){
     return self->extra;
 }
 
-const py_Str* py_tostr(py_Ref self){
-    return PyObject__value(self->_obj);
+const char* py_tostr(py_Ref self){
+    py_Str* ud = PyObject__value(self->_obj);
+    return py_Str__data(ud);
 }
 
-const char* py_tocstr(py_Ref self){
-    const py_Str* s = PyObject__value(self->_obj);
-    return py_Str__data(s);
+const char* py_tostrn(py_Ref self, int* out){
+    py_Str* ud = PyObject__value(self->_obj);
+    *out = ud->size;
+    return py_Str__data(ud);
 }
 
 void* py_touserdata(py_Ref self){

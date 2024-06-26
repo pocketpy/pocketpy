@@ -12,8 +12,6 @@ typedef int16_t py_Type;
 typedef PyVar* py_Ref;
 typedef int (*py_CFunction)(int argc, py_Ref argv);
 
-typedef struct py_Str py_Str;
-
 typedef struct py_Error{
     py_Type type;
 } py_Error;
@@ -78,8 +76,8 @@ int64_t py_toint(py_Ref);
 double py_tofloat(py_Ref);
 bool py_castfloat(py_Ref, double* out);
 bool py_tobool(py_Ref);
-const py_Str* py_tostr(py_Ref);
-const char* py_tocstr(py_Ref);
+const char* py_tostr(py_Ref);
+const char* py_tostrn(py_Ref, int* out);
 
 void* py_touserdata(py_Ref);
 
@@ -173,8 +171,8 @@ void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val);
 void py_dict__delitem(py_Ref self, const py_Ref key);
 void py_dict__clear(py_Ref self);
 
-int py_str(const py_Ref, py_Str* out);
-int py_repr(const py_Ref, py_Str* out);
+int py_str(const py_Ref, char* out);
+int py_repr(const py_Ref, char* out);
 
 #ifdef __cplusplus
 }
