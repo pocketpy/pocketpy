@@ -63,7 +63,7 @@ void py_newfunction2(py_Ref self,
                      const char* sig,
                      BindType bt,
                      const char* docstring,
-                     const py_Ref userdata) {}
+                     const py_Ref upvalue) {}
 
 void py_newnativefunc(py_Ref self, py_CFunction f, int argc) {
     py_newnativefunc2(self, f, argc, BindType_FUNCTION, NULL, NULL);
@@ -74,7 +74,7 @@ void py_newnativefunc2(py_Ref self,
                        int argc,
                        BindType bt,
                        const char* docstring,
-                       const py_Ref userdata) {}
+                       const py_Ref upvalue) {}
 
 void py_pushint(int64_t val) { py_newint(pk_current_vm->stack.sp++, val); }
 

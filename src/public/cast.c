@@ -41,6 +41,11 @@ const char* py_tocstr(py_Ref self){
     return py_Str__data(s);
 }
 
+void* py_touserdata(py_Ref self){
+    assert(self && self->is_ptr);
+    return PyObject__value(self->_obj);
+}
+
 bool py_istype(const py_Ref self, py_Type type){
     return self->type == type;
 }

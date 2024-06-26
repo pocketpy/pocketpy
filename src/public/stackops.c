@@ -4,6 +4,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
+
 py_Ref py_getdict(const py_Ref self, py_Name name){
     assert(self && self->is_ptr);
     return pk_NameDict__try_get(PyObject__dict(self->_obj), name);
@@ -45,6 +46,18 @@ py_Ref py_getsecond(){
 
 void py_setsecond(const py_Ref val){
     pk_current_vm->stack.sp[-2] = *val;
+}
+
+void py_duptop(){
+    pk_VM* vm = pk_current_vm;
+    *vm->stack.sp = vm->stack.sp[-1];
+    vm->stack.sp++;
+}
+
+void py_dupsecond(){
+    pk_VM* vm = pk_current_vm;
+    *vm->stack.sp = vm->stack.sp[-2];
+    vm->stack.sp++;
 }
 
 py_Ref py_peek(int i){

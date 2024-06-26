@@ -66,8 +66,6 @@ typedef struct pk_VM {
     FuncDecl_ __dynamic_func_decl;
     PyVar __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
-    void* userdata;     // for user-defined data (unused by pkpy itself)
-
     pk_ManagedHeap heap;
     ValueStack stack;   // put `stack` at the end for better cache locality
 } pk_VM;

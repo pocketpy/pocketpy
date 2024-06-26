@@ -51,10 +51,10 @@ void py_newtuple(py_Ref, int);
 
 // new style decl-based function
 void py_newfunction(py_Ref self, py_CFunction, const char* sig);
-void py_newfunction2(py_Ref self, py_CFunction, const char* sig, BindType bt, const char* docstring, const py_Ref userdata);
+void py_newfunction2(py_Ref self, py_CFunction, const char* sig, BindType bt, const char* docstring, const py_Ref upvalue);
 // old style argc-based function
 void py_newnativefunc(py_Ref self, py_CFunction, int argc);
-void py_newnativefunc2(py_Ref self, py_CFunction, int argc, BindType bt, const char* docstring, const py_Ref userdata);
+void py_newnativefunc2(py_Ref self, py_CFunction, int argc, BindType bt, const char* docstring, const py_Ref upvalue);
 
 /************* Stack Values Creation *************/
 void py_pushint(int64_t);
@@ -73,6 +73,8 @@ bool py_tobool(py_Ref);
 const py_Str* py_tostr(py_Ref);
 const char* py_tocstr(py_Ref);
 
+void* py_touserdata(py_Ref);
+
 #define py_isint(self) py_istype(self, tp_int)
 #define py_isfloat(self) py_istype(self, tp_float)
 #define py_isbool(self) py_istype(self, tp_bool)
@@ -89,6 +91,9 @@ void py_setdict(py_Ref self, py_Name name, const py_Ref val);
 py_Ref py_getslot(const py_Ref self, int i);
 void py_setslot(py_Ref self, int i, const py_Ref val);
 
+py_Ref py_getupvalue(py_Ref self);
+void py_setupvalue(py_Ref self, const py_Ref val);
+
 // int py_getattr(const py_Ref self, py_Name name, py_Ref out);
 // int py_setattr(py_Ref self, py_Name name, const py_Ref val);
 
@@ -100,6 +105,8 @@ py_Ref py_gettop();
 void py_settop(const py_Ref);
 py_Ref py_getsecond();
 void py_setsecond(const py_Ref);
+void py_duptop();
+void py_dupsecond();
 /// Returns a reference to the i-th object from the top of the stack.
 /// i should be negative, e.g. (-1) means TOS.
 py_Ref py_peek(int i);
