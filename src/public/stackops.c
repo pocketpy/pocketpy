@@ -27,7 +27,7 @@ void py_setslot(py_Ref self, int i, const py_Ref val){
     PyObject__slots(self->_obj)[i] = *val;
 }
 
-void py_assign(const py_Ref src, py_Ref dst){
+void py_assign(py_Ref dst, const py_Ref src){
     *dst = *src;
 }
 

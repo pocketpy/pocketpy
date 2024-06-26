@@ -105,8 +105,8 @@ int py_getattr(const py_Ref self, py_Name name, py_Ref out);
 /// Sets the attribute of the object.
 int py_setattr(py_Ref self, py_Name name, const py_Ref val);
 
-/// Copies src's value to dst, equivalent to `*dst = *src`.
-void py_assign(const py_Ref src, py_Ref dst);
+/// Equivalent to `*dst = *src`.
+void py_assign(py_Ref dst, const py_Ref src);
 
 /************* Stack Operations *************/
 py_Ref py_gettop();
