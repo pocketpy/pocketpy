@@ -28,8 +28,8 @@ void pk_ManagedHeap__collect_if_needed(pk_ManagedHeap* self);
 int pk_ManagedHeap__collect(pk_ManagedHeap* self);
 int pk_ManagedHeap__sweep(pk_ManagedHeap* self);
 
-PyObject* pk_ManagedHeap__new(pk_ManagedHeap* self, py_Type type, int slots, int size);
-PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap* self, py_Type type, int slots, int size);
+PyObject* pk_ManagedHeap__new(pk_ManagedHeap* self, py_Type type, int slots, int udsize);
+PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap* self, py_Type type, int slots, int udsize);
 
 // external implementation
 void pk_ManagedHeap__mark(pk_ManagedHeap* self);

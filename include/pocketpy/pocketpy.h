@@ -50,12 +50,13 @@ void py_newtuple(py_Ref, int);
 // void py_newlist(py_Ref);
 
 // new style decl-based function
-void py_newfunction(py_Ref self, py_CFunction, const char* sig);
-void py_newfunction2(py_Ref self, py_CFunction, const char* sig, BindType bt, const char* docstring, const py_Ref upvalue);
+void py_newfunction(py_Ref out, py_CFunction, const char* sig);
+void py_newfunction2(py_Ref out, py_CFunction, const char* sig, BindType bt, const char* docstring, const py_Ref upvalue);
 // old style argc-based function
-void py_newnativefunc(py_Ref self, py_CFunction, int argc);
-void py_newnativefunc2(py_Ref self, py_CFunction, int argc, BindType bt, const char* docstring, const py_Ref upvalue);
+void py_newnativefunc(py_Ref out, py_CFunction, int argc);
+void py_newnativefunc2(py_Ref out, py_CFunction, int argc, BindType bt, const char* docstring, const py_Ref upvalue);
 
+void py_newobject(py_Ref out, py_Type type, int slots, int udsize);
 /************* Stack Values Creation *************/
 void py_pushint(int64_t);
 void py_pushfloat(double);
