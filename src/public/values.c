@@ -91,11 +91,13 @@ void py_pushfloat(double val) { py_newfloat(pk_current_vm->stack.sp++, val); }
 
 void py_pushbool(bool val) { py_newbool(pk_current_vm->stack.sp++, val); }
 
-void py_pushstr(const py_Str* val) { py_newstr(pk_current_vm->stack.sp++, py_Str__data(val)); }
+void py_pushstr(const char* val) { py_newstr(pk_current_vm->stack.sp++, val); }
 
-void py_pushcstr(const char* val) { py_newstr(pk_current_vm->stack.sp++, val); }
+void py_pushstrn(const char* val, int size) { py_newstrn(pk_current_vm->stack.sp++, val, size); }
 
-void py_pushcstrn(const char* val, int size) { py_newstrn(pk_current_vm->stack.sp++, val, size); }
+void py_push_none() { py_newnone(pk_current_vm->stack.sp++); }
+
+void py_push_null() { py_newnull(pk_current_vm->stack.sp++); }
 
 void py_push_notimplemented() {
     pk_VM* vm = pk_current_vm;

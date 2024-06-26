@@ -66,9 +66,11 @@ void py_newobject(py_Ref out, py_Type type, int slots, int udsize);
 void py_pushint(int64_t);
 void py_pushfloat(double);
 void py_pushbool(bool);
-void py_pushstr(const py_Str*);
-void py_pushcstr(const char*);
-void py_pushcstrn(const char*, int);
+void py_pushstr(const char*);
+void py_pushstrn(const char*, int);
+
+void py_pushnone();
+void py_pushnull();
 void py_push_notimplemented();
 
 /************* Type Cast *************/
