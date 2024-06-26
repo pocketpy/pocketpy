@@ -56,6 +56,11 @@ void py_newfunction2(py_Ref out, py_CFunction, const char* sig, BindType bt, con
 void py_newnativefunc(py_Ref out, py_CFunction, int argc);
 void py_newnativefunc2(py_Ref out, py_CFunction, int argc, BindType bt, const char* docstring, const py_Ref upvalue);
 
+/// Create a new object.
+/// @param out output reference.
+/// @param type type of the object.
+/// @param slots number of slots. Use -1 to create a `__dict__`.
+/// @param udsize size of your userdata. You can use `py_touserdata()` to get the pointer to it.
 void py_newobject(py_Ref out, py_Type type, int slots, int udsize);
 /************* Stack Values Creation *************/
 void py_pushint(int64_t);
