@@ -100,8 +100,10 @@ void py_setslot(py_Ref self, int i, const py_Ref val);
 py_Ref py_getupvalue(py_Ref self);
 void py_setupvalue(py_Ref self, const py_Ref val);
 
-// int py_getattr(const py_Ref self, py_Name name, py_Ref out);
-// int py_setattr(py_Ref self, py_Name name, const py_Ref val);
+/// Gets the attribute of the object. Push the result onto the stack.
+int py_getattr(const py_Ref self, py_Name name);
+/// Sets the attribute of the object.
+int py_setattr(py_Ref self, py_Name name, const py_Ref val);
 
 /// Copies src to dst.
 void py_copyref(const py_Ref src, py_Ref dst);
@@ -131,7 +133,9 @@ void py_poptmp(int n);
 /************* Modules *************/
 py_Ref py_newmodule(const char* name, const char* package);
 py_Ref py_getmodule(const char* name);
-void py_import(const char* name, py_Ref out);
+
+/// Import a module. Push the result onto the stack.
+int py_import(const char* name);
 
 /************* Errors *************/
 py_Error* py_getlasterror();
