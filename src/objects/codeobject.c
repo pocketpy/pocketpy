@@ -13,7 +13,7 @@ bool Bytecode__is_forward_jump(const Bytecode* self) {
     return self->op >= OP_JUMP_FORWARD && self->op <= OP_LOOP_BREAK;
 }
 
-FuncDecl_ FuncDecl__rcnew(pkpy_SourceData_ src, c11_string name){
+FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_string name){
     FuncDecl* self = malloc(sizeof(FuncDecl));
     self->rc.count = 1;
     self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
@@ -46,7 +46,7 @@ void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const PyVar* v
     c11_vector__push(FuncDeclKwArg, &self->kwargs, item);
 }
 
-CodeObject* CodeObject__new(pkpy_SourceData_ src, c11_string name){
+CodeObject* CodeObject__new(pk_SourceData_ src, c11_string name){
     CodeObject* self = malloc(sizeof(CodeObject));
     self->src = src; PK_INCREF(src);
     py_Str__ctor2(&self->name, name.data, name.size);

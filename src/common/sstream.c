@@ -152,6 +152,7 @@ void pk_SStream__write_any(pk_SStream* self, const char* fmt, const pk_AnyStr* a
 
 py_Str pk_SStream__submit(pk_SStream* self) {
     c11_vector__push(char, &self->data, '\0');
+    // TODO: optimize c11__isascii
     py_Str retval = {
         .size = self->data.count - 1,
         .is_ascii = c11__isascii((char*)self->data.data, self->data.count),

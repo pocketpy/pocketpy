@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 typedef struct pkpy_ExceptionFrame {
-    pkpy_SourceData_ src;
+    pk_SourceData_ src;
     int lineno;
     const char* cursor;
     py_Str name;
@@ -31,12 +31,12 @@ typedef struct pkpy_Exception {
 
 void pkpy_Exception__ctor(pkpy_Exception* self, StrName type);
 void pkpy_Exception__dtor(pkpy_Exception* self);
-void pkpy_Exception__stpush(pkpy_Exception* self, pkpy_SourceData_ src, int lineno, const char* cursor, const char* name);
+void pkpy_Exception__stpush(pkpy_Exception* self, pk_SourceData_ src, int lineno, const char* cursor, const char* name);
 py_Str pkpy_Exception__summary(pkpy_Exception* self);
 
 struct Error{
     const char* type;
-    pkpy_SourceData_ src;
+    pk_SourceData_ src;
     int lineno;
     const char* cursor;
     char msg[100];

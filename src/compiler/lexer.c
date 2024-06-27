@@ -2,6 +2,7 @@
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/smallmap.h"
 #include "pocketpy/compiler/lexer.h"
+#include "pocketpy/objects/sourcedata.h"
 
 const char* pk_TokenSymbols[] = {
     "@eof", "@eol", "@sof",

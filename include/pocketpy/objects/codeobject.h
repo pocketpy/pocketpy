@@ -68,7 +68,7 @@ typedef struct BytecodeEx {
 } BytecodeEx;
 
 typedef struct CodeObject {
-    pkpy_SourceData_ src;
+    pk_SourceData_ src;
     py_Str name;
 
     c11_vector/*T=Bytecode*/                codes;
@@ -88,7 +88,7 @@ typedef struct CodeObject {
     int end_line;
 } CodeObject;
 
-CodeObject* CodeObject__new(pkpy_SourceData_ src, c11_string name);
+CodeObject* CodeObject__new(pk_SourceData_ src, c11_string name);
 void CodeObject__delete(CodeObject* self);
 void CodeObject__gc_mark(const CodeObject* self);
 
@@ -117,7 +117,7 @@ typedef struct FuncDecl {
 
 typedef FuncDecl* FuncDecl_;
 
-FuncDecl_ FuncDecl__rcnew(pkpy_SourceData_ src, c11_string name);
+FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_string name);
 void FuncDecl__dtor(FuncDecl* self);
 void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const PyVar* value);
 void FuncDecl__gc_mark(const FuncDecl* self);

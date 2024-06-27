@@ -11,7 +11,7 @@ extern "C" {
 
 enum CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, JSON_MODE, CELL_MODE };
 
-struct pkpy_SourceData {
+struct pk_SourceData {
     RefCounted rc;
     enum CompileMode mode;
     bool is_precompiled;
@@ -23,14 +23,11 @@ struct pkpy_SourceData {
     c11_vector/*T=py_Str*/ _precompiled_tokens;
 };
 
-typedef struct pkpy_SourceData* pkpy_SourceData_;
+typedef struct pk_SourceData* pk_SourceData_;
 
-pkpy_SourceData_ pkpy_SourceData__rcnew(c11_string source, const py_Str *filename, enum CompileMode mode);
-void pkpy_SourceData__ctor(struct pkpy_SourceData *self, c11_string source, const py_Str *filename, enum CompileMode mode);
-void pkpy_SourceData__dtor(struct pkpy_SourceData* self);
-
-bool pkpy_SourceData__get_line(const struct pkpy_SourceData* self, int lineno, const char** st, const char** ed);
-py_Str pkpy_SourceData__snapshot(const struct pkpy_SourceData *self, int lineno, const char *cursor, const char *name);
+pk_SourceData_ pk_SourceData__rcnew(const char* source, const char* filename, enum CompileMode mode);
+bool pk_SourceData__get_line(const struct pk_SourceData* self, int lineno, const char** st, const char** ed);
+py_Str pk_SourceData__snapshot(const struct pk_SourceData *self, int lineno, const char *cursor, const char *name);
 
 #ifdef __cplusplus
 }

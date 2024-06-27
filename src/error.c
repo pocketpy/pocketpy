@@ -23,7 +23,7 @@ void pkpy_Exception__dtor(pkpy_Exception* self){
     c11_vector__dtor(&self->stacktrace);
 }
 
-void pkpy_Exception__stpush(pkpy_Exception* self, pkpy_SourceData_ src, int lineno, const char* cursor, const char* name){
+void pkpy_Exception__stpush(pkpy_Exception* self, pk_SourceData_ src, int lineno, const char* cursor, const char* name){
     if(self->stacktrace.count >= 7) return;
     PK_INCREF(src);
     pkpy_ExceptionFrame* frame = c11_vector__emplace(&self->stacktrace);
@@ -42,7 +42,7 @@ py_Str pkpy_Exception__summary(pkpy_Exception* self){
     }
     for(int i=self->stacktrace.count-1; i >= 0; i--) {
         pkpy_ExceptionFrame* frame = c11__at(pkpy_ExceptionFrame, &self->stacktrace, i);
-        py_Str s = pkpy_SourceData__snapshot(frame->src, frame->lineno, frame->cursor, py_Str__data(&frame->name));
+        py_Str s = pk_SourceData__snapshot(frame->src, frame->lineno, frame->cursor, py_Str__data(&frame->name));
         pk_SStream__write_Str(&ss, &s);
         py_Str__dtor(&s);
         pk_SStream__write_cstr(&ss, "\n");

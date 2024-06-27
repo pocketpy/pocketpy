@@ -9,11 +9,6 @@ extern "C" {
 
 extern const char* pk_TokenSymbols[];
 
-typedef struct pk_TokenDeserializer {
-    const char* curr;
-    const char* source;
-} pk_TokenDeserializer;
-
 typedef enum TokenIndex{
     TK_EOF, TK_EOL, TK_SOF,
     TK_ID, TK_NUM, TK_STR, TK_FSTR, TK_LONG, TK_BYTES, TK_IMAG,
@@ -39,6 +34,64 @@ typedef enum TokenIndex{
     TK__COUNT__
 } TokenIndex;
 
+typedef struct TokenValue {
+    int index;
+    union {
+        int64_t _i64;   // 0
+        double _f64;    // 1
+        py_Str _str;    // 2
+    };
+} TokenValue;
+
+typedef struct Token {
+    TokenIndex type;
+    const char* start;
+    int length;
+    int line;
+    int brackets_level;
+    TokenValue value;
+} Token;
+
+// https://docs.python.org/3/reference/expressions.html#operator-precedence
+enum Precedence {
+    PREC_LOWEST,
+    PREC_LAMBDA,       // lambda
+    PREC_TERNARY,      // ?:
+    PREC_LOGICAL_OR,   // or
+    PREC_LOGICAL_AND,  // and
+    PREC_LOGICAL_NOT,  // not
+    /* https://docs.python.org/3/reference/expressions.html#comparisons
+     * Unlike C, all comparison operations in Python have the same priority,
+     * which is lower than that of any arithmetic, shifting or bitwise operation.
+     * Also unlike C, expressions like a < b < c have the interpretation that is conventional in mathematics.
+     */
+    PREC_COMPARISION,    // < > <= >= != ==, in / is / is not / not in
+    PREC_BITWISE_OR,     // |
+    PREC_BITWISE_XOR,    // ^
+    PREC_BITWISE_AND,    // &
+    PREC_BITWISE_SHIFT,  // << >>
+    PREC_TERM,           // + -
+    PREC_FACTOR,         // * / % // @
+    PREC_UNARY,          // - not ~
+    PREC_EXPONENT,       // **
+    PREC_PRIMARY,        // f() x[] a.b 1:2
+    PREC_HIGHEST,
+};
+
+enum StringType {
+    NORMAL_STRING,
+    RAW_STRING,
+    F_STRING,
+    NORMAL_BYTES
+};
+
+#define is_raw_string_used(t) ((t) == TK_ID || (t) == TK_LONG)
+
+typedef struct pk_TokenDeserializer {
+    const char* curr;
+    const char* source;
+} pk_TokenDeserializer;
+
 void pk_TokenDeserializer__ctor(pk_TokenDeserializer* self, const char* source);
 bool pk_TokenDeserializer__match_char(pk_TokenDeserializer* self, char c);
 c11_string pk_TokenDeserializer__read_string(pk_TokenDeserializer* self, char c);
@@ -46,6 +99,7 @@ py_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, ch
 int pk_TokenDeserializer__read_count(pk_TokenDeserializer* self);
 int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c);
 double pk_TokenDeserializer__read_float(pk_TokenDeserializer* self, char c);
+
 
 #ifdef __cplusplus
 }

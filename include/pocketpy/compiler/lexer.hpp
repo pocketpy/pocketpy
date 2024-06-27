@@ -8,50 +8,6 @@
 
 namespace pkpy {
 
-using TokenValue = std::variant<std::monostate, i64, f64, Str>;
-
-constexpr inline bool is_raw_string_used(TokenIndex t) noexcept{ return t == TK_ID || t == TK_LONG; }
-
-struct Token {
-    TokenIndex type;
-    const char* start;
-    int length;
-    int line;
-    int brackets_level;
-    TokenValue value;
-
-    Str str() const noexcept{ return Str(start, length); }
-
-    std::string_view sv() const noexcept{ return std::string_view(start, length); }
-};
-
-// https://docs.python.org/3/reference/expressions.html#operator-precedence
-enum Precedence {
-    PREC_LOWEST,
-    PREC_LAMBDA,       // lambda
-    PREC_TERNARY,      // ?:
-    PREC_LOGICAL_OR,   // or
-    PREC_LOGICAL_AND,  // and
-    PREC_LOGICAL_NOT,  // not
-    /* https://docs.python.org/3/reference/expressions.html#comparisons
-     * Unlike C, all comparison operations in Python have the same priority,
-     * which is lower than that of any arithmetic, shifting or bitwise operation.
-     * Also unlike C, expressions like a < b < c have the interpretation that is conventional in mathematics.
-     */
-    PREC_COMPARISION,    // < > <= >= != ==, in / is / is not / not in
-    PREC_BITWISE_OR,     // |
-    PREC_BITWISE_XOR,    // ^
-    PREC_BITWISE_AND,    // &
-    PREC_BITWISE_SHIFT,  // << >>
-    PREC_TERM,           // + -
-    PREC_FACTOR,         // * / % // @
-    PREC_UNARY,          // - not ~
-    PREC_EXPONENT,       // **
-    PREC_PRIMARY,        // f() x[] a.b 1:2
-    PREC_HIGHEST,
-};
-
-enum class StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
 
 struct Lexer {
     PK_ALWAYS_PASS_BY_POINTER(Lexer)

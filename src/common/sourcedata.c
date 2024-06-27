@@ -4,40 +4,33 @@
 #include <stdlib.h>
 #include <string.h>
 
-pkpy_SourceData_ pkpy_SourceData__rcnew(c11_string source, const py_Str* filename, enum CompileMode mode) {
-    pkpy_SourceData_ self = malloc(sizeof(struct pkpy_SourceData));
-    pkpy_SourceData__ctor(self, source, filename, mode);
-    self->rc.count = 1;
-    self->rc.dtor = (void(*)(void*))pkpy_SourceData__dtor;
-    return self;
-}
-
-void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
-                           c11_string source,       // may not be null-terminated
-                           const py_Str* filename,
+void pk_SourceData__ctor(struct pk_SourceData* self,
+                           const char* source,
+                           const char* filename,
                            enum CompileMode mode) {
-    self->filename = py_Str__copy(filename);  // OPTIMIZEME?
+    py_Str__ctor(&self->filename, filename);
     self->mode = mode;
     c11_vector__ctor(&self->line_starts, sizeof(const char*));
     c11_vector__ctor(&self->_precompiled_tokens, sizeof(py_Str));
 
-    int index = 0;
     // Skip utf8 BOM if there is any.
-    if (source.size >= 3 && strncmp(source.data, "\xEF\xBB\xBF", 3) == 0) index += 3;
+    if(strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
     // Drop all '\r'
     pk_SStream ss;
-    pk_SStream__ctor2(&ss, source.size + 1);
-    while(index < source.size){
-        char c = source.data[index];
+    pk_SStream__ctor(&ss);
+    while(true){
+        char c = *source;
+        if(c == '\0') break;
         if(c != '\r') pk_SStream__write_char(&ss, c);
-        index++;
+        source++;
     }
     self->source = pk_SStream__submit(&ss);
-    self->is_precompiled = (strncmp(py_Str__data(&self->source), "pkpy:", 5) == 0);
-    c11_vector__push(const char*, &self->line_starts, py_Str__data(&self->source));
+    source = py_Str__data(&self->source);
+    self->is_precompiled = (strncmp(source, "pkpy:", 5) == 0);
+    c11_vector__push(const char*, &self->line_starts, source);
 }
 
-void pkpy_SourceData__dtor(struct pkpy_SourceData* self) {
+void pk_SourceData__dtor(struct pk_SourceData* self) {
     py_Str__dtor(&self->filename);
     py_Str__dtor(&self->source);
     c11_vector__dtor(&self->line_starts);
@@ -48,7 +41,15 @@ void pkpy_SourceData__dtor(struct pkpy_SourceData* self) {
     c11_vector__dtor(&self->_precompiled_tokens);
 }
 
-bool pkpy_SourceData__get_line(const struct pkpy_SourceData* self, int lineno, const char** st, const char** ed) {
+pk_SourceData_ pk_SourceData__rcnew(const char* source, const char* filename, enum CompileMode mode) {
+    pk_SourceData_ self = malloc(sizeof(struct pk_SourceData));
+    pk_SourceData__ctor(self, source, filename, mode);
+    self->rc.count = 1;
+    self->rc.dtor = (void(*)(void*))pk_SourceData__dtor;
+    return self;
+}
+
+bool pk_SourceData__get_line(const struct pk_SourceData* self, int lineno, const char** st, const char** ed) {
     if(self->is_precompiled || lineno == -1) { return false; }
     lineno -= 1;
     if(lineno < 0) lineno = 0;
@@ -62,7 +63,7 @@ bool pkpy_SourceData__get_line(const struct pkpy_SourceData* self, int lineno, c
     return true;
 }
 
-py_Str pkpy_SourceData__snapshot(const struct pkpy_SourceData* self, int lineno, const char* cursor, const char* name) {
+py_Str pk_SourceData__snapshot(const struct pk_SourceData* self, int lineno, const char* cursor, const char* name) {
     pk_SStream ss;
     pk_SStream__ctor(&ss);
 
@@ -85,7 +86,7 @@ py_Str pkpy_SourceData__snapshot(const struct pkpy_SourceData* self, int lineno,
     if(!self->is_precompiled) {
         pk_SStream__write_char(&ss, '\n');
         const char *st = NULL, *ed;
-        if(pkpy_SourceData__get_line(self, lineno, &st, &ed)) {
+        if(pk_SourceData__get_line(self, lineno, &st, &ed)) {
             while(st < ed && isblank(*st))
                 ++st;
             if(st < ed) {
