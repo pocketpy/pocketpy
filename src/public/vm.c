@@ -1,8 +1,10 @@
+#include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/compiler/compiler.h"
 
 pk_VM* pk_current_vm;
 static pk_VM pk_default_vm;
@@ -22,6 +24,11 @@ void py_finalize() {
 }
 
 int py_exec(const char* source) {
+    pk_SourceData_ src = pk_SourceData__rcnew(source, "main.py", EXEC_MODE);
+    Error* err = pk_compile(src);
+    PK_DECREF(src);
+    if(err) abort();
+
     CodeObject* co = NULL;
     pk_VM* vm = pk_current_vm;
     Frame* frame = Frame__new(co, &vm->main, NULL, vm->stack.sp, vm->stack.sp, co);

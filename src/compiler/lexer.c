@@ -281,8 +281,8 @@ static Error* eat_name(pk_Lexer* self){
 static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, py_Str* out) {
     // previous char is quote
     bool quote3 = match_n_chars(self, 2, quote);
-    // small_vector_2<char, 32> buff;
     pk_SStream buff;
+    pk_SStream__ctor(&buff);
     while(true) {
         char c = eatchar_include_newline(self);
         if(c == quote) {
@@ -721,7 +721,7 @@ Error* pk_Lexer__process(pk_SourceData_ src, c11_array* out_tokens){
 
     if(src->is_precompiled) {
         Error* err = from_precompiled(&lexer);
-        // set out tokens
+        // TODO: set out tokens
         pk_Lexer__dtor(&lexer);
         return err;
     }
@@ -739,6 +739,13 @@ Error* pk_Lexer__process(pk_SourceData_ src, c11_array* out_tokens){
         }
     }
     // set out_tokens
+    *out_tokens = (c11_array){
+        .data = lexer.nexts.data,
+        .count = lexer.nexts.count,
+        .elem_size = lexer.nexts.elem_size
+    };
+    c11_vector__ctor(&lexer.nexts, sizeof(Token));
+    
     pk_Lexer__dtor(&lexer);
     return NULL;
 }
