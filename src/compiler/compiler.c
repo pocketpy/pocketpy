@@ -101,6 +101,31 @@ Error* parse_expression(pk_Compiler* self, int precedence, bool allow_slice){
     return NULL;
 }
 
+// exprs
+static Error* exprLiteral(pk_Compiler* self);
+static Error* exprLong(pk_Compiler* self);
+static Error* exprImag(pk_Compiler* self);
+static Error* exprBytes(pk_Compiler* self);
+static Error* exprFString(pk_Compiler* self);
+static Error* exprLambda(pk_Compiler* self);
+static Error* exprOr(pk_Compiler* self);
+static Error* exprAnd(pk_Compiler* self);
+static Error* exprTernary(pk_Compiler* self);
+static Error* exprBinaryOp(pk_Compiler* self);
+static Error* exprNot(pk_Compiler* self);
+static Error* exprUnaryOp(pk_Compiler* self);
+static Error* exprGroup(pk_Compiler* self);
+static Error* exprList(pk_Compiler* self);
+static Error* exprMap(pk_Compiler* self);
+static Error* exprCall(pk_Compiler* self);
+static Error* exprName(pk_Compiler* self);
+static Error* exprAttrib(pk_Compiler* self);
+static Error* exprSlice0(pk_Compiler* self);
+static Error* exprSlice1(pk_Compiler* self);
+static Error* exprSubscr(pk_Compiler* self);
+static Error* exprLiteral0(pk_Compiler* self);
+
+
     // [[nodiscard]] Error* EXPR() noexcept{ return parse_expression(PREC_LOWEST + 1); }
     // [[nodiscard]] Error* EXPR_TUPLE(bool allow_slice = false) noexcept;
     // [[nodiscard]] Error* EXPR_VARS() noexcept;  // special case for `for loop` and `comp`
