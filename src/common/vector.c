@@ -62,3 +62,15 @@ void* c11_vector__emplace(c11_vector* self){
     self->count++;
     return p;
 }
+
+c11_array c11_vector__submit(c11_vector* self){
+    c11_array retval = {
+        .data = self->data,
+        .count = self->count,
+        .elem_size = self->elem_size
+    };
+    self->data = NULL;
+    self->count = 0;
+    self->capacity = 0;
+    return retval;
+}

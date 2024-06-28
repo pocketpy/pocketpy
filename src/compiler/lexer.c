@@ -739,13 +739,8 @@ Error* pk_Lexer__process(pk_SourceData_ src, c11_array* out_tokens){
         }
     }
     // set out_tokens
-    *out_tokens = (c11_array){
-        .data = lexer.nexts.data,
-        .count = lexer.nexts.count,
-        .elem_size = lexer.nexts.elem_size
-    };
-    c11_vector__ctor(&lexer.nexts, sizeof(Token));
-    
+    *out_tokens = c11_vector__submit(&lexer.nexts);
+
     pk_Lexer__dtor(&lexer);
     return NULL;
 }
