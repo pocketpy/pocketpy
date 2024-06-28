@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pocketpy/common/str.h"
+#include "pocketpy/objects/sourcedata.h"
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -35,13 +36,18 @@ typedef enum TokenIndex{
 } TokenIndex;
 
 typedef struct TokenValue {
-    int index;
+    int index;  // 0: empty
     union {
-        int64_t _i64;   // 0
-        double _f64;    // 1
-        py_Str _str;    // 2
+        int64_t _i64;   // 1
+        double _f64;    // 2
+        py_Str _str;    // 3
     };
 } TokenValue;
+
+#define TokenValue_EMPTY 0
+#define TokenValue_I64   1
+#define TokenValue_F64   2
+#define TokenValue_STR   3
 
 typedef struct Token {
     TokenIndex type;
@@ -78,21 +84,6 @@ enum Precedence {
     PREC_HIGHEST,
 };
 
-#define is_raw_string_used(t) ((t) == TK_ID || (t) == TK_LONG)
-
-typedef struct pk_TokenDeserializer {
-    const char* curr;
-    const char* source;
-} pk_TokenDeserializer;
-
-void pk_TokenDeserializer__ctor(pk_TokenDeserializer* self, const char* source);
-bool pk_TokenDeserializer__match_char(pk_TokenDeserializer* self, char c);
-c11_string pk_TokenDeserializer__read_string(pk_TokenDeserializer* self, char c);
-py_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, char c);
-int pk_TokenDeserializer__read_count(pk_TokenDeserializer* self);
-int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c);
-double pk_TokenDeserializer__read_float(pk_TokenDeserializer* self, char c);
-
 typedef enum IntParsingResult{
     IntParsing_SUCCESS,
     IntParsing_FAILURE,
@@ -100,6 +91,11 @@ typedef enum IntParsingResult{
 } IntParsingResult;
 
 IntParsingResult parse_uint(c11_string text, int64_t* out, int base);
+
+typedef struct Error Error;
+
+Error* pk_Lexer__process(pk_SourceData_ src, c11_array* out_tokens);
+Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out_string);
 
 #ifdef __cplusplus
 }
