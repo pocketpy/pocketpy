@@ -47,10 +47,7 @@ c11_array c11_vector__submit(c11_vector* self);
         (self)->count++; \
     }while(0)
 
-#define c11_vector__pop(T, self) \
-    do{ \
-        (self)->count--; \
-    }while(0)
+#define c11_vector__pop(self) (--(self)->count)
 
 #define c11_vector__back(T, self) \
     (((T*)(self)->data)[(self)->count - 1])
@@ -89,7 +86,7 @@ c11_array c11_vector__submit(c11_vector* self);
         } \
     }while(0)
 
-#define c11_vector__foreach(T, self, it) \
+#define c11__foreach(T, self, it) \
     for(T* it = (T*)(self)->data; it != (T*)(self)->data + (self)->count; it++)
 
 #ifdef __cplusplus

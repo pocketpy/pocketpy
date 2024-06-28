@@ -77,10 +77,10 @@ Error* Compiler::pop_context() noexcept{
     FuncDecl* func = contexts.back().func;
     if(func) {
         // check generator
-        c11_vector__foreach(Bytecode, &func->code->codes, bc) {
+        c11__foreach(Bytecode, &func->code->codes, bc) {
             if(bc->op == OP_YIELD_VALUE || bc->op == OP_FOR_ITER_YIELD_VALUE) {
                 func->type = FuncType_GENERATOR;
-                c11_vector__foreach(Bytecode, &func->code->codes, bc) {
+                c11__foreach(Bytecode, &func->code->codes, bc) {
                     if(bc->op == OP_RETURN_VALUE && bc->arg == BC_NOARG) {
                         return SyntaxError("'return' with argument inside generator function");
                     }
@@ -1119,11 +1119,11 @@ Error* Compiler::_compile_f_args(FuncDecl* decl, bool enable_type_hints) noexcep
 
         // check duplicate argument name
         uint16_t tmp_name;
-        c11_vector__foreach(int, &decl->args, j) {
+        c11__foreach(int, &decl->args, j) {
             tmp_name = c11__getitem(uint16_t, &decl->args, *j);
             if(tmp_name == name.index) return SyntaxError("duplicate argument name");
         }
-        c11_vector__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
+        c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
             tmp_name = c11__getitem(uint16_t, &decl->code->varnames, kv->index);
             if(tmp_name == name.index) return SyntaxError("duplicate argument name");
         }

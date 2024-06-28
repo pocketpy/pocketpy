@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/compiler/lexer.h"
+#include "pocketpy/common/strname.h"
 #include "pocketpy/objects/codeobject.h"
 
 #ifdef __cplusplus
@@ -15,14 +16,14 @@ typedef struct pk_CodeEmitContext pk_CodeEmitContext;
 typedef struct pk_ExprVt{
     void (*dtor)(pk_Expr*);
     /* reflections */
-    bool (*is_literal)(const pk_Expr*);
-    bool (*is_json_object)(const pk_Expr*);
-    bool (*is_attrib)(const pk_Expr*);
-    bool (*is_subscr)(const pk_Expr*);
+    bool is_literal;
+    bool is_json_object;
+    bool is_name;
+    bool is_tuple;
+    bool is_attrib;
+    bool is_subscr;
     bool (*is_compare)(const pk_Expr*);
     int (*star_level)(const pk_Expr*);
-    bool (*is_tuple)(const pk_Expr*);
-    bool (*is_name)(const pk_Expr*);
     /* emit */
     void (*emit_)(pk_Expr*, pk_CodeEmitContext*);
     bool (*emit_del)(pk_Expr*, pk_CodeEmitContext*);
@@ -31,32 +32,70 @@ typedef struct pk_ExprVt{
     bool (*emit_store_inplace)(pk_Expr*, pk_CodeEmitContext*);
 } pk_ExprVt;
 
-typedef struct pk_Expr{
-    pk_ExprVt* vt;
+#define COMMON_HEADER \
+    pk_ExprVt* vt; \
     int line;
+
+typedef struct pk_Expr{
+    COMMON_HEADER
 } pk_Expr;
 
 void pk_ExprVt__ctor(pk_ExprVt* vt);
-void pk_Expr__emit_(pk_Expr* self, pk_CodeEmitContext* ctx);
-bool pk_Expr__emit_del(pk_Expr* self, pk_CodeEmitContext* ctx);
-bool pk_Expr__emit_store(pk_Expr* self, pk_CodeEmitContext* ctx);
-void pk_Expr__emit_inplace(pk_Expr* self, pk_CodeEmitContext* ctx);
-bool pk_Expr__emit_store_inplace(pk_Expr* self, pk_CodeEmitContext* ctx);
 void pk_Expr__delete(pk_Expr* self);
 
-typedef struct pk_CodeEmitContext{
-    CodeObject* co;  // 1 CodeEmitContext <=> 1 CodeObject*
-    FuncDecl* func;  // optional, weakref
-    int level;
-    int curr_iblock;
-    bool is_compiling_class;
-    c11_vector/*T=Expr* */ s_expr;
-    c11_vector/*T=StrName*/ global_names;
-    c11_smallmap_s2n co_consts_string_dedup_map;
-} pk_CodeEmitContext;
+void pk_Expr__initialize();
+#define pk_Expr__finalize()  // do nothing
 
-void pk_CodeEmitContext__ctor(pk_CodeEmitContext* self, CodeObject* co, FuncDecl* func, int level);
-void pk_CodeEmitContext__dtor(pk_CodeEmitContext* self);
+typedef struct pk_NameExpr{
+    COMMON_HEADER
+    StrName name;
+    NameScope scope;
+} pk_NameExpr;
+
+typedef struct pk_StarredExpr{
+    COMMON_HEADER
+    pk_Expr* child;
+    int level;
+} pk_StarredExpr;
+
+// InvertExpr, NotExpr, AndExpr, OrExpr, NegatedExpr
+// NOTE: NegatedExpr always contains a non-const child. Should not generate -1 or -0.1
+typedef struct pk_UnaryExpr{
+    COMMON_HEADER
+    pk_Expr* child;
+    Opcode opcode;
+} pk_UnaryExpr;
+
+// LongExpr, BytesExpr
+typedef struct pk_RawStringExpr{
+    COMMON_HEADER
+    c11_string value;
+    Opcode opcode;
+} pk_RawStringExpr;
+
+typedef struct pk_ImagExpr{
+    COMMON_HEADER
+    double value;
+} pk_ImagExpr;
+
+typedef struct pk_LiteralExpr{
+    COMMON_HEADER
+    const TokenValue* value;
+} pk_LiteralExpr;
+
+typedef struct pk_SliceExpr{
+    COMMON_HEADER
+    pk_Expr* start;
+    pk_Expr* stop;
+    pk_Expr* step;
+} pk_SliceExpr;
+
+// ListExpr, DictExpr, SetExpr, TupleExpr
+typedef struct pk_SequenceExpr{
+    COMMON_HEADER
+    c11_array/*T=Expr* */ items;
+    Opcode opcode;
+} pk_SequenceExpr;
 
 #ifdef __cplusplus
 }

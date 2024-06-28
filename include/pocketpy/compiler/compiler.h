@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 Error* pk_compile(pk_SourceData_ src, CodeObject* out);
+
 void pk_Compiler__initialize();
 #define pk_Compiler__finalize()  // do nothing
 

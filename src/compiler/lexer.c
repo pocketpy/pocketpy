@@ -168,7 +168,7 @@ static bool eat_indentation(pk_Lexer* self){
         c11_vector__push(Token, &self->nexts, t);
     } else if(spaces < indents_back) {
         do {
-            c11_vector__pop(int, &self->indents);
+            c11_vector__pop(&self->indents);
             Token t = {TK_DEDENT, self->token_start, 0, self->current_line, self->brackets_level, EmptyTokenValue};
             c11_vector__push(Token, &self->nexts, t);
             indents_back = c11_vector__back(int, &self->indents);
@@ -543,7 +543,7 @@ static Error* lex_one_token(pk_Lexer* self, bool* eof){
 
     self->token_start = self->curr_char;
     while(self->indents.count > 1) {
-        c11_vector__pop(int, &self->indents);
+        c11_vector__pop(&self->indents);
         add_token(self, TK_DEDENT);
         return NULL;
     }
@@ -763,7 +763,7 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out) {
     c11_smallmap_s2n token_indices;
     c11_smallmap_s2n__ctor(&token_indices);
 
-    c11_vector__foreach(Token, &nexts, token) {
+    c11__foreach(Token, &nexts, token) {
         if(is_raw_string_used(token->type)) {
             c11_string token_sv = {token->start, token->length};
             if(!c11_smallmap_s2n__contains(&token_indices, token_sv)) {

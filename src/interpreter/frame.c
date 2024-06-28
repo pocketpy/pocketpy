@@ -18,7 +18,7 @@ PyVar* FastLocals__try_get_by_name(PyVar* locals, const CodeObject* co, py_Name 
 
 pk_NameDict* FastLocals__to_namedict(PyVar* locals, const CodeObject* co) {
     pk_NameDict* dict = pk_NameDict__new();
-    c11_vector__foreach(c11_smallmap_n2i_KV, &co->varnames_inv, entry) {
+    c11__foreach(c11_smallmap_n2i_KV, &co->varnames_inv, entry) {
         PyVar value = locals[entry->value];
         if(!py_isnull(&value)){
             pk_NameDict__set(dict, entry->key, value);

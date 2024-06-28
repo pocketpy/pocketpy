@@ -71,8 +71,8 @@ int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtua
 }
 
 void CodeEmitContext::revert_last_emit_() noexcept{
-    c11_vector__pop(Bytecode, &co->codes);
-    c11_vector__pop(BytecodeEx, &co->codes_ex);
+    c11_vector__pop(&co->codes);
+    c11_vector__pop(&co->codes_ex);
 }
 
 void CodeEmitContext::try_merge_for_iter_store(int i) noexcept{
