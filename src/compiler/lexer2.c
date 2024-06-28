@@ -1,5 +1,12 @@
+#include "pocketpy/common/smallmap.h"
+#include "pocketpy/common/config.h"
+#include "pocketpy/common/sstream.h"
+#include "pocketpy/common/vector.h"
 #include "pocketpy/compiler/lexer.h"
 #include "pocketpy/objects/sourcedata.h"
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdbool.h>
 
 typedef struct pk_Lexer{
     pk_SourceData_ src;
@@ -14,7 +21,7 @@ typedef struct pk_Lexer{
 
 const static TokenValue EmptyTokenValue;
 
-void pk_Lexer__ctor(pk_Lexer* self, pk_SourceData_ src){
+static void pk_Lexer__ctor(pk_Lexer* self, pk_SourceData_ src){
     PK_INCREF(src);
     self->src = src;
     self->curr_char = self->token_start = py_Str__data(&src->source);
@@ -24,45 +31,20 @@ void pk_Lexer__ctor(pk_Lexer* self, pk_SourceData_ src){
     c11_vector__ctor(&self->indents, sizeof(int));
 }
 
-void pk_Lexer__dtor(pk_Lexer* self){
+static void pk_Lexer__dtor(pk_Lexer* self){
     PK_DECREF(self->src);
     c11_vector__dtor(&self->nexts);
     c11_vector__dtor(&self->indents);
 }
 
-void* pk_Lexer__run(pk_SourceData_ src, void** out_tokens){
-    pk_Lexer lexer;
-    pk_Lexer__ctor(&lexer, src);
-
-    if(src->is_precompiled) {
-        pk_Lexer__dtor(&lexer);
-        return from_precompiled();
-    }
-    // push initial tokens
-    Token sof = {TK_SOF, lexer.token_start, 0, lexer.current_line, lexer.brackets_level, EmptyTokenValue};
-    c11_vector__push(Token, &lexer.nexts, sof);
-    c11_vector__push(int, &lexer.indents, 0);
-
-    bool eof = false;
-    while(!eof) {
-        void* err = lex_one_token(&eof);
-        if(err){
-            pk_Lexer__dtor(&lexer);
-            return err;
-        }
-    }
-    pk_Lexer__dtor(&lexer);
-    return NULL;
-}
-
-char eatchar(pk_Lexer* self){
+static char eatchar(pk_Lexer* self){
     char c = *self->curr_char;
     assert(c != '\n');  // eatchar() cannot consume a newline
     self->curr_char++;
     return c;
 }
 
-char eatchar_include_newline(pk_Lexer* self){
+static char eatchar_include_newline(pk_Lexer* self){
     char c = *self->curr_char;
     self->curr_char++;
     if(c == '\n') {
@@ -72,7 +54,7 @@ char eatchar_include_newline(pk_Lexer* self){
     return c;
 }
 
-int eat_spaces(pk_Lexer* self){
+static int eat_spaces(pk_Lexer* self){
     int count = 0;
     while(true) {
         switch(*self->curr_char) {
@@ -84,13 +66,13 @@ int eat_spaces(pk_Lexer* self){
     }
 }
 
-bool matchchar(pk_Lexer* self, char c){
+static bool matchchar(pk_Lexer* self, char c){
     if(*self->curr_char != c) return false;
     eatchar_include_newline(self);
     return true;
 }
 
-bool match_n_chars(pk_Lexer* self, int n, char c0){
+static bool match_n_chars(pk_Lexer* self, int n, char c0){
     const char* c = self->curr_char;
     for(int i = 0; i < n; i++) {
         if(*c == '\0') return false;
@@ -102,23 +84,14 @@ bool match_n_chars(pk_Lexer* self, int n, char c0){
     return true;
 }
 
-bool match_string(pk_Lexer* self, const char* s){
-    int s_len = strlen(s);
-    if(strncmp(self->curr_char, s, s_len) == 0){
-        for(int i = 0; i < s_len; i++)
-            eatchar_include_newline(self);
-    }
-    return ok;
-}
-
-void skip_line_comment(pk_Lexer* self){
+static void skip_line_comment(pk_Lexer* self){
     while(*self->curr_char) {
         if(*self->curr_char == '\n') return;
         eatchar(self);
     }
 }
 
-void add_token(pk_Lexer* self, TokenIndex type, TokenValue value){
+static void add_token_with_value(pk_Lexer* self, TokenIndex type, TokenValue value){
     switch(type) {
         case TK_LBRACE:
         case TK_LBRACKET:
@@ -153,18 +126,21 @@ void add_token(pk_Lexer* self, TokenIndex type, TokenValue value){
     }
 }
 
-
-void add_token_2(pk_Lexer* self, char c, TokenIndex one, TokenIndex two){
-    if(matchchar(self, c))
-        add_token(self, two, EmptyTokenValue);
-    else
-        add_token(self, one, EmptyTokenValue);
+static void add_token(pk_Lexer* self, TokenIndex type){
+    add_token_with_value(self, type, EmptyTokenValue);
 }
 
-bool eat_indentation(pk_Lexer* self){
+static void add_token_2(pk_Lexer* self, char c, TokenIndex one, TokenIndex two){
+    if(matchchar(self, c))
+        add_token(self, two);
+    else
+        add_token(self, one);
+}
+
+static bool eat_indentation(pk_Lexer* self){
     if(self->brackets_level > 0) return true;
     int spaces = eat_spaces(self);
-    if(*self->curr_char == '#') skip_line_comment();
+    if(*self->curr_char == '#') skip_line_comment(self);
     if(*self->curr_char == '\0' || *self->curr_char == '\n'){
         return true;
     }
@@ -184,4 +160,667 @@ bool eat_indentation(pk_Lexer* self){
         if(spaces != indents_back) { return false; }
     }
     return true;
+}
+
+static bool is_possible_number_char(char c){
+    switch(c) {
+        // clang-format off
+        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+        case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+        case '.': case 'L': case 'x': case 'o': case 'j':
+        return true;
+        default: return false;
+        // clang-format on
+    }
+}
+
+/******************************/
+typedef struct Error Error;
+
+static Error* SyntaxError(const char* fmt, ...){
+    // va_list args;
+    // va_start(args, fmt);
+    // Error* err = _error(true, "SyntaxError", fmt, &args);
+    // va_end(args);
+    // return err;
+    return NULL;
+}
+
+static Error* NeedMoreLines(){
+    return NULL;
+}
+
+static Error* eat_name(pk_Lexer* self){
+    self->curr_char--;
+    while(true) {
+        unsigned char c = *self->curr_char;
+        int u8bytes = c11__u8_header(c, true);
+        if(u8bytes == 0) return SyntaxError("invalid char: %c", c);
+        if(u8bytes == 1) {
+            if(isalnum(c) || c == '_') {
+                self->curr_char++;
+                continue;
+            } else {
+                break;
+            }
+        }
+        // handle multibyte char
+        py_Str u8str;
+        py_Str__ctor2(&u8str, self->curr_char, u8bytes);
+        if(u8str.size != u8bytes){
+            py_Str__dtor(&u8str);
+            return SyntaxError("invalid utf8 sequence: %s", py_Str__data(&u8str));
+        }
+        uint32_t value = 0;
+        for(int k = 0; k < u8bytes; k++) {
+            uint8_t b = py_Str__data(&u8str)[k];
+            if(k == 0) {
+                if(u8bytes == 2)
+                    value = (b & 0b00011111) << 6;
+                else if(u8bytes == 3)
+                    value = (b & 0b00001111) << 12;
+                else if(u8bytes == 4)
+                    value = (b & 0b00000111) << 18;
+            } else {
+                value |= (b & 0b00111111) << (6 * (u8bytes - k - 1));
+            }
+        }
+        if(c11__is_unicode_Lo_char(value))
+            self->curr_char += u8bytes;
+        else
+            break;
+    }
+
+    int length = (int)(self->curr_char - self->token_start);
+    if(length == 0) return SyntaxError("@id contains invalid char");
+    c11_string name = {self->token_start, length};
+
+    if(self->src->mode == JSON_MODE) {
+        if(c11_string__cmp3(name, "true") == 0) {
+            add_token(self, TK_TRUE);
+        } else if(c11_string__cmp3(name, "false") == 0) {
+            add_token(self, TK_FALSE);
+        } else if(c11_string__cmp3(name, "null") == 0) {
+            add_token(self, TK_NONE);
+        } else {
+            return SyntaxError("invalid JSON token");
+        }
+        return NULL;
+    }
+
+    const char** KW_BEGIN = pk_TokenSymbols + TK_FALSE;
+    int KW_COUNT = TK__COUNT__ - TK_FALSE;
+    #define less(a, b) (c11_string__cmp3(b, a) > 0)
+    int out;
+    c11__lower_bound(const char*, KW_BEGIN, KW_COUNT, name, less, &out);
+    #undef less
+
+    if(out != KW_COUNT && c11_string__cmp3(name, KW_BEGIN[out]) == 0) {
+        add_token(self, (TokenIndex)(out + TK_FALSE));
+    } else {
+        add_token(self, TK_ID);
+    }
+    return NULL;
+}
+
+static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, py_Str* out) {
+    // previous char is quote
+    bool quote3 = match_n_chars(self, 2, quote);
+    // small_vector_2<char, 32> buff;
+    pk_SStream buff;
+    while(true) {
+        char c = eatchar_include_newline(self);
+        if(c == quote) {
+            if(quote3 && !match_n_chars(self, 2, quote)) {
+                pk_SStream__write_char(&buff, c);
+                continue;
+            }
+            break;
+        }
+        if(c == '\0') {
+            if(quote3 && self->src->mode == REPL_MODE){
+                return NeedMoreLines();
+            }
+            return SyntaxError("EOL while scanning string literal");
+        }
+        if(c == '\n') {
+            if(!quote3)
+                return SyntaxError("EOL while scanning string literal");
+            else {
+                pk_SStream__write_char(&buff, c);
+                continue;
+            }
+        }
+        if(!raw && c == '\\') {
+            switch(eatchar_include_newline(self)) {
+                case '"': pk_SStream__write_char(&buff, '"'); break;
+                case '\'': pk_SStream__write_char(&buff, '\''); break;
+                case '\\': pk_SStream__write_char(&buff, '\\'); break;
+                case 'n': pk_SStream__write_char(&buff, '\n'); break;
+                case 'r': pk_SStream__write_char(&buff, '\r'); break;
+                case 't': pk_SStream__write_char(&buff, '\t'); break;
+                case 'b': pk_SStream__write_char(&buff, '\b'); break;
+                case 'x': {
+                    char hex[3] = {eatchar(self), eatchar(self), '\0'};
+                    int code;
+                    if(sscanf(hex, "%x", &code) != 1) {
+                        return SyntaxError("invalid hex char");
+                    }
+                    pk_SStream__write_char(&buff, (char)code);
+                } break;
+                default: return SyntaxError("invalid escape char");
+            }
+        } else {
+            pk_SStream__write_char(&buff, c);
+        }
+    }
+    *out = pk_SStream__submit(&buff);
+    return NULL;
+}
+
+enum StringType {
+    NORMAL_STRING,
+    RAW_STRING,
+    F_STRING,
+    NORMAL_BYTES
+};
+
+static Error* eat_string(pk_Lexer* self, char quote, enum StringType type){
+    py_Str s;
+    Error* err = eat_string_until(self, quote, type == RAW_STRING, &s);
+    if(err) return err;
+    TokenValue value = {2, ._str = s};
+    if(type == F_STRING) {
+        add_token_with_value(self, TK_FSTR, value);
+    }else if(type == NORMAL_BYTES) {
+        add_token_with_value(self, TK_BYTES, value);
+    }else{
+        add_token_with_value(self, TK_STR, value);
+    }
+    return NULL;
+}
+
+static Error* eat_number(pk_Lexer* self){
+    const char* i = self->token_start;
+    while(is_possible_number_char(*i)) i++;
+
+    bool is_scientific_notation = false;
+    if(*(i - 1) == 'e' && (*i == '+' || *i == '-')) {
+        i++;
+        while(isdigit(*i) || *i == 'j') i++;
+        is_scientific_notation = true;
+    }
+
+    c11_string text = {self->token_start, i - self->token_start};
+    self->curr_char = i;
+
+    if(text.data[0] != '.' && !is_scientific_notation) {
+        // try long
+        if(i[-1] == 'L') {
+            add_token(self, TK_LONG);
+            return NULL;
+        }
+        // try integer
+        TokenValue value = {.index = 0};
+        switch(parse_uint(text, &value._i64, -1)) {
+            case IntParsing_SUCCESS:
+                add_token_with_value(self, TK_NUM, value);
+                return NULL;
+            case IntParsing_OVERFLOW:
+                return SyntaxError("int literal is too large");
+            case IntParsing_FAILURE:
+                break;  // do nothing
+        }
+    }
+
+    // try float
+    double float_out;
+    char* p_end;
+    float_out = strtod(text.data, &p_end);
+
+    if(p_end == text.data + text.size){
+        TokenValue value = {.index = 1, ._f64 = float_out};
+        add_token_with_value(self, TK_NUM, value);
+        return NULL;
+    }
+
+    if(i[-1] == 'j' && p_end == text.data + text.size - 1) {
+        TokenValue value = {.index = 1, ._f64 = float_out};
+        add_token_with_value(self, TK_IMAG, value);
+        return NULL;
+    }
+
+    return SyntaxError("invalid number literal");
+}
+
+static Error* lex_one_token(pk_Lexer* self, bool* eof){
+    *eof = false;
+    while(*self->curr_char) {
+        self->token_start = self->curr_char;
+        char c = eatchar_include_newline(self);
+        switch(c) {
+            case '\'':
+            case '"': {
+                Error* err = eat_string(self, c, NORMAL_STRING);
+                if(err) return err;
+                return NULL;
+            }
+            case '#': skip_line_comment(self); break;
+            case '~': add_token(self, TK_INVERT); return NULL;
+            case '{': add_token(self, TK_LBRACE); return NULL;
+            case '}': add_token(self, TK_RBRACE); return NULL;
+            case ',': add_token(self, TK_COMMA); return NULL;
+            case ':': add_token(self, TK_COLON); return NULL;
+            case ';': add_token(self, TK_SEMICOLON); return NULL;
+            case '(': add_token(self, TK_LPAREN); return NULL;
+            case ')': add_token(self, TK_RPAREN); return NULL;
+            case '[': add_token(self, TK_LBRACKET); return NULL;
+            case ']': add_token(self, TK_RBRACKET); return NULL;
+            case '@': add_token(self, TK_DECORATOR); return NULL;
+            case '\\': {
+                // line continuation character
+                char c = eatchar_include_newline(self);
+                if(c != '\n') {
+                    if(self->src->mode == REPL_MODE && c == '\0') return NeedMoreLines();
+                    return SyntaxError("expected newline after line continuation character");
+                }
+                eat_spaces(self);
+                return NULL;
+            }
+            case '%': add_token_2(self, '=', TK_MOD, TK_IMOD); return NULL;
+            case '&': add_token_2(self, '=', TK_AND, TK_IAND); return NULL;
+            case '|': add_token_2(self, '=', TK_OR, TK_IOR); return NULL;
+            case '^': add_token_2(self, '=', TK_XOR, TK_IXOR); return NULL;
+            case '.': {
+                if(matchchar(self, '.')) {
+                    if(matchchar(self, '.')) {
+                        add_token(self, TK_DOTDOTDOT);
+                    } else {
+                        add_token(self, TK_DOTDOT);
+                    }
+                } else {
+                    char next_char = *self->curr_char;
+                    if(next_char >= '0' && next_char <= '9') {
+                        Error* err = eat_number(self);
+                        if(err) return err;
+                    } else {
+                        add_token(self, TK_DOT);
+                    }
+                }
+                return NULL;
+            }
+            case '=': add_token_2(self, '=', TK_ASSIGN, TK_EQ); return NULL;
+            case '+': add_token_2(self, '=', TK_ADD, TK_IADD); return NULL;
+            case '>': {
+                if(matchchar(self, '='))
+                    add_token(self, TK_GE);
+                else if(matchchar(self, '>'))
+                    add_token_2(self, '=', TK_RSHIFT, TK_IRSHIFT);
+                else
+                    add_token(self, TK_GT);
+                return NULL;
+            }
+            case '<': {
+                if(matchchar(self, '='))
+                    add_token(self, TK_LE);
+                else if(matchchar(self, '<'))
+                    add_token_2(self, '=', TK_LSHIFT, TK_ILSHIFT);
+                else
+                    add_token(self, TK_LT);
+                return NULL;
+            }
+            case '-': {
+                if(matchchar(self, '='))
+                    add_token(self, TK_ISUB);
+                else if(matchchar(self, '>'))
+                    add_token(self, TK_ARROW);
+                else
+                    add_token(self, TK_SUB);
+                return NULL;
+            }
+            case '!':
+                if(matchchar(self, '=')){
+                    add_token(self, TK_NE);
+                }else{
+                    Error* err = SyntaxError("expected '=' after '!'");
+                    if(err) return err;
+                }
+                break;
+            case '*':
+                if(matchchar(self, '*')) {
+                    add_token(self, TK_POW);  // '**'
+                } else {
+                    add_token_2(self, '=', TK_MUL, TK_IMUL);
+                }
+                return NULL;
+            case '/':
+                if(matchchar(self, '/')) {
+                    add_token_2(self, '=', TK_FLOORDIV, TK_IFLOORDIV);
+                } else {
+                    add_token_2(self, '=', TK_DIV, TK_IDIV);
+                }
+                return NULL;
+            case ' ':
+            case '\t': eat_spaces(self); break;
+            case '\n': {
+                add_token(self, TK_EOL);
+                if(!eat_indentation(self)){
+                    return SyntaxError("unindent does not match any outer indentation level");
+                }
+                return NULL;
+            }
+            default: {
+                if(c == 'f') {
+                    if(matchchar(self, '\'')) return eat_string(self, '\'', F_STRING);
+                    if(matchchar(self, '"')) return eat_string(self, '"', F_STRING);
+                } else if(c == 'r') {
+                    if(matchchar(self, '\'')) return eat_string(self, '\'', RAW_STRING);
+                    if(matchchar(self, '"')) return eat_string(self, '"', RAW_STRING);
+                } else if(c == 'b') {
+                    if(matchchar(self, '\'')) return eat_string(self, '\'', NORMAL_BYTES);
+                    if(matchchar(self, '"')) return eat_string(self, '"', NORMAL_BYTES);
+                }
+                if(c >= '0' && c <= '9') return eat_number(self);
+                return eat_name(self);
+            }
+        }
+    }
+
+    self->token_start = self->curr_char;
+    while(self->indents.count > 1) {
+        c11_vector__pop(int, &self->indents);
+        add_token(self, TK_DEDENT);
+        return NULL;
+    }
+    add_token(self, TK_EOF);
+    *eof = true;
+    return NULL;
+}
+
+static Error* from_precompiled(pk_Lexer* self) {
+    pk_TokenDeserializer deserializer;
+    pk_TokenDeserializer__ctor(&deserializer, py_Str__data(&self->src->source));
+
+    deserializer.curr += 5;  // skip "pkpy:"
+    c11_string version = pk_TokenDeserializer__read_string(&deserializer, '\n');
+
+    if(c11_string__cmp3(version, PK_VERSION) != 0) {
+        return SyntaxError("precompiled version mismatch");
+    }
+    if(pk_TokenDeserializer__read_uint(&deserializer, '\n') != (int64_t)self->src->mode){
+        return SyntaxError("precompiled mode mismatch");
+    }
+
+    int count = pk_TokenDeserializer__read_count(&deserializer);
+    c11_vector* precompiled_tokens = &self->src->_precompiled_tokens;
+    for(int i = 0; i < count; i++) {
+        c11_string item = pk_TokenDeserializer__read_string(&deserializer, '\n');
+        py_Str copied_item;
+        py_Str__ctor2(&copied_item, item.data, item.size);
+        c11_vector__push(py_Str, precompiled_tokens, copied_item);
+    }
+
+    count = pk_TokenDeserializer__read_count(&deserializer);
+    for(int i = 0; i < count; i++) {
+        Token t;
+        t.type = (TokenIndex)pk_TokenDeserializer__read_uint(&deserializer, ',');
+        if(is_raw_string_used(t.type)) {
+            int64_t index = pk_TokenDeserializer__read_uint(&deserializer, ',');
+            py_Str* p = c11__at(py_Str, precompiled_tokens, index);
+            t.start = py_Str__data(p);
+            t.length = c11__getitem(py_Str, precompiled_tokens, index).size;
+        } else {
+            t.start = NULL;
+            t.length = 0;
+        }
+
+        if(pk_TokenDeserializer__match_char(&deserializer, ',')) {
+            t.line = c11_vector__back(Token, &self->nexts).line;
+        } else {
+            t.line = (int)pk_TokenDeserializer__read_uint(&deserializer, ',');
+        }
+
+        if(pk_TokenDeserializer__match_char(&deserializer, ',')) {
+            t.brackets_level = c11_vector__back(Token, &self->nexts).brackets_level;
+        } else {
+            t.brackets_level = (int)pk_TokenDeserializer__read_uint(&deserializer, ',');
+        }
+
+        char type = (*deserializer.curr++);      // read_char
+        switch(type) {
+            case 'I': {
+                int64_t res = pk_TokenDeserializer__read_uint(&deserializer, '\n');
+                t.value = (TokenValue){0, ._i64 = res};
+            } break;
+            case 'F': {
+                double res = pk_TokenDeserializer__read_float(&deserializer, '\n');
+                t.value = (TokenValue){1, ._f64 = res};
+            } break;
+            case 'S': {
+                py_Str res = pk_TokenDeserializer__read_string_from_hex(&deserializer, '\n');
+                t.value = (TokenValue){2, ._str = res};
+            } break;
+            default:
+                t.value = EmptyTokenValue;
+                break;
+        }
+        c11_vector__push(Token, &self->nexts, t);
+    }
+    return NULL;
+}
+
+IntParsingResult parse_uint(c11_string text, int64_t* out, int base) {
+    *out = 0;
+
+    c11_string prefix = {.data = text.data, .size = PK_MIN(2, text.size)};
+    if(base == -1) {
+        if(c11_string__cmp3(prefix, "0b") == 0)
+            base = 2;
+        else if(c11_string__cmp3(prefix, "0o") == 0)
+            base = 8;
+        else if(c11_string__cmp3(prefix, "0x") == 0)
+            base = 16;
+        else
+            base = 10;
+    }
+
+    if(base == 10) {
+        // 10-base  12334
+        if(text.size == 0) return IntParsing_FAILURE;
+        for(int i = 0; i < text.size; i++) {
+            char c = text.data[i];
+            if(c >= '0' && c <= '9') {
+                *out = (*out * 10) + (c - '0');
+            } else {
+                return IntParsing_FAILURE;
+            }
+        }
+        // "9223372036854775807".__len__() == 19
+        if(text.size > 19) return IntParsing_OVERFLOW;
+        return IntParsing_SUCCESS;
+    } else if(base == 2) {
+        // 2-base   0b101010
+        if(c11_string__cmp3(prefix, "0b") == 0) {
+            // text.remove_prefix(2);
+            text = (c11_string){text.data + 2, text.size - 2};
+        }
+        if(text.size == 0) return IntParsing_FAILURE;
+        for(int i = 0; i < text.size; i++) {
+            char c = text.data[i];
+            if(c == '0' || c == '1') {
+                *out = (*out << 1) | (c - '0');
+            } else {
+                return IntParsing_FAILURE;
+            }
+        }
+        // "111111111111111111111111111111111111111111111111111111111111111".__len__() == 63
+        if(text.size > 63) return IntParsing_OVERFLOW;
+        return IntParsing_SUCCESS;
+    } else if(base == 8) {
+        // 8-base   0o123
+        if(c11_string__cmp3(prefix, "0o") == 0) {
+            // text.remove_prefix(2);
+            text = (c11_string){text.data + 2, text.size - 2};
+        }
+        if(text.size == 0) return IntParsing_FAILURE;
+        for(int i = 0; i < text.size; i++) {
+            char c = text.data[i];
+            if(c >= '0' && c <= '7') {
+                *out = (*out << 3) | (c - '0');
+            } else {
+                return IntParsing_FAILURE;
+            }
+        }
+        // "777777777777777777777".__len__() == 21
+        if(text.size > 21) return IntParsing_OVERFLOW;
+        return IntParsing_SUCCESS;
+    } else if(base == 16) {
+        // 16-base  0x123
+        if(c11_string__cmp3(prefix, "0x") == 0) {
+            // text.remove_prefix(2);
+            text = (c11_string){text.data + 2, text.size - 2};
+        }
+        if(text.size == 0) return IntParsing_FAILURE;
+        for(int i = 0; i < text.size; i++) {
+            char c = text.data[i];
+            if(c >= '0' && c <= '9') {
+                *out = (*out << 4) | (c - '0');
+            } else if(c >= 'a' && c <= 'f') {
+                *out = (*out << 4) | (c - 'a' + 10);
+            } else if(c >= 'A' && c <= 'F') {
+                *out = (*out << 4) | (c - 'A' + 10);
+            } else {
+                return IntParsing_FAILURE;
+            }
+        }
+        // "7fffffffffffffff".__len__() == 16
+        if(text.size > 16) return IntParsing_OVERFLOW;
+        return IntParsing_SUCCESS;
+    }
+    return IntParsing_FAILURE;
+}
+
+Error* pk_Lexer__run(pk_SourceData_ src, c11_array* out_tokens){
+    pk_Lexer lexer;
+    pk_Lexer__ctor(&lexer, src);
+
+    if(src->is_precompiled) {
+        Error* err = from_precompiled(&lexer);
+        // set out tokens
+        pk_Lexer__dtor(&lexer);
+        return err;
+    }
+    // push initial tokens
+    Token sof = {TK_SOF, lexer.token_start, 0, lexer.current_line, lexer.brackets_level, EmptyTokenValue};
+    c11_vector__push(Token, &lexer.nexts, sof);
+    c11_vector__push(int, &lexer.indents, 0);
+
+    bool eof = false;
+    while(!eof) {
+        void* err = lex_one_token(&lexer, &eof);
+        if(err){
+            pk_Lexer__dtor(&lexer);
+            return err;
+        }
+    }
+    // set out_tokens
+    pk_Lexer__dtor(&lexer);
+    return NULL;
+}
+
+Error* pk_Lexer__precompile(pk_SourceData_ src, py_Str* out) {
+    assert(!src->is_precompiled);
+    c11_array/*T=Token*/ nexts;    // output tokens
+    Error* err = pk_Lexer__run(src, &nexts);
+    if(err) return err;
+
+    pk_SStream ss;
+    pk_SStream__ctor(&ss);
+
+    // L1: version string
+    pk_SStream__write_cstr(&ss, "pkpy:" PK_VERSION "\n");
+    // L2: mode
+    pk_SStream__write_int(&ss, (int)src->mode);
+    pk_SStream__write_char(&ss, '\n');
+
+    c11_smallmap_s2n token_indices;
+    c11_smallmap_s2n__ctor(&token_indices);
+
+    c11_vector__foreach(Token, &nexts, token) {
+        if(is_raw_string_used(token->type)) {
+            c11_string token_sv = {token->start, token->length};
+            if(!c11_smallmap_s2n__contains(&token_indices, token_sv)) {
+                c11_smallmap_s2n__set(&token_indices, token_sv, 0);
+            }
+        }
+    }
+    // L3: raw string count
+    pk_SStream__write_char(&ss, '=');
+    pk_SStream__write_int(&ss, token_indices.count);
+    pk_SStream__write_char(&ss, '\n');
+
+    uint16_t index = 0;
+    for(int i=0; i<token_indices.count; i++){
+        c11_smallmap_s2n_KV* kv = c11__at(c11_smallmap_s2n_KV, &token_indices, i);
+        // L4: raw strings
+        pk_SStream__write_cstrn(&ss, kv->key.data, kv->key.size);
+        kv->value = index++;
+    }
+
+    // L5: token count
+    pk_SStream__write_char(&ss, '=');
+    pk_SStream__write_int(&ss, nexts.count);
+    pk_SStream__write_char(&ss, '\n');
+
+    for(int i = 0; i < nexts.count; i++) {
+        const Token* token = c11__at(Token, &nexts, i);
+        pk_SStream__write_int(&ss, (int)token->type);
+        pk_SStream__write_char(&ss, ',');
+
+        if(is_raw_string_used(token->type)) {
+            uint16_t *p = c11_smallmap_s2n__try_get(
+                &token_indices, (c11_string){token->start, token->length});
+            assert(p != NULL);
+            pk_SStream__write_int(&ss, (int)*p);
+            pk_SStream__write_char(&ss, ',');
+        }
+        if(i > 0 && c11__getitem(Token, &nexts, i-1).line == token->line){
+            pk_SStream__write_char(&ss, ',');
+        }else{
+            pk_SStream__write_int(&ss, token->line);
+            pk_SStream__write_char(&ss, ',');
+        }
+            
+        if(i > 0 && c11__getitem(Token, &nexts, i-1).brackets_level == token->brackets_level){
+            pk_SStream__write_char(&ss, ',');
+        }else{
+            pk_SStream__write_int(&ss, token->brackets_level);
+            pk_SStream__write_char(&ss, ',');
+        }
+        // visit token value
+        switch(token->value.index){
+            case 0: break;
+            case 1:
+                pk_SStream__write_char(&ss, 'I');
+                pk_SStream__write_int(&ss, token->value._i64);
+                break;
+            case 2:
+                pk_SStream__write_char(&ss, 'F');
+                pk_SStream__write_float(&ss, token->value._f64, -1);
+                break;
+            case 3: {
+                pk_SStream__write_char(&ss, 'S');
+                c11_string sv = py_Str__sv(&token->value._str);
+                for(int i=0; i<sv.size; i++){
+                    pk_SStream__write_hex(&ss, sv.data[i], false);
+                }
+                break;
+            }
+        }
+        pk_SStream__write_char(&ss, '\n');
+    }
+    *out = pk_SStream__submit(&ss);
+    c11_smallmap_s2n__dtor(&token_indices);
+    return NULL;
 }

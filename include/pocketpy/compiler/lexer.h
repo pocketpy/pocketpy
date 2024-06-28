@@ -78,13 +78,6 @@ enum Precedence {
     PREC_HIGHEST,
 };
 
-enum StringType {
-    NORMAL_STRING,
-    RAW_STRING,
-    F_STRING,
-    NORMAL_BYTES
-};
-
 #define is_raw_string_used(t) ((t) == TK_ID || (t) == TK_LONG)
 
 typedef struct pk_TokenDeserializer {
@@ -100,6 +93,13 @@ int pk_TokenDeserializer__read_count(pk_TokenDeserializer* self);
 int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c);
 double pk_TokenDeserializer__read_float(pk_TokenDeserializer* self, char c);
 
+typedef enum IntParsingResult{
+    IntParsing_SUCCESS,
+    IntParsing_FAILURE,
+    IntParsing_OVERFLOW,
+} IntParsingResult;
+
+IntParsingResult parse_uint(c11_string text, int64_t* out, int base);
 
 #ifdef __cplusplus
 }
