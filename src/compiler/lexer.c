@@ -814,16 +814,16 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out) {
         }
         // visit token value
         switch(token->value.index){
-            case 0: break;
-            case 1:
+            case TokenValue_EMPTY: break;
+            case TokenValue_I64:
                 pk_SStream__write_char(&ss, 'I');
                 pk_SStream__write_int(&ss, token->value._i64);
                 break;
-            case 2:
+            case TokenValue_F64:
                 pk_SStream__write_char(&ss, 'F');
                 pk_SStream__write_float(&ss, token->value._f64, -1);
                 break;
-            case 3: {
+            case TokenValue_STR: {
                 pk_SStream__write_char(&ss, 'S');
                 c11_string sv = py_Str__sv(&token->value._str);
                 for(int i=0; i<sv.size; i++){

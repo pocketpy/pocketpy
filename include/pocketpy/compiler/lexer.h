@@ -35,19 +35,21 @@ typedef enum TokenIndex{
     TK__COUNT__
 } TokenIndex;
 
+enum TokenValueIndex{
+    TokenValue_EMPTY = 0,
+    TokenValue_I64 = 1,
+    TokenValue_F64 = 2,
+    TokenValue_STR = 3,
+};
+
 typedef struct TokenValue {
-    int index;  // 0: empty
+    enum TokenValueIndex index;  // 0: empty
     union {
         int64_t _i64;   // 1
         double _f64;    // 2
         py_Str _str;    // 3
     };
 } TokenValue;
-
-#define TokenValue_EMPTY 0
-#define TokenValue_I64   1
-#define TokenValue_F64   2
-#define TokenValue_STR   3
 
 typedef struct Token {
     TokenIndex type;
