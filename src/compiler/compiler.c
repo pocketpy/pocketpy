@@ -50,9 +50,7 @@ static void pk_Compiler__dtor(pk_Compiler *self){
 #define check_newlines_repl() { bool __nml; match_newlines_repl(self, &__nml); if(__nml) return NeedMoreLines(); }
 #define check(B) if((err = B)) return err
 
-#define match(expected) (curr().type == expected ? (++self->i) : 0)
-
-NameScope name_scope(pk_Compiler* self) {
+static NameScope name_scope(pk_Compiler* self) {
     NameScope s = self->contexts.count > 1 ? NAME_LOCAL : NAME_GLOBAL;
     if(self->src->is_dynamic && s == NAME_GLOBAL) s = NAME_GLOBAL_UNKNOWN;
     return s;
@@ -66,7 +64,15 @@ static Error* NeedMoreLines(){
     return NULL;
 }
 
-bool match_newlines_repl(pk_Compiler* self, bool* need_more_lines){
+/* Matchers */
+static bool is_expression(pk_Compiler* self, bool allow_slice){
+    PrattCallback prefix = rules[curr().type].prefix;
+    return prefix && (allow_slice || curr().type != TK_COLON);
+}
+
+#define match(expected) (curr().type == expected ? (++self->i) : 0)
+
+static bool match_newlines_repl(pk_Compiler* self, bool* need_more_lines){
     bool consumed = false;
     if(curr().type == TK_EOL) {
         while(curr().type == TK_EOL) advance();
@@ -78,30 +84,17 @@ bool match_newlines_repl(pk_Compiler* self, bool* need_more_lines){
     return consumed;
 }
 
-bool is_expression(pk_Compiler* self, bool allow_slice){
-    PrattCallback prefix = rules[curr().type].prefix;
-    return prefix && (allow_slice || curr().type != TK_COLON);
+static bool match_end_stmt(pk_Compiler* self) {
+    if(match(TK_SEMICOLON)) {
+        match_newlines();
+        return true;
+    }
+    if(match_newlines() || curr().type == TK_EOF) return true;
+    if(curr().type == TK_DEDENT) return true;
+    return false;
 }
 
-Error* parse_expression(pk_Compiler* self, int precedence, bool allow_slice){
-    PrattCallback prefix = rules[curr().type].prefix;
-    if(!prefix || (curr().type == TK_COLON && !allow_slice)) {
-        return SyntaxError("expected an expression, got %s", pk_TokenSymbols[curr().type]);
-    }
-    advance();
-    Error* err;
-    check(prefix(self));
-    while(rules[curr().type].precedence >= precedence && (allow_slice || curr().type != TK_COLON)) {
-        TokenIndex op = curr().type;
-        advance();
-        PrattCallback infix = rules[op].infix;
-        assert(infix != NULL);
-        check(infix(self));
-    }
-    return NULL;
-}
-
-// exprs
+/* Expression Callbacks */
 static Error* exprLiteral(pk_Compiler* self);
 static Error* exprLong(pk_Compiler* self);
 static Error* exprImag(pk_Compiler* self);
@@ -125,12 +118,30 @@ static Error* exprSlice1(pk_Compiler* self);
 static Error* exprSubscr(pk_Compiler* self);
 static Error* exprLiteral0(pk_Compiler* self);
 
+/* Expression */
+static Error* parse_expression(pk_Compiler* self, int precedence, bool allow_slice){
+    PrattCallback prefix = rules[curr().type].prefix;
+    if(!prefix || (curr().type == TK_COLON && !allow_slice)) {
+        return SyntaxError("expected an expression, got %s", pk_TokenSymbols[curr().type]);
+    }
+    advance();
+    Error* err;
+    check(prefix(self));
+    while(rules[curr().type].precedence >= precedence && (allow_slice || curr().type != TK_COLON)) {
+        TokenIndex op = curr().type;
+        advance();
+        PrattCallback infix = rules[op].infix;
+        assert(infix != NULL);
+        check(infix(self));
+    }
+    return NULL;
+}
 
-    // [[nodiscard]] Error* EXPR() noexcept{ return parse_expression(PREC_LOWEST + 1); }
-    // [[nodiscard]] Error* EXPR_TUPLE(bool allow_slice = false) noexcept;
-    // [[nodiscard]] Error* EXPR_VARS() noexcept;  // special case for `for loop` and `comp`
+static Error* EXPR(pk_Compiler* self) {
+    return parse_expression(self, PREC_LOWEST + 1, false);
+}
 
-Error* EXPR_TUPLE(pk_Compiler* self, bool allow_slice){
+static Error* EXPR_TUPLE(pk_Compiler* self, bool allow_slice){
     Error* err;
     check(parse_expression(self, PREC_LOWEST + 1, allow_slice));
     if(!match(TK_COMMA)) return NULL;
@@ -147,6 +158,23 @@ Error* EXPR_TUPLE(pk_Compiler* self, bool allow_slice){
     // for(int i=count-1; i>=0; i--)
     //     e->items[i] = ctx()->s_popx();
     // ctx()->s_push(e);
+    return NULL;
+}
+
+// special case for `for loop` and `comp`
+static Error* EXPR_VARS(pk_Compiler* self){
+    int count = 0;
+    do {
+        consume(TK_ID);
+        ctx()->s_push(make_expr<NameExpr>(prev().str(), name_scope()));
+        count += 1;
+    } while(match(TK_COMMA));
+    if(count > 1){
+        TupleExpr* e = make_expr<TupleExpr>(count);
+        for(int i=count-1; i>=0; i--)
+            e->items[i] = ctx()->s_popx();
+        ctx()->s_push(e);
+    }
     return NULL;
 }
 
