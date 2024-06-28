@@ -2,6 +2,7 @@
 #include "pocketpy/compiler/context.h"
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/strname.h"
+#include <ctype.h>
 
 static bool default_false(const pk_Expr* e) { return false; }
 static int default_zero(const pk_Expr* e) { return 0; }
@@ -337,6 +338,262 @@ bool pk_TupleExpr__emit_del(pk_Expr* self_, pk_CodeEmitContext* ctx) {
     return true;
 }
 
+static pk_ExprVt CompExprVt;
+
+void pk_CompExpr__dtor(pk_Expr* self_){
+    pk_CompExpr* self = (pk_CompExpr*)self_;
+    pk_Expr__delete(self->expr);
+    pk_Expr__delete(self->vars);
+    pk_Expr__delete(self->iter);
+    pk_Expr__delete(self->cond);
+}
+
+void pk_CompExpr__emit_(pk_Expr* self_, pk_CodeEmitContext* ctx) {
+    pk_CompExpr* self = (pk_CompExpr*)self_;
+    pk_CodeEmitContext__emit_(ctx, self->op0, 0, self->line);
+    self->iter->vt->emit_(self->iter, ctx);
+    pk_CodeEmitContext__emit_(ctx, OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
+    pk_CodeEmitContext__enter_block(ctx, CodeBlockType_FOR_LOOP);
+    int curr_iblock = ctx->curr_iblock;
+    int for_codei = pk_CodeEmitContext__emit_(ctx, OP_FOR_ITER, curr_iblock, BC_KEEPLINE);
+    bool ok = self->vars->vt->emit_store(self->vars, ctx);
+    // this error occurs in `vars` instead of this line, but...nevermind
+    assert(ok);  // this should raise a SyntaxError, but we just assert it
+    pk_CodeEmitContext__try_merge_for_iter_store(ctx, for_codei);
+    if(self->cond) {
+        self->cond->vt->emit_(self->cond, ctx);
+        int patch = pk_CodeEmitContext__emit_(ctx, OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
+        self->expr->vt->emit_(self->expr, ctx);
+        pk_CodeEmitContext__emit_(ctx, self->op1, BC_NOARG, BC_KEEPLINE);
+        pk_CodeEmitContext__patch_jump(ctx, patch);
+    } else {
+        self->expr->vt->emit_(self->expr, ctx);
+        pk_CodeEmitContext__emit_(ctx, self->op1, BC_NOARG, BC_KEEPLINE);
+    }
+    pk_CodeEmitContext__emit_(ctx, OP_LOOP_CONTINUE, curr_iblock, BC_KEEPLINE);
+    pk_CodeEmitContext__exit_block(ctx);
+}
+
+pk_CompExpr* pk_CompExpr__new(Opcode op0, Opcode op1){
+    static_assert_expr_size(pk_CompExpr);
+    pk_CompExpr* self = PoolExpr_alloc();
+    self->vt = &CompExprVt;
+    self->line = -1;
+    self->op0 = op0;
+    self->op1 = op1;
+    self->expr = NULL;
+    self->vars = NULL;
+    self->iter = NULL;
+    self->cond = NULL;
+    return self;
+}
+
+static pk_ExprVt LambdaExprVt;
+
+pk_LambdaExpr* pk_LambdaExpr__new(int index){
+    static_assert_expr_size(pk_LambdaExpr);
+    pk_LambdaExpr* self = PoolExpr_alloc();
+    self->vt = &LambdaExprVt;
+    self->line = -1;
+    self->index = index;
+    return self;
+}
+
+static void pk_LambdaExpr__emit_(pk_Expr* self_, pk_CodeEmitContext* ctx) {
+    pk_LambdaExpr* self = (pk_LambdaExpr*)self_;
+    pk_CodeEmitContext__emit_(ctx, OP_LOAD_FUNCTION, self->index, self->line);
+}
+
+static pk_ExprVt FStringExprVt;
+
+static bool is_fmt_valid_char(char c) {
+    switch(c) {
+        // clang-format off
+        case '-': case '=': case '*': case '#': case '@': case '!': case '~':
+        case '<': case '>': case '^':
+        case '.': case 'f': case 'd': case 's':
+        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+        return true;
+        default: return false;
+        // clang-format on
+    }
+}
+
+static bool is_identifier(c11_string s) {
+    if(s.size == 0) return false;
+    if(!isalpha(s.data[0]) && s.data[0] != '_') return false;
+    for(int i=0; i<s.size; i++){
+        char c = s.data[i];
+        if(!isalnum(c) && c != '_') return false;
+    }
+    return true;
+}
+
+static void _load_simple_expr(pk_CodeEmitContext* ctx, c11_string expr, int line) {
+    bool repr = false;
+    const char* expr_end = expr.data + expr.size;
+    if(expr.size >= 2 && expr_end[-2] == '!') {
+        switch(expr_end[-1]) {
+            case 'r':
+                repr = true;
+                expr.size -= 2; // expr[:-2]
+                break;
+            case 's':
+                repr = false;
+                expr.size -= 2; // expr[:-2]
+                break;
+            default: break;  // nothing happens
+        }
+    }
+    // name or name.name
+    bool is_fastpath = false;
+    if(is_identifier(expr)) {
+        // ctx->emit_(OP_LOAD_NAME, StrName(expr.sv()).index, line);
+        pk_CodeEmitContext__emit_(
+            ctx,
+            OP_LOAD_NAME,
+            pk_StrName__map2(expr),
+            line
+        );
+        is_fastpath = true;
+    } else {
+        int dot = c11_string__index(expr, '.');
+        if(dot > 0) {
+            // std::string_view a = expr.sv().substr(0, dot);
+            // std::string_view b = expr.sv().substr(dot + 1);
+            c11_string a = {expr.data, dot};    // expr[:dot]
+            c11_string b = {expr.data+(dot+1), expr.size-(dot+1)};  // expr[dot+1:]
+            if(is_identifier(a) && is_identifier(b)) {
+                pk_CodeEmitContext__emit_(ctx, OP_LOAD_NAME, pk_StrName__map2(a), line);
+                pk_CodeEmitContext__emit_(ctx, OP_LOAD_ATTR, pk_StrName__map2(b), line);
+                is_fastpath = true;
+            }
+        }
+    }
+
+    if(!is_fastpath) {
+        int index = pk_CodeEmitContext__add_const_string(ctx, expr);
+        pk_CodeEmitContext__emit_(ctx, OP_FSTRING_EVAL, index, line);
+    }
+
+    if(repr) {
+        pk_CodeEmitContext__emit_(ctx, OP_REPR, BC_NOARG, line);
+    }
+}
+
+static void pk_FStringExpr__emit_(pk_Expr* self_, pk_CodeEmitContext* ctx) {
+    pk_FStringExpr* self = (pk_FStringExpr*)self_;
+    int i = 0;          // left index
+    int j = 0;          // right index
+    int count = 0;      // how many string parts
+    bool flag = false;  // true if we are in a expression
+
+    const char* src = self->src.data;
+    while(j < self->src.size) {
+        if(flag) {
+            if(src[j] == '}') {
+                // add expression
+                c11_string expr = {src+i, j-i}; // src[i:j]
+                // BUG: ':' is not a format specifier in f"{stack[2:]}"
+                int conon = c11_string__index(expr, ':');
+                if(conon >= 0) {
+                    c11_string spec = {expr.data+(conon+1), expr.size-(conon+1)};  // expr[conon+1:]
+                    // filter some invalid spec
+                    bool ok = true;
+                    for(int k = 0; k < spec.size; k++) {
+                        char c = spec.data[k];
+                        if(!is_fmt_valid_char(c)) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if(ok) {
+                        expr.size = conon;  // expr[:conon]
+                        _load_simple_expr(ctx, expr, self->line);
+                        // ctx->emit_(OP_FORMAT_STRING, ctx->add_const_string(spec.sv()), line);
+                        pk_CodeEmitContext__emit_(ctx, OP_FORMAT_STRING, pk_CodeEmitContext__add_const_string(ctx, spec), self->line);
+                    } else {
+                        // ':' is not a spec indicator
+                        _load_simple_expr(ctx, expr, self->line);
+                    }
+                } else {
+                    _load_simple_expr(ctx, expr, self->line);
+                }
+                flag = false;
+                count++;
+            }
+        } else {
+            if(src[j] == '{') {
+                // look at next char
+                if(j + 1 < self->src.size && src[j + 1] == '{') {
+                    // {{ -> {
+                    j++;
+                    pk_CodeEmitContext__emit_(
+                        ctx,
+                        OP_LOAD_CONST,
+                        pk_CodeEmitContext__add_const_string(ctx, (c11_string){"{", 1}),
+                        self->line
+                    );
+                    count++;
+                } else {
+                    // { -> }
+                    flag = true;
+                    i = j + 1;
+                }
+            } else if(src[j] == '}') {
+                // look at next char
+                if(j + 1 < self->src.size && src[j + 1] == '}') {
+                    // }} -> }
+                    j++;
+                    pk_CodeEmitContext__emit_(
+                        ctx,
+                        OP_LOAD_CONST,
+                        pk_CodeEmitContext__add_const_string(ctx, (c11_string){"}", 1}),
+                        self->line
+                    );
+                    count++;
+                } else {
+                    // } -> error
+                    // throw std::runtime_error("f-string: unexpected }");
+                    // just ignore
+                }
+            } else {
+                // literal
+                i = j;
+                while(j < self->src.size && src[j] != '{' && src[j] != '}')
+                    j++;
+                c11_string literal = {src+i, j-i};  // src[i:j]
+                pk_CodeEmitContext__emit_(
+                    ctx,
+                    OP_LOAD_CONST,
+                    pk_CodeEmitContext__add_const_string(ctx, literal),
+                    self->line
+                );
+                count++;
+                continue;  // skip j++
+            }
+        }
+        j++;
+    }
+
+    if(flag) {
+        // literal
+        c11_string literal = {src+i, self->src.size-i}; // src[i:]
+        pk_CodeEmitContext__emit_(ctx, OP_LOAD_CONST, pk_CodeEmitContext__add_const_string(ctx, literal), self->line);
+        count++;
+    }
+    pk_CodeEmitContext__emit_(ctx, OP_BUILD_STRING, count, self->line);
+}
+
+pk_FStringExpr* pk_FStringExpr__new(c11_string src){
+    static_assert_expr_size(pk_FStringExpr);
+    pk_FStringExpr* self = PoolExpr_alloc();
+    self->vt = &FStringExprVt;
+    self->line = -1;
+    self->src = src;
+    return self;
+}
+
 /////////////////////////////////////////////
 void pk_Expr__initialize(){
     pk_ExprVt__ctor(&NameExprVt);
@@ -390,4 +647,17 @@ void pk_Expr__initialize(){
     TupleExprVt.is_tuple = true;
     TupleExprVt.emit_store = pk_TupleExpr__emit_store;
     TupleExprVt.emit_del = pk_TupleExpr__emit_del;
+
+    pk_ExprVt__ctor(&CompExprVt);
+    vt = &CompExprVt;
+    vt->dtor = pk_CompExpr__dtor;
+    vt->emit_ = pk_CompExpr__emit_;
+
+    pk_ExprVt__ctor(&LambdaExprVt);
+    vt = &LambdaExprVt;
+    vt->emit_ = pk_LambdaExpr__emit_;
+
+    pk_ExprVt__ctor(&FStringExprVt);
+    vt = &FStringExprVt;
+    vt->emit_ = pk_FStringExpr__emit_;
 }

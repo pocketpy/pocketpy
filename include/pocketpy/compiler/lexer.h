@@ -63,7 +63,7 @@ typedef struct Token {
 
 // https://docs.python.org/3/reference/expressions.html#operator-precedence
 enum Precedence {
-    PREC_LOWEST,
+    PREC_LOWEST = 0,
     PREC_LAMBDA,       // lambda
     PREC_TERNARY,      // ?:
     PREC_LOGICAL_OR,   // or

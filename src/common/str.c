@@ -252,6 +252,13 @@ int c11_string__cmp3(c11_string self, const char *other){
     return c11_string__cmp2(self, other, strlen(other));
 }
 
+int c11_string__index(c11_string self, char c){
+    for(int i=0; i<self.size; i++){
+        if(self.data[i] == c) return i;
+    }
+    return -1;
+}
+
 int py_Str__cmp(const py_Str *self, const py_Str *other){
     return py_Str__cmp2(self, py_Str__data(other), other->size);
 }

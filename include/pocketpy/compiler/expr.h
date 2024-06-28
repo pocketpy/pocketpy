@@ -97,6 +97,27 @@ typedef struct pk_SequenceExpr{
     Opcode opcode;
 } pk_SequenceExpr;
 
+typedef struct pk_CompExpr{
+    COMMON_HEADER
+    pk_Expr* expr;  // loop expr
+    pk_Expr* vars;  // loop vars
+    pk_Expr* iter;  // loop iter
+    pk_Expr* cond;  // optional if condition
+
+    Opcode op0;
+    Opcode op1;
+} pk_CompExpr;
+
+typedef struct pk_LambdaExpr{
+    COMMON_HEADER
+    int index;
+} pk_LambdaExpr;
+
+typedef struct pk_FStringExpr{
+    COMMON_HEADER
+    c11_string src;
+} pk_FStringExpr;
+
 #ifdef __cplusplus
 }
 #endif

@@ -18,6 +18,7 @@ typedef struct c11_string{
 int c11_string__cmp(c11_string self, c11_string other);
 int c11_string__cmp2(c11_string self, const char* other, int size);
 int c11_string__cmp3(c11_string self, const char* other);
+int c11_string__index(c11_string self, char c);
 
 typedef struct py_Str{
     int size;
