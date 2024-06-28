@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pocketpy/common/str.h"
+#include "pocketpy/common/vector.h"
 #include "pocketpy/objects/sourcedata.h"
 #include <stdint.h>
 
@@ -96,8 +97,11 @@ IntParsingResult parse_uint(c11_string text, int64_t* out, int base);
 
 typedef struct Error Error;
 
-Error* pk_Lexer__process(pk_SourceData_ src, c11_array* out_tokens);
+typedef c11_array pk_TokenArray;
+
+Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens);
 Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out_string);
+void pk_TokenArray__dtor(pk_TokenArray* self);
 
 #ifdef __cplusplus
 }

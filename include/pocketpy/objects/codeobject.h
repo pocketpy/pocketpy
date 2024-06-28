@@ -28,7 +28,7 @@ typedef enum FuncType {
 typedef enum NameScope {
     NAME_LOCAL,
     NAME_GLOBAL,
-    NAME_GLOBAL_UNKNOWN
+    NAME_GLOBAL_UNKNOWN,
 } NameScope;
 
 typedef enum CodeBlockType {
@@ -88,8 +88,8 @@ typedef struct CodeObject {
     int end_line;
 } CodeObject;
 
-CodeObject* CodeObject__new(pk_SourceData_ src, c11_string name);
-void CodeObject__delete(CodeObject* self);
+void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_string name);
+void CodeObject__dtor(CodeObject* self);
 void CodeObject__gc_mark(const CodeObject* self);
 
 typedef struct FuncDeclKwArg{
@@ -100,7 +100,7 @@ typedef struct FuncDeclKwArg{
 
 typedef struct FuncDecl {
     RefCounted rc;
-    CodeObject* code;  // strong ref
+    CodeObject code;    // strong ref
 
     c11_vector/*T=int*/     args;   // indices in co->varnames
     c11_vector/*T=KwArg*/ kwargs;   // indices in co->varnames

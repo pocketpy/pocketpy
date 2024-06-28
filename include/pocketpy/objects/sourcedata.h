@@ -15,6 +15,7 @@ struct pk_SourceData {
     RefCounted rc;
     enum CompileMode mode;
     bool is_precompiled;
+    bool is_dynamic;    // for exec() and eval()
 
     py_Str filename;
     py_Str source;
@@ -25,7 +26,7 @@ struct pk_SourceData {
 
 typedef struct pk_SourceData* pk_SourceData_;
 
-pk_SourceData_ pk_SourceData__rcnew(const char* source, const char* filename, enum CompileMode mode);
+pk_SourceData_ pk_SourceData__rcnew(const char* source, const char* filename, enum CompileMode mode, bool is_dynamic);
 bool pk_SourceData__get_line(const struct pk_SourceData* self, int lineno, const char** st, const char** ed);
 py_Str pk_SourceData__snapshot(const struct pk_SourceData *self, int lineno, const char *cursor, const char *name);
 

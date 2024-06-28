@@ -17,7 +17,7 @@ PrattRule Compiler::rules[TK__COUNT__];
 
 NameScope Compiler::name_scope() const noexcept{
     auto s = contexts.size() > 1 ? NAME_LOCAL : NAME_GLOBAL;
-    if(unknown_global_scope && s == NAME_GLOBAL) s = NAME_GLOBAL_UNKNOWN;
+    if(unknown_global_scope && s == NAME_GLOBAL) s = NAME_UNKNOWN;
     return s;
 }
 
@@ -120,61 +120,6 @@ void Compiler::init_pratt_rules() noexcept{
     static bool initialized = false;
     if(initialized) return;
     initialized = true;
-
-    // clang-format off
-// http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
-#define PK_METHOD(name) &Compiler::name
-#define PK_NO_INFIX nullptr, PREC_LOWEST
-        for(int i = 0; i < TK__COUNT__; i++) rules[i] = { nullptr, PK_NO_INFIX };
-        rules[TK_DOT] =             { nullptr,                  PK_METHOD(exprAttrib),         PREC_PRIMARY };
-        rules[TK_LPAREN] =          { PK_METHOD(exprGroup),     PK_METHOD(exprCall),           PREC_PRIMARY };
-        rules[TK_LBRACKET] =        { PK_METHOD(exprList),      PK_METHOD(exprSubscr),         PREC_PRIMARY };
-        rules[TK_LBRACE] =          { PK_METHOD(exprMap),       PK_NO_INFIX };
-        rules[TK_MOD] =             { nullptr,                  PK_METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK_ADD] =             { nullptr,                  PK_METHOD(exprBinaryOp),       PREC_TERM };
-        rules[TK_SUB] =             { PK_METHOD(exprUnaryOp),   PK_METHOD(exprBinaryOp),       PREC_TERM };
-        rules[TK_MUL] =             { PK_METHOD(exprUnaryOp),   PK_METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK_INVERT] =          { PK_METHOD(exprUnaryOp),   nullptr,                        PREC_UNARY };
-        rules[TK_DIV] =             { nullptr,                  PK_METHOD(exprBinaryOp),        PREC_FACTOR };
-        rules[TK_FLOORDIV] =        { nullptr,                  PK_METHOD(exprBinaryOp),        PREC_FACTOR };
-        rules[TK_POW] =         { PK_METHOD(exprUnaryOp),   PK_METHOD(exprBinaryOp),       PREC_EXPONENT };
-        rules[TK_GT] =          { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_LT] =          { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_EQ] =          { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_NE] =          { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_GE] =          { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_LE] =          { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_IN] =          { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_IS] =          { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_LSHIFT] =      { nullptr,               PK_METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
-        rules[TK_RSHIFT] =      { nullptr,               PK_METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
-        rules[TK_AND] =         { nullptr,               PK_METHOD(exprBinaryOp),       PREC_BITWISE_AND };
-        rules[TK_OR] =          { nullptr,               PK_METHOD(exprBinaryOp),       PREC_BITWISE_OR };
-        rules[TK_XOR] =         { nullptr,               PK_METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
-        rules[TK_DECORATOR] =   { nullptr,               PK_METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK_IF] =          { nullptr,               PK_METHOD(exprTernary),        PREC_TERNARY };
-        rules[TK_NOT_IN] =      { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_IS_NOT] =      { nullptr,               PK_METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK_AND_KW ] =     { nullptr,               PK_METHOD(exprAnd),            PREC_LOGICAL_AND };
-        rules[TK_OR_KW] =       { nullptr,               PK_METHOD(exprOr),             PREC_LOGICAL_OR };
-        rules[TK_NOT_KW] =      { PK_METHOD(exprNot),       nullptr,                    PREC_LOGICAL_NOT };
-        rules[TK_TRUE] =        { PK_METHOD(exprLiteral0),  PK_NO_INFIX };
-        rules[TK_FALSE] =       { PK_METHOD(exprLiteral0),  PK_NO_INFIX };
-        rules[TK_NONE] =        { PK_METHOD(exprLiteral0),  PK_NO_INFIX };
-        rules[TK_DOTDOTDOT] =   { PK_METHOD(exprLiteral0),  PK_NO_INFIX };
-        rules[TK_LAMBDA] =      { PK_METHOD(exprLambda),    PK_NO_INFIX };
-        rules[TK_ID] =          { PK_METHOD(exprName),      PK_NO_INFIX };
-        rules[TK_NUM] =         { PK_METHOD(exprLiteral),   PK_NO_INFIX };
-        rules[TK_STR] =         { PK_METHOD(exprLiteral),   PK_NO_INFIX };
-        rules[TK_FSTR] =        { PK_METHOD(exprFString),   PK_NO_INFIX };
-        rules[TK_LONG] =        { PK_METHOD(exprLong),      PK_NO_INFIX };
-        rules[TK_IMAG] =        { PK_METHOD(exprImag),      PK_NO_INFIX };
-        rules[TK_BYTES] =       { PK_METHOD(exprBytes),     PK_NO_INFIX };
-        rules[TK_COLON] =       { PK_METHOD(exprSlice0),    PK_METHOD(exprSlice1),      PREC_PRIMARY };
-        
-#undef PK_METHOD
-#undef PK_NO_INFIX
-    // clang-format on
 }
 
 bool Compiler::match(TokenIndex expected) noexcept{

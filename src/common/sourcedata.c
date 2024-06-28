@@ -4,10 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-void pk_SourceData__ctor(struct pk_SourceData* self,
+static void pk_SourceData__ctor(struct pk_SourceData* self,
                            const char* source,
                            const char* filename,
-                           enum CompileMode mode) {
+                           enum CompileMode mode,
+                           bool is_dynamic) {
     py_Str__ctor(&self->filename, filename);
     self->mode = mode;
     c11_vector__ctor(&self->line_starts, sizeof(const char*));
@@ -30,7 +31,7 @@ void pk_SourceData__ctor(struct pk_SourceData* self,
     c11_vector__push(const char*, &self->line_starts, source);
 }
 
-void pk_SourceData__dtor(struct pk_SourceData* self) {
+static void pk_SourceData__dtor(struct pk_SourceData* self) {
     py_Str__dtor(&self->filename);
     py_Str__dtor(&self->source);
     c11_vector__dtor(&self->line_starts);
@@ -41,9 +42,9 @@ void pk_SourceData__dtor(struct pk_SourceData* self) {
     c11_vector__dtor(&self->_precompiled_tokens);
 }
 
-pk_SourceData_ pk_SourceData__rcnew(const char* source, const char* filename, enum CompileMode mode) {
+pk_SourceData_ pk_SourceData__rcnew(const char* source, const char* filename, enum CompileMode mode, bool is_dynamic) {
     pk_SourceData_ self = malloc(sizeof(struct pk_SourceData));
-    pk_SourceData__ctor(self, source, filename, mode);
+    pk_SourceData__ctor(self, source, filename, mode, is_dynamic);
     self->rc.count = 1;
     self->rc.dtor = (void(*)(void*))pk_SourceData__dtor;
     return self;

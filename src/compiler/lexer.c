@@ -715,7 +715,7 @@ IntParsingResult parse_uint(c11_string text, int64_t* out, int base) {
     return IntParsing_FAILURE;
 }
 
-Error* pk_Lexer__process(pk_SourceData_ src, c11_array* out_tokens){
+Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens){
     pk_Lexer lexer;
     pk_Lexer__ctor(&lexer, src);
 
@@ -747,7 +747,7 @@ Error* pk_Lexer__process(pk_SourceData_ src, c11_array* out_tokens){
 
 Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out) {
     assert(!src->is_precompiled);
-    c11_array/*T=Token*/ nexts;    // output tokens
+    pk_TokenArray nexts;    // output tokens
     Error* err = pk_Lexer__process(src, &nexts);
     if(err) return err;
 
@@ -841,6 +841,15 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out) {
     return NULL;
 }
 
+void pk_TokenArray__dtor(pk_TokenArray *self){
+    Token* data = self->data;
+    for(int i=0; i<self->count; i++){
+        if(data[i].value.index == TokenValue_STR){
+            py_Str__dtor(&data[i].value._str);
+        }
+    }
+    c11_array__dtor(self);
+}
 
 const char* pk_TokenSymbols[] = {
     "@eof", "@eol", "@sof",

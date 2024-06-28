@@ -10,8 +10,9 @@ pk_VM* pk_current_vm;
 static pk_VM pk_default_vm;
 
 void py_initialize() {
-    Pools_initialize();
+    pk_MemoryPools__initialize();
     pk_StrName__initialize();
+    pk_Compiler__initialize();
     pk_current_vm = &pk_default_vm;
     pk_VM__ctor(&pk_default_vm);
 }
@@ -19,19 +20,20 @@ void py_initialize() {
 void py_finalize() {
     pk_VM__dtor(&pk_default_vm);
     pk_current_vm = NULL;
+    pk_Compiler__finalize();
     pk_StrName__finalize();
-    Pools_finalize();
+    pk_MemoryPools__finalize();
 }
 
 int py_exec(const char* source) {
-    pk_SourceData_ src = pk_SourceData__rcnew(source, "main.py", EXEC_MODE);
-    Error* err = pk_compile(src);
+    pk_SourceData_ src = pk_SourceData__rcnew(source, "main.py", EXEC_MODE, false);
+    CodeObject co;
+    Error* err = pk_compile(src, &co);
     PK_DECREF(src);
     if(err) abort();
 
-    CodeObject* co = NULL;
     pk_VM* vm = pk_current_vm;
-    Frame* frame = Frame__new(co, &vm->main, NULL, vm->stack.sp, vm->stack.sp, co);
+    Frame* frame = Frame__new(&co, &vm->main, NULL, vm->stack.sp, vm->stack.sp, &co);
     pk_VM__push_frame(vm, frame);
     pk_FrameResult res = pk_VM__run_top_frame(vm);
     if(res == RES_ERROR) return vm->last_error->type;

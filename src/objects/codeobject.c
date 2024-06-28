@@ -17,7 +17,7 @@ FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_string name){
     FuncDecl* self = malloc(sizeof(FuncDecl));
     self->rc.count = 1;
     self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
-    self->code = CodeObject__new(src, name);
+    CodeObject__ctor(&self->code, src, name);
 
     c11_vector__ctor(&self->args, sizeof(int));
     c11_vector__ctor(&self->kwargs, sizeof(FuncDeclKwArg));
@@ -34,7 +34,7 @@ FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_string name){
 }
 
 void FuncDecl__dtor(FuncDecl* self){
-    CodeObject__delete(self->code);
+    CodeObject__dtor(&self->code);
     c11_vector__dtor(&self->args);
     c11_vector__dtor(&self->kwargs);
     c11_smallmap_n2i__dtor(&self->kw_to_index);
@@ -46,8 +46,7 @@ void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const PyVar* v
     c11_vector__push(FuncDeclKwArg, &self->kwargs, item);
 }
 
-CodeObject* CodeObject__new(pk_SourceData_ src, c11_string name){
-    CodeObject* self = malloc(sizeof(CodeObject));
+void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_string name){
     self->src = src; PK_INCREF(src);
     py_Str__ctor2(&self->name, name.data, name.size);
 
@@ -69,10 +68,9 @@ CodeObject* CodeObject__new(pk_SourceData_ src, c11_string name){
 
     CodeBlock root_block = {CodeBlockType_NO_BLOCK, -1, 0, -1, -1};
     c11_vector__push(CodeBlock, &self->blocks, root_block);
-    return self;
 }
 
-void CodeObject__delete(CodeObject* self){
+void CodeObject__dtor(CodeObject* self){
     PK_DECREF(self->src);
     py_Str__dtor(&self->name);
     
@@ -92,6 +90,4 @@ void CodeObject__delete(CodeObject* self){
         PK_DECREF(decl);
     }
     c11_vector__dtor(&self->func_decls);
-
-    free(self);
 }

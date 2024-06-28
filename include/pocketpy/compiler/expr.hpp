@@ -53,15 +53,15 @@ struct CodeEmitContext{
     int level;
     vector<StrName> global_names;
 
-    CodeEmitContext(VM* vm, CodeObject* co, int level) : vm(vm), co(co), level(level) {
-        func = NULL;
-        c11_smallmap_s2n__ctor(&_co_consts_string_dedup_map);
-    }
-
     int curr_iblock = 0;
     bool is_compiling_class = false;
 
     c11_smallmap_s2n _co_consts_string_dedup_map;
+
+    CodeEmitContext(VM* vm, CodeObject* co, int level) : vm(vm), co(co), level(level) {
+        func = NULL;
+        c11_smallmap_s2n__ctor(&_co_consts_string_dedup_map);
+    }
 
     int get_loop() const noexcept;
     CodeBlock* enter_block(CodeBlockType type) noexcept;
