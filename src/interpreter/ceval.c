@@ -4,6 +4,10 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
 
+int UnboundLocalError(py_Name name) { return -1; }
+
+int NameError(py_Name name) { return -1; }
+
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
@@ -83,7 +87,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_PRINT_EXPR:
                 if(TOP().type != tp_none_type) {
-                    int err = py_repr(&TOP());
+                    int err = py_repr(&TOP(), NULL);
                     if(err) goto __ERROR;
                     self->_stdout("%s\n", py_tostr(&TOP()));
                     POP();
@@ -91,15 +95,14 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 POP();
                 DISPATCH();
             /*****************************************/
-            case OP_LOAD_CONST: PUSH(c11__getitem(py_TValue, &frame->co->consts, byte.arg)); DISPATCH();
+            case OP_LOAD_CONST:
+                PUSH(c11__getitem(py_TValue, &frame->co->consts, byte.arg));
+                DISPATCH();
             case OP_LOAD_NONE: PUSH(self->None); DISPATCH();
             case OP_LOAD_TRUE: PUSH(self->True); DISPATCH();
             case OP_LOAD_FALSE: PUSH(self->False); DISPATCH();
             /*****************************************/
-            case OP_LOAD_SMALL_INT:
-                py_newint(SP(), (int64_t)(int16_t)byte.arg);
-                SP()++;
-                DISPATCH();
+            case OP_LOAD_SMALL_INT: py_newint(SP()++, (int64_t)(int16_t)byte.arg); DISPATCH();
             /*****************************************/
             case OP_LOAD_ELLIPSIS: PUSH(self->Ellipsis); DISPATCH();
             case OP_LOAD_FUNCTION: {
@@ -119,10 +122,88 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 // PUSH(obj);DISPATCH();
             }
             case OP_LOAD_NULL:
-                py_newnull(SP());
-                SP()++;
+                py_newnull(SP()++);
                 DISPATCH();
-            /*****************************************/
+                /*****************************************/
+            case OP_LOAD_FAST: {
+                PUSH(frame->locals[byte.arg]);
+                if(py_isnull(&TOP())) {
+                    py_Name name = c11__getitem(uint16_t, &frame->co->varnames, byte.arg);
+                    UnboundLocalError(name);
+                    goto __ERROR;
+                }
+                DISPATCH();
+            }
+            case OP_LOAD_NAME: {
+                py_Name name = byte.arg;
+                py_Ref tmp = Frame__f_locals_try_get(frame, name);
+                if(tmp != NULL) {
+                    if(py_isnull(tmp)) {
+                        UnboundLocalError(name);
+                        goto __ERROR;
+                    }
+                    PUSH(*tmp);
+                    DISPATCH();
+                }
+                tmp = Frame__f_closure_try_get(frame, name);
+                if(tmp != NULL) {
+                    PUSH(*tmp);
+                    DISPATCH();
+                }
+                tmp = Frame__f_globals_try_get(frame, name);
+                if(tmp != NULL) {
+                    PUSH(*tmp);
+                    DISPATCH();
+                }
+                tmp = py_getdict(&self->builtins, name);
+                if(tmp != NULL) {
+                    PUSH(*tmp);
+                    DISPATCH();
+                }
+                NameError(name);
+                goto __ERROR;
+            }
+            case OP_LOAD_NONLOCAL: {
+                py_Name name = byte.arg;
+                py_Ref tmp = Frame__f_closure_try_get(frame, name);
+                if(tmp != NULL) {
+                    PUSH(*tmp);
+                    DISPATCH();
+                }
+                tmp = Frame__f_globals_try_get(frame, name);
+                if(tmp != NULL) {
+                    PUSH(*tmp);
+                    DISPATCH();
+                }
+                tmp = py_getdict(&self->builtins, name);
+                if(tmp != NULL) {
+                    PUSH(*tmp);
+                    DISPATCH();
+                }
+                NameError(name);
+                goto __ERROR;
+            }
+            case OP_LOAD_GLOBAL: {
+                py_Name name = byte.arg;
+                py_Ref tmp = Frame__f_globals_try_get(frame, name);
+                if(tmp != NULL) {
+                    PUSH(*tmp);
+                    DISPATCH();
+                }
+                tmp = py_getdict(&self->builtins, name);
+                if(tmp != NULL) {
+                    PUSH(*tmp);
+                    DISPATCH();
+                }
+                NameError(name);
+                goto __ERROR;
+            }
+            case OP_LOAD_ATTR: {
+                int err = py_getattr(&TOP(), byte.arg, &TOP());
+                if(err) goto __ERROR;
+                DISPATCH();
+            }
+
             default: PK_UNREACHABLE();
         }
 

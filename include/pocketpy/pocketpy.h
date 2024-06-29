@@ -12,7 +12,7 @@ typedef py_TValue* py_Ref;
 typedef struct py_Str py_Str;
 typedef int (*py_CFunction)(int argc, py_Ref argv);
 
-typedef struct py_Error{
+typedef struct py_Error {
     py_Type type;
 } py_Error;
 
@@ -30,8 +30,8 @@ void py_finalize();
 
 /// Run a simple source string. Do not change the stack.
 int py_exec(const char*);
-/// Eval a simple expression. If succeed, the result will be pushed onto the stack.
-int py_eval(const char*);
+/// Eval a simple expression.
+int py_eval(const char*, py_Ref out);
 
 /************* Values Creation *************/
 void py_newint(py_Ref, int64_t);
@@ -49,10 +49,20 @@ void py_newtuple(py_Ref, int);
 
 // new style decl-based function
 void py_newfunction(py_Ref out, py_CFunction, const char* sig);
-void py_newfunction2(py_Ref out, py_CFunction, const char* sig, BindType bt, const char* docstring, const py_Ref upvalue);
+void py_newfunction2(py_Ref out,
+                     py_CFunction,
+                     const char* sig,
+                     BindType bt,
+                     const char* docstring,
+                     const py_Ref upvalue);
 // old style argc-based function
 void py_newnativefunc(py_Ref out, py_CFunction, int argc);
-void py_newnativefunc2(py_Ref out, py_CFunction, int argc, BindType bt, const char* docstring, const py_Ref upvalue);
+void py_newnativefunc2(py_Ref out,
+                       py_CFunction,
+                       int argc,
+                       BindType bt,
+                       const char* docstring,
+                       const py_Ref upvalue);
 
 /// Create a new object.
 /// @param out output reference.
@@ -146,8 +156,8 @@ int py_eq(const py_Ref, const py_Ref);
 int py_le(const py_Ref, const py_Ref);
 int py_hash(const py_Ref, int64_t* out);
 
-int py_str(const py_Ref);
-int py_repr(const py_Ref);
+int py_str(const py_Ref, py_Ref out);
+int py_repr(const py_Ref, py_Ref out);
 
 int py_vectorcall(int argc, int kwargc);
 int py_call(py_Ref f, ...);

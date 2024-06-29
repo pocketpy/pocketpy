@@ -71,6 +71,10 @@ PK_INLINE py_TValue* Frame__f_globals_try_get(Frame* self, py_Name name){
     return pk_NameDict__try_get(Frame__f_globals(self), name);
 }
 
+PK_INLINE py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name){
+    return FastLocals__try_get_by_name(self->locals, self->locals_co, name);
+}
+
 py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name);
 
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack*);
