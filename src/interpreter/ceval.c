@@ -83,11 +83,10 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_PRINT_EXPR:
                 if(TOP().type != tp_none_type) {
-                    py_Str out;
-                    int err = py_repr(&TOP(), &out);
+                    int err = py_repr(&TOP());
                     if(err) goto __ERROR;
-                    self->_stdout("%s\n", py_Str__data(&out));
-                    py_Str__dtor(&out);
+                    self->_stdout("%s\n", py_tostr(&TOP()));
+                    POP();
                 }
                 POP();
                 DISPATCH();

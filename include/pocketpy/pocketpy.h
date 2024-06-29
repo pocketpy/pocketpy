@@ -146,6 +146,13 @@ int py_eq(const py_Ref, const py_Ref);
 int py_le(const py_Ref, const py_Ref);
 int py_hash(const py_Ref, int64_t* out);
 
+int py_str(const py_Ref);
+int py_repr(const py_Ref);
+
+int py_vectorcall(int argc, int kwargc);
+int py_call(py_Ref f, ...);
+int py_callmethod(py_Ref self, py_Name name, ...);
+
 #define py_isnull(self) ((self)->type == 0)
 
 /* tuple */
@@ -174,9 +181,6 @@ py_Ref py_dict__getitem(const py_Ref self, const py_Ref key);
 void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val);
 void py_dict__delitem(py_Ref self, const py_Ref key);
 void py_dict__clear(py_Ref self);
-
-int py_str(const py_Ref, py_Str* out);
-int py_repr(const py_Ref, py_Str* out);
 
 #ifdef __cplusplus
 }

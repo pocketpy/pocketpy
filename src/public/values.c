@@ -95,9 +95,9 @@ void py_pushstr(const char* val) { py_newstr(pk_current_vm->stack.sp++, val); }
 
 void py_pushstrn(const char* val, int size) { py_newstrn(pk_current_vm->stack.sp++, val, size); }
 
-void py_push_none() { py_newnone(pk_current_vm->stack.sp++); }
+void py_pushnone() { py_newnone(pk_current_vm->stack.sp++); }
 
-void py_push_null() { py_newnull(pk_current_vm->stack.sp++); }
+void py_pushnull() { py_newnull(pk_current_vm->stack.sp++); }
 
 void py_push_notimplemented() {
     pk_VM* vm = pk_current_vm;
