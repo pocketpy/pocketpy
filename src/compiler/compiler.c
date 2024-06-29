@@ -1,10 +1,1295 @@
 #include "pocketpy/compiler/compiler.h"
 #include "pocketpy/compiler/expr.h"
 #include "pocketpy/compiler/lexer.h"
-#include "pocketpy/compiler/context.h"
+#include <ctype.h>
 
-typedef struct pk_Compiler pk_Compiler;
-typedef Error* (*PrattCallback)(pk_Compiler* self);
+/* expr.h */
+
+typedef struct Expr Expr;
+typedef struct Ctx Ctx;
+
+typedef struct ExprVt {
+    /* emit */
+    void (*emit_)(Expr*, Ctx*);
+    bool (*emit_del)(Expr*, Ctx*);
+    bool (*emit_store)(Expr*, Ctx*);
+    void (*emit_inplace)(Expr*, Ctx*);
+    bool (*emit_istore)(Expr*, Ctx*);
+    /* reflections */
+    bool is_literal;
+    bool is_json_object;
+    bool is_name;       // NameExpr
+    bool is_tuple;      // TupleExpr
+    bool is_attrib;     // AttribExpr
+    bool is_subscr;     // SubscrExpr
+    bool is_starred;    // StarredExpr
+    bool is_binary;     // BinaryExpr
+    void (*dtor)(Expr*);
+} ExprVt;
+
+#define static_assert_expr_size(T) static_assert(sizeof(T) <= kPoolExprBlockSize, "")
+
+#define vtcall(f, self, ctx)        ((self)->vt->f((self), (ctx)))
+#define vtemit_(self, ctx)          vtcall(emit_, (self), (ctx))
+#define vtemit_del(self, ctx)       ((self)->vt->emit_del ? vtcall(emit_del, self, ctx) : false)
+#define vtemit_store(self, ctx)     ((self)->vt->emit_store ? vtcall(emit_store, self, ctx) : false)
+#define vtemit_inplace(self, ctx)   ((self)->vt->emit_inplace ? vtcall(emit_inplace, self, ctx) : vtemit_(self, ctx))
+#define vtemit_istore(self, ctx)    ((self)->vt->emit_istore ? vtcall(emit_istore, self, ctx) : vtemit_store(self, ctx))
+
+#define COMMON_HEADER                                                                              \
+    const ExprVt* vt;                                                                              \
+    int line;
+
+typedef struct Expr {
+    COMMON_HEADER
+} Expr;
+
+static void Expr__delete(Expr* self){
+    if(!self) return;
+    if(self->vt->dtor) self->vt->dtor(self);
+    PoolExpr_dealloc(self);
+}
+
+/* context.h */
+typedef struct Ctx {
+    CodeObject* co;  // 1 CodeEmitContext <=> 1 CodeObject*
+    FuncDecl* func;  // optional, weakref
+    int level;
+    int curr_iblock;
+    bool is_compiling_class;
+    c11_vector /*T=Expr* */ s_expr;
+    c11_vector /*T=StrName*/ global_names;
+    c11_smallmap_s2n co_consts_string_dedup_map;
+} Ctx;
+
+typedef struct Expr Expr;
+
+void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level);
+void Ctx__dtor(Ctx* self);
+
+int Ctx__get_loop(Ctx* self);
+CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type);
+void Ctx__exit_block(Ctx* self);
+int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
+int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line);
+void Ctx__revert_last_emit_(Ctx* self);
+int Ctx__emit_int(Ctx* self, int64_t value, int line);
+void Ctx__patch_jump(Ctx* self, int index);
+bool Ctx__add_label(Ctx* self, StrName name);
+int Ctx__add_varname(Ctx* self, StrName name);
+int Ctx__add_const(Ctx* self, py_Ref);
+int Ctx__add_const_string(Ctx* self, c11_string);
+void Ctx__emit_store_name(Ctx* self, NameScope scope, StrName name, int line);
+void Ctx__try_merge_for_iter_store(Ctx* self, int);
+// emit top -> pop -> delete
+void Ctx__s_emit_top(Ctx*);
+// push
+void Ctx__s_push(Ctx*, Expr*);
+// top
+Expr* Ctx__s_top(Ctx*);
+// size
+int Ctx__s_size(Ctx*);
+// pop -> delete
+void Ctx__s_pop(Ctx*);
+// pop move
+Expr* Ctx__s_popx(Ctx*);
+// clean
+void Ctx__s_clean(Ctx*);
+// emit decorators
+void Ctx__s_emit_decorators(Ctx*, int count);
+
+/* expr.c */
+typedef struct NameExpr {
+    COMMON_HEADER
+    StrName name;
+    NameScope scope;
+} NameExpr;
+
+void NameExpr__emit_(Expr* self_, Ctx* ctx) {
+    NameExpr* self = (NameExpr*)self_;
+    int index = c11_smallmap_n2i__get(&ctx->co->varnames_inv, self->name, -1);
+    if(self->scope == NAME_LOCAL && index >= 0) {
+        Ctx__emit_(ctx, OP_LOAD_FAST, index, self->line);
+    } else {
+        Opcode op = ctx->level <= 1 ? OP_LOAD_GLOBAL : OP_LOAD_NONLOCAL;
+        if(ctx->is_compiling_class && self->scope == NAME_GLOBAL) {
+            // if we are compiling a class, we should use OP_LOAD_ATTR_GLOBAL instead of
+            // OP_LOAD_GLOBAL this supports @property.setter
+            op = OP_LOAD_CLASS_GLOBAL;
+            // exec()/eval() won't work with OP_LOAD_ATTR_GLOBAL in class body
+        } else {
+            // we cannot determine the scope when calling exec()/eval()
+            if(self->scope == NAME_GLOBAL_UNKNOWN) op = OP_LOAD_NAME;
+        }
+        Ctx__emit_(ctx, op, self->name, self->line);
+    }
+}
+
+bool NameExpr__emit_del(Expr* self_, Ctx* ctx) {
+    NameExpr* self = (NameExpr*)self_;
+    switch(self->scope) {
+        case NAME_LOCAL:
+            Ctx__emit_(ctx, OP_DELETE_FAST, Ctx__add_varname(ctx, self->name), self->line);
+            break;
+        case NAME_GLOBAL: Ctx__emit_(ctx, OP_DELETE_GLOBAL, self->name, self->line); break;
+        case NAME_GLOBAL_UNKNOWN: Ctx__emit_(ctx, OP_DELETE_NAME, self->name, self->line); break;
+        default: PK_UNREACHABLE();
+    }
+    return true;
+}
+
+bool NameExpr__emit_store(Expr* self_, Ctx* ctx) {
+    NameExpr* self = (NameExpr*)self_;
+    if(ctx->is_compiling_class) {
+        Ctx__emit_(ctx, OP_STORE_CLASS_ATTR, self->name, self->line);
+        return true;
+    }
+    Ctx__emit_store_name(ctx, self->scope, self->name, self->line);
+    return true;
+}
+
+NameExpr* NameExpr__new(StrName name, NameScope scope) {
+    const static ExprVt Vt = {
+        .emit_ = NameExpr__emit_,
+        .emit_del = NameExpr__emit_del,
+        .emit_store = NameExpr__emit_store,
+        .is_name = true
+    };
+    static_assert_expr_size(NameExpr);
+    NameExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->name = name;
+    self->scope = scope;
+    return self;
+}
+
+typedef struct StarredExpr {
+    COMMON_HEADER
+    Expr* child;
+    int level;
+} StarredExpr;
+
+void StarredExpr__emit_(Expr* self_, Ctx* ctx) {
+    StarredExpr* self = (StarredExpr*)self_;
+    vtemit_(self->child, ctx);
+    Ctx__emit_(ctx, OP_UNARY_STAR, self->level, self->line);
+}
+
+bool StarredExpr__emit_store(Expr* self_, Ctx* ctx) {
+    StarredExpr* self = (StarredExpr*)self_;
+    if(self->level != 1) return false;
+    // simply proxy to child
+    return vtemit_store(self->child, ctx);
+}
+
+StarredExpr* StarredExpr__new(Expr* child, int level){
+    const static ExprVt Vt = {
+        .emit_ = StarredExpr__emit_,
+        .emit_store = StarredExpr__emit_store,
+        .is_starred = true
+    };
+    static_assert_expr_size(StarredExpr);
+    StarredExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->child = child;
+    self->level = level;
+    return self;
+}
+
+// InvertExpr, NotExpr, NegatedExpr
+// NOTE: NegatedExpr always contains a non-const child. Should not generate -1 or -0.1
+typedef struct UnaryExpr {
+    COMMON_HEADER
+    Expr* child;
+    Opcode opcode;
+} UnaryExpr;
+
+void UnaryExpr__dtor(Expr* self_){
+    UnaryExpr* self = (UnaryExpr*)self_;
+    Expr__delete(self->child);
+}
+
+static void UnaryExpr__emit_(Expr* self_, Ctx* ctx) {
+    UnaryExpr* self = (UnaryExpr*)self_;
+    vtemit_(self->child, ctx);
+    Ctx__emit_(ctx, self->opcode, BC_NOARG, self->line);
+}
+
+UnaryExpr* UnaryExpr__new(Expr* child, Opcode opcode){
+    const static ExprVt Vt = {
+        .emit_ = UnaryExpr__emit_,
+        .dtor = UnaryExpr__dtor
+    };
+    static_assert_expr_size(UnaryExpr);
+    UnaryExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->child = child;
+    self->opcode = opcode;
+    return self;
+}
+
+// LongExpr, BytesExpr
+typedef struct RawStringExpr {
+    COMMON_HEADER
+    c11_string value;
+    Opcode opcode;
+} RawStringExpr;
+
+void RawStringExpr__emit_(Expr* self_, Ctx* ctx) {
+    RawStringExpr* self = (RawStringExpr*)self_;
+    int index = Ctx__add_const_string(ctx, self->value);
+    Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
+    Ctx__emit_(ctx, self->opcode, BC_NOARG, self->line);
+}
+
+RawStringExpr* RawStringExpr__new(c11_string value, Opcode opcode){
+    const static ExprVt Vt = {
+        .emit_ = RawStringExpr__emit_
+    };
+    static_assert_expr_size(RawStringExpr);
+    RawStringExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->value = value;
+    self->opcode = opcode;
+    return self;
+}
+
+typedef struct ImagExpr {
+    COMMON_HEADER
+    double value;
+} ImagExpr;
+
+void ImagExpr__emit_(Expr* self_, Ctx* ctx) {
+    ImagExpr* self = (ImagExpr*)self_;
+    PyVar value;
+    py_newfloat(&value, self->value);
+    int index = Ctx__add_const(ctx, &value);
+    Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
+    Ctx__emit_(ctx, OP_BUILD_IMAG, BC_NOARG, self->line);
+}
+
+ImagExpr* ImagExpr__new(double value){
+    const static ExprVt Vt = {
+        .emit_ = ImagExpr__emit_
+    };
+    static_assert_expr_size(ImagExpr);
+    ImagExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->value = value;
+    return self;
+}
+
+typedef struct LiteralExpr {
+    COMMON_HEADER
+    const TokenValue* value;
+} LiteralExpr;
+
+void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
+    LiteralExpr* self = (LiteralExpr*)self_;
+    switch(self->value->index){
+        case TokenValue_I64: {
+            int64_t val = self->value->_i64;
+            Ctx__emit_int(ctx, val, self->line);
+            break;
+        }
+        case TokenValue_F64: {
+            PyVar value;
+            py_newfloat(&value, self->value->_f64);
+            int index = Ctx__add_const(ctx, &value);
+            Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
+            break;
+        }
+        case TokenValue_STR: {
+            c11_string sv = py_Str__sv(&self->value->_str);
+            int index = Ctx__add_const_string(ctx, sv);
+            Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
+            break;
+        }
+        default: PK_UNREACHABLE();
+    }
+}
+
+LiteralExpr* LiteralExpr__new(const TokenValue* value){
+    const static ExprVt Vt = {
+        .emit_ = LiteralExpr__emit_,
+        .is_literal = true,
+        .is_json_object = true
+    };
+    static_assert_expr_size(LiteralExpr);
+    LiteralExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->value = value;
+    return self;
+}
+
+typedef struct SliceExpr {
+    COMMON_HEADER
+    Expr* start;
+    Expr* stop;
+    Expr* step;
+} SliceExpr;
+
+void SliceExpr__dtor(Expr* self_){
+    SliceExpr* self = (SliceExpr*)self_;
+    Expr__delete(self->start);
+    Expr__delete(self->stop);
+    Expr__delete(self->step);
+}
+
+void SliceExpr__emit_(Expr* self_, Ctx* ctx) {
+    SliceExpr* self = (SliceExpr*)self_;
+    if(self->start) vtemit_(self->start, ctx);
+    else Ctx__emit_(ctx, OP_LOAD_NONE, BC_NOARG, self->line);
+    if(self->stop) vtemit_(self->stop, ctx);
+    else Ctx__emit_(ctx, OP_LOAD_NONE, BC_NOARG, self->line);
+    if(self->step) vtemit_(self->step, ctx);
+    else Ctx__emit_(ctx, OP_LOAD_NONE, BC_NOARG, self->line);
+    Ctx__emit_(ctx, OP_BUILD_SLICE, BC_NOARG, self->line);
+}
+
+SliceExpr* SliceExpr__new(){
+    const static ExprVt Vt = {
+        .dtor = SliceExpr__dtor,
+        .emit_ = SliceExpr__emit_
+    };
+    static_assert_expr_size(SliceExpr);
+    SliceExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->start = NULL;
+    self->stop = NULL;
+    self->step = NULL;
+    return self;
+}
+
+// ListExpr, DictExpr, SetExpr, TupleExpr
+typedef struct SequenceExpr {
+    COMMON_HEADER
+    c11_array/*T=Expr* */ items;
+    Opcode opcode;
+} SequenceExpr;
+
+static void SequenceExpr__emit_(Expr* self_, Ctx* ctx) {
+    SequenceExpr* self = (SequenceExpr*)self_;
+    for(int i=0; i<self->items.count; i++){
+        Expr* item = c11__getitem(Expr*, &self->items, i);
+        vtemit_(item, ctx);
+    }
+    Ctx__emit_(ctx, self->opcode, self->items.count, self->line);
+}
+
+void SequenceExpr__dtor(Expr* self_){
+    SequenceExpr* self = (SequenceExpr*)self_;
+    c11__foreach(Expr*, &self->items, e) Expr__delete(*e);
+    c11_array__dtor(&self->items);
+}
+
+bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
+    SequenceExpr* self = (SequenceExpr*)self_;
+    // TOS is an iterable
+    // items may contain StarredExpr, we should check it
+    int starred_i = -1;
+    for(int i = 0; i < self->items.count; i++) {
+        Expr* e = c11__getitem(Expr*, &self->items, i);
+        if(e->vt->is_starred){
+            if(((StarredExpr*)e)->level > 0){
+                if(starred_i == -1) starred_i = i;
+                else return false;  // multiple StarredExpr not allowed
+            }
+        }
+    }
+
+    if(starred_i == -1) {
+        Bytecode* prev = c11__at(Bytecode, &ctx->co->codes, ctx->co->codes.count - 1);
+        if(prev->op == OP_BUILD_TUPLE && prev->arg == self->items.count) {
+            // build tuple and unpack it is meaningless
+            Ctx__revert_last_emit_(ctx);
+        } else {
+            if(prev->op == OP_FOR_ITER) {
+                prev->op = OP_FOR_ITER_UNPACK;
+                prev->arg = self->items.count;
+            } else {
+                Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->items.count, self->line);
+            }
+        }
+    } else {
+        // starred assignment target must be in a tuple
+        if(self->items.count == 1) return false;
+        // starred assignment target must be the last one (differ from cpython)
+        if(starred_i != self->items.count - 1) return false;
+        // a,*b = [1,2,3]
+        // stack is [1,2,3] -> [1,[2,3]]
+        Ctx__emit_(ctx, OP_UNPACK_EX, self->items.count - 1, self->line);
+    }
+    // do reverse emit
+    for(int i = self->items.count - 1; i >= 0; i--) {
+        Expr* e = c11__getitem(Expr*, &self->items, i);
+        bool ok = vtemit_store(e, ctx);
+        if(!ok) return false;
+    }
+    return true;
+}
+
+bool TupleExpr__emit_del(Expr* self_, Ctx* ctx) {
+    SequenceExpr* self = (SequenceExpr*)self_;
+    c11__foreach(Expr*, &self->items, e){
+        bool ok = vtemit_del(*e, ctx);
+        if(!ok) return false;
+    }
+    return true;
+}
+
+static SequenceExpr* SequenceExpr__new(const ExprVt* vt, int count, Opcode opcode){
+    static_assert_expr_size(SequenceExpr);
+    SequenceExpr* self = PoolExpr_alloc();
+    self->vt = vt;
+    self->line = -1;
+    self->opcode = opcode;
+    c11_array__ctor(&self->items, count, sizeof(Expr*));
+    return self;
+}
+
+SequenceExpr* ListExpr__new(int count){
+    const static ExprVt ListExprVt = {
+        .dtor = SequenceExpr__dtor,
+        .emit_ = SequenceExpr__emit_,
+        .is_json_object = true
+    };
+    return SequenceExpr__new(&ListExprVt, count, OP_BUILD_LIST);
+}
+
+SequenceExpr* DictExpr__new(int count){
+    const static ExprVt DictExprVt = {
+        .dtor = SequenceExpr__dtor,
+        .emit_ = SequenceExpr__emit_,
+        .is_json_object = true
+    };
+    return SequenceExpr__new(&DictExprVt, count, OP_BUILD_DICT);
+}
+
+SequenceExpr* SetExpr__new(int count){
+    const static ExprVt SetExprVt = {
+        .dtor = SequenceExpr__dtor,
+        .emit_ = SequenceExpr__emit_,
+    };
+    return SequenceExpr__new(&SetExprVt, count, OP_BUILD_SET);
+}
+
+SequenceExpr* TupleExpr__new(int count){
+    const static ExprVt TupleExprVt = {
+        .dtor = SequenceExpr__dtor,
+        .emit_ = SequenceExpr__emit_,
+        .is_tuple = true,
+        .emit_store = TupleExpr__emit_store,
+        .emit_del = TupleExpr__emit_del
+    };
+    return SequenceExpr__new(&TupleExprVt, count, OP_BUILD_TUPLE);
+}
+
+typedef struct CompExpr {
+    COMMON_HEADER
+    Expr* expr;  // loop expr
+    Expr* vars;  // loop vars
+    Expr* iter;  // loop iter
+    Expr* cond;  // optional if condition
+
+    Opcode op0;
+    Opcode op1;
+} CompExpr;
+
+void CompExpr__dtor(Expr* self_){
+    CompExpr* self = (CompExpr*)self_;
+    Expr__delete(self->expr);
+    Expr__delete(self->vars);
+    Expr__delete(self->iter);
+    Expr__delete(self->cond);
+}
+
+void CompExpr__emit_(Expr* self_, Ctx* ctx) {
+    CompExpr* self = (CompExpr*)self_;
+    Ctx__emit_(ctx, self->op0, 0, self->line);
+    vtemit_(self->iter, ctx);
+    Ctx__emit_(ctx, OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
+    Ctx__enter_block(ctx, CodeBlockType_FOR_LOOP);
+    int curr_iblock = ctx->curr_iblock;
+    int for_codei = Ctx__emit_(ctx, OP_FOR_ITER, curr_iblock, BC_KEEPLINE);
+    bool ok = vtemit_store(self->vars, ctx);
+    // this error occurs in `vars` instead of this line, but...nevermind
+    assert(ok);  // this should raise a SyntaxError, but we just assert it
+    Ctx__try_merge_for_iter_store(ctx, for_codei);
+    if(self->cond) {
+        vtemit_(self->cond, ctx);
+        int patch = Ctx__emit_(ctx, OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
+        vtemit_(self->expr, ctx);
+        Ctx__emit_(ctx, self->op1, BC_NOARG, BC_KEEPLINE);
+        Ctx__patch_jump(ctx, patch);
+    } else {
+        vtemit_(self->expr, ctx);
+        Ctx__emit_(ctx, self->op1, BC_NOARG, BC_KEEPLINE);
+    }
+    Ctx__emit_(ctx, OP_LOOP_CONTINUE, curr_iblock, BC_KEEPLINE);
+    Ctx__exit_block(ctx);
+}
+
+CompExpr* CompExpr__new(Opcode op0, Opcode op1){
+    const static ExprVt Vt = {
+        .dtor = CompExpr__dtor,
+        .emit_ = CompExpr__emit_
+    };
+    static_assert_expr_size(CompExpr);
+    CompExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->op0 = op0;
+    self->op1 = op1;
+    self->expr = NULL;
+    self->vars = NULL;
+    self->iter = NULL;
+    self->cond = NULL;
+    return self;
+}
+
+typedef struct LambdaExpr {
+    COMMON_HEADER
+    int index;
+} LambdaExpr;
+
+static void LambdaExpr__emit_(Expr* self_, Ctx* ctx) {
+    LambdaExpr* self = (LambdaExpr*)self_;
+    Ctx__emit_(ctx, OP_LOAD_FUNCTION, self->index, self->line);
+}
+
+LambdaExpr* LambdaExpr__new(int index){
+    const static ExprVt Vt = {
+        .emit_ = LambdaExpr__emit_
+    };
+    static_assert_expr_size(LambdaExpr);
+    LambdaExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->index = index;
+    return self;
+}
+
+typedef struct FStringExpr {
+    COMMON_HEADER
+    c11_string src;
+} FStringExpr;
+
+static bool is_fmt_valid_char(char c) {
+    switch(c) {
+        // clang-format off
+        case '-': case '=': case '*': case '#': case '@': case '!': case '~':
+        case '<': case '>': case '^':
+        case '.': case 'f': case 'd': case 's':
+        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+        return true;
+        default: return false;
+        // clang-format on
+    }
+}
+
+static bool is_identifier(c11_string s) {
+    if(s.size == 0) return false;
+    if(!isalpha(s.data[0]) && s.data[0] != '_') return false;
+    for(int i=0; i<s.size; i++){
+        char c = s.data[i];
+        if(!isalnum(c) && c != '_') return false;
+    }
+    return true;
+}
+
+static void _load_simple_expr(Ctx* ctx, c11_string expr, int line) {
+    bool repr = false;
+    const char* expr_end = expr.data + expr.size;
+    if(expr.size >= 2 && expr_end[-2] == '!') {
+        switch(expr_end[-1]) {
+            case 'r':
+                repr = true;
+                expr.size -= 2; // expr[:-2]
+                break;
+            case 's':
+                repr = false;
+                expr.size -= 2; // expr[:-2]
+                break;
+            default: break;  // nothing happens
+        }
+    }
+    // name or name.name
+    bool is_fastpath = false;
+    if(is_identifier(expr)) {
+        // ctx->emit_(OP_LOAD_NAME, StrName(expr.sv()).index, line);
+        Ctx__emit_(
+            ctx,
+            OP_LOAD_NAME,
+            pk_StrName__map2(expr),
+            line
+        );
+        is_fastpath = true;
+    } else {
+        int dot = c11_string__index(expr, '.');
+        if(dot > 0) {
+            c11_string a = {expr.data, dot};    // expr[:dot]
+            c11_string b = {expr.data+(dot+1), expr.size-(dot+1)};  // expr[dot+1:]
+            if(is_identifier(a) && is_identifier(b)) {
+                Ctx__emit_(ctx, OP_LOAD_NAME, pk_StrName__map2(a), line);
+                Ctx__emit_(ctx, OP_LOAD_ATTR, pk_StrName__map2(b), line);
+                is_fastpath = true;
+            }
+        }
+    }
+
+    if(!is_fastpath) {
+        int index = Ctx__add_const_string(ctx, expr);
+        Ctx__emit_(ctx, OP_FSTRING_EVAL, index, line);
+    }
+
+    if(repr) {
+        Ctx__emit_(ctx, OP_REPR, BC_NOARG, line);
+    }
+}
+
+static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
+    FStringExpr* self = (FStringExpr*)self_;
+    int i = 0;          // left index
+    int j = 0;          // right index
+    int count = 0;      // how many string parts
+    bool flag = false;  // true if we are in a expression
+
+    const char* src = self->src.data;
+    while(j < self->src.size) {
+        if(flag) {
+            if(src[j] == '}') {
+                // add expression
+                c11_string expr = {src+i, j-i}; // src[i:j]
+                // BUG: ':' is not a format specifier in f"{stack[2:]}"
+                int conon = c11_string__index(expr, ':');
+                if(conon >= 0) {
+                    c11_string spec = {expr.data+(conon+1), expr.size-(conon+1)};  // expr[conon+1:]
+                    // filter some invalid spec
+                    bool ok = true;
+                    for(int k = 0; k < spec.size; k++) {
+                        char c = spec.data[k];
+                        if(!is_fmt_valid_char(c)) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if(ok) {
+                        expr.size = conon;  // expr[:conon]
+                        _load_simple_expr(ctx, expr, self->line);
+                        // ctx->emit_(OP_FORMAT_STRING, ctx->add_const_string(spec.sv()), line);
+                        Ctx__emit_(ctx, OP_FORMAT_STRING, Ctx__add_const_string(ctx, spec), self->line);
+                    } else {
+                        // ':' is not a spec indicator
+                        _load_simple_expr(ctx, expr, self->line);
+                    }
+                } else {
+                    _load_simple_expr(ctx, expr, self->line);
+                }
+                flag = false;
+                count++;
+            }
+        } else {
+            if(src[j] == '{') {
+                // look at next char
+                if(j + 1 < self->src.size && src[j + 1] == '{') {
+                    // {{ -> {
+                    j++;
+                    Ctx__emit_(
+                        ctx,
+                        OP_LOAD_CONST,
+                        Ctx__add_const_string(ctx, (c11_string){"{", 1}),
+                        self->line
+                    );
+                    count++;
+                } else {
+                    // { -> }
+                    flag = true;
+                    i = j + 1;
+                }
+            } else if(src[j] == '}') {
+                // look at next char
+                if(j + 1 < self->src.size && src[j + 1] == '}') {
+                    // }} -> }
+                    j++;
+                    Ctx__emit_(
+                        ctx,
+                        OP_LOAD_CONST,
+                        Ctx__add_const_string(ctx, (c11_string){"}", 1}),
+                        self->line
+                    );
+                    count++;
+                } else {
+                    // } -> error
+                    // throw std::runtime_error("f-string: unexpected }");
+                    // just ignore
+                }
+            } else {
+                // literal
+                i = j;
+                while(j < self->src.size && src[j] != '{' && src[j] != '}')
+                    j++;
+                c11_string literal = {src+i, j-i};  // src[i:j]
+                Ctx__emit_(
+                    ctx,
+                    OP_LOAD_CONST,
+                    Ctx__add_const_string(ctx, literal),
+                    self->line
+                );
+                count++;
+                continue;  // skip j++
+            }
+        }
+        j++;
+    }
+
+    if(flag) {
+        // literal
+        c11_string literal = {src+i, self->src.size-i}; // src[i:]
+        Ctx__emit_(ctx, OP_LOAD_CONST, Ctx__add_const_string(ctx, literal), self->line);
+        count++;
+    }
+    Ctx__emit_(ctx, OP_BUILD_STRING, count, self->line);
+}
+
+FStringExpr* FStringExpr__new(c11_string src){
+    const static ExprVt Vt = {
+        .emit_ = FStringExpr__emit_
+    };
+    static_assert_expr_size(FStringExpr);
+    FStringExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->src = src;
+    return self;
+}
+
+// AndExpr, OrExpr
+typedef struct LogicBinaryExpr {
+    COMMON_HEADER
+    Expr* lhs;
+    Expr* rhs;
+    Opcode opcode;
+} LogicBinaryExpr;
+
+void LogicBinaryExpr__dtor(Expr* self_){
+    LogicBinaryExpr* self = (LogicBinaryExpr*)self_;
+    Expr__delete(self->lhs);
+    Expr__delete(self->rhs);
+}
+
+void LogicBinaryExpr__emit_(Expr* self_, Ctx* ctx) {
+    LogicBinaryExpr* self = (LogicBinaryExpr*)self_;
+    vtemit_(self->lhs, ctx);
+    int patch = Ctx__emit_(ctx, self->opcode, BC_NOARG, self->line);
+    vtemit_(self->rhs, ctx);
+    Ctx__patch_jump(ctx, patch);
+}
+
+LogicBinaryExpr* LogicBinaryExpr__new(Expr* lhs, Expr* rhs, Opcode opcode){
+    const static ExprVt Vt = {
+        .emit_ = LogicBinaryExpr__emit_,
+        .dtor = LogicBinaryExpr__dtor
+    };
+    static_assert_expr_size(LogicBinaryExpr);
+    LogicBinaryExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->lhs = lhs;
+    self->rhs = rhs;
+    self->opcode = opcode;
+    return self;
+}
+
+typedef struct GroupedExpr {
+    COMMON_HEADER
+    Expr* child;
+} GroupedExpr;
+
+void GroupedExpr__dtor(Expr* self_){
+    GroupedExpr* self = (GroupedExpr*)self_;
+    Expr__delete(self->child);
+}
+
+void GroupedExpr__emit_(Expr* self_, Ctx* ctx) {
+    GroupedExpr* self = (GroupedExpr*)self_;
+    vtemit_(self->child, ctx);
+}
+
+bool GroupedExpr__emit_del(Expr* self_, Ctx* ctx) {
+    GroupedExpr* self = (GroupedExpr*)self_;
+    return vtemit_del(self->child, ctx);
+}
+
+bool GroupedExpr__emit_store(Expr* self_, Ctx* ctx) {
+    GroupedExpr* self = (GroupedExpr*)self_;
+    return vtemit_store(self->child, ctx);
+}
+
+GroupedExpr* GroupedExpr__new(Expr* child){
+    const static ExprVt Vt = {
+        .dtor = GroupedExpr__dtor,
+        .emit_ = GroupedExpr__emit_,
+        .emit_del = GroupedExpr__emit_del,
+        .emit_store = GroupedExpr__emit_store
+    };
+    static_assert_expr_size(GroupedExpr);
+    GroupedExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->child = child;
+    return self;
+}
+
+typedef struct BinaryExpr {
+    COMMON_HEADER
+    Expr* lhs;
+    Expr* rhs;
+    TokenIndex op;
+    bool inplace;
+} BinaryExpr;
+
+static void BinaryExpr__dtor(Expr* self_){
+    BinaryExpr* self = (BinaryExpr*)self_;
+    Expr__delete(self->lhs);
+    Expr__delete(self->rhs);
+}
+
+static Opcode cmp_token2op(TokenIndex token){
+    switch(token) {
+        case TK_LT: return OP_COMPARE_LT; break;
+        case TK_LE: return OP_COMPARE_LE; break;
+        case TK_EQ: return OP_COMPARE_EQ; break;
+        case TK_NE: return OP_COMPARE_NE; break;
+        case TK_GT: return OP_COMPARE_GT; break;
+        case TK_GE: return OP_COMPARE_GE; break;
+        default: return OP_NO_OP;   // 0
+    }
+}
+
+#define is_compare_expr(e)  ((e)->vt->is_binary && cmp_token2op(((BinaryExpr*)(e))->op))
+
+static void _emit_compare(BinaryExpr* self, Ctx* ctx, c11_vector* jmps) {
+    if(is_compare_expr(self->lhs)) {
+        _emit_compare((BinaryExpr*)self->lhs, ctx, jmps);
+    } else {
+        vtemit_(self->lhs, ctx);        // [a]
+    }                               
+    vtemit_(self->rhs, ctx);            // [a, b]
+    Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, self->line);       // [a, b, b]
+    Ctx__emit_(ctx, OP_ROT_THREE, BC_NOARG, self->line);     // [b, a, b]
+    Opcode opcode = cmp_token2op(self->op);
+    Ctx__emit_(ctx, opcode, BC_NOARG, self->line);
+    // [b, RES]
+    int index = Ctx__emit_(ctx, OP_JUMP_IF_FALSE_OR_POP, BC_NOARG, self->line);
+    c11_vector__push(int, jmps, index);
+}
+
+static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
+    BinaryExpr* self = (BinaryExpr*)self_;
+    c11_vector/*T=int*/ jmps;
+    c11_vector__ctor(&jmps, sizeof(int));
+    if(cmp_token2op(self->op) && is_compare_expr(self->lhs)) {
+        // (a < b) < c
+        BinaryExpr* e = (BinaryExpr*)self->lhs;
+        _emit_compare(e, ctx, &jmps);
+        // [b, RES]
+    } else {
+        // (1 + 2) < c
+        if(self->inplace) {
+            vtemit_inplace(self->lhs, ctx);
+        } else {
+            vtemit_(self->lhs, ctx);
+        }
+    }
+
+    vtemit_(self->rhs, ctx);
+    Opcode opcode;
+    switch(self->op) {
+        case TK_ADD: opcode = OP_BINARY_ADD; break;
+        case TK_SUB: opcode = OP_BINARY_SUB; break;
+        case TK_MUL: opcode = OP_BINARY_MUL; break;
+        case TK_DIV: opcode = OP_BINARY_TRUEDIV; break;
+        case TK_FLOORDIV: opcode = OP_BINARY_FLOORDIV; break;
+        case TK_MOD: opcode = OP_BINARY_MOD; break;
+        case TK_POW: opcode = OP_BINARY_POW; break;
+
+        case TK_LT: opcode = OP_COMPARE_LT; break;
+        case TK_LE: opcode = OP_COMPARE_LE; break;
+        case TK_EQ: opcode = OP_COMPARE_EQ; break;
+        case TK_NE: opcode = OP_COMPARE_NE; break;
+        case TK_GT: opcode = OP_COMPARE_GT; break;
+        case TK_GE: opcode = OP_COMPARE_GE; break;
+
+        case TK_IN: opcode = OP_IN_OP; break;
+        case TK_NOT_IN: opcode = OP_NOT_IN_OP; break;
+        case TK_IS: opcode = OP_IS_OP; break;
+        case TK_IS_NOT: opcode = OP_IS_NOT_OP; break;
+
+        case TK_LSHIFT: opcode = OP_BITWISE_LSHIFT; break;
+        case TK_RSHIFT: opcode = OP_BITWISE_RSHIFT; break;
+        case TK_AND: opcode = OP_BITWISE_AND; break;
+        case TK_OR: opcode = OP_BITWISE_OR; break;
+        case TK_XOR: opcode = OP_BITWISE_XOR; break;
+
+        case TK_DECORATOR: opcode = OP_BINARY_MATMUL; break;
+        default: assert(false);
+    }
+
+    Ctx__emit_(ctx, opcode, BC_NOARG, self->line);
+
+    c11__foreach(int, &jmps, i) {
+        Ctx__patch_jump(ctx, *i);
+    }
+}
+
+typedef struct TernaryExpr {
+    COMMON_HEADER
+    Expr* cond;
+    Expr* true_expr;
+    Expr* false_expr;
+} TernaryExpr;
+
+void TernaryExpr__dtor(Expr* self_){
+    TernaryExpr* self = (TernaryExpr*)self_;
+    Expr__delete(self->cond);
+    Expr__delete(self->true_expr);
+    Expr__delete(self->false_expr);
+}
+
+void TernaryExpr__emit_(Expr* self_, Ctx* ctx) {
+    TernaryExpr* self = (TernaryExpr*)self_;
+    vtemit_(self->cond, ctx);
+    int patch = Ctx__emit_(ctx, OP_POP_JUMP_IF_FALSE, BC_NOARG, self->cond->line);
+    vtemit_(self->true_expr, ctx);
+    int patch_2 = Ctx__emit_(ctx, OP_JUMP_FORWARD, BC_NOARG, self->true_expr->line);
+    Ctx__patch_jump(ctx, patch);
+    vtemit_(self->false_expr, ctx);
+    Ctx__patch_jump(ctx, patch_2);
+}
+
+TernaryExpr* TernaryExpr__new(){
+    const static ExprVt Vt = {
+        .dtor = TernaryExpr__dtor,
+        .emit_ = TernaryExpr__emit_
+    };
+    static_assert_expr_size(TernaryExpr);
+    TernaryExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->cond = NULL;
+    self->true_expr = NULL;
+    self->false_expr = NULL;
+    return self;
+}
+
+typedef struct SubscrExpr {
+    COMMON_HEADER
+    Expr* lhs;
+    Expr* rhs;
+} SubscrExpr;
+
+void SubscrExpr__dtor(Expr* self_){
+    SubscrExpr* self = (SubscrExpr*)self_;
+    Expr__delete(self->lhs);
+    Expr__delete(self->rhs);
+}
+
+void SubscrExpr__emit_(Expr* self_, Ctx* ctx) {
+    SubscrExpr* self = (SubscrExpr*)self_;
+    vtemit_(self->lhs, ctx);
+    vtemit_(self->rhs, ctx);
+    Bytecode last_bc = c11_vector__back(Bytecode, &ctx->co->codes);
+    if(self->rhs->vt->is_name && last_bc.op == OP_LOAD_FAST) {
+        Ctx__revert_last_emit_(ctx);
+        Ctx__emit_(ctx, OP_LOAD_SUBSCR_FAST, last_bc.arg, self->line);
+    } else {
+        Ctx__emit_(ctx, OP_LOAD_SUBSCR, BC_NOARG, self->line);
+    }
+}
+
+bool SubscrExpr__emit_store(Expr* self_, Ctx* ctx) {
+    SubscrExpr* self = (SubscrExpr*)self_;
+    vtemit_(self->lhs, ctx);
+    vtemit_(self->rhs, ctx);
+    Bytecode last_bc = c11_vector__back(Bytecode, &ctx->co->codes);
+    if(self->rhs->vt->is_name && last_bc.op == OP_LOAD_FAST) {
+        Ctx__revert_last_emit_(ctx);
+        Ctx__emit_(ctx, OP_STORE_SUBSCR_FAST, last_bc.arg, self->line);
+    } else {
+        Ctx__emit_(ctx, OP_STORE_SUBSCR, BC_NOARG, self->line);
+    }
+    return true;
+}
+
+void SubscrExpr__emit_inplace(Expr* self_, Ctx* ctx) {
+    SubscrExpr* self = (SubscrExpr*)self_;
+    vtemit_(self->lhs, ctx);
+    vtemit_(self->rhs, ctx);
+    Ctx__emit_(ctx, OP_DUP_TOP_TWO, BC_NOARG, self->line);
+    Ctx__emit_(ctx, OP_LOAD_SUBSCR, BC_NOARG, self->line);
+}
+
+bool SubscrExpr__emit_istore(Expr* self_, Ctx* ctx) {
+    SubscrExpr* self = (SubscrExpr*)self_;
+    // [a, b, val] -> [val, a, b]
+    Ctx__emit_(ctx, OP_ROT_THREE, BC_NOARG, self->line);
+    Ctx__emit_(ctx, OP_STORE_SUBSCR, BC_NOARG, self->line);
+    return true;
+}
+
+bool SubscrExpr__emit_del(Expr* self_, Ctx* ctx) {
+    SubscrExpr* self = (SubscrExpr*)self_;
+    vtemit_(self->lhs, ctx);
+    vtemit_(self->rhs, ctx);
+    Ctx__emit_(ctx, OP_DELETE_SUBSCR, BC_NOARG, self->line);
+    return true;
+}
+
+SubscrExpr* SubscrExpr__new(Expr* lhs, Expr* rhs){
+    const static ExprVt Vt = {
+        .dtor = SubscrExpr__dtor,
+        .emit_ = SubscrExpr__emit_,
+        .emit_store = SubscrExpr__emit_store,
+        .emit_inplace = SubscrExpr__emit_inplace,
+        .emit_istore = SubscrExpr__emit_istore,
+        .emit_del = SubscrExpr__emit_del,
+        .is_subscr = true,
+    };
+    static_assert_expr_size(SubscrExpr);
+    SubscrExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->lhs = lhs;
+    self->rhs = rhs;
+    return self;
+}
+
+typedef struct AttribExpr {
+    COMMON_HEADER
+    Expr* child;
+    StrName name;
+} AttribExpr;
+
+void AttribExpr__emit_(Expr* self_, Ctx* ctx) {
+    AttribExpr* self = (AttribExpr*)self_;
+    vtemit_(self->child, ctx);
+    Ctx__emit_(ctx, OP_LOAD_ATTR, self->name, self->line);
+}
+
+bool AttribExpr__emit_del(Expr* self_, Ctx* ctx) {
+    AttribExpr* self = (AttribExpr*)self_;
+    vtemit_(self->child, ctx);
+    Ctx__emit_(ctx, OP_DELETE_ATTR, self->name, self->line);
+    return true;
+}
+
+bool AttribExpr__emit_store(Expr* self_, Ctx* ctx) {
+    AttribExpr* self = (AttribExpr*)self_;
+    vtemit_(self->child, ctx);
+    Ctx__emit_(ctx, OP_STORE_ATTR, BC_NOARG, self->line);
+    return true;
+}
+
+void AttribExpr__emit_inplace(Expr* self_, Ctx* ctx) {
+    AttribExpr* self = (AttribExpr*)self_;
+    vtemit_(self->child, ctx);
+    Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, self->line);
+    Ctx__emit_(ctx, OP_LOAD_ATTR, self->name, self->line);
+}
+
+bool AttribExpr__emit_istore(Expr* self_, Ctx* ctx) {
+    // [a, val] -> [val, a]
+    AttribExpr* self = (AttribExpr*)self_;
+    Ctx__emit_(ctx, OP_ROT_TWO, BC_NOARG, self->line);
+    Ctx__emit_(ctx, OP_STORE_ATTR, self->name, self->line);
+    return true;
+}
+
+AttribExpr* AttribExpr__new(Expr* child, StrName name){
+    const static ExprVt Vt = {
+        .emit_ = AttribExpr__emit_,
+        .emit_del = AttribExpr__emit_del,
+        .emit_store = AttribExpr__emit_store,
+        .emit_inplace = AttribExpr__emit_inplace,
+        .emit_istore = AttribExpr__emit_istore,
+        .is_attrib = true
+    };
+    static_assert_expr_size(AttribExpr);
+    AttribExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->child = child;
+    self->name = name;
+    return self;
+}
+
+typedef struct CallExprKwArg{
+    StrName key;
+    Expr* val;
+} CallExprKwArg;
+
+typedef struct CallExpr {
+    COMMON_HEADER
+    Expr* callable;
+    c11_vector/*T=Expr* */ args;
+    // **a will be interpreted as a special keyword argument: {"**": a}
+    c11_vector/*T=CallExprKwArg */ kwargs;
+} CallExpr;
+
+void CallExpr__dtor(Expr* self_){
+    CallExpr* self = (CallExpr*)self_;
+    Expr__delete(self->callable);
+    c11__foreach(Expr*, &self->args, e) Expr__delete(*e);
+    c11__foreach(CallExprKwArg, &self->kwargs, e) Expr__delete(e->val);
+    c11_vector__dtor(&self->args);
+    c11_vector__dtor(&self->kwargs);
+}
+
+void CallExpr__emit_(Expr* self_, Ctx* ctx) {
+    CallExpr* self = (CallExpr*)self_;
+
+    bool vargs = false;
+    bool vkwargs = false;
+    c11__foreach(Expr*, &self->args, e){
+        if((*e)->vt->is_starred) vargs = true;
+    }
+    c11__foreach(CallExprKwArg, &self->kwargs, e){
+        if(e->val->vt->is_starred) vkwargs = true;
+    }
+
+    // if callable is a AttrExpr, we should try to use `fast_call` instead of use `boundmethod` proxy
+    if(self->callable->vt->is_attrib) {
+        AttribExpr* p = (AttribExpr*)self->callable;
+        vtemit_(p->child, ctx);
+        Ctx__emit_(ctx, OP_LOAD_METHOD, p->name, p->line);
+    } else {
+        vtemit_(self->callable, ctx);
+        Ctx__emit_(ctx, OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
+    }
+
+    c11__foreach(Expr*, &self->args, e){
+        vtemit_(*e, ctx);
+    }
+
+    if(vargs || vkwargs) {
+        Ctx__emit_(ctx, OP_BUILD_TUPLE_UNPACK, (uint16_t)self->args.count, self->line);
+
+        if(self->kwargs.count != 0) {
+            c11__foreach(CallExprKwArg, &self->kwargs, e){
+                if(e->val->vt->is_starred) {
+                    // **kwargs
+                    StarredExpr* se = (StarredExpr*)e->val;
+                    assert(se->level == 2);
+                    vtemit_(e->val, ctx);
+                } else {
+                    // k=v
+                    int index = Ctx__add_const_string(ctx, pk_StrName__rmap2(e->key));
+                    Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
+                    vtemit_(e->val, ctx);
+                    Ctx__emit_(ctx, OP_BUILD_TUPLE, 2, self->line);
+                }
+            }
+            Ctx__emit_(ctx, OP_BUILD_DICT_UNPACK, self->kwargs.count, self->line);
+            Ctx__emit_(ctx, OP_CALL_TP, 1, self->line);
+        } else {
+            Ctx__emit_(ctx, OP_CALL_TP, 0, self->line);
+        }
+    } else {
+        // vectorcall protocol
+        c11__foreach(CallExprKwArg, &self->kwargs, e){
+            Ctx__emit_int(ctx, e->key, self->line);
+            vtemit_(e->val, ctx);
+        }
+        int KWARGC = self->kwargs.count;
+        int ARGC = self->args.count;
+        Ctx__emit_(ctx, OP_CALL, (KWARGC << 8) | ARGC, self->line);
+    }
+}
+
+CallExpr* CallExpr__new(Expr* callable){
+    const static ExprVt Vt = {
+        .dtor = CallExpr__dtor,
+        .emit_ = CallExpr__emit_
+    };
+    static_assert_expr_size(CallExpr);
+    CallExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = -1;
+    self->callable = callable;
+    c11_vector__ctor(&self->args, sizeof(Expr*));
+    c11_vector__ctor(&self->kwargs, sizeof(CallExprKwArg));
+    return self;
+}
+
+/* context.c */
+void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level){
+    self->co = co;
+    self->func = func;
+    self->level = level;
+    self->curr_iblock = 0;
+    self->is_compiling_class = false;
+    c11_vector__ctor(&self->s_expr, sizeof(Expr*));
+    c11_vector__ctor(&self->global_names, sizeof(StrName));
+    c11_smallmap_s2n__ctor(&self->co_consts_string_dedup_map);
+}
+
+void Ctx__dtor(Ctx* self){
+    c11_vector__dtor(&self->s_expr);
+    c11_vector__dtor(&self->global_names);
+    c11_smallmap_s2n__dtor(&self->co_consts_string_dedup_map);
+}
+
+// emit top -> pop -> delete
+void Ctx__s_emit_top(Ctx* self) {
+    Expr* top = c11_vector__back(Expr*, &self->s_expr);
+    top->vt->emit_(top, self);
+    c11_vector__pop(&self->s_expr);
+    Expr__delete(top);
+}
+// push
+void Ctx__s_push(Ctx* self, Expr* expr) {
+    c11_vector__push(Expr*, &self->s_expr, expr);
+}
+// top
+Expr* Ctx__s_top(Ctx* self){
+    return c11_vector__back(Expr*, &self->s_expr);
+}
+// size
+int Ctx__s_size(Ctx* self) {
+    return self->s_expr.count;
+}
+// pop -> delete
+void Ctx__s_pop(Ctx* self){
+    Expr__delete(c11_vector__back(Expr*, &self->s_expr));
+    c11_vector__pop(&self->s_expr);
+}
+// pop move
+Expr* Ctx__s_popx(Ctx* self){
+    Expr* e = c11_vector__back(Expr*, &self->s_expr);
+    c11_vector__pop(&self->s_expr);
+    return e;
+}
+// clean
+void Ctx__s_clean(Ctx* self){
+    c11_smallmap_s2n__dtor(&self->co_consts_string_dedup_map);  // ??
+    for(int i=0; i<self->s_expr.count; i++){
+        Expr__delete(c11__getitem(Expr*, &self->s_expr, i));
+    }
+    c11_vector__clear(&self->s_expr);
+}
+
+/* compiler.c */
+
+typedef struct Compiler Compiler;
+typedef Error* (*PrattCallback)(Compiler* self);
 
 typedef struct PrattRule {
     PrattCallback prefix;
@@ -14,78 +1299,84 @@ typedef struct PrattRule {
 
 const static PrattRule rules[TK__COUNT__];
 
-typedef struct pk_Compiler {
-    pk_SourceData_ src;         // weakref
+typedef struct Compiler {
+    pk_SourceData_ src;  // weakref
     pk_TokenArray tokens;
     int i;
-    c11_vector/*T=CodeEmitContext*/ contexts;
-} pk_Compiler;
+    c11_vector /*T=CodeEmitContext*/ contexts;
+} Compiler;
 
-static void pk_Compiler__ctor(pk_Compiler *self, pk_SourceData_ src, pk_TokenArray tokens){
+static void Compiler__ctor(Compiler* self, pk_SourceData_ src, pk_TokenArray tokens) {
     self->src = src;
     self->tokens = tokens;
     self->i = 0;
-    c11_vector__ctor(&self->contexts, sizeof(pk_CodeEmitContext));
+    c11_vector__ctor(&self->contexts, sizeof(Ctx));
 }
 
-static void pk_Compiler__dtor(pk_Compiler *self){
+static void Compiler__dtor(Compiler* self) {
     pk_TokenArray__dtor(&self->tokens);
     c11_vector__dtor(&self->contexts);
 }
 
 /**************************************/
-#define tk(i)       c11__getitem(Token, &self->tokens, i)
-#define prev()      tk(self->i - 1)
-#define curr()      tk(self->i)
-#define next()      tk(self->i + 1)
-#define err()       (self->i == self->tokens.count ? prev() : curr())
+#define tk(i) c11__getitem(Token, &self->tokens, i)
+#define prev() tk(self->i - 1)
+#define curr() tk(self->i)
+#define next() tk(self->i + 1)
+#define err() (self->i == self->tokens.count ? prev() : curr())
 
-#define advance()   self->i++
-#define mode()      self->src->mode
-#define ctx()       c11_vector__back(pk_CodeEmitContext, &self->contexts)
+#define advance() self->i++
+#define mode() self->src->mode
+#define ctx() c11_vector__back(Ctx, &self->contexts)
 
 #define match_newlines() match_newlines_repl(self, NULL)
 
-#define consume(expected) if(!match(expected)) return SyntaxError("expected '%s', got '%s'", pk_TokenSymbols[expected], pk_TokenSymbols[curr().type]);
-#define consume_end_stmt() if(!match_end_stmt()) return SyntaxError("expected statement end")
-#define check_newlines_repl() { bool __nml; match_newlines_repl(self, &__nml); if(__nml) return NeedMoreLines(); }
-#define check(B) if((err = B)) return err
+#define consume(expected)                                                                          \
+    if(!match(expected))                                                                           \
+        return SyntaxError("expected '%s', got '%s'",                                              \
+                           TokenSymbols[expected],                                                 \
+                           TokenSymbols[curr().type]);
+#define consume_end_stmt()                                                                         \
+    if(!match_end_stmt()) return SyntaxError("expected statement end")
+#define check_newlines_repl()                                                                      \
+    {                                                                                              \
+        bool __nml;                                                                                \
+        match_newlines_repl(self, &__nml);                                                         \
+        if(__nml) return NeedMoreLines();                                                          \
+    }
+#define check(B)                                                                                   \
+    if((err = B)) return err
 
-static NameScope name_scope(pk_Compiler* self) {
+static NameScope name_scope(Compiler* self) {
     NameScope s = self->contexts.count > 1 ? NAME_LOCAL : NAME_GLOBAL;
     if(self->src->is_dynamic && s == NAME_GLOBAL) s = NAME_GLOBAL_UNKNOWN;
     return s;
 }
 
-static Error* SyntaxError(const char* fmt, ...){
-    return NULL;
-}
+static Error* SyntaxError(const char* fmt, ...) { return NULL; }
 
-static Error* NeedMoreLines(){
-    return NULL;
-}
+static Error* NeedMoreLines() { return NULL; }
 
 /* Matchers */
-static bool is_expression(pk_Compiler* self, bool allow_slice){
+static bool is_expression(Compiler* self, bool allow_slice) {
     PrattCallback prefix = rules[curr().type].prefix;
     return prefix && (allow_slice || curr().type != TK_COLON);
 }
 
 #define match(expected) (curr().type == expected ? (++self->i) : 0)
 
-static bool match_newlines_repl(pk_Compiler* self, bool* need_more_lines){
+static bool match_newlines_repl(Compiler* self, bool* need_more_lines) {
     bool consumed = false;
     if(curr().type == TK_EOL) {
-        while(curr().type == TK_EOL) advance();
+        while(curr().type == TK_EOL)
+            advance();
         consumed = true;
     }
-    if(need_more_lines) {
-        *need_more_lines = (mode() == REPL_MODE && curr().type == TK_EOF);
-    }
+    if(need_more_lines) { *need_more_lines = (mode() == REPL_MODE && curr().type == TK_EOF); }
     return consumed;
 }
 
-static bool match_end_stmt(pk_Compiler* self) {
+static bool match_end_stmt(Compiler* self) {
     if(match(TK_SEMICOLON)) {
         match_newlines();
         return true;
@@ -96,31 +1387,31 @@ static bool match_end_stmt(pk_Compiler* self) {
 }
 
 /* Expression Callbacks */
-static Error* exprLiteral(pk_Compiler* self);
-static Error* exprLong(pk_Compiler* self);
-static Error* exprImag(pk_Compiler* self);
-static Error* exprBytes(pk_Compiler* self);
-static Error* exprFString(pk_Compiler* self);
-static Error* exprLambda(pk_Compiler* self);
-static Error* exprOr(pk_Compiler* self);
-static Error* exprAnd(pk_Compiler* self);
-static Error* exprTernary(pk_Compiler* self);
-static Error* exprBinaryOp(pk_Compiler* self);
-static Error* exprNot(pk_Compiler* self);
-static Error* exprUnaryOp(pk_Compiler* self);
-static Error* exprGroup(pk_Compiler* self);
-static Error* exprList(pk_Compiler* self);
-static Error* exprMap(pk_Compiler* self);
-static Error* exprCall(pk_Compiler* self);
-static Error* exprName(pk_Compiler* self);
-static Error* exprAttrib(pk_Compiler* self);
-static Error* exprSlice0(pk_Compiler* self);
-static Error* exprSlice1(pk_Compiler* self);
-static Error* exprSubscr(pk_Compiler* self);
-static Error* exprLiteral0(pk_Compiler* self);
+static Error* exprLiteral(Compiler* self);
+static Error* exprLong(Compiler* self);
+static Error* exprImag(Compiler* self);
+static Error* exprBytes(Compiler* self);
+static Error* exprFString(Compiler* self);
+static Error* exprLambda(Compiler* self);
+static Error* exprOr(Compiler* self);
+static Error* exprAnd(Compiler* self);
+static Error* exprTernary(Compiler* self);
+static Error* exprBinaryOp(Compiler* self);
+static Error* exprNot(Compiler* self);
+static Error* exprUnaryOp(Compiler* self);
+static Error* exprGroup(Compiler* self);
+static Error* exprList(Compiler* self);
+static Error* exprMap(Compiler* self);
+static Error* exprCall(Compiler* self);
+static Error* exprName(Compiler* self);
+static Error* exprAttrib(Compiler* self);
+static Error* exprSlice0(Compiler* self);
+static Error* exprSlice1(Compiler* self);
+static Error* exprSubscr(Compiler* self);
+static Error* exprLiteral0(Compiler* self);
 
 /* Expression */
-static Error* parse_expression(pk_Compiler* self, int precedence, bool allow_slice){
+static Error* parse_expression(Compiler* self, int precedence, bool allow_slice) {
     PrattCallback prefix = rules[curr().type].prefix;
     if(!prefix || (curr().type == TK_COLON && !allow_slice)) {
         return SyntaxError("expected an expression, got %s", pk_TokenSymbols[curr().type]);
@@ -138,19 +1429,16 @@ static Error* parse_expression(pk_Compiler* self, int precedence, bool allow_sli
     return NULL;
 }
 
-static Error* EXPR(pk_Compiler* self) {
-    return parse_expression(self, PREC_LOWEST + 1, false);
-}
+static Error* EXPR(Compiler* self) { return parse_expression(self, PREC_LOWEST + 1, false); }
 
-static Error* EXPR_TUPLE(pk_Compiler* self, bool allow_slice){
+static Error* EXPR_TUPLE(Compiler* self, bool allow_slice) {
     Error* err;
     check(parse_expression(self, PREC_LOWEST + 1, allow_slice));
     if(!match(TK_COMMA)) return NULL;
     // tuple expression
     int count = 1;
     do {
-        if(curr().brackets_level) check_newlines_repl()
-        if(!is_expression(self, allow_slice)) break;
+        if(curr().brackets_level) check_newlines_repl() if(!is_expression(self, allow_slice)) break;
         check(parse_expression(self, PREC_LOWEST + 1, allow_slice));
         count += 1;
         if(curr().brackets_level) check_newlines_repl();
@@ -163,7 +1451,7 @@ static Error* EXPR_TUPLE(pk_Compiler* self, bool allow_slice){
 }
 
 // special case for `for loop` and `comp`
-static Error* EXPR_VARS(pk_Compiler* self){
+static Error* EXPR_VARS(Compiler* self) {
     // int count = 0;
     // do {
     //     consume(TK_ID);
@@ -179,13 +1467,13 @@ static Error* EXPR_VARS(pk_Compiler* self){
     return NULL;
 }
 
-static void setup_global_context(pk_Compiler* self, CodeObject* co){
+static void setup_global_context(Compiler* self, CodeObject* co) {
     co->start_line = self->i == 0 ? 1 : prev().line;
-    pk_CodeEmitContext* ctx = c11_vector__emplace(&self->contexts);
-    pk_CodeEmitContext__ctor(ctx, co, NULL, self->contexts.count);
+    Ctx* ctx = c11_vector__emplace(&self->contexts);
+    Ctx__ctor(ctx, co, NULL, self->contexts.count);
 }
 
-Error* pk_Compiler__compile(pk_Compiler* self, CodeObject* out){
+Error* Compiler__compile(Compiler* self, CodeObject* out) {
     // make sure it is the first time to compile
     assert(self->i == 0);
     // make sure the first token is @sof
@@ -193,8 +1481,8 @@ Error* pk_Compiler__compile(pk_Compiler* self, CodeObject* out){
 
     setup_global_context(self, out);
 
-    advance();              // skip @sof, so prev() is always valid
-    match_newlines();       // skip possible leading '\n'
+    advance();         // skip @sof, so prev() is always valid
+    match_newlines();  // skip possible leading '\n'
 
     Error* err;
     // if(mode() == EVAL_MODE) {
@@ -225,9 +1513,7 @@ Error* pk_Compiler__compile(pk_Compiler* self, CodeObject* out){
     return NULL;
 }
 
-
-
-Error* pk_compile(pk_SourceData_ src, CodeObject* out){
+Error* compile(pk_SourceData_ src, CodeObject* out) {
     pk_TokenArray tokens;
     Error* err = pk_Lexer__process(src, &tokens);
     if(err) return err;
@@ -238,21 +1524,21 @@ Error* pk_compile(pk_SourceData_ src, CodeObject* out){
     //     Token* t = data + i;
     //     py_Str tmp;
     //     py_Str__ctor2(&tmp, t->start, t->length);
-    //     printf("[%d] %s: %s\n", t->line, pk_TokenSymbols[t->type], py_Str__data(&tmp));
+    //     printf("[%d] %s: %s\n", t->line, TokenSymbols[t->type], py_Str__data(&tmp));
     //     py_Str__dtor(&tmp);
     // }
 
-    pk_Compiler compiler;
-    pk_Compiler__ctor(&compiler, src, tokens);
+    Compiler compiler;
+    Compiler__ctor(&compiler, src, tokens);
     CodeObject__ctor(out, src, py_Str__sv(&src->filename));
-    err = pk_Compiler__compile(&compiler, out);
+    err = Compiler__compile(&compiler, out);
     CodeObject__dtor(out);
-    pk_Compiler__dtor(&compiler);
+    Compiler__dtor(&compiler);
     return err;
 }
 
+// clang-format off
 const static PrattRule rules[TK__COUNT__] = {
-    // clang-format off
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
     [TK_DOT] =         { NULL,          exprAttrib,         PREC_PRIMARY    },
     [TK_LPAREN] =      { exprGroup,     exprCall,           PREC_PRIMARY    },
@@ -300,3 +1586,4 @@ const static PrattRule rules[TK__COUNT__] = {
     [TK_LBRACE] =      { exprMap      },
     [TK_COLON] =       { exprSlice0,    exprSlice1,      PREC_PRIMARY }
 };
+// clang-format on

@@ -14,6 +14,7 @@ typedef uint16_t StrName;
 uint16_t pk_StrName__map(const char*);
 uint16_t pk_StrName__map2(c11_string);
 const char* pk_StrName__rmap(uint16_t index);
+c11_string pk_StrName__rmap2(uint16_t index);
 
 void pk_StrName__initialize();
 void pk_StrName__finalize();

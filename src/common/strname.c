@@ -116,6 +116,11 @@ const char* pk_StrName__rmap(uint16_t index){
     return c11__getitem(char*, &_r_interned, index - 1);
 }
 
+c11_string pk_StrName__rmap2(uint16_t index){
+    const char* p = pk_StrName__rmap(index);
+    return (c11_string){p, strlen(p)};
+}
+
 
 
 // unary operators
