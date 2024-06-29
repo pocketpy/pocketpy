@@ -31,7 +31,7 @@ void py_finalize();
 /// Run a simple source string. Do not change the stack.
 int py_exec(const char*);
 /// Eval a simple expression. The result is pushed to the stack.
-int py_eval(const char*);
+int py_eval(const char*, py_Ref out);
 
 /************* Values Creation *************/
 void py_newint(py_Ref, int64_t);
@@ -101,6 +101,9 @@ bool py_istype(const py_Ref, py_Type);
 // bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
+py_Ref py_getreg(int i);
+void py_setreg(int i, const py_Ref val);
+
 py_Ref py_getdict(const py_Ref self, py_Name name);
 void py_setdict(py_Ref self, py_Name name, const py_Ref val);
 
@@ -171,14 +174,12 @@ int py_callmethod(py_Ref self, py_Name name, ...);
 py_Ref py_tuple__getitem(const py_Ref self, int i);
 void py_tuple__setitem(py_Ref self, int i, const py_Ref val);
 int py_tuple__len(const py_Ref self);
-bool py_tuple__contains(const py_Ref self, const py_Ref val);
 
 // unchecked functions, if self is not a list, the behavior is undefined
 py_Ref py_list__getitem(const py_Ref self, int i);
 void py_list__setitem(py_Ref self, int i, const py_Ref val);
 void py_list__delitem(py_Ref self, int i);
 int py_list__len(const py_Ref self);
-bool py_list__contains(const py_Ref self, const py_Ref val);
 void py_list__append(py_Ref self, const py_Ref val);
 void py_list__extend(py_Ref self, const py_Ref begin, const py_Ref end);
 void py_list__clear(py_Ref self);

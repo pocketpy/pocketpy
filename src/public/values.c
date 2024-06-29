@@ -46,14 +46,6 @@ void py_newnone(py_Ref out) {
 
 void py_newnull(py_Ref out) { out->type = 0; }
 
-void py_newtuple(py_Ref out, int n) {
-    pk_VM* vm = pk_current_vm;
-    PyObject* obj = pk_ManagedHeap__gcnew(&vm->heap, tp_tuple, n, 0);
-    out->type = tp_tuple;
-    out->is_ptr = true;
-    out->_obj = obj;
-}
-
 void py_newfunction(py_Ref out, py_CFunction f, const char* sig) {
     py_newfunction2(out, f, sig, BindType_FUNCTION, NULL, NULL);
 }

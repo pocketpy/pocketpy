@@ -79,6 +79,10 @@ void pk_StrName__initialize(){
 
 void pk_StrName__finalize(){
     if(!_initialized) return;
+    // free all char*
+    for(int i=0; i<_r_interned.count; i++){
+        free(c11__getitem(char*, &_r_interned, i));
+    }
     c11_smallmap_s2n__dtor(&_interned);
     c11_vector__dtor(&_r_interned);
 }

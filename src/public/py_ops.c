@@ -14,3 +14,15 @@ int py_repr(const py_Ref val) {
     if(ti->m__repr__) return ti->m__repr__(1, val);
     return py_callmethod(val, __repr__);
 }
+
+int py_getattr(const py_Ref self, py_Name name, py_Ref out){
+    return -1;
+}
+
+int py_setattr(py_Ref self, py_Name name, const py_Ref val){
+    return -1;
+}
+
+int py_callmethod(py_Ref self, py_Name name, ...){
+    return -1;
+}

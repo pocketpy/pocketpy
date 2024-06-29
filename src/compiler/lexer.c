@@ -376,7 +376,7 @@ static Error* eat_number(pk_Lexer* self){
             return NULL;
         }
         // try integer
-        TokenValue value = {.index = TokenValue_EMPTY};
+        TokenValue value = {.index = TokenValue_I64};
         switch(parse_uint(text, &value._i64, -1)) {
             case IntParsing_SUCCESS:
                 add_token_with_value(self, TK_NUM, value);

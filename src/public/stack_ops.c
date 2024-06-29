@@ -4,6 +4,13 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
+py_Ref py_getreg(int i){
+    return pk_current_vm->reg + i;
+}
+
+void py_setreg(int i, const py_Ref val){
+    pk_current_vm->reg[i] = *val;
+}
 
 py_Ref py_getdict(const py_Ref self, py_Name name){
     assert(self && self->is_ptr);

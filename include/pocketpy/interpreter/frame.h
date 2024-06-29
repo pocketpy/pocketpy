@@ -89,18 +89,3 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp);
 #ifdef __cplusplus
 }
 #endif
-
-
-// some patch here
-#ifdef __cplusplus
-#include "pocketpy/objects/codeobject.hpp"
-
-extern "C"{
-    inline py_TValue* Frame__f_closure_try_get(Frame* self, StrName name){
-        if(self->function == NULL) return NULL;
-        pkpy::Function* fn = PyObject__as(pkpy::Function, self->function);
-        if(fn->_closure == nullptr) return nullptr;
-        return pk_NameDict__try_get(fn->_closure, name);
-    }
-}
-#endif

@@ -468,7 +468,7 @@ static SequenceExpr* SequenceExpr__new(int line, const ExprVt* vt, int count, Op
     self->vt = vt;
     self->line = line;
     self->opcode = opcode;
-    c11_array__ctor(&self->items, count, sizeof(Expr*));
+    c11_array__ctor(&self->items, sizeof(Expr*), count);
     return self;
 }
 
@@ -1395,7 +1395,7 @@ void Ctx__emit_store_name(Ctx* self, NameScope scope, StrName name, int line) {
 // emit top -> pop -> delete
 void Ctx__s_emit_top(Ctx* self) {
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
-    top->vt->emit_(top, self);
+    vtemit_(top, self);
     c11_vector__pop(&self->s_expr);
     vtdelete(top);
 }
@@ -1670,7 +1670,8 @@ static Error* pop_context(Compiler* self) {
 
 /* Expression Callbacks */
 static Error* exprLiteral(Compiler* self) {
-    Ctx__s_push(ctx(), (Expr*)LiteralExpr__new(prev()->line, &prev()->value));
+    LiteralExpr* e = LiteralExpr__new(prev()->line, &prev()->value);
+    Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
 }
 
@@ -2064,15 +2065,15 @@ Error* pk_compile(pk_SourceData_ src, CodeObject* out) {
     Error* err = pk_Lexer__process(src, &tokens);
     if(err) return err;
 
-    // Token* data = (Token*)tokens.data;
-    // printf("%s\n", py_Str__data(&src->filename));
-    // for(int i = 0; i < tokens.count; i++) {
-    //     Token* t = data + i;
-    //     py_Str tmp;
-    //     py_Str__ctor2(&tmp, t->start, t->length);
-    //     printf("[%d] %s: %s\n", t->line, pk_TokenSymbols[t->type], py_Str__data(&tmp));
-    //     py_Str__dtor(&tmp);
-    // }
+    Token* data = (Token*)tokens.data;
+    printf("%s\n", py_Str__data(&src->filename));
+    for(int i = 0; i < tokens.count; i++) {
+        Token* t = data + i;
+        py_Str tmp;
+        py_Str__ctor2(&tmp, t->start, t->length);
+        printf("[%d] %s: %s\n", t->line, pk_TokenSymbols[t->type], py_Str__data(&tmp));
+        py_Str__dtor(&tmp);
+    }
 
     Compiler compiler;
     Compiler__ctor(&compiler, src, tokens);

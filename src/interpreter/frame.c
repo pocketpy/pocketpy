@@ -46,7 +46,7 @@ Frame* Frame__new(const CodeObject* co, const py_TValue* module, const py_TValue
     self->ip = (Bytecode*)co->codes.data - 1;
     self->co = co;
     self->module = module->_obj;
-    self->function = function->_obj;
+    self->function = function ? function->_obj : NULL;
     self->p0 = p0;
     self->locals = locals;
     self->locals_co = locals_co;
@@ -130,4 +130,12 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
         UnwindTarget* prev = self->uw_list;
         self->uw_list = UnwindTarget__new(prev, iblock, sp - self->locals);
     }
+}
+
+py_TValue* Frame__f_closure_try_get(Frame* self, StrName name){
+    // if(self->function == NULL) return NULL;
+    // pkpy::Function* fn = PyObject__as(pkpy::Function, self->function);
+    // if(fn->_closure == nullptr) return nullptr;
+    // return pk_NameDict__try_get(fn->_closure, name);
+    return NULL;
 }

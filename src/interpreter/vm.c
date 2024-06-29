@@ -56,6 +56,7 @@ void pk_VM__ctor(pk_VM* self){
     self->_stderr = pk_default_stderr;
 
     self->last_error = NULL;
+    self->last_retval = PY_NULL;
 
     self->__curr_class = NULL;
     self->__cached_object_new = NULL;
@@ -153,7 +154,9 @@ void pk_VM__ctor(pk_VM* self){
 }
 
 void pk_VM__dtor(pk_VM* self){
-    PK_DECREF(self->__dynamic_func_decl);
+    if(self->__dynamic_func_decl){
+        PK_DECREF(self->__dynamic_func_decl);
+    }
     // destroy all objects
     pk_ManagedHeap__dtor(&self->heap);
     // clear frames
@@ -171,6 +174,9 @@ void pk_VM__push_frame(pk_VM* self, Frame* frame){
 void pk_VM__pop_frame(pk_VM* self){
     assert(self->top_frame);
     Frame* frame = self->top_frame;
+    // reset stack pointer
+    self->stack.sp = frame->p0;
+    // pop frame and delete
     self->top_frame = frame->f_back;
     Frame__delete(frame);
 }
@@ -187,7 +193,7 @@ py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const py_TV
 
 /****************************************/
 void PyObject__delete(PyObject *self){
-    pk_TypeInfo* ti = c11__getitem(pk_TypeInfo*, &pk_current_vm->types, self->type);
+    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &pk_current_vm->types, self->type);
     if(ti->dtor) ti->dtor(PyObject__value(self));
     if(self->slots == -1) pk_NameDict__dtor(PyObject__dict(self));
     if(self->gc_is_large){

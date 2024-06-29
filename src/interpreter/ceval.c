@@ -203,7 +203,36 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 if(err) goto __ERROR;
                 DISPATCH();
             }
+                /*******************/
 
+                // ...
+
+                /*******************/
+            case OP_BUILD_TUPLE: {
+                py_TValue tmp;
+                py_newtuple(&tmp, byte.arg);
+                py_TValue* begin = SP() - byte.arg;
+                for(int i = 0; i < byte.arg; i++) {
+                    py_tuple__setitem(&tmp, i, begin + i);
+                }
+                SP() = begin;
+                PUSH(tmp);
+                DISPATCH();
+            }
+            /**************************** */
+            case OP_RETURN_VALUE: {
+                py_TValue tmp =  byte.arg == BC_NOARG ? POPX() : self->None;
+                pk_VM__pop_frame(self);
+                if(frame == base_frame) {  // [ frameBase<- ]
+                    self->last_retval = tmp;
+                    return RES_RETURN;
+                } else {
+                    frame = self->top_frame;
+                    PUSH(tmp);
+                    goto __NEXT_FRAME;
+                }
+                DISPATCH();
+            }
             default: PK_UNREACHABLE();
         }
 
