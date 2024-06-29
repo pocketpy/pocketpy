@@ -6,7 +6,6 @@
 #include <ctype.h>
 
 /* expr.h */
-
 typedef struct Expr Expr;
 typedef struct Ctx Ctx;
 
@@ -39,20 +38,21 @@ typedef struct ExprVt {
     ((self)->vt->emit_inplace ? vtcall(emit_inplace, self, ctx) : vtemit_(self, ctx))
 #define vtemit_istore(self, ctx)                                                                   \
     ((self)->vt->emit_istore ? vtcall(emit_istore, self, ctx) : vtemit_store(self, ctx))
+#define vtdelete(self)                                                                             \
+    do {                                                                                           \
+        if(self) {                                                                                 \
+            if((self)->vt->dtor) (self)->vt->dtor(self);                                           \
+            PoolExpr_dealloc(self);                                                                \
+        }                                                                                          \
+    } while(0)
 
-#define COMMON_HEADER                                                                              \
+#define EXPR_COMMON_HEADER                                                                         \
     const ExprVt* vt;                                                                              \
     int line;
 
 typedef struct Expr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
 } Expr;
-
-static void Expr__delete(Expr* self) {
-    if(!self) return;
-    if(self->vt->dtor) self->vt->dtor(self);
-    PoolExpr_dealloc(self);
-}
 
 /* context.h */
 typedef struct Ctx {
@@ -104,7 +104,7 @@ void Ctx__s_emit_decorators(Ctx*, int count);
 
 /* expr.c */
 typedef struct NameExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     StrName name;
     NameScope scope;
 } NameExpr;
@@ -167,7 +167,7 @@ NameExpr* NameExpr__new(StrName name, NameScope scope) {
 }
 
 typedef struct StarredExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* child;
     int level;
 } StarredExpr;
@@ -201,14 +201,14 @@ StarredExpr* StarredExpr__new(Expr* child, int level) {
 // InvertExpr, NotExpr, NegatedExpr
 // NOTE: NegatedExpr always contains a non-const child. Should not generate -1 or -0.1
 typedef struct UnaryExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* child;
     Opcode opcode;
 } UnaryExpr;
 
 void UnaryExpr__dtor(Expr* self_) {
     UnaryExpr* self = (UnaryExpr*)self_;
-    Expr__delete(self->child);
+    vtdelete(self->child);
 }
 
 static void UnaryExpr__emit_(Expr* self_, Ctx* ctx) {
@@ -230,7 +230,7 @@ UnaryExpr* UnaryExpr__new(Expr* child, Opcode opcode) {
 
 // LongExpr, BytesExpr
 typedef struct RawStringExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     c11_string value;
     Opcode opcode;
 } RawStringExpr;
@@ -254,7 +254,7 @@ RawStringExpr* RawStringExpr__new(c11_string value, Opcode opcode) {
 }
 
 typedef struct ImagExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     double value;
 } ImagExpr;
 
@@ -278,7 +278,7 @@ ImagExpr* ImagExpr__new(double value) {
 }
 
 typedef struct LiteralExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     const TokenValue* value;
 } LiteralExpr;
 
@@ -320,7 +320,7 @@ LiteralExpr* LiteralExpr__new(const TokenValue* value) {
 }
 
 typedef struct SliceExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* start;
     Expr* stop;
     Expr* step;
@@ -328,9 +328,9 @@ typedef struct SliceExpr {
 
 void SliceExpr__dtor(Expr* self_) {
     SliceExpr* self = (SliceExpr*)self_;
-    Expr__delete(self->start);
-    Expr__delete(self->stop);
-    Expr__delete(self->step);
+    vtdelete(self->start);
+    vtdelete(self->stop);
+    vtdelete(self->step);
 }
 
 void SliceExpr__emit_(Expr* self_, Ctx* ctx) {
@@ -364,7 +364,7 @@ SliceExpr* SliceExpr__new() {
 
 // ListExpr, DictExpr, SetExpr, TupleExpr
 typedef struct SequenceExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     c11_array /*T=Expr* */ items;
     Opcode opcode;
 } SequenceExpr;
@@ -380,7 +380,7 @@ static void SequenceExpr__emit_(Expr* self_, Ctx* ctx) {
 
 void SequenceExpr__dtor(Expr* self_) {
     SequenceExpr* self = (SequenceExpr*)self_;
-    c11__foreach(Expr*, &self->items, e) Expr__delete(*e);
+    c11__foreach(Expr*, &self->items, e) vtdelete(*e);
     c11_array__dtor(&self->items);
 }
 
@@ -483,7 +483,7 @@ SequenceExpr* TupleExpr__new(int count) {
 }
 
 typedef struct CompExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* expr;  // loop expr
     Expr* vars;  // loop vars
     Expr* iter;  // loop iter
@@ -495,10 +495,10 @@ typedef struct CompExpr {
 
 void CompExpr__dtor(Expr* self_) {
     CompExpr* self = (CompExpr*)self_;
-    Expr__delete(self->expr);
-    Expr__delete(self->vars);
-    Expr__delete(self->iter);
-    Expr__delete(self->cond);
+    vtdelete(self->expr);
+    vtdelete(self->vars);
+    vtdelete(self->iter);
+    vtdelete(self->cond);
 }
 
 void CompExpr__emit_(Expr* self_, Ctx* ctx) {
@@ -543,7 +543,7 @@ CompExpr* CompExpr__new(Opcode op0, Opcode op1) {
 }
 
 typedef struct LambdaExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     int index;
 } LambdaExpr;
 
@@ -563,7 +563,7 @@ LambdaExpr* LambdaExpr__new(int index) {
 }
 
 typedef struct FStringExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     c11_string src;
 } FStringExpr;
 
@@ -744,7 +744,7 @@ FStringExpr* FStringExpr__new(c11_string src) {
 
 // AndExpr, OrExpr
 typedef struct LogicBinaryExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* lhs;
     Expr* rhs;
     Opcode opcode;
@@ -752,8 +752,8 @@ typedef struct LogicBinaryExpr {
 
 void LogicBinaryExpr__dtor(Expr* self_) {
     LogicBinaryExpr* self = (LogicBinaryExpr*)self_;
-    Expr__delete(self->lhs);
-    Expr__delete(self->rhs);
+    vtdelete(self->lhs);
+    vtdelete(self->rhs);
 }
 
 void LogicBinaryExpr__emit_(Expr* self_, Ctx* ctx) {
@@ -777,13 +777,13 @@ LogicBinaryExpr* LogicBinaryExpr__new(Expr* lhs, Expr* rhs, Opcode opcode) {
 }
 
 typedef struct GroupedExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* child;
 } GroupedExpr;
 
 void GroupedExpr__dtor(Expr* self_) {
     GroupedExpr* self = (GroupedExpr*)self_;
-    Expr__delete(self->child);
+    vtdelete(self->child);
 }
 
 void GroupedExpr__emit_(Expr* self_, Ctx* ctx) {
@@ -815,7 +815,7 @@ GroupedExpr* GroupedExpr__new(Expr* child) {
 }
 
 typedef struct BinaryExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* lhs;
     Expr* rhs;
     TokenIndex op;
@@ -824,8 +824,8 @@ typedef struct BinaryExpr {
 
 static void BinaryExpr__dtor(Expr* self_) {
     BinaryExpr* self = (BinaryExpr*)self_;
-    Expr__delete(self->lhs);
-    Expr__delete(self->rhs);
+    vtdelete(self->lhs);
+    vtdelete(self->rhs);
 }
 
 static Opcode cmp_token2op(TokenIndex token) {
@@ -915,7 +915,7 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
 }
 
 typedef struct TernaryExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* cond;
     Expr* true_expr;
     Expr* false_expr;
@@ -923,9 +923,9 @@ typedef struct TernaryExpr {
 
 void TernaryExpr__dtor(Expr* self_) {
     TernaryExpr* self = (TernaryExpr*)self_;
-    Expr__delete(self->cond);
-    Expr__delete(self->true_expr);
-    Expr__delete(self->false_expr);
+    vtdelete(self->cond);
+    vtdelete(self->true_expr);
+    vtdelete(self->false_expr);
 }
 
 void TernaryExpr__emit_(Expr* self_, Ctx* ctx) {
@@ -952,15 +952,15 @@ TernaryExpr* TernaryExpr__new() {
 }
 
 typedef struct SubscrExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* lhs;
     Expr* rhs;
 } SubscrExpr;
 
 void SubscrExpr__dtor(Expr* self_) {
     SubscrExpr* self = (SubscrExpr*)self_;
-    Expr__delete(self->lhs);
-    Expr__delete(self->rhs);
+    vtdelete(self->lhs);
+    vtdelete(self->rhs);
 }
 
 void SubscrExpr__emit_(Expr* self_, Ctx* ctx) {
@@ -1034,7 +1034,7 @@ SubscrExpr* SubscrExpr__new(Expr* lhs, Expr* rhs) {
 }
 
 typedef struct AttribExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* child;
     StrName name;
 } AttribExpr;
@@ -1096,7 +1096,7 @@ typedef struct CallExprKwArg {
 } CallExprKwArg;
 
 typedef struct CallExpr {
-    COMMON_HEADER
+    EXPR_COMMON_HEADER
     Expr* callable;
     c11_vector /*T=Expr* */ args;
     // **a will be interpreted as a special keyword argument: {"**": a}
@@ -1105,9 +1105,9 @@ typedef struct CallExpr {
 
 void CallExpr__dtor(Expr* self_) {
     CallExpr* self = (CallExpr*)self_;
-    Expr__delete(self->callable);
-    c11__foreach(Expr*, &self->args, e) Expr__delete(*e);
-    c11__foreach(CallExprKwArg, &self->kwargs, e) Expr__delete(e->val);
+    vtdelete(self->callable);
+    c11__foreach(Expr*, &self->args, e) vtdelete(*e);
+    c11__foreach(CallExprKwArg, &self->kwargs, e) vtdelete(e->val);
     c11_vector__dtor(&self->args);
     c11_vector__dtor(&self->kwargs);
 }
@@ -1207,7 +1207,7 @@ void Ctx__s_emit_top(Ctx* self) {
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     top->vt->emit_(top, self);
     c11_vector__pop(&self->s_expr);
-    Expr__delete(top);
+    vtdelete(top);
 }
 
 // push
@@ -1221,7 +1221,7 @@ int Ctx__s_size(Ctx* self) { return self->s_expr.count; }
 
 // pop -> delete
 void Ctx__s_pop(Ctx* self) {
-    Expr__delete(c11_vector__back(Expr*, &self->s_expr));
+    vtdelete(c11_vector__back(Expr*, &self->s_expr));
     c11_vector__pop(&self->s_expr);
 }
 
@@ -1236,7 +1236,7 @@ Expr* Ctx__s_popx(Ctx* self) {
 void Ctx__s_clean(Ctx* self) {
     c11_smallmap_s2n__dtor(&self->co_consts_string_dedup_map);  // ??
     for(int i = 0; i < self->s_expr.count; i++) {
-        Expr__delete(c11__getitem(Expr*, &self->s_expr, i));
+        vtdelete(c11__getitem(Expr*, &self->s_expr, i));
     }
     c11_vector__clear(&self->s_expr);
 }
