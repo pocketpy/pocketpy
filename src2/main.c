@@ -24,19 +24,38 @@ int main(int argc, char** argv) {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    if(argc != 2) goto __HELP;
-    char* source = read_file(argv[1]);
     py_initialize();
+    const char* source = "[1, 'a']";
 
-    if(py_exec(source)){
+    if(py_eval(source)){
         py_Error* err = py_getlasterror();
         py_Error__print(err);
+    }else{
+        // handle the result
+        py_Ref _0 = py_list__getitem(py_gettop(), 0);
+        py_Ref _1 = py_list__getitem(py_gettop(), 1);
+        int _L0 = py_toint(_0);
+        const char* _L1 = py_tostr(_1);
+        printf("%d, %s\n", _L0, _L1);
+        py_pop();
     }
-    
-    py_finalize();
-    free(source);
 
-__HELP:
-    printf("Usage: pocketpy [filename]\n");
+    py_finalize();
     return 0;
+
+//     if(argc != 2) goto __HELP;
+//     char* source = read_file(argv[1]);
+//     py_initialize();
+
+//     if(py_exec(source)){
+//         py_Error* err = py_getlasterror();
+//         py_Error__print(err);
+//     }
+    
+//     py_finalize();
+//     free(source);
+
+// __HELP:
+//     printf("Usage: pocketpy [filename]\n");
+//     return 0;
 }

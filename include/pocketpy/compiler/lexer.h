@@ -103,6 +103,8 @@ Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens);
 Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out_string);
 void pk_TokenArray__dtor(pk_TokenArray* self);
 
+#define Token__sv(self) (c11_string){(self)->start, (self)->length}
+
 #ifdef __cplusplus
 }
 #endif

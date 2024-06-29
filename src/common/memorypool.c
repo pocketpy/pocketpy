@@ -243,7 +243,7 @@ PK_THREAD_LOCAL FixedMemoryPool PoolFrame;
 PK_THREAD_LOCAL MemoryPool PoolObject;
 PK_THREAD_LOCAL bool _Pools_initialized = false;
 
-void Pools_initialize(){
+void pk_MemoryPools__initialize(){
     if(_Pools_initialized) return;
     FixedMemoryPool__ctor(&PoolExpr, kPoolExprBlockSize, 64);
     FixedMemoryPool__ctor(&PoolFrame, kPoolFrameBlockSize, 128);
@@ -251,7 +251,7 @@ void Pools_initialize(){
     _Pools_initialized = true;
 }
 
-void Pools_finalize(){
+void pk_MemoryPools__finalize(){
     if(!_Pools_initialized) return;
     FixedMemoryPool__dtor(&PoolExpr);
     FixedMemoryPool__dtor(&PoolFrame);
