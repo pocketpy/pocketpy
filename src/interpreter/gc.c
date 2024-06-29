@@ -119,7 +119,7 @@ PyObject* PyObject__new(py_Type type, int slots, int size){
     // initialize slots or dict
     void* p = (char*)self + 8;
     if(slots >= 0){
-        memset(p, 0, slots*sizeof(PyVar));
+        memset(p, 0, slots*sizeof(py_TValue));
     }else{
         pk_NameDict__ctor(p);
     }

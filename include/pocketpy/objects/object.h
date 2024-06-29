@@ -22,18 +22,18 @@ typedef struct PyObject{
 
 static_assert(sizeof(PyObject) <= 8, "!(sizeof(PyObject) <= 8)");
 
-PyVar* PyObject__slots(PyObject* self);
+py_TValue* PyObject__slots(PyObject* self);
 pk_NameDict* PyObject__dict(PyObject* self);
 void* PyObject__value(PyObject* self);
 
-#define PK_OBJ_HEADER_SIZE(slots) ((slots)>=0 ? 8+sizeof(PyVar)*(slots) : 8+sizeof(pk_NameDict))
+#define PK_OBJ_HEADER_SIZE(slots) ((slots)>=0 ? 8+sizeof(py_TValue)*(slots) : 8+sizeof(pk_NameDict))
 
 PyObject* PyObject__new(py_Type type, int slots, int size);
 void PyObject__delete(PyObject* self);
 
-PK_INLINE PyVar PyVar__fromobj(PyObject* obj){
+PK_INLINE py_TValue PyVar__fromobj(PyObject* obj){
     if(!obj) return PY_NULL;
-    PyVar retval = {
+    py_TValue retval = {
         .type = obj->type,
         .is_ptr = true,
         ._obj = obj

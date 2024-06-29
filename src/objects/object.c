@@ -11,7 +11,7 @@ pk_NameDict* PyObject__dict(PyObject* self){
     return (pk_NameDict*)((char*)self + 8);
 }
 
-PyVar* PyObject__slots(PyObject* self){
+py_TValue* PyObject__slots(PyObject* self){
     assert(self->slots >= 0);
-    return (PyVar*)((char*)self + 8);
+    return (py_TValue*)((char*)self + 8);
 }

@@ -251,7 +251,7 @@ typedef struct ImagExpr {
 
 void ImagExpr__emit_(Expr* self_, Ctx* ctx) {
     ImagExpr* self = (ImagExpr*)self_;
-    PyVar value;
+    py_TValue value;
     py_newfloat(&value, self->value);
     int index = Ctx__add_const(ctx, &value);
     Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
@@ -282,7 +282,7 @@ void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
             break;
         }
         case TokenValue_F64: {
-            PyVar value;
+            py_TValue value;
             py_newfloat(&value, self->value->_f64);
             int index = Ctx__add_const(ctx, &value);
             Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
@@ -1331,7 +1331,7 @@ int Ctx__emit_int(Ctx* self, int64_t value, int line) {
     if(is_small_int(value)) {
         return Ctx__emit_(self, OP_LOAD_SMALL_INT, (uint16_t)value, line);
     } else {
-        PyVar tmp;
+        py_TValue tmp;
         py_newint(&tmp, value);
         return Ctx__emit_(self, OP_LOAD_CONST, Ctx__add_const(self, &tmp), line);
     }
@@ -1366,9 +1366,9 @@ int Ctx__add_const_string(Ctx* self, c11_string key) {
     if(val) {
         return *val;
     } else {
-        PyVar tmp;
+        py_TValue tmp;
         py_newstrn(&tmp, key.data, key.size);
-        c11_vector__push(PyVar, &self->co->consts, tmp);
+        c11_vector__push(py_TValue, &self->co->consts, tmp);
         int index = self->co->consts.count - 1;
         c11_smallmap_s2n__set(&self->co_consts_string_dedup_map,
                               py_Str__sv(PyObject__value(tmp._obj)),
@@ -1379,7 +1379,7 @@ int Ctx__add_const_string(Ctx* self, c11_string key) {
 
 int Ctx__add_const(Ctx* self, py_Ref v) {
     assert(v->type != tp_str);
-    c11_vector__push(PyVar, &self->co->consts, *v);
+    c11_vector__push(py_TValue, &self->co->consts, *v);
     return self->co->consts.count - 1;
 }
 

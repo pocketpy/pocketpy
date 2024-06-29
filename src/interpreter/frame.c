@@ -10,16 +10,16 @@ void ValueStack__clear(ValueStack* self) {
     self->sp = self->begin;
 }
 
-PyVar* FastLocals__try_get_by_name(PyVar* locals, const CodeObject* co, py_Name name){
+py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, py_Name name){
     int index = c11_smallmap_n2i__get(&co->varnames_inv, name, -1);
     if(index == -1) return NULL;
     return &locals[index];
 }
 
-pk_NameDict* FastLocals__to_namedict(PyVar* locals, const CodeObject* co) {
+pk_NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co) {
     pk_NameDict* dict = pk_NameDict__new();
     c11__foreach(c11_smallmap_n2i_KV, &co->varnames_inv, entry) {
-        PyVar value = locals[entry->value];
+        py_TValue value = locals[entry->value];
         if(!py_isnull(&value)){
             pk_NameDict__set(dict, entry->key, value);
         }
@@ -39,7 +39,7 @@ void UnwindTarget__delete(UnwindTarget* self){
     free(self);
 }
 
-Frame* Frame__new(const CodeObject* co, const PyVar* module, const PyVar* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co){
+Frame* Frame__new(const CodeObject* co, const py_TValue* module, const py_TValue* function, py_TValue* p0, py_TValue* locals, const CodeObject* locals_co){
     static_assert(sizeof(Frame) <= kPoolFrameBlockSize, "!(sizeof(Frame) <= kPoolFrameBlockSize)");
     Frame* self = PoolFrame_alloc();
     self->f_back = NULL;
@@ -72,7 +72,7 @@ int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s){
         iblock = block->parent;
     }
     if(iblock < 0) return -1;
-    PyVar obj = *--_s->sp;  // pop exception object
+    py_TValue obj = *--_s->sp;  // pop exception object
     UnwindTarget* uw = Frame__find_unwind_target(self, iblock);
     _s->sp = (self->locals + uw->offset);  // unwind the stack                          
     *(_s->sp++) = obj;      // push it back
@@ -121,7 +121,7 @@ UnwindTarget* Frame__find_unwind_target(Frame* self, int iblock){
     return NULL;
 }
 
-void Frame__set_unwind_target(Frame* self, PyVar* sp) {
+void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
     int iblock = Frame__iblock(self);
     UnwindTarget* existing = Frame__find_unwind_target(self, iblock);
     if(existing) {

@@ -11,14 +11,14 @@
 extern "C" {
 #endif
 
-PyVar* FastLocals__try_get_by_name(PyVar* locals, const CodeObject* co, py_Name name);
-pk_NameDict* FastLocals__to_namedict(PyVar* locals, const CodeObject* co);
+py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, py_Name name);
+pk_NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co);
 
 typedef struct ValueStack {
     // We allocate extra PK_VM_STACK_SIZE/128 places to keep `_sp` valid when `is_overflow() == true`.
-    PyVar* sp;
-    PyVar* end;
-    PyVar begin[PK_VM_STACK_SIZE + PK_VM_STACK_SIZE / 128];
+    py_TValue* sp;
+    py_TValue* end;
+    py_TValue begin[PK_VM_STACK_SIZE + PK_VM_STACK_SIZE / 128];
 } ValueStack;
 
 void ValueStack__ctor(ValueStack* self);
@@ -39,14 +39,14 @@ typedef struct Frame {
     const CodeObject* co;
     PyObject* module;
     PyObject* function;     // a function object or NULL (global scope)
-    PyVar* p0;              // unwinding base
-    PyVar* locals;          // locals base
+    py_TValue* p0;              // unwinding base
+    py_TValue* locals;          // locals base
     const CodeObject* locals_co;
     UnwindTarget* uw_list;
 } Frame;
 
 
-Frame* Frame__new(const CodeObject* co, const PyVar* module, const PyVar* function, PyVar* p0, PyVar* locals, const CodeObject* locals_co);
+Frame* Frame__new(const CodeObject* co, const py_TValue* module, const py_TValue* function, py_TValue* p0, py_TValue* locals, const CodeObject* locals_co);
 void Frame__delete(Frame* self);
 
 PK_INLINE int Frame__ip(const Frame* self){
@@ -67,11 +67,11 @@ PK_INLINE pk_NameDict* Frame__f_globals(Frame* self){
     return PyObject__dict(self->module);
 }
 
-PK_INLINE PyVar* Frame__f_globals_try_get(Frame* self, py_Name name){
+PK_INLINE py_TValue* Frame__f_globals_try_get(Frame* self, py_Name name){
     return pk_NameDict__try_get(Frame__f_globals(self), name);
 }
 
-PyVar* Frame__f_closure_try_get(Frame* self, py_Name name);
+py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name);
 
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack*);
 void Frame__prepare_jump_break(Frame* self, ValueStack*, int);
@@ -80,7 +80,7 @@ int Frame__exit_block(Frame* self, ValueStack*, int);
 
 void Frame__gc_mark(Frame* self);
 UnwindTarget* Frame__find_unwind_target(Frame* self, int iblock);
-void Frame__set_unwind_target(Frame* self, PyVar* sp);
+void Frame__set_unwind_target(Frame* self, py_TValue* sp);
 
 #ifdef __cplusplus
 }
@@ -92,7 +92,7 @@ void Frame__set_unwind_target(Frame* self, PyVar* sp);
 #include "pocketpy/objects/codeobject.hpp"
 
 extern "C"{
-    inline PyVar* Frame__f_closure_try_get(Frame* self, StrName name){
+    inline py_TValue* Frame__f_closure_try_get(Frame* self, StrName name){
         if(self->function == NULL) return NULL;
         pkpy::Function* fn = PyObject__as(pkpy::Function, self->function);
         if(fn->_closure == nullptr) return nullptr;

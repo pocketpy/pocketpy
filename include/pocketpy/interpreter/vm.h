@@ -12,8 +12,8 @@ typedef struct pk_TypeInfo{
     py_Name name;
     py_Type base;
 
-    PyVar self;      // the type object itself
-    PyVar module;    // the module where the type is defined
+    py_TValue self;      // the type object itself
+    py_TValue module;    // the module where the type is defined
     bool subclass_enabled;
 
     void (*dtor)(void*);
@@ -38,7 +38,7 @@ typedef struct pk_TypeInfo{
     py_CFunction on_end_subclass;   // for enum module
 } pk_TypeInfo;
 
-void pk_TypeInfo__ctor(pk_TypeInfo* self, py_Name name, py_Type base, PyObject* obj, const PyVar* module, bool subclass_enabled);
+void pk_TypeInfo__ctor(pk_TypeInfo* self, py_Name name, py_Type base, PyObject* obj, const py_TValue* module, bool subclass_enabled);
 void pk_TypeInfo__dtor(pk_TypeInfo* self);
 
 typedef struct pk_VM {
@@ -47,24 +47,24 @@ typedef struct pk_VM {
     pk_NameDict modules;
     c11_vector/*T=pk_TypeInfo*/ types;
 
-    PyVar StopIteration;    // a special Exception class
-    PyVar builtins;         // builtins module
-    PyVar main;             // __main__ module
+    py_TValue StopIteration;    // a special Exception class
+    py_TValue builtins;         // builtins module
+    py_TValue main;             // __main__ module
 
     void (*_ceval_on_step)(Frame*, Bytecode);
     unsigned char* (*_import_file)(const char*);
-    void (*_stdout)(const char*);
-    void (*_stderr)(const char*);
+    void (*_stdout)(const char*, ...);
+    void (*_stderr)(const char*, ...);
     
     // singleton objects
-    PyVar True, False, None, NotImplemented, Ellipsis;
+    py_TValue True, False, None, NotImplemented, Ellipsis;
     // last error
     py_Error* last_error;
 
     PyObject* __curr_class;
     PyObject* __cached_object_new;
     FuncDecl_ __dynamic_func_decl;
-    PyVar __vectorcall_buffer[PK_MAX_CO_VARNAMES];
+    py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
     pk_ManagedHeap heap;
     ValueStack stack;   // put `stack` at the end for better cache locality
@@ -87,7 +87,7 @@ typedef enum pk_FrameResult{
 
 pk_FrameResult pk_VM__run_top_frame(pk_VM* self);
 
-py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const PyVar* module, bool subclass_enabled);
+py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const py_TValue* module, bool subclass_enabled);
 
 #ifdef __cplusplus
 }

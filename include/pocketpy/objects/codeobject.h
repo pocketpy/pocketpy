@@ -74,7 +74,7 @@ typedef struct CodeObject {
     c11_vector/*T=Bytecode*/                codes;
     c11_vector/*T=CodeObjectByteCodeEx*/    codes_ex;
 
-    c11_vector/*T=PyVar*/   consts;     // constants
+    c11_vector/*T=py_TValue*/   consts;     // constants
     c11_vector/*T=StrName*/ varnames;   // local variables
     int nlocals;                        // cached varnames.size()
 
@@ -95,7 +95,7 @@ void CodeObject__gc_mark(const CodeObject* self);
 typedef struct FuncDeclKwArg{
     int index;    // index in co->varnames
     uint16_t key;  // name of this argument
-    PyVar value;  // default value
+    py_TValue value;  // default value
 } FuncDeclKwArg;
 
 typedef struct FuncDecl {
@@ -119,7 +119,7 @@ typedef FuncDecl* FuncDecl_;
 
 FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_string name);
 void FuncDecl__dtor(FuncDecl* self);
-void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const PyVar* value);
+void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const py_TValue* value);
 void FuncDecl__gc_mark(const FuncDecl* self);
 
 #ifdef __cplusplus

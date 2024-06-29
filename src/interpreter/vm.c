@@ -7,17 +7,23 @@ static unsigned char* pk_default_import_file(const char* path){
     return NULL;
 }
 
-static void pk_default_stdout(const char* s){
-    fprintf(stdout, "%s", s);
+static void pk_default_stdout(const char* fmt, ...){
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stdout, fmt, args);
+    va_end(args);
     fflush(stdout);
 }
 
-static void pk_default_stderr(const char* s){
-    fprintf(stderr, "%s", s);
+static void pk_default_stderr(const char* fmt, ...){
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
     fflush(stderr);
 }
 
-void pk_TypeInfo__ctor(pk_TypeInfo *self, py_Name name, py_Type base, PyObject* obj, const PyVar* module, bool subclass_enabled){
+void pk_TypeInfo__ctor(pk_TypeInfo *self, py_Name name, py_Type base, PyObject* obj, const py_TValue* module, bool subclass_enabled){
     memset(self, 0, sizeof(pk_TypeInfo));
     
     self->name = name;
@@ -58,19 +64,19 @@ void pk_VM__ctor(pk_VM* self){
     pk_ManagedHeap__ctor(&self->heap, self);
     ValueStack__ctor(&self->stack);
 
-    self->True = (PyVar){.type=tp_bool, .is_ptr=true, .extra=1,
+    self->True = (py_TValue){.type=tp_bool, .is_ptr=true, .extra=1,
         ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 0),
     };
-    self->False = (PyVar){.type=tp_bool, .is_ptr=true, .extra=0,
+    self->False = (py_TValue){.type=tp_bool, .is_ptr=true, .extra=0,
         ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 0),
     };
-    self->None = (PyVar){.type=tp_none_type, .is_ptr=true,
+    self->None = (py_TValue){.type=tp_none_type, .is_ptr=true,
         ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_none_type, 0, 0),
     };
-    self->NotImplemented = (PyVar){.type=tp_not_implemented_type, .is_ptr=true,
+    self->NotImplemented = (py_TValue){.type=tp_not_implemented_type, .is_ptr=true,
         ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_not_implemented_type, 0, 0),
     };
-    self->Ellipsis = (PyVar){.type=tp_ellipsis, .is_ptr=true,
+    self->Ellipsis = (py_TValue){.type=tp_ellipsis, .is_ptr=true,
         ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_ellipsis, 0, 0),
     };
 
@@ -169,11 +175,7 @@ void pk_VM__pop_frame(pk_VM* self){
     Frame__delete(frame);
 }
 
-pk_FrameResult pk_VM__run_top_frame(pk_VM* self){
-    return RES_RETURN;
-}
-
-py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const PyVar* module, bool subclass_enabled){
+py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const py_TValue* module, bool subclass_enabled){
     py_Type type = self->types.count;
     pk_TypeInfo* ti = c11_vector__emplace(&self->types);
     PyObject* typeobj = pk_ManagedHeap__gcnew(&self->heap, tp_type, -1, sizeof(py_Type));

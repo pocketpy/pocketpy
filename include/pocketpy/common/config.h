@@ -43,8 +43,8 @@
 
 /*************** internal settings ***************/
 
-// This is the maximum size of the value stack in PyVar units
-// The actual size in bytes equals `sizeof(PyVar) * PK_VM_STACK_SIZE`
+// This is the maximum size of the value stack in py_TValue units
+// The actual size in bytes equals `sizeof(py_TValue) * PK_VM_STACK_SIZE`
 #define PK_VM_STACK_SIZE            16384
 
 // This is the maximum number of local variables in a function

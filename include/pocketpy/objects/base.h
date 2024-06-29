@@ -14,8 +14,9 @@ extern "C" {
 #endif
 
 typedef int16_t py_Type;
+typedef struct PyObject PyObject;
 
-typedef struct PyVar{
+typedef struct py_TValue{
     py_Type type;
     bool is_ptr;
     int extra;
@@ -26,9 +27,9 @@ typedef struct PyVar{
         void* _ptr;
         // Vec2
     };
-} PyVar;
+} py_TValue;
 
-static_assert(sizeof(PyVar) <= 16, "!sizeof(PyVar) <= 16");
+static_assert(sizeof(py_TValue) <= 16, "!sizeof(py_TValue) <= 16");
 
 /* predefined vars */
 static const py_Type tp_object = {1}, tp_type = {2};
@@ -44,7 +45,7 @@ static const py_Type tp_ellipsis = {26};
 static const py_Type tp_op_call = {27}, tp_op_yield = {28};
 static const py_Type tp_syntax_error = {29}, tp_stop_iteration = {30};
 
-extern PyVar PY_NULL, PY_OP_CALL, PY_OP_YIELD;
+extern py_TValue PY_NULL, PY_OP_CALL, PY_OP_YIELD;
 
 #ifdef __cplusplus
 }

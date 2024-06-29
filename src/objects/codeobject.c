@@ -40,7 +40,7 @@ void FuncDecl__dtor(FuncDecl* self) {
     c11_smallmap_n2i__dtor(&self->kw_to_index);
 }
 
-void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const PyVar* value) {
+void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const py_TValue* value) {
     c11_smallmap_n2i__set(&self->kw_to_index, key, index);
     FuncDeclKwArg item = {index, key, *value};
     c11_vector__push(FuncDeclKwArg, &self->kwargs, item);
@@ -54,7 +54,7 @@ void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_string name) {
     c11_vector__ctor(&self->codes, sizeof(Bytecode));
     c11_vector__ctor(&self->codes_ex, sizeof(BytecodeEx));
 
-    c11_vector__ctor(&self->consts, sizeof(PyVar));
+    c11_vector__ctor(&self->consts, sizeof(py_TValue));
     c11_vector__ctor(&self->varnames, sizeof(uint16_t));
     self->nlocals = 0;
 

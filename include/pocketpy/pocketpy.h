@@ -4,12 +4,12 @@
 #include <stdbool.h>
 
 /************* Public Types *************/
-typedef struct PyObject PyObject;
-typedef struct PyVar PyVar;
+typedef struct py_TValue py_TValue;
 typedef struct pk_VM pk_VM;
 typedef uint16_t py_Name;
 typedef int16_t py_Type;
-typedef PyVar* py_Ref;
+typedef py_TValue* py_Ref;
+typedef struct py_Str py_Str;
 typedef int (*py_CFunction)(int argc, py_Ref argv);
 
 typedef struct py_Error{
@@ -175,8 +175,8 @@ void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val);
 void py_dict__delitem(py_Ref self, const py_Ref key);
 void py_dict__clear(py_Ref self);
 
-int py_str(const py_Ref, char* out);
-int py_repr(const py_Ref, char* out);
+int py_str(const py_Ref, py_Str* out);
+int py_repr(const py_Ref, py_Str* out);
 
 #ifdef __cplusplus
 }
