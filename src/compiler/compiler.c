@@ -1,6 +1,7 @@
 #include "pocketpy/compiler/compiler.h"
 #include "pocketpy/compiler/lexer.h"
 #include "pocketpy/objects/sourcedata.h"
+#include "pocketpy/objects/object.h"
 #include "pocketpy/common/strname.h"
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/memorypool.h"
@@ -75,7 +76,7 @@ int Ctx__get_loop(Ctx* self);
 CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type);
 void Ctx__exit_block(Ctx* self);
 int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
-int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line);
+int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool virtual);
 void Ctx__revert_last_emit_(Ctx* self);
 int Ctx__emit_int(Ctx* self, int64_t value, int line);
 void Ctx__patch_jump(Ctx* self, int index);
@@ -1240,6 +1241,157 @@ void Ctx__dtor(Ctx* self) {
     c11_smallmap_s2n__dtor(&self->co_consts_string_dedup_map);
 }
 
+static bool is_small_int(int64_t value) { return value >= INT16_MIN && value <= INT16_MAX; }
+
+int Ctx__get_loop(Ctx* self) {
+    int index = self->curr_iblock;
+    while(index >= 0) {
+        CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, index);
+        if(block->type == CodeBlockType_FOR_LOOP) break;
+        if(block->type == CodeBlockType_WHILE_LOOP) break;
+        index = block->parent;
+    }
+    return index;
+}
+
+CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type) {
+    CodeBlock block = {type, self->curr_iblock, self->co->codes.count, -1, -1};
+    c11_vector__push(CodeBlock, &self->co->blocks, block);
+    self->curr_iblock = self->co->blocks.count - 1;
+    return c11__at(CodeBlock, &self->co->blocks, self->curr_iblock);
+}
+
+void Ctx__exit_block(Ctx* self) {
+    CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, self->curr_iblock);
+    CodeBlockType curr_type = block->type;
+    block->end = self->co->codes.count;
+    self->curr_iblock = block->parent;
+    assert(self->curr_iblock >= 0);
+    if(curr_type == CodeBlockType_FOR_LOOP) {
+        // add a no op here to make block check work
+        Ctx__emit_virtual(self, OP_NO_OP, BC_NOARG, BC_KEEPLINE, true);
+    }
+}
+
+void Ctx__s_emit_decorators(Ctx* self, int count) {
+    assert(Ctx__s_size(self) >= count);
+    // [obj]
+    for(int i = 0; i < count; i++) {
+        Expr* deco = Ctx__s_popx(self);
+        vtemit_(deco, self);                                    // [obj, f]
+        Ctx__emit_(self, OP_ROT_TWO, BC_NOARG, deco->line);     // [f, obj]
+        Ctx__emit_(self, OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);  // [f, obj, NULL]
+        Ctx__emit_(self, OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);    // [obj, NULL, f]
+        Ctx__emit_(self, OP_CALL, 1, deco->line);               // [obj]
+        vtdelete(deco);
+    }
+}
+
+int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool is_virtual) {
+    Bytecode bc = {(uint8_t)opcode, arg};
+    BytecodeEx bcx = {line, is_virtual, self->curr_iblock};
+    c11_vector__push(Bytecode, &self->co->codes, bc);
+    c11_vector__push(BytecodeEx, &self->co->codes_ex, bcx);
+    int i = self->co->codes.count - 1;
+    BytecodeEx* codes_ex = (BytecodeEx*)self->co->codes_ex.data;
+    if(line == BC_KEEPLINE) { codes_ex[i].lineno = i >= 1 ? codes_ex[i - 1].lineno : 1; }
+    return i;
+}
+
+int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line) {
+    return Ctx__emit_virtual(self, opcode, arg, line, false);
+}
+
+void Ctx__revert_last_emit_(Ctx* self) {
+    c11_vector__pop(&self->co->codes);
+    c11_vector__pop(&self->co->codes_ex);
+}
+
+void Ctx__try_merge_for_iter_store(Ctx* self, int i) {
+    // [FOR_ITER, STORE_?, ]
+    Bytecode* co_codes = (Bytecode*)self->co->codes.data;
+    if(co_codes[i].op != OP_FOR_ITER) return;
+    if(self->co->codes.count - i != 2) return;
+    uint16_t arg = co_codes[i + 1].arg;
+    if(co_codes[i + 1].op == OP_STORE_FAST) {
+        Ctx__revert_last_emit_(self);
+        co_codes[i].op = OP_FOR_ITER_STORE_FAST;
+        co_codes[i].arg = arg;
+        return;
+    }
+    if(co_codes[i + 1].op == OP_STORE_GLOBAL) {
+        Ctx__revert_last_emit_(self);
+        co_codes[i].op = OP_FOR_ITER_STORE_GLOBAL;
+        co_codes[i].arg = arg;
+        return;
+    }
+}
+
+int Ctx__emit_int(Ctx* self, int64_t value, int line) {
+    if(is_small_int(value)) {
+        return Ctx__emit_(self, OP_LOAD_SMALL_INT, (uint16_t)value, line);
+    } else {
+        PyVar tmp;
+        py_newint(&tmp, value);
+        return Ctx__emit_(self, OP_LOAD_CONST, Ctx__add_const(self, &tmp), line);
+    }
+}
+
+void Ctx__patch_jump(Ctx* self, int index) {
+    Bytecode* co_codes = (Bytecode*)self->co->codes.data;
+    int target = self->co->codes.count;
+    Bytecode__set_signed_arg(&co_codes[index], target - index);
+}
+
+bool Ctx__add_label(Ctx* self, StrName name) {
+    bool ok = c11_smallmap_n2i__contains(&self->co->labels, name);
+    if(ok) return false;
+    c11_smallmap_n2i__set(&self->co->labels, name, self->co->codes.count);
+    return true;
+}
+
+int Ctx__add_varname(Ctx* self, StrName name) {
+    // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
+    int index = c11_smallmap_n2i__get(&self->co->varnames_inv, name, -1);
+    if(index >= 0) return index;
+    c11_vector__push(uint16_t, &self->co->varnames, name);
+    self->co->nlocals++;
+    index = self->co->varnames.count - 1;
+    c11_smallmap_n2i__set(&self->co->varnames_inv, name, index);
+    return index;
+}
+
+int Ctx__add_const_string(Ctx* self, c11_string key) {
+    uint16_t* val = c11_smallmap_s2n__try_get(&self->co_consts_string_dedup_map, key);
+    if(val) {
+        return *val;
+    } else {
+        PyVar tmp;
+        py_newstrn(&tmp, key.data, key.size);
+        c11_vector__push(PyVar, &self->co->consts, tmp);
+        int index = self->co->consts.count - 1;
+        c11_smallmap_s2n__set(&self->co_consts_string_dedup_map,
+                              py_Str__sv(PyObject__value(tmp._obj)),
+                              index);
+        return index;
+    }
+}
+
+int Ctx__add_const(Ctx* self, py_Ref v) {
+    assert(v->type != tp_str);
+    c11_vector__push(PyVar, &self->co->consts, *v);
+    return self->co->consts.count - 1;
+}
+
+void Ctx__emit_store_name(Ctx* self, NameScope scope, StrName name, int line) {
+    switch(scope) {
+        case NAME_LOCAL: Ctx__emit_(self, OP_STORE_FAST, Ctx__add_varname(self, name), line); break;
+        case NAME_GLOBAL: Ctx__emit_(self, OP_STORE_GLOBAL, name, line); break;
+        case NAME_GLOBAL_UNKNOWN: Ctx__emit_(self, OP_STORE_NAME, name, line); break;
+        default: PK_UNREACHABLE();
+    }
+}
+
 // emit top -> pop -> delete
 void Ctx__s_emit_top(Ctx* self) {
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
@@ -1449,7 +1601,7 @@ static Error* pop_context(Compiler* self) {
     // previously, we only do this if the last opcode is not a return
     // however, this is buggy...since there may be a jump to the end (out of bound) even if the last
     // opcode is a return
-    Ctx__emit_virtual(ctx(), OP_RETURN_VALUE, 1, BC_KEEPLINE);
+    Ctx__emit_virtual(ctx(), OP_RETURN_VALUE, 1, BC_KEEPLINE, true);
 
     CodeObject* co = ctx()->co;
     // find the last valid token
