@@ -1001,26 +1001,14 @@ void SubscrExpr__emit_(Expr* self_, Ctx* ctx) {
     SubscrExpr* self = (SubscrExpr*)self_;
     vtemit_(self->lhs, ctx);
     vtemit_(self->rhs, ctx);
-    Bytecode last_bc = c11_vector__back(Bytecode, &ctx->co->codes);
-    if(self->rhs->vt->is_name && last_bc.op == OP_LOAD_FAST) {
-        Ctx__revert_last_emit_(ctx);
-        Ctx__emit_(ctx, OP_LOAD_SUBSCR_FAST, last_bc.arg, self->line);
-    } else {
-        Ctx__emit_(ctx, OP_LOAD_SUBSCR, BC_NOARG, self->line);
-    }
+    Ctx__emit_(ctx, OP_LOAD_SUBSCR, BC_NOARG, self->line);
 }
 
 bool SubscrExpr__emit_store(Expr* self_, Ctx* ctx) {
     SubscrExpr* self = (SubscrExpr*)self_;
     vtemit_(self->lhs, ctx);
     vtemit_(self->rhs, ctx);
-    Bytecode last_bc = c11_vector__back(Bytecode, &ctx->co->codes);
-    if(self->rhs->vt->is_name && last_bc.op == OP_LOAD_FAST) {
-        Ctx__revert_last_emit_(ctx);
-        Ctx__emit_(ctx, OP_STORE_SUBSCR_FAST, last_bc.arg, self->line);
-    } else {
-        Ctx__emit_(ctx, OP_STORE_SUBSCR, BC_NOARG, self->line);
-    }
+    Ctx__emit_(ctx, OP_STORE_SUBSCR, BC_NOARG, self->line);
     return true;
 }
 

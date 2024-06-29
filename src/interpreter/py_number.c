@@ -175,7 +175,7 @@ static int _py_int__invert__(int argc, py_Ref argv) {
 }
 
 static int _py_int__bit_length(int argc, py_Ref argv) {
-    int64_t x = py_toint(&argv[0]);
+    int64_t x = py_toint(py_arg(0));
     if(x < 0) x = -x;
     int bits = 0;
     while(x) {

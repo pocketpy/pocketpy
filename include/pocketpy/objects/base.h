@@ -29,7 +29,8 @@ typedef struct py_TValue{
     };
 } py_TValue;
 
-static_assert(sizeof(py_TValue) <= 16, "!sizeof(py_TValue) <= 16");
+// 16 bytes to make py_arg() macro work
+static_assert(sizeof(py_TValue) == 16, "sizeof(py_TValue) != 16");
 
 /* predefined vars */
 static const py_Type tp_object = {1}, tp_type = {2};

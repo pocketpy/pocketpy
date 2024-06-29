@@ -46,3 +46,19 @@ int py_eval(const char* source, py_Ref out) {
     }
     PK_UNREACHABLE();
 }
+
+int py_call(py_Ref callable, ...){
+    return -1;
+}
+
+int py_callmethod(py_Ref self, py_Name name, ...){
+    return -1;
+}
+
+int py_vectorcall(int argc, int kwargc){
+    return -1;
+}
+
+bool py_getunboundmethod(const py_Ref self, py_Name name, bool fallback, py_Ref out, py_Ref out_self){
+    return -1;
+}

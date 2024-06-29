@@ -39,6 +39,18 @@ void py_newstrn(py_Ref out, const char* data, int size) {
     out->_obj = obj;
 }
 
+void py_newbytes(py_Ref out, const unsigned char* data, int size) {
+    pk_ManagedHeap* heap = &pk_current_vm->heap;
+    // 4 bytes size + data
+    PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_bytes, 0, sizeof(int) + size);
+    int* psize = (int*)PyObject__value(obj);
+    *psize = size;
+    memcpy(psize + 1, data, size);
+    out->type = tp_bytes;
+    out->is_ptr = true;
+    out->_obj = obj;
+}
+
 void py_newnone(py_Ref out) {
     pk_VM* vm = pk_current_vm;
     *out = vm->None;

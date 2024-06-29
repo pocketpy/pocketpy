@@ -40,12 +40,12 @@ void py_newbool(py_Ref, bool);
 void py_newstr(py_Ref, const char*);
 void py_newstrn(py_Ref, const char*, int);
 // void py_newfstr(py_Ref, const char*, ...);
-// void py_newbytes(py_Ref, const uint8_t*, int);
+void py_newbytes(py_Ref, const unsigned char*, int);
 void py_newnone(py_Ref);
 void py_newnull(py_Ref);
 
-void py_newtuple(py_Ref, int);
-// void py_newlist(py_Ref);
+void py_newtuple(py_Ref, int count);
+void py_newlist(py_Ref);
 
 // new style decl-based function
 void py_newfunction(py_Ref out, py_CFunction, const char* sig);
@@ -101,6 +101,8 @@ bool py_istype(const py_Ref, py_Type);
 // bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
+#define py_arg(i)   (py_Ref)((char*)argv+((i)<<4))
+
 py_Ref py_getreg(int i);
 void py_setreg(int i, const py_Ref val);
 
@@ -114,9 +116,13 @@ py_Ref py_getupvalue(py_Ref self);
 void py_setupvalue(py_Ref self, const py_Ref val);
 
 /// Gets the attribute of the object.
-int py_getattr(const py_Ref self, py_Name name, py_Ref out);
+bool py_getattr(const py_Ref self, py_Name name, py_Ref out);
+/// Gets the unbound method of the object.
+bool py_getunboundmethod(const py_Ref self, py_Name name, bool fallback, py_Ref out, py_Ref out_self);
 /// Sets the attribute of the object.
 int py_setattr(py_Ref self, py_Name name, const py_Ref val);
+/// Deletes the attribute of the object.
+int py_delattr(py_Ref self, py_Name name);
 
 /// Equivalent to `*dst = *src`.
 void py_assign(py_Ref dst, const py_Ref src);
@@ -192,6 +198,10 @@ py_Ref py_dict__getitem(const py_Ref self, const py_Ref key);
 void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val);
 void py_dict__delitem(py_Ref self, const py_Ref key);
 void py_dict__clear(py_Ref self);
+
+// internal functions
+typedef struct pk_TypeInfo pk_TypeInfo;
+pk_TypeInfo* pk_tpinfo(const py_Ref self);
 
 #ifdef __cplusplus
 }

@@ -58,8 +58,8 @@ void pk_VM__ctor(pk_VM* self){
     self->last_error = NULL;
     self->last_retval = PY_NULL;
 
-    self->__curr_class = NULL;
-    self->__cached_object_new = NULL;
+    self->__curr_class = PY_NULL;
+    self->__cached_object_new = PY_NULL;
     self->__dynamic_func_decl = NULL;
 
     pk_ManagedHeap__ctor(&self->heap, self);

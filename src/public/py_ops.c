@@ -15,14 +15,14 @@ int py_repr(const py_Ref val) {
     return py_callmethod(val, __repr__);
 }
 
-int py_getattr(const py_Ref self, py_Name name, py_Ref out){
-    return -1;
+bool py_getattr(const py_Ref self, py_Name name, py_Ref out){
+    return true;
 }
 
 int py_setattr(py_Ref self, py_Name name, const py_Ref val){
     return -1;
 }
 
-int py_callmethod(py_Ref self, py_Name name, ...){
+int py_delattr(py_Ref self, py_Name name){
     return -1;
 }
