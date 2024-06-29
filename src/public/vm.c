@@ -23,28 +23,22 @@ void py_finalize() {
     pk_MemoryPools__finalize();
 }
 
-int py_exec(const char* source) {
-    pk_SourceData_ src = pk_SourceData__rcnew(source, "main.py", EXEC_MODE, false);
-    CodeObject co;
-    Error* err = pk_compile(src, &co);
-    PK_DECREF(src);
-    if(err) abort();
+int py_exec(const char* source) { PK_UNREACHABLE(); }
 
+int py_eval(const char* source) {
+    CodeObject co;
+    pk_SourceData_ src = pk_SourceData__rcnew(source, "main.py", EVAL_MODE, false);
+    Error* err = pk_compile(src, &co);
+    if(err) {
+        PK_DECREF(src);
+        return -1;
+    }
     pk_VM* vm = pk_current_vm;
     Frame* frame = Frame__new(&co, &vm->main, NULL, vm->stack.sp, vm->stack.sp, &co);
     pk_VM__push_frame(vm, frame);
     pk_FrameResult res = pk_VM__run_top_frame(vm);
-    if(res == RES_ERROR) return vm->last_error->type;
-    if(res == RES_RETURN) return 0;
-    PK_UNREACHABLE();
-}
-
-int py_eval(const char* source) {
-    CodeObject* co = NULL;
-    pk_VM* vm = pk_current_vm;
-    Frame* frame = Frame__new(co, &vm->main, NULL, vm->stack.sp, vm->stack.sp, co);
-    pk_VM__push_frame(vm, frame);
-    pk_FrameResult res = pk_VM__run_top_frame(vm);
+    CodeObject__dtor(&co);
+    PK_DECREF(src);
     if(res == RES_ERROR) return vm->last_error->type;
     if(res == RES_RETURN) return 0;
     PK_UNREACHABLE();

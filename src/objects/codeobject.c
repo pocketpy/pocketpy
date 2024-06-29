@@ -13,7 +13,7 @@ bool Bytecode__is_forward_jump(const Bytecode* self) {
     return self->op >= OP_JUMP_FORWARD && self->op <= OP_LOOP_BREAK;
 }
 
-FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_string name){
+FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_string name) {
     FuncDecl* self = malloc(sizeof(FuncDecl));
     self->rc.count = 1;
     self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
@@ -33,21 +33,22 @@ FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_string name){
     return self;
 }
 
-void FuncDecl__dtor(FuncDecl* self){
+void FuncDecl__dtor(FuncDecl* self) {
     CodeObject__dtor(&self->code);
     c11_vector__dtor(&self->args);
     c11_vector__dtor(&self->kwargs);
     c11_smallmap_n2i__dtor(&self->kw_to_index);
 }
 
-void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const PyVar* value){
+void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const PyVar* value) {
     c11_smallmap_n2i__set(&self->kw_to_index, key, index);
     FuncDeclKwArg item = {index, key, *value};
     c11_vector__push(FuncDeclKwArg, &self->kwargs, item);
 }
 
-void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_string name){
-    self->src = src; PK_INCREF(src);
+void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_string name) {
+    self->src = src;
+    PK_INCREF(src);
     py_Str__ctor2(&self->name, name.data, name.size);
 
     c11_vector__ctor(&self->codes, sizeof(Bytecode));
@@ -70,10 +71,10 @@ void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_string name){
     c11_vector__push(CodeBlock, &self->blocks, root_block);
 }
 
-void CodeObject__dtor(CodeObject* self){
+void CodeObject__dtor(CodeObject* self) {
     PK_DECREF(self->src);
     py_Str__dtor(&self->name);
-    
+
     c11_vector__dtor(&self->codes);
     c11_vector__dtor(&self->codes_ex);
 
@@ -85,7 +86,7 @@ void CodeObject__dtor(CodeObject* self){
 
     c11_vector__dtor(&self->blocks);
 
-    for(int i=0; i<self->func_decls.count; i++){
+    for(int i = 0; i < self->func_decls.count; i++) {
         FuncDecl_ decl = c11__getitem(FuncDecl_, &self->func_decls, i);
         PK_DECREF(decl);
     }
