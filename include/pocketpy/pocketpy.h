@@ -30,8 +30,8 @@ void py_finalize();
 
 /// Run a simple source string. Do not change the stack.
 int py_exec(const char*);
-/// Eval a simple expression.
-int py_eval(const char*, py_Ref out);
+/// Eval a simple expression. The result is pushed to the stack.
+int py_eval(const char*);
 
 /************* Values Creation *************/
 void py_newint(py_Ref, int64_t);
@@ -156,8 +156,8 @@ int py_eq(const py_Ref, const py_Ref);
 int py_le(const py_Ref, const py_Ref);
 int py_hash(const py_Ref, int64_t* out);
 
-int py_str(const py_Ref, py_Ref out);
-int py_repr(const py_Ref, py_Ref out);
+int py_str(const py_Ref);
+int py_repr(const py_Ref);
 
 int py_vectorcall(int argc, int kwargc);
 int py_call(py_Ref f, ...);

@@ -25,7 +25,7 @@ void py_finalize() {
 
 int py_exec(const char* source) { PK_UNREACHABLE(); }
 
-int py_eval(const char* source, py_Ref out) {
+int py_eval(const char* source) {
     CodeObject co;
     pk_SourceData_ src = pk_SourceData__rcnew(source, "main.py", EVAL_MODE, false);
     Error* err = pk_compile(src, &co);
