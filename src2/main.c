@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     py_initialize();
     const char* source = "[1, 'a']";
 
-    if(py_eval(source, NULL)){
+    if(py_eval(source, py_pushtmp())){
         py_Error* err = py_getlasterror();
         py_Error__print(err);
     }else{
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
         int _L0 = py_toint(_0);
         const char* _L1 = py_tostr(_1);
         printf("%d, %s\n", _L0, _L1);
-        py_pop();
+        py_poptmp(1);
     }
 
     py_finalize();

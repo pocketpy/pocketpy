@@ -40,9 +40,6 @@ int py_eval(const char* source, py_Ref out) {
     CodeObject__dtor(&co);
     PK_DECREF(src);
     if(res == RES_ERROR) return vm->last_error->type;
-    if(res == RES_RETURN){
-        if(out) *out = *--vm->stack.sp;
-        return 0;
-    }
+    if(res == RES_RETURN) return 0;
     PK_UNREACHABLE();
 }
