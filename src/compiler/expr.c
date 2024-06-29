@@ -594,6 +594,168 @@ pk_FStringExpr* pk_FStringExpr__new(c11_string src){
     return self;
 }
 
+static pk_ExprVt LogicBinaryExpr;
+
+pk_LogicBinaryExpr* pk_LogicBinaryExpr__new(pk_Expr* lhs, pk_Expr* rhs, Opcode opcode){
+    static_assert_expr_size(pk_LogicBinaryExpr);
+    pk_LogicBinaryExpr* self = PoolExpr_alloc();
+    self->vt = &LogicBinaryExpr;
+    self->line = -1;
+    self->lhs = lhs;
+    self->rhs = rhs;
+    self->opcode = opcode;
+    return self;
+}
+
+void pk_LogicBinaryExpr__dtor(pk_Expr* self_){
+    pk_LogicBinaryExpr* self = (pk_LogicBinaryExpr*)self_;
+    pk_Expr__delete(self->lhs);
+    pk_Expr__delete(self->rhs);
+}
+
+void pk_LogicBinaryExpr__emit_(pk_Expr* self_, pk_CodeEmitContext* ctx) {
+    pk_LogicBinaryExpr* self = (pk_LogicBinaryExpr*)self_;
+    self->lhs->vt->emit_(self->lhs, ctx);
+    int patch = pk_CodeEmitContext__emit_(ctx, self->opcode, BC_NOARG, self->line);
+    self->rhs->vt->emit_(self->rhs, ctx);
+    pk_CodeEmitContext__patch_jump(ctx, patch);
+}
+
+static pk_ExprVt GroupedExprVt;
+
+void pk_GroupedExpr__dtor(pk_Expr* self_){
+    pk_GroupedExpr* self = (pk_GroupedExpr*)self_;
+    pk_Expr__delete(self->child);
+}
+
+void pk_GroupedExpr__emit_(pk_Expr* self_, pk_CodeEmitContext* ctx) {
+    pk_GroupedExpr* self = (pk_GroupedExpr*)self_;
+    self->child->vt->emit_(self->child, ctx);
+}
+
+bool pk_GroupedExpr__emit_del(pk_Expr* self_, pk_CodeEmitContext* ctx) {
+    pk_GroupedExpr* self = (pk_GroupedExpr*)self_;
+    return self->child->vt->emit_del(self->child, ctx);
+}
+
+bool pk_GroupedExpr__emit_store(pk_Expr* self_, pk_CodeEmitContext* ctx) {
+    pk_GroupedExpr* self = (pk_GroupedExpr*)self_;
+    return self->child->vt->emit_store(self->child, ctx);
+}
+
+pk_GroupedExpr* pk_GroupedExpr__new(pk_Expr* child){
+    static_assert_expr_size(pk_GroupedExpr);
+    pk_GroupedExpr* self = PoolExpr_alloc();
+    self->vt = &GroupedExprVt;
+    self->line = -1;
+    self->child = child;
+    return self;
+}
+
+static pk_ExprVt BinaryExprVt;
+
+static void pk_BinaryExpr__dtor(pk_Expr* self_){
+    pk_BinaryExpr* self = (pk_BinaryExpr*)self_;
+    pk_Expr__delete(self->lhs);
+    pk_Expr__delete(self->rhs);
+}
+
+static pk_BinaryExpr__is_compare(pk_Expr* self_){
+    pk_BinaryExpr* self = (pk_BinaryExpr*)self_;
+    switch(self->op) {
+        case TK_LT:
+        case TK_LE:
+        case TK_EQ:
+        case TK_NE:
+        case TK_GT:
+        case TK_GE: return true;
+        default: return false;
+    }
+}
+
+static void _emit_compare(pk_BinaryExpr* self, pk_CodeEmitContext* ctx, c11_vector* jmps) {
+    if(self->lhs->vt->is_compare(self->lhs)) {
+        pk_BinaryExpr* lhs = (pk_BinaryExpr*)lhs;
+        _emit_compare(lhs, ctx, jmps);
+    } else {
+        self->lhs->vt->emit_(self->lhs, ctx);  // [a]
+    }
+    self->rhs->vt->emit_(self->rhs, ctx);                                   // [a, b]
+    pk_CodeEmitContext__emit_(ctx, OP_DUP_TOP, BC_NOARG, self->line);       // [a, b, b]
+    pk_CodeEmitContext__emit_(ctx, OP_ROT_THREE, BC_NOARG, self->line);     // [b, a, b]
+    Opcode opcode;
+    switch(self->op) {
+        case TK_LT: opcode = OP_COMPARE_LT; break;
+        case TK_LE: opcode = OP_COMPARE_LE; break;
+        case TK_EQ: opcode = OP_COMPARE_EQ; break;
+        case TK_NE: opcode = OP_COMPARE_NE; break;
+        case TK_GT: opcode = OP_COMPARE_GT; break;
+        case TK_GE: opcode = OP_COMPARE_GE; break;
+        default: PK_UNREACHABLE()
+    }
+    pk_CodeEmitContext__emit_(ctx, opcode, BC_NOARG, self->line);
+    // [b, RES]
+    int index = pk_CodeEmitContext__emit_(ctx, OP_JUMP_IF_FALSE_OR_POP, BC_NOARG, self->line);
+    c11_vector__push(int, jmps, index);
+}
+
+static void pk_BinaryExpr__emit_(pk_Expr* self_, pk_CodeEmitContext* ctx) {
+    pk_BinaryExpr* self = (pk_BinaryExpr*)self_;
+    c11_vector/*T=int*/ jmps;
+    c11_vector__ctor(&jmps, sizeof(int));
+    if(self->vt->is_compare(self_) && self->lhs->vt->is_compare(self->lhs)) {
+        // (a < b) < c
+        pk_BinaryExpr* e = (pk_BinaryExpr*)self->lhs;
+        _emit_compare(e, ctx, &jmps);
+        // [b, RES]
+    } else {
+        // (1 + 2) < c
+        if(self->inplace) {
+            self->lhs->vt->emit_inplace(self->lhs, ctx);
+        } else {
+            self->lhs->vt->emit_(self->lhs, ctx);
+        }
+    }
+
+    self->rhs->vt->emit_(self->rhs, ctx);
+    Opcode opcode;
+    switch(self->op) {
+        case TK_ADD: opcode = OP_BINARY_ADD; break;
+        case TK_SUB: opcode = OP_BINARY_SUB; break;
+        case TK_MUL: opcode = OP_BINARY_MUL; break;
+        case TK_DIV: opcode = OP_BINARY_TRUEDIV; break;
+        case TK_FLOORDIV: opcode = OP_BINARY_FLOORDIV; break;
+        case TK_MOD: opcode = OP_BINARY_MOD; break;
+        case TK_POW: opcode = OP_BINARY_POW; break;
+
+        case TK_LT: opcode = OP_COMPARE_LT; break;
+        case TK_LE: opcode = OP_COMPARE_LE; break;
+        case TK_EQ: opcode = OP_COMPARE_EQ; break;
+        case TK_NE: opcode = OP_COMPARE_NE; break;
+        case TK_GT: opcode = OP_COMPARE_GT; break;
+        case TK_GE: opcode = OP_COMPARE_GE; break;
+
+        // case TK_IN: ctx->emit_(OP_CONTAINS_OP, 0, line); break;
+        // case TK_NOT_IN: ctx->emit_(OP_CONTAINS_OP, 1, line); break;
+        // case TK_IS: ctx->emit_(OP_IS_OP, BC_NOARG, line); break;
+        // case TK_IS_NOT: ctx->emit_(OP_IS_NOT_OP, BC_NOARG, line); break;
+
+        case TK_LSHIFT: ctx->emit_(OP_BITWISE_LSHIFT, BC_NOARG, line); break;
+        case TK_RSHIFT: ctx->emit_(OP_BITWISE_RSHIFT, BC_NOARG, line); break;
+        case TK_AND: ctx->emit_(OP_BITWISE_AND, BC_NOARG, line); break;
+        case TK_OR: ctx->emit_(OP_BITWISE_OR, BC_NOARG, line); break;
+        case TK_XOR: ctx->emit_(OP_BITWISE_XOR, BC_NOARG, line); break;
+
+        case TK_DECORATOR: ctx->emit_(OP_BINARY_MATMUL, BC_NOARG, line); break;
+        default: PK_FATAL_ERROR("unknown binary operator: %s\n", pk_TokenSymbols[op]);
+    }
+
+    for(int i: jmps)
+        ctx->patch_jump(i);
+}
+
+static pk_ExprVt TernaryExprVt;
+
 /////////////////////////////////////////////
 void pk_Expr__initialize(){
     pk_ExprVt__ctor(&NameExprVt);
@@ -660,4 +822,16 @@ void pk_Expr__initialize(){
     pk_ExprVt__ctor(&FStringExprVt);
     vt = &FStringExprVt;
     vt->emit_ = pk_FStringExpr__emit_;
+
+    pk_ExprVt__ctor(&LogicBinaryExpr);
+    vt = &LogicBinaryExpr;
+    vt->dtor = pk_LogicBinaryExpr__dtor;
+    vt->emit_ = pk_LogicBinaryExpr__emit_;
+
+    pk_ExprVt__ctor(&GroupedExprVt);
+    vt = &GroupedExprVt;
+    vt->dtor = pk_GroupedExpr__dtor;
+    vt->emit_ = pk_GroupedExpr__emit_;
+    vt->emit_del = pk_GroupedExpr__emit_del;
+    vt->emit_store = pk_GroupedExpr__emit_store;
 }

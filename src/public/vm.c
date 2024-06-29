@@ -12,7 +12,6 @@ static pk_VM pk_default_vm;
 void py_initialize() {
     pk_MemoryPools__initialize();
     pk_StrName__initialize();
-    pk_Compiler__initialize();
     pk_current_vm = &pk_default_vm;
     pk_VM__ctor(&pk_default_vm);
 }
@@ -20,7 +19,6 @@ void py_initialize() {
 void py_finalize() {
     pk_VM__dtor(&pk_default_vm);
     pk_current_vm = NULL;
-    pk_Compiler__finalize();
     pk_StrName__finalize();
     pk_MemoryPools__finalize();
 }

@@ -58,7 +58,7 @@ typedef struct pk_StarredExpr{
     int level;
 } pk_StarredExpr;
 
-// InvertExpr, NotExpr, AndExpr, OrExpr, NegatedExpr
+// InvertExpr, NotExpr, NegatedExpr
 // NOTE: NegatedExpr always contains a non-const child. Should not generate -1 or -0.1
 typedef struct pk_UnaryExpr{
     COMMON_HEADER
@@ -117,6 +117,34 @@ typedef struct pk_FStringExpr{
     COMMON_HEADER
     c11_string src;
 } pk_FStringExpr;
+
+// AndExpr, OrExpr
+typedef struct pk_LogicBinaryExpr{
+    COMMON_HEADER
+    pk_Expr* lhs;
+    pk_Expr* rhs;
+    Opcode opcode;
+} pk_LogicBinaryExpr;
+
+typedef struct pk_GroupedExpr{
+    COMMON_HEADER
+    pk_Expr* child;
+} pk_GroupedExpr;
+
+typedef struct pk_BinaryExpr{
+    COMMON_HEADER
+    pk_Expr* lhs;
+    pk_Expr* rhs;
+    TokenIndex op;
+    bool inplace;
+} pk_BinaryExpr;
+
+typedef struct pk_TernaryExpr{
+    COMMON_HEADER
+    pk_Expr* cond;
+    pk_Expr* true_expr;
+    pk_Expr* false_expr;
+} pk_TernaryExpr;
 
 #ifdef __cplusplus
 }

@@ -12,7 +12,7 @@ typedef struct PrattRule {
     enum Precedence precedence;
 } PrattRule;
 
-static PrattRule rules[TK__COUNT__];
+const static PrattRule rules[TK__COUNT__];
 
 typedef struct pk_Compiler {
     pk_SourceData_ src;         // weakref
@@ -251,56 +251,52 @@ Error* pk_compile(pk_SourceData_ src, CodeObject* out){
     return err;
 }
 
-void pk_Compiler__initialize(){
+const static PrattRule rules[TK__COUNT__] = {
     // clang-format off
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
-        rules[TK_DOT] =         (PrattRule){ NULL,          exprAttrib,         PREC_PRIMARY    };
-        rules[TK_LPAREN] =      (PrattRule){ exprGroup,     exprCall,           PREC_PRIMARY    };
-        rules[TK_LBRACKET] =    (PrattRule){ exprList,      exprSubscr,         PREC_PRIMARY    };
-        rules[TK_MOD] =         (PrattRule){ NULL,          exprBinaryOp,       PREC_FACTOR     };
-        rules[TK_ADD] =         (PrattRule){ NULL,          exprBinaryOp,       PREC_TERM       };
-        rules[TK_SUB] =         (PrattRule){ exprUnaryOp,   exprBinaryOp,       PREC_TERM       };
-        rules[TK_MUL] =         (PrattRule){ exprUnaryOp,   exprBinaryOp,       PREC_FACTOR     };
-        rules[TK_INVERT] =      (PrattRule){ exprUnaryOp,   NULL,               PREC_UNARY      };
-        rules[TK_DIV] =         (PrattRule){ NULL,          exprBinaryOp,       PREC_FACTOR     };
-        rules[TK_FLOORDIV] =    (PrattRule){ NULL,          exprBinaryOp,       PREC_FACTOR     };
-        rules[TK_POW] =         (PrattRule){ exprUnaryOp,   exprBinaryOp,       PREC_EXPONENT   };
-        rules[TK_GT] =          (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION };
-        rules[TK_LT] =          (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION };
-        rules[TK_EQ] =          (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION };
-        rules[TK_NE] =          (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION };
-        rules[TK_GE] =          (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION };
-        rules[TK_LE] =          (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION };
-        rules[TK_IN] =          (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION };
-        rules[TK_IS] =          (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION };
-        rules[TK_LSHIFT] =      (PrattRule){ NULL,          exprBinaryOp,       PREC_BITWISE_SHIFT };
-        rules[TK_RSHIFT] =      (PrattRule){ NULL,          exprBinaryOp,       PREC_BITWISE_SHIFT };
-        rules[TK_AND] =         (PrattRule){ NULL,          exprBinaryOp,       PREC_BITWISE_AND   };
-        rules[TK_OR] =          (PrattRule){ NULL,          exprBinaryOp,       PREC_BITWISE_OR    };
-        rules[TK_XOR] =         (PrattRule){ NULL,          exprBinaryOp,       PREC_BITWISE_XOR   };
-        rules[TK_DECORATOR] =   (PrattRule){ NULL,          exprBinaryOp,       PREC_FACTOR        };
-        rules[TK_IF] =          (PrattRule){ NULL,          exprTernary,        PREC_TERNARY       };
-        rules[TK_NOT_IN] =      (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION   };
-        rules[TK_IS_NOT] =      (PrattRule){ NULL,          exprBinaryOp,       PREC_COMPARISION   };
-        rules[TK_AND_KW ] =     (PrattRule){ NULL,          exprAnd,            PREC_LOGICAL_AND   };
-        rules[TK_OR_KW] =       (PrattRule){ NULL,          exprOr,             PREC_LOGICAL_OR    };
-        rules[TK_NOT_KW] =      (PrattRule){ exprNot,       NULL,               PREC_LOGICAL_NOT   };
-        rules[TK_TRUE] =        (PrattRule){ exprLiteral0 };
-        rules[TK_FALSE] =       (PrattRule){ exprLiteral0 };
-        rules[TK_NONE] =        (PrattRule){ exprLiteral0 };
-        rules[TK_DOTDOTDOT] =   (PrattRule){ exprLiteral0 };
-        rules[TK_LAMBDA] =      (PrattRule){ exprLambda,  };
-        rules[TK_ID] =          (PrattRule){ exprName,    };
-        rules[TK_NUM] =         (PrattRule){ exprLiteral, };
-        rules[TK_STR] =         (PrattRule){ exprLiteral, };
-        rules[TK_FSTR] =        (PrattRule){ exprFString, };
-        rules[TK_LONG] =        (PrattRule){ exprLong,    };
-        rules[TK_IMAG] =        (PrattRule){ exprImag,    };
-        rules[TK_BYTES] =       (PrattRule){ exprBytes,   };
-        rules[TK_LBRACE] =      (PrattRule){ exprMap      };
-        rules[TK_COLON] =       (PrattRule){ exprSlice0,    exprSlice1,      PREC_PRIMARY };
-        
-#undef PK_METHOD
-#undef PK_NO_INFIX
-    // clang-format on
-}
+    [TK_DOT] =         { NULL,          exprAttrib,         PREC_PRIMARY    },
+    [TK_LPAREN] =      { exprGroup,     exprCall,           PREC_PRIMARY    },
+    [TK_LBRACKET] =    { exprList,      exprSubscr,         PREC_PRIMARY    },
+    [TK_MOD] =         { NULL,          exprBinaryOp,       PREC_FACTOR     },
+    [TK_ADD] =         { NULL,          exprBinaryOp,       PREC_TERM       },
+    [TK_SUB] =         { exprUnaryOp,   exprBinaryOp,       PREC_TERM       },
+    [TK_MUL] =         { exprUnaryOp,   exprBinaryOp,       PREC_FACTOR     },
+    [TK_INVERT] =      { exprUnaryOp,   NULL,               PREC_UNARY      },
+    [TK_DIV] =         { NULL,          exprBinaryOp,       PREC_FACTOR     },
+    [TK_FLOORDIV] =    { NULL,          exprBinaryOp,       PREC_FACTOR     },
+    [TK_POW] =         { exprUnaryOp,   exprBinaryOp,       PREC_EXPONENT   },
+    [TK_GT] =          { NULL,          exprBinaryOp,       PREC_COMPARISION },
+    [TK_LT] =          { NULL,          exprBinaryOp,       PREC_COMPARISION },
+    [TK_EQ] =          { NULL,          exprBinaryOp,       PREC_COMPARISION },
+    [TK_NE] =          { NULL,          exprBinaryOp,       PREC_COMPARISION },
+    [TK_GE] =          { NULL,          exprBinaryOp,       PREC_COMPARISION },
+    [TK_LE] =          { NULL,          exprBinaryOp,       PREC_COMPARISION },
+    [TK_IN] =          { NULL,          exprBinaryOp,       PREC_COMPARISION },
+    [TK_IS] =          { NULL,          exprBinaryOp,       PREC_COMPARISION },
+    [TK_LSHIFT] =      { NULL,          exprBinaryOp,       PREC_BITWISE_SHIFT },
+    [TK_RSHIFT] =      { NULL,          exprBinaryOp,       PREC_BITWISE_SHIFT },
+    [TK_AND] =         { NULL,          exprBinaryOp,       PREC_BITWISE_AND   },
+    [TK_OR] =          { NULL,          exprBinaryOp,       PREC_BITWISE_OR    },
+    [TK_XOR] =         { NULL,          exprBinaryOp,       PREC_BITWISE_XOR   },
+    [TK_DECORATOR] =   { NULL,          exprBinaryOp,       PREC_FACTOR        },
+    [TK_IF] =          { NULL,          exprTernary,        PREC_TERNARY       },
+    [TK_NOT_IN] =      { NULL,          exprBinaryOp,       PREC_COMPARISION   },
+    [TK_IS_NOT] =      { NULL,          exprBinaryOp,       PREC_COMPARISION   },
+    [TK_AND_KW ] =     { NULL,          exprAnd,            PREC_LOGICAL_AND   },
+    [TK_OR_KW] =       { NULL,          exprOr,             PREC_LOGICAL_OR    },
+    [TK_NOT_KW] =      { exprNot,       NULL,               PREC_LOGICAL_NOT   },
+    [TK_TRUE] =        { exprLiteral0 },
+    [TK_FALSE] =       { exprLiteral0 },
+    [TK_NONE] =        { exprLiteral0 },
+    [TK_DOTDOTDOT] =   { exprLiteral0 },
+    [TK_LAMBDA] =      { exprLambda,  },
+    [TK_ID] =          { exprName,    },
+    [TK_NUM] =         { exprLiteral, },
+    [TK_STR] =         { exprLiteral, },
+    [TK_FSTR] =        { exprFString, },
+    [TK_LONG] =        { exprLong,    },
+    [TK_IMAG] =        { exprImag,    },
+    [TK_BYTES] =       { exprBytes,   },
+    [TK_LBRACE] =      { exprMap      },
+    [TK_COLON] =       { exprSlice0,    exprSlice1,      PREC_PRIMARY }
+};
