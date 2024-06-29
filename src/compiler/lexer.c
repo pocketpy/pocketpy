@@ -21,18 +21,18 @@ typedef struct pk_Lexer{
     c11_vector/*T=int*/ indents;
 } pk_Lexer;
 
-typedef struct pk_TokenDeserializer {
+typedef struct TokenDeserializer {
     const char* curr;
     const char* source;
-} pk_TokenDeserializer;
+} TokenDeserializer;
 
-void pk_TokenDeserializer__ctor(pk_TokenDeserializer* self, const char* source);
-bool pk_TokenDeserializer__match_char(pk_TokenDeserializer* self, char c);
-c11_string pk_TokenDeserializer__read_string(pk_TokenDeserializer* self, char c);
-py_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, char c);
-int pk_TokenDeserializer__read_count(pk_TokenDeserializer* self);
-int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c);
-double pk_TokenDeserializer__read_float(pk_TokenDeserializer* self, char c);
+void TokenDeserializer__ctor(TokenDeserializer* self, const char* source);
+bool TokenDeserializer__match_char(TokenDeserializer* self, char c);
+c11_string TokenDeserializer__read_string(TokenDeserializer* self, char c);
+py_Str TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c);
+int TokenDeserializer__read_count(TokenDeserializer* self);
+int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c);
+double TokenDeserializer__read_float(TokenDeserializer* self, char c);
 
 
 const static TokenValue EmptyTokenValue;
@@ -553,34 +553,34 @@ static Error* lex_one_token(pk_Lexer* self, bool* eof){
 }
 
 static Error* from_precompiled(pk_Lexer* self) {
-    pk_TokenDeserializer deserializer;
-    pk_TokenDeserializer__ctor(&deserializer, py_Str__data(&self->src->source));
+    TokenDeserializer deserializer;
+    TokenDeserializer__ctor(&deserializer, py_Str__data(&self->src->source));
 
     deserializer.curr += 5;  // skip "pkpy:"
-    c11_string version = pk_TokenDeserializer__read_string(&deserializer, '\n');
+    c11_string version = TokenDeserializer__read_string(&deserializer, '\n');
 
     if(c11_string__cmp3(version, PK_VERSION) != 0) {
         return SyntaxError("precompiled version mismatch");
     }
-    if(pk_TokenDeserializer__read_uint(&deserializer, '\n') != (int64_t)self->src->mode){
+    if(TokenDeserializer__read_uint(&deserializer, '\n') != (int64_t)self->src->mode){
         return SyntaxError("precompiled mode mismatch");
     }
 
-    int count = pk_TokenDeserializer__read_count(&deserializer);
+    int count = TokenDeserializer__read_count(&deserializer);
     c11_vector* precompiled_tokens = &self->src->_precompiled_tokens;
     for(int i = 0; i < count; i++) {
-        c11_string item = pk_TokenDeserializer__read_string(&deserializer, '\n');
+        c11_string item = TokenDeserializer__read_string(&deserializer, '\n');
         py_Str copied_item;
         py_Str__ctor2(&copied_item, item.data, item.size);
         c11_vector__push(py_Str, precompiled_tokens, copied_item);
     }
 
-    count = pk_TokenDeserializer__read_count(&deserializer);
+    count = TokenDeserializer__read_count(&deserializer);
     for(int i = 0; i < count; i++) {
         Token t;
-        t.type = (TokenIndex)pk_TokenDeserializer__read_uint(&deserializer, ',');
+        t.type = (TokenIndex)TokenDeserializer__read_uint(&deserializer, ',');
         if(is_raw_string_used(t.type)) {
-            int64_t index = pk_TokenDeserializer__read_uint(&deserializer, ',');
+            int64_t index = TokenDeserializer__read_uint(&deserializer, ',');
             py_Str* p = c11__at(py_Str, precompiled_tokens, index);
             t.start = py_Str__data(p);
             t.length = c11__getitem(py_Str, precompiled_tokens, index).size;
@@ -589,30 +589,30 @@ static Error* from_precompiled(pk_Lexer* self) {
             t.length = 0;
         }
 
-        if(pk_TokenDeserializer__match_char(&deserializer, ',')) {
+        if(TokenDeserializer__match_char(&deserializer, ',')) {
             t.line = c11_vector__back(Token, &self->nexts).line;
         } else {
-            t.line = (int)pk_TokenDeserializer__read_uint(&deserializer, ',');
+            t.line = (int)TokenDeserializer__read_uint(&deserializer, ',');
         }
 
-        if(pk_TokenDeserializer__match_char(&deserializer, ',')) {
+        if(TokenDeserializer__match_char(&deserializer, ',')) {
             t.brackets_level = c11_vector__back(Token, &self->nexts).brackets_level;
         } else {
-            t.brackets_level = (int)pk_TokenDeserializer__read_uint(&deserializer, ',');
+            t.brackets_level = (int)TokenDeserializer__read_uint(&deserializer, ',');
         }
 
         char type = (*deserializer.curr++);      // read_char
         switch(type) {
             case 'I': {
-                int64_t res = pk_TokenDeserializer__read_uint(&deserializer, '\n');
+                int64_t res = TokenDeserializer__read_uint(&deserializer, '\n');
                 t.value = (TokenValue){TokenValue_I64, ._i64 = res};
             } break;
             case 'F': {
-                double res = pk_TokenDeserializer__read_float(&deserializer, '\n');
+                double res = TokenDeserializer__read_float(&deserializer, '\n');
                 t.value = (TokenValue){TokenValue_F64, ._f64 = res};
             } break;
             case 'S': {
-                py_Str res = pk_TokenDeserializer__read_string_from_hex(&deserializer, '\n');
+                py_Str res = TokenDeserializer__read_string_from_hex(&deserializer, '\n');
                 t.value = (TokenValue){TokenValue_STR, ._str = res};
             } break;
             default:
@@ -875,12 +875,12 @@ const char* pk_TokenSymbols[] = {
     "try", "while", "with", "yield",
 };
 
-void pk_TokenDeserializer__ctor(pk_TokenDeserializer* self, const char* source){
+void TokenDeserializer__ctor(TokenDeserializer* self, const char* source){
     self->curr = source;
     self->source = source;
 }
 
-bool pk_TokenDeserializer__match_char(pk_TokenDeserializer* self, char c){
+bool TokenDeserializer__match_char(TokenDeserializer* self, char c){
     if(*self->curr == c) {
         self->curr++;
         return true;
@@ -888,7 +888,7 @@ bool pk_TokenDeserializer__match_char(pk_TokenDeserializer* self, char c){
     return false;
 }
 
-c11_string pk_TokenDeserializer__read_string(pk_TokenDeserializer* self, char c){
+c11_string TokenDeserializer__read_string(TokenDeserializer* self, char c){
     const char* start = self->curr;
     while(*self->curr != c)
         self->curr++;
@@ -897,8 +897,8 @@ c11_string pk_TokenDeserializer__read_string(pk_TokenDeserializer* self, char c)
     return retval;
 }
 
-py_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, char c){
-    c11_string sv = pk_TokenDeserializer__read_string(self, c);
+py_Str TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c){
+    c11_string sv = TokenDeserializer__read_string(self, c);
     const char* s = sv.data;
     char* buffer = (char*)malloc(sv.size / 2 + 1);
     for(int i = 0; i < sv.size; i += 2) {
@@ -927,13 +927,13 @@ py_Str pk_TokenDeserializer__read_string_from_hex(pk_TokenDeserializer* self, ch
     };
 }
 
-int pk_TokenDeserializer__read_count(pk_TokenDeserializer* self){
+int TokenDeserializer__read_count(TokenDeserializer* self){
     assert(*self->curr == '=');
     self->curr++;
-    return pk_TokenDeserializer__read_uint(self, '\n');
+    return TokenDeserializer__read_uint(self, '\n');
 }
 
-int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c){
+int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c){
     int64_t out = 0;
     while(*self->curr != c) {
         out = out * 10 + (*self->curr - '0');
@@ -943,8 +943,8 @@ int64_t pk_TokenDeserializer__read_uint(pk_TokenDeserializer* self, char c){
     return out;
 }
 
-double pk_TokenDeserializer__read_float(pk_TokenDeserializer* self, char c){
-    c11_string sv = pk_TokenDeserializer__read_string(self, c);
+double TokenDeserializer__read_float(TokenDeserializer* self, char c){
+    c11_string sv = TokenDeserializer__read_string(self, c);
     py_Str nullterm;
     py_Str__ctor2(&nullterm, sv.data, sv.size);
     char* end;
