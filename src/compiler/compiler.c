@@ -1047,7 +1047,7 @@ bool SubscrExpr__emit_del(Expr* self_, Ctx* ctx) {
     return true;
 }
 
-SubscrExpr* SubscrExpr__new(int line, Expr* lhs, Expr* rhs) {
+SubscrExpr* SubscrExpr__new(int line) {
     const static ExprVt Vt = {
         .dtor = SubscrExpr__dtor,
         .emit_ = SubscrExpr__emit_,
@@ -1061,8 +1061,8 @@ SubscrExpr* SubscrExpr__new(int line, Expr* lhs, Expr* rhs) {
     SubscrExpr* self = PoolExpr_alloc();
     self->vt = &Vt;
     self->line = line;
-    self->lhs = lhs;
-    self->rhs = rhs;
+    self->lhs = NULL;
+    self->rhs = NULL;
     return self;
 }
 
@@ -1132,7 +1132,7 @@ typedef struct CallExpr {
     EXPR_COMMON_HEADER
     Expr* callable;
     c11_vector /*T=Expr* */ args;
-    // **a will be interpreted as a special keyword argument: {"**": a}
+    // **a will be interpreted as a special keyword argument: {{0}: a}
     c11_vector /*T=CallExprKwArg */ kwargs;
 } CallExpr;
 
@@ -1178,7 +1178,7 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
                 if(e->val->vt->is_starred) {
                     // **kwargs
                     StarredExpr* se = (StarredExpr*)e->val;
-                    assert(se->level == 2);
+                    assert(se->level == 2 && e->key == 0);
                     vtemit_(e->val, ctx);
                 } else {
                     // k=v
@@ -1431,7 +1431,7 @@ static Error* EXPR_VARS(Compiler* self) {
     // if(count > 1){
     //     TupleExpr* e = make_expr<TupleExpr>(count);
     //     for(int i=count-1; i>=0; i--)
-    //         e->items[i] = ctx()->s_popx();
+    //         e->items[i] = Ctx__s_popx(ctx());
     //     ctx()->s_push(e);
     // }
     return NULL;
@@ -1680,12 +1680,189 @@ static Error* exprLiteral0(Compiler* self) {
     return NULL;
 }
 
-static Error* exprList(Compiler* self);
-static Error* exprMap(Compiler* self);
-static Error* exprCall(Compiler* self);
-static Error* exprSlice0(Compiler* self);
-static Error* exprSlice1(Compiler* self);
-static Error* exprSubscr(Compiler* self);
+static Error* consume_comp(Compiler* self, Opcode op0, Opcode op1) {
+    // [expr]
+    Error* err;
+    int line = prev()->line;
+    bool has_cond = false;
+    check(EXPR_VARS(self));  // [expr, vars]
+    consume(TK_IN);
+    check(parse_expression(self, PREC_TERNARY + 1, false));  // [expr, vars, iter]
+    check_newlines_repl();
+    if(match(TK_IF)) {
+        check(parse_expression(self, PREC_TERNARY + 1, false));  // [expr, vars, iter, cond]
+        has_cond = true;
+    }
+    CompExpr* ce = CompExpr__new(line, op0, op1);
+    if(has_cond) ce->cond = Ctx__s_popx(ctx());
+    ce->iter = Ctx__s_popx(ctx());
+    ce->vars = Ctx__s_popx(ctx());
+    ce->expr = Ctx__s_popx(ctx());
+    Ctx__s_push(ctx(), (Expr*)ce);
+    check_newlines_repl();
+    return NULL;
+}
+
+static Error* exprList(Compiler* self) {
+    Error* err;
+    int line = prev()->line;
+    int count = 0;
+    do {
+        check_newlines_repl();
+        if(curr()->type == TK_RBRACKET) break;
+        check(EXPR(self));
+        count += 1;
+        check_newlines_repl();
+        if(count == 1 && match(TK_FOR)) {
+            check(consume_comp(self, OP_BUILD_LIST, OP_LIST_APPEND));
+            consume(TK_RBRACKET);
+            return NULL;
+        }
+        check_newlines_repl();
+    } while(match(TK_COMMA));
+    consume(TK_RBRACKET);
+    SequenceExpr* e = ListExpr__new(line, count);
+    for(int i = count - 1; i >= 0; i--) {
+        c11__setitem(Expr*, &e->items, i, Ctx__s_popx(ctx()));
+    }
+    Ctx__s_push(ctx(), (Expr*)e);
+    return NULL;
+}
+
+static Error* exprMap(Compiler* self) {
+    Error* err;
+    int line = prev()->line;
+    bool parsing_dict = false;  // {...} may be dict or set
+    int count = 0;
+    do {
+        check_newlines_repl();
+        if(curr()->type == TK_RBRACE) break;
+        check(EXPR(self));  // [key]
+        if(curr()->type == TK_COLON) { parsing_dict = true; }
+        if(parsing_dict) {
+            consume(TK_COLON);
+            check(EXPR(self));  // [key, value]
+        }
+        count += 1;  // key-value pair count
+        check_newlines_repl();
+        if(count == 1 && match(TK_FOR)) {
+            if(parsing_dict) {
+                check(consume_comp(self, OP_BUILD_DICT, OP_DICT_ADD));
+            } else {
+                check(consume_comp(self, OP_BUILD_SET, OP_SET_ADD));
+            }
+            consume(TK_RBRACE);
+            return NULL;
+        }
+        check_newlines_repl();
+    } while(match(TK_COMMA));
+    consume(TK_RBRACE);
+
+    SequenceExpr* se;
+    if(count == 0 || parsing_dict) {
+        count *= 2;  // key + value
+        se = DictExpr__new(line, count);
+    } else {
+        se = SetExpr__new(line, count);
+    }
+    for(int i = count - 1; i >= 0; i--) {
+        c11__setitem(Expr*, &se->items, i, Ctx__s_popx(ctx()));
+    }
+    Ctx__s_push(ctx(), (Expr*)se);
+    return NULL;
+}
+
+static Error* exprCall(Compiler* self) {
+    Error* err;
+    CallExpr* e = CallExpr__new(prev()->line, Ctx__s_popx(ctx()));
+    Ctx__s_push(ctx(), (Expr*)e);  // push onto the stack in advance
+    do {
+        check_newlines_repl();
+        if(curr()->type == TK_RPAREN) break;
+        if(curr()->type == TK_ID && next()->type == TK_ASSIGN) {
+            consume(TK_ID);
+            StrName key = pk_StrName__map2(Token__sv(prev()));
+            consume(TK_ASSIGN);
+            check(EXPR(self));
+            CallExprKwArg kw = {key, Ctx__s_popx(ctx())};
+            c11_vector__push(CallExprKwArg, &e->kwargs, kw);
+        } else {
+            check(EXPR(self));
+            int star_level = 0;
+            Expr* top = Ctx__s_top(ctx());
+            if(top->vt->is_starred) star_level = ((StarredExpr*)top)->level;
+            if(star_level == 2) {
+                // **kwargs
+                CallExprKwArg kw = {0, Ctx__s_popx(ctx())};
+                c11_vector__push(CallExprKwArg, &e->kwargs, kw);
+            } else {
+                // positional argument
+                if(e->kwargs.count > 0) {
+                    return SyntaxError("positional argument follows keyword argument");
+                }
+                c11_vector__push(Expr*, &e->args, Ctx__s_popx(ctx()));
+            }
+        }
+        check_newlines_repl();
+    } while(match(TK_COMMA));
+    consume(TK_RPAREN);
+    return NULL;
+}
+
+static Error* exprSlice0(Compiler* self) {
+    Error* err;
+    SliceExpr* slice = SliceExpr__new(prev()->line);
+    Ctx__s_push(ctx(), (Expr*)slice);  // push onto the stack in advance
+    if(is_expression(self, false)) {   // :<stop>
+        check(EXPR(self));
+        slice->stop = Ctx__s_popx(ctx());
+        // try optional step
+        if(match(TK_COLON)) {  // :<stop>:<step>
+            check(EXPR(self));
+            slice->step = Ctx__s_popx(ctx());
+        }
+    } else if(match(TK_COLON)) {
+        if(is_expression(self, false)) {  // ::<step>
+            check(EXPR(self));
+            slice->step = Ctx__s_popx(ctx());
+        }  // else ::
+    }      // else :
+    return NULL;
+}
+
+static Error* exprSlice1(Compiler* self) {
+    Error* err;
+    SliceExpr* slice = SliceExpr__new(prev()->line);
+    slice->start = Ctx__s_popx(ctx());
+    Ctx__s_push(ctx(), (Expr*)slice);  // push onto the stack in advance
+    if(is_expression(self, false)) {   // <start>:<stop>
+        check(EXPR(self));
+        slice->stop = Ctx__s_popx(ctx());
+        // try optional step
+        if(match(TK_COLON)) {  // <start>:<stop>:<step>
+            check(EXPR(self));
+            slice->step = Ctx__s_popx(ctx());
+        }
+    } else if(match(TK_COLON)) {  // <start>::<step>
+        check(EXPR(self));
+        slice->step = Ctx__s_popx(ctx());
+    }  // else <start>:
+    return NULL;
+}
+
+static Error* exprSubscr(Compiler* self) {
+    Error* err;
+    int line = prev()->line;
+    check_newlines_repl();
+    check(EXPR_TUPLE_ALLOW_SLICE(self, true));
+    check_newlines_repl();
+    consume(TK_RBRACKET);  // [lhs, rhs]
+    SubscrExpr* e = SubscrExpr__new(line);
+    e->rhs = Ctx__s_popx(ctx());  // [lhs]
+    e->lhs = Ctx__s_popx(ctx());  // []
+    Ctx__s_push(ctx(), (Expr*)e);
+    return NULL;
+}
 
 /////////////////////////////////////////////////////////////////
 
@@ -1710,8 +1887,8 @@ Error* Compiler__compile(Compiler* self, CodeObject* out) {
         return NULL;
     }
     // } else if(mode() == JSON_MODE) {
-    //     check(EXPR());
-    //     Expr* e = ctx()->s_popx();
+    //     check(EXPR(self));
+    //     Expr* e = Ctx__s_popx(ctx());
     //     if(!e->is_json_object()){
     //         return SyntaxError("expect a JSON object, literal or array");
     //     }
