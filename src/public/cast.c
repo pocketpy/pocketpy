@@ -5,10 +5,12 @@
 #include "pocketpy/interpreter/vm.h"
 
 int64_t py_toint(const py_Ref self){
+    assert(self->type == tp_int);
     return self->_i64;
 }
 
 double py_tofloat(const py_Ref self){
+    assert(self->type == tp_float);
     return self->_f64;
 }
 
@@ -29,15 +31,18 @@ bool py_castfloat(const py_Ref self, double* out){
 }
 
 bool py_tobool(const py_Ref self){
+    assert(self->type == tp_bool);
     return self->extra;
 }
 
 const char* py_tostr(const py_Ref self){
+    assert(self->type == tp_str);
     py_Str* ud = PyObject__value(self->_obj);
     return py_Str__data(ud);
 }
 
 const char* py_tostrn(const py_Ref self, int* out){
+    assert(self->type == tp_str);
     py_Str* ud = PyObject__value(self->_obj);
     *out = ud->size;
     return py_Str__data(ud);

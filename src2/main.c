@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 #endif
 
     py_initialize();
-    const char* source = "[1+2, 'a']";
+    const char* source = "[1/2, 'a']";
 
     py_Ref r0 = py_reg(0);
     if(py_eval(source, r0)){
@@ -35,9 +35,9 @@ int main(int argc, char** argv) {
         // handle the result
         py_Ref _0 = py_list__getitem(r0, 0);
         py_Ref _1 = py_list__getitem(r0, 1);
-        int _L0 = py_toint(_0);
+        float _L0 = py_tofloat(_0);
         const char* _L1 = py_tostr(_1);
-        printf("%d, %s\n", _L0, _L1);
+        printf("%f, %s\n", _L0, _L1);
     }
 
     py_finalize();
