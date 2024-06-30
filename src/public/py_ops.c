@@ -5,6 +5,15 @@ int py_eq(const py_Ref lhs, const py_Ref rhs) { return 0; }
 
 int py_le(const py_Ref lhs, const py_Ref rhs) { return 0; }
 
+bool py_isidentical(const py_Ref lhs, const py_Ref rhs){
+    if(lhs->is_ptr && rhs->is_ptr){
+        return lhs->_obj == rhs->_obj;
+    }
+    return false;
+}
+
+bool py_bool(const py_Ref val) { return 0; }
+
 bool py_hash(const py_Ref val, int64_t* out) { return 0; }
 
 bool py_getattr(const py_Ref self, py_Name name, py_Ref out) { return true; }

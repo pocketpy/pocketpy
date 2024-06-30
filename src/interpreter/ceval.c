@@ -545,10 +545,101 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                         }
                     }
                 }
+                // eq/ne op never fails
+                if(op == __eq__ || op == __ne__) {
+                    POP();
+                    *TOP() = (op == __eq__) ? self->False : self->True;
+                    DISPATCH();
+                }
                 BinaryOptError(byte.arg);
                 goto __ERROR;
             }
-
+            case OP_IS_OP: {
+                bool res = py_isidentical(SECOND(), TOP());
+                POP();
+                if(byte.arg) res = !res;
+                *TOP() = res ? self->True : self->False;
+                DISPATCH();
+            }
+            case OP_CONTAINS_OP: {
+                // [b, a] -> b __contains__ a (a in b)
+                py_Ref magic = py_tpfindmagic(SECOND()->type, __contains__);
+                if(magic) {
+                    if(magic->type == tp_nativefunc) {
+                        bool ok = magic->_cfunc(2, SECOND(), SECOND());
+                        if(!ok) goto __ERROR;
+                        POP();
+                        *TOP() = self->last_retval;
+                    } else {
+                        INSERT_THIRD();     // [?, b, a]
+                        *THIRD() = *magic;  // [__contains__, a, b]
+                        vectorcall_opcall(2);
+                    }
+                    bool res = py_tobool(TOP());
+                    if(byte.arg) py_newbool(TOP(), !res);
+                    DISPATCH();
+                }
+                TypeError();
+                goto __ERROR;
+            }
+                /*****************************************/
+            case OP_JUMP_FORWARD: DISPATCH_JUMP((int16_t)byte.arg);
+            case OP_POP_JUMP_IF_FALSE: {
+                bool res = py_bool(TOP());
+                POP();
+                if(!res) DISPATCH_JUMP((int16_t)byte.arg);
+                DISPATCH();
+            }
+            case OP_POP_JUMP_IF_TRUE: {
+                bool res = py_bool(TOP());
+                POP();
+                if(res) DISPATCH_JUMP((int16_t)byte.arg);
+                DISPATCH();
+            }
+            case OP_JUMP_IF_TRUE_OR_POP:
+                if(py_bool(TOP())) {
+                    DISPATCH_JUMP((int16_t)byte.arg);
+                } else {
+                    POP();
+                    DISPATCH();
+                }
+            case OP_JUMP_IF_FALSE_OR_POP:
+                if(!py_bool(TOP())) {
+                    DISPATCH_JUMP((int16_t)byte.arg);
+                } else {
+                    POP();
+                    DISPATCH();
+                }
+            case OP_SHORTCUT_IF_FALSE_OR_POP:
+                if(!py_bool(TOP())) {    // [b, False]
+                    STACK_SHRINK(2);     // []
+                    PUSH(&self->False);  // [False]
+                    DISPATCH_JUMP((int16_t)byte.arg);
+                } else {
+                    POP();  // [b]
+                    DISPATCH();
+                }
+            case OP_LOOP_CONTINUE:
+                // just an alias of OP_JUMP_FORWARD
+                DISPATCH_JUMP((int16_t)byte.arg);
+            case OP_LOOP_BREAK: {
+                int target = Frame__ip(frame) + byte.arg;
+                Frame__prepare_jump_break(frame, &self->stack, target);
+                DISPATCH_JUMP((int16_t)byte.arg);
+            }
+            case OP_JUMP_ABSOLUTE_TOP: {
+                int target = py_toint(TOP());
+                POP();
+                DISPATCH_JUMP_ABSOLUTE(target);
+            }
+                // case OP_GOTO: {
+                //     StrName _name(byte.arg);
+                //     int target = c11_smallmap_n2i__get(&frame->co->labels, byte.arg, -1);
+                //     if(target < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
+                //     frame->prepare_jump_break(&s_data, target);
+                //     DISPATCH_JUMP_ABSOLUTE(target)
+                // }
+                /*****************************************/
             case OP_RETURN_VALUE: {
                 self->last_retval = byte.arg == BC_NOARG ? POPX() : self->None;
                 pk_VM__pop_frame(self);

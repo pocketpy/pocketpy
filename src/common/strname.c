@@ -29,6 +29,7 @@ void pk_StrName__initialize() {
     __neg__ = pk_StrName__map("__neg__");
     // logical operators
     __eq__ = pk_StrName__map("__eq__");
+    __ne__ = pk_StrName__map("__ne__");
     __lt__ = pk_StrName__map("__lt__");
     __le__ = pk_StrName__map("__le__");
     __gt__ = pk_StrName__map("__gt__");
@@ -42,9 +43,13 @@ void pk_StrName__initialize() {
     __mul__ = pk_StrName__map("__mul__");
     __rmul__ = pk_StrName__map("__rmul__");
     __truediv__ = pk_StrName__map("__truediv__");
+    __rtruediv__ = pk_StrName__map("__rtruediv__");
     __floordiv__ = pk_StrName__map("__floordiv__");
+    __rfloordiv__ = pk_StrName__map("__rfloordiv__");
     __mod__ = pk_StrName__map("__mod__");
+    __rmod__ = pk_StrName__map("__rmod__");
     __pow__ = pk_StrName__map("__pow__");
+    __rpow__ = pk_StrName__map("__rpow__");
     __matmul__ = pk_StrName__map("__matmul__");
     __lshift__ = pk_StrName__map("__lshift__");
     __rshift__ = pk_StrName__map("__rshift__");
@@ -71,15 +76,15 @@ void pk_StrName__initialize() {
     __class__ = pk_StrName__map("__class__");
     __missing__ = pk_StrName__map("__missing__");
 
+    // print all names
+    for(int i = 0; i < _interned.count; i++) {
+        printf("%d: %s\n", i+1, c11__getitem(char*, &_r_interned, i));
+    }
+
     pk_id_add = pk_StrName__map("add");
     pk_id_set = pk_StrName__map("set");
     pk_id_long = pk_StrName__map("long");
     pk_id_complex = pk_StrName__map("complex");
-
-    // // print all names
-    // for(int i = 0; i < _interned.count; i++) {
-    //     printf("%d: %s\n", i+1, c11__getitem(char*, &_r_interned, i));
-    // }
 }
 
 void pk_StrName__finalize() {
@@ -138,6 +143,7 @@ uint16_t __next__;
 uint16_t __neg__;
 // logical operators
 uint16_t __eq__;
+uint16_t __ne__;
 uint16_t __lt__;
 uint16_t __le__;
 uint16_t __gt__;
@@ -151,9 +157,13 @@ uint16_t __rsub__;
 uint16_t __mul__;
 uint16_t __rmul__;
 uint16_t __truediv__;
+uint16_t __rtruediv__;
 uint16_t __floordiv__;
+uint16_t __rfloordiv__;
 uint16_t __mod__;
+uint16_t __rmod__;
 uint16_t __pow__;
+uint16_t __rpow__;
 uint16_t __matmul__;
 uint16_t __lshift__;
 uint16_t __rshift__;

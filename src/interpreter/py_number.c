@@ -39,17 +39,17 @@
 //     return 0;
 // }
 
-#define DEF_NUM_BINARY_OP(name, op)                                                                \
+#define DEF_NUM_BINARY_OP(name, op, rint, rfloat)                                                  \
     static bool _py_int##name(int argc, py_Ref argv, py_Ref out) {                                 \
         py_checkargc(2);                                                                           \
         if(py_isint(&argv[1])) {                                                                   \
             int64_t lhs = py_toint(&argv[0]);                                                      \
             int64_t rhs = py_toint(&argv[1]);                                                      \
-            py_newint(out, lhs op rhs);                                                            \
+            rint(out, lhs op rhs);                                                                 \
         } else if(py_isfloat(&argv[1])) {                                                          \
             int64_t lhs = py_toint(&argv[0]);                                                      \
             double rhs = py_tofloat(&argv[1]);                                                     \
-            py_newfloat(out, lhs op rhs);                                                          \
+            rfloat(out, lhs op rhs);                                                               \
         } else {                                                                                   \
             py_newnotimplemented(out);                                                             \
         }                                                                                          \
@@ -60,22 +60,23 @@
         double lhs = py_tofloat(&argv[0]);                                                         \
         double rhs;                                                                                \
         if(py_castfloat(&argv[1], &rhs)) {                                                         \
-            py_newfloat(out, lhs op rhs);                                                          \
+            rfloat(out, lhs op rhs);                                                               \
         } else {                                                                                   \
             py_newnotimplemented(out);                                                             \
         }                                                                                          \
         return true;                                                                               \
     }
 
-DEF_NUM_BINARY_OP(__add__, +)
-DEF_NUM_BINARY_OP(__sub__, -)
-DEF_NUM_BINARY_OP(__mul__, *)
+DEF_NUM_BINARY_OP(__add__, +, py_newint, py_newfloat)
+DEF_NUM_BINARY_OP(__sub__, -, py_newint, py_newfloat)
+DEF_NUM_BINARY_OP(__mul__, *, py_newint, py_newfloat)
 
-DEF_NUM_BINARY_OP(__eq__, ==)
-DEF_NUM_BINARY_OP(__lt__, <)
-DEF_NUM_BINARY_OP(__le__, <=)
-DEF_NUM_BINARY_OP(__gt__, >)
-DEF_NUM_BINARY_OP(__ge__, >=)
+DEF_NUM_BINARY_OP(__eq__, ==, py_newbool, py_newbool)
+DEF_NUM_BINARY_OP(__ne__, ==, py_newbool, py_newbool)
+DEF_NUM_BINARY_OP(__lt__, <, py_newbool, py_newbool)
+DEF_NUM_BINARY_OP(__le__, <=, py_newbool, py_newbool)
+DEF_NUM_BINARY_OP(__gt__, >, py_newbool, py_newbool)
+DEF_NUM_BINARY_OP(__ge__, >=, py_newbool, py_newbool)
 
 #undef DEF_NUM_BINARY_OP
 
@@ -229,6 +230,8 @@ void pk_VM__init_builtins(pk_VM* self) {
 
     py_bindmagic(tp_int, __eq__, _py_int__eq__);
     py_bindmagic(tp_float, __eq__, _py_float__eq__);
+    py_bindmagic(tp_int, __ne__, _py_int__ne__);
+    py_bindmagic(tp_float, __ne__, _py_float__ne__);
     py_bindmagic(tp_int, __lt__, _py_int__lt__);
     py_bindmagic(tp_float, __lt__, _py_float__lt__);
     py_bindmagic(tp_int, __le__, _py_int__le__);

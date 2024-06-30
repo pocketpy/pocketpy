@@ -186,9 +186,13 @@ py_Error* py_lasterror();
 void py_Error__print(py_Error*);
 
 /************* Operators *************/
+bool py_bool(const py_Ref);
 int py_eq(const py_Ref, const py_Ref);
 int py_le(const py_Ref, const py_Ref);
 bool py_hash(const py_Ref, int64_t* out);
+
+/// Compare two objects without using magic methods.
+bool py_isidentical(const py_Ref, const py_Ref);
 
 /// A stack operation that calls a function.
 /// It assumes `argc + kwargc` arguments are already pushed to the stack.
