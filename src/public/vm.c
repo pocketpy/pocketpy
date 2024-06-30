@@ -91,6 +91,6 @@ bool py_callmagic(py_Name name, int argc, py_Ref argv) {
     assert(argc >= 1);
     py_Ref tmp = py_tpfindmagic(argv->type, name);
     if(!tmp) return TypeError(name);
-    if(tmp->type == tp_nativefunc) { return tmp->_cfunc(argc, argv, &pk_current_vm->last_retval); }
+    if(tmp->type == tp_nativefunc) { return tmp->_cfunc(argc, argv); }
     return py_call(tmp, argc, argv);
 }

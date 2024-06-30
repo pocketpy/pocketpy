@@ -18,10 +18,8 @@ typedef struct py_Error {
 /// Native function signature.
 /// @param argc number of arguments.
 /// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
-/// @param out output reference to the result. Please note that `out` could overlap with `argv`.
-/// Always set `out` after using `argv`.
 /// @return true if the function is successful.
-typedef bool (*py_CFunction)(int argc, py_TValue* argv, py_TValue* out);
+typedef bool (*py_CFunction)(int argc, py_TValue* argv);
 
 typedef enum BindType {
     BindType_FUNCTION,

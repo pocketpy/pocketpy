@@ -11,6 +11,8 @@ int NameError(py_Name name) { return -1; }
 #define AttributeError(obj, name) false
 #define BinaryOptError(op) false
 
+static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
+
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
@@ -259,9 +261,10 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __getitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        bool ok = magic->_cfunc(2, SECOND(), SECOND());
+                        bool ok = magic->_cfunc(2, SECOND());
                         if(!ok) goto __ERROR;
                         POP();
+                        *TOP() = self->last_retval;
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__getitem__, a, b]
@@ -311,9 +314,10 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __setitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        bool ok = magic->_cfunc(3, THIRD(), FOURTH());
+                        bool ok = magic->_cfunc(3, THIRD());
                         if(!ok) goto __ERROR;
-                        STACK_SHRINK(4);
+                        STACK_SHRINK(3);
+                        *TOP() = self->last_retval;
                     } else {
                         INSERT_THIRD();      // [?, a, b]
                         *FOURTH() = *magic;  // [__selitem__, a, b, val]
@@ -380,9 +384,10 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __delitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        bool ok = magic->_cfunc(2, SECOND(), SECOND());
+                        bool ok = magic->_cfunc(2, SECOND());
                         if(!ok) goto __ERROR;
-                        STACK_SHRINK(2);
+                        POP();
+                        *TOP() = self->last_retval;
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__delitem__, a, b]
@@ -492,67 +497,11 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             /*****************************/
             case OP_BINARY_OP: {
                 py_Name op = byte.arg & 0xFF;
-                // [a, b]
-                py_Ref _0 = py_tpfindmagic(SECOND()->type, op);
-                py_Ref _1;
-                py_TValue tmp;
-                if(_0) {
-                    if(_0->type == tp_nativefunc) {
-                        bool ok = _0->_cfunc(2, SECOND(), &tmp);
-                        if(!ok) goto __ERROR;
-                        if(tmp.type != tp_not_implemented_type) {
-                            POP();
-                            *TOP() = tmp;
-                            DISPATCH();
-                        }
-                    } else {
-                        // standard call
-                        bool ok = py_call(_0, 2, SECOND());
-                        if(!ok) goto __ERROR;
-                        if(self->last_retval.type != tp_not_implemented_type) {
-                            POP();
-                            *TOP() = self->last_retval;
-                            DISPATCH();
-                        }
-                    }
-                }
-                // try reverse operation
-                op = byte.arg >> 8;
-                if(op) {
-                    // [a, b] -> [b, a]
-                    tmp = *TOP();
-                    *TOP() = *SECOND();
-                    *SECOND() = tmp;
-                    _1 = py_tpfindmagic(SECOND()->type, op);
-                    if(_1) {
-                        if(_1->type == tp_nativefunc) {
-                            bool ok = _1->_cfunc(2, SECOND(), &tmp);
-                            if(!ok) goto __ERROR;
-                            if(tmp.type != tp_not_implemented_type) {
-                                POP();
-                                *TOP() = tmp;
-                                DISPATCH();
-                            }
-                        } else {
-                            // standard call
-                            bool ok = py_call(_1, 2, SECOND());
-                            if(!ok) goto __ERROR;
-                            if(self->last_retval.type != tp_not_implemented_type) {
-                                POP();
-                                *TOP() = self->last_retval;
-                                DISPATCH();
-                            }
-                        }
-                    }
-                }
-                // eq/ne op never fails
-                if(op == __eq__ || op == __ne__) {
-                    POP();
-                    *TOP() = (op == __eq__) ? self->False : self->True;
-                    DISPATCH();
-                }
-                BinaryOptError(byte.arg);
-                goto __ERROR;
+                py_Name rop = byte.arg >> 8;
+                if(!stack_binaryop(self, op, rop)) goto __ERROR;
+                POP();
+                *TOP() = self->last_retval;
+                DISPATCH();
             }
             case OP_IS_OP: {
                 bool res = py_isidentical(SECOND(), TOP());
@@ -566,7 +515,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __contains__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        bool ok = magic->_cfunc(2, SECOND(), SECOND());
+                        bool ok = magic->_cfunc(2, SECOND());
                         if(!ok) goto __ERROR;
                         POP();
                         *TOP() = self->last_retval;
@@ -667,29 +616,22 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     return RES_RETURN;
 }
 
-bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {
-    pk_VM* self = pk_current_vm;
-    PUSH(lhs);
-    PUSH(rhs);
+/// Assumes [a, b] are on the stack, performs a binary op.
+/// The result is stored in `self->last_retval`.
+/// The stack remains unchanged.
+static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
     // [a, b]
-    py_Ref _0 = py_tpfindmagic(SECOND()->type, op);
-    py_Ref _1;
-    if(_0) {
-        if(_0->type == tp_nativefunc) {
-            bool ok = _0->_cfunc(2, SECOND(), &self->last_retval);
+    py_Ref magic = py_tpfindmagic(SECOND()->type, op);
+    if(magic) {
+        if(magic->type == tp_nativefunc) {
+            bool ok = magic->_cfunc(2, SECOND());
             if(!ok) return false;
-            if(self->last_retval.type != tp_not_implemented_type) {
-                STACK_SHRINK(2);
-                return true;
-            }
+            if(self->last_retval.type != tp_not_implemented_type) return true;
         } else {
             // standard call
-            bool ok = py_call(_0, 2, SECOND());
+            bool ok = py_call(magic, 2, SECOND());
             if(!ok) return false;
-            if(self->last_retval.type != tp_not_implemented_type) {
-                STACK_SHRINK(2);
-                return true;
-            }
+            if(self->last_retval.type != tp_not_implemented_type) return true;
         }
     }
     // try reverse operation
@@ -698,31 +640,31 @@ bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {
         py_TValue tmp = *TOP();
         *TOP() = *SECOND();
         *SECOND() = tmp;
-        _1 = py_tpfindmagic(SECOND()->type, rop);
-        if(_1) {
-            if(_1->type == tp_nativefunc) {
-                bool ok = _1->_cfunc(2, SECOND(), &self->last_retval);
+        magic = py_tpfindmagic(SECOND()->type, rop);
+        if(magic) {
+            if(magic->type == tp_nativefunc) {
+                bool ok = magic->_cfunc(2, SECOND());
                 if(!ok) return false;
-                if(tmp.type != tp_not_implemented_type) {
-                    STACK_SHRINK(2);
-                    return true;
-                }
+                if(self->last_retval.type != tp_not_implemented_type) return true;
             } else {
                 // standard call
-                bool ok = py_call(_1, 2, SECOND());
+                bool ok = py_call(magic, 2, SECOND());
                 if(!ok) return false;
-                if(self->last_retval.type != tp_not_implemented_type) {
-                    STACK_SHRINK(2);
-                    return true;
-                }
+                if(self->last_retval.type != tp_not_implemented_type) return true;
             }
         }
     }
     // eq/ne op never fails
     if(op == __eq__ || op == __ne__) {
-        STACK_SHRINK(2);
         self->last_retval = (op == __eq__) ? self->False : self->True;
         return true;
     }
     return BinaryOptError(byte.arg);
+}
+
+bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {
+    pk_VM* self = pk_current_vm;
+    PUSH(lhs);
+    PUSH(rhs);
+    return stack_binaryop(self, op, rop);
 }
