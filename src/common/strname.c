@@ -19,66 +19,13 @@ void pk_StrName__initialize() {
     c11_vector__ctor(&_r_interned, sizeof(c11_string));
     _initialized = true;
 
-    // unary operators
-    __repr__ = pk_StrName__map("__repr__");
-    __str__ = pk_StrName__map("__str__");
-    __hash__ = pk_StrName__map("__hash__");
-    __len__ = pk_StrName__map("__len__");
-    __iter__ = pk_StrName__map("__iter__");
-    __next__ = pk_StrName__map("__next__");
-    __neg__ = pk_StrName__map("__neg__");
-    // logical operators
-    __eq__ = pk_StrName__map("__eq__");
-    __ne__ = pk_StrName__map("__ne__");
-    __lt__ = pk_StrName__map("__lt__");
-    __le__ = pk_StrName__map("__le__");
-    __gt__ = pk_StrName__map("__gt__");
-    __ge__ = pk_StrName__map("__ge__");
-    __contains__ = pk_StrName__map("__contains__");
-    // binary operators
-    __add__ = pk_StrName__map("__add__");
-    __radd__ = pk_StrName__map("__radd__");
-    __sub__ = pk_StrName__map("__sub__");
-    __rsub__ = pk_StrName__map("__rsub__");
-    __mul__ = pk_StrName__map("__mul__");
-    __rmul__ = pk_StrName__map("__rmul__");
-    __truediv__ = pk_StrName__map("__truediv__");
-    __rtruediv__ = pk_StrName__map("__rtruediv__");
-    __floordiv__ = pk_StrName__map("__floordiv__");
-    __rfloordiv__ = pk_StrName__map("__rfloordiv__");
-    __mod__ = pk_StrName__map("__mod__");
-    __rmod__ = pk_StrName__map("__rmod__");
-    __pow__ = pk_StrName__map("__pow__");
-    __rpow__ = pk_StrName__map("__rpow__");
-    __matmul__ = pk_StrName__map("__matmul__");
-    __lshift__ = pk_StrName__map("__lshift__");
-    __rshift__ = pk_StrName__map("__rshift__");
-    __and__ = pk_StrName__map("__and__");
-    __or__ = pk_StrName__map("__or__");
-    __xor__ = pk_StrName__map("__xor__");
-    __invert__ = pk_StrName__map("__invert__");
-    // indexer
-    __getitem__ = pk_StrName__map("__getitem__");
-    __setitem__ = pk_StrName__map("__setitem__");
-    __delitem__ = pk_StrName__map("__delitem__");
-
-    // specials
-    __new__ = pk_StrName__map("__new__");
-    __init__ = pk_StrName__map("__init__");
-    __call__ = pk_StrName__map("__call__");
-    __divmod__ = pk_StrName__map("__divmod__");
-    __enter__ = pk_StrName__map("__enter__");
-    __exit__ = pk_StrName__map("__exit__");
-    __name__ = pk_StrName__map("__name__");
-    __all__ = pk_StrName__map("__all__");
-    __package__ = pk_StrName__map("__package__");
-    __path__ = pk_StrName__map("__path__");
-    __class__ = pk_StrName__map("__class__");
-    __missing__ = pk_StrName__map("__missing__");
+#define MAGIC_METHOD(x) x = pk_StrName__map(#x);
+#include "pocketpy/xmacros/magics.h"
+#undef MAGIC_METHOD
 
     // print all names
     for(int i = 0; i < _interned.count; i++) {
-        printf("%d: %s\n", i+1, c11__getitem(char*, &_r_interned, i));
+        printf("%d: %s\n", i + 1, c11__getitem(char*, &_r_interned, i));
     }
 
     pk_id_add = pk_StrName__map("add");
@@ -133,62 +80,10 @@ c11_string pk_StrName__rmap2(uint16_t index) {
     return (c11_string){p, strlen(p)};
 }
 
-// unary operators
-uint16_t __repr__;
-uint16_t __str__;
-uint16_t __hash__;
-uint16_t __len__;
-uint16_t __iter__;
-uint16_t __next__;
-uint16_t __neg__;
-// logical operators
-uint16_t __eq__;
-uint16_t __ne__;
-uint16_t __lt__;
-uint16_t __le__;
-uint16_t __gt__;
-uint16_t __ge__;
-uint16_t __contains__;
-// binary operators
-uint16_t __add__;
-uint16_t __radd__;
-uint16_t __sub__;
-uint16_t __rsub__;
-uint16_t __mul__;
-uint16_t __rmul__;
-uint16_t __truediv__;
-uint16_t __rtruediv__;
-uint16_t __floordiv__;
-uint16_t __rfloordiv__;
-uint16_t __mod__;
-uint16_t __rmod__;
-uint16_t __pow__;
-uint16_t __rpow__;
-uint16_t __matmul__;
-uint16_t __lshift__;
-uint16_t __rshift__;
-uint16_t __and__;
-uint16_t __or__;
-uint16_t __xor__;
-uint16_t __invert__;
-// indexer
-uint16_t __getitem__;
-uint16_t __setitem__;
-uint16_t __delitem__;
-
-// specials
-uint16_t __new__;
-uint16_t __init__;
-uint16_t __call__;
-uint16_t __divmod__;
-uint16_t __enter__;
-uint16_t __exit__;
-uint16_t __name__;
-uint16_t __all__;
-uint16_t __package__;
-uint16_t __path__;
-uint16_t __class__;
-uint16_t __missing__;
+///////////////////////////////////
+#define MAGIC_METHOD(x) uint16_t x;
+#include "pocketpy/xmacros/magics.h"
+#undef MAGIC_METHOD
 
 uint16_t pk_id_add;
 uint16_t pk_id_set;

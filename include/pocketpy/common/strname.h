@@ -29,62 +29,9 @@ extern "C" {
 namespace pkpy {
 #endif
 
-// unary operators
-extern uint16_t __repr__;
-extern uint16_t __str__;
-extern uint16_t __hash__;
-extern uint16_t __len__;
-extern uint16_t __iter__;
-extern uint16_t __next__;
-extern uint16_t __neg__;
-// logical operators
-extern uint16_t __eq__;
-extern uint16_t __ne__;
-extern uint16_t __lt__;
-extern uint16_t __le__;
-extern uint16_t __gt__;
-extern uint16_t __ge__;
-extern uint16_t __contains__;
-// binary operators
-extern uint16_t __add__;
-extern uint16_t __radd__;
-extern uint16_t __sub__;
-extern uint16_t __rsub__;
-extern uint16_t __mul__;
-extern uint16_t __rmul__;
-extern uint16_t __truediv__;
-extern uint16_t __rtruediv__;
-extern uint16_t __floordiv__;
-extern uint16_t __rfloordiv__;
-extern uint16_t __mod__;
-extern uint16_t __rmod__;
-extern uint16_t __pow__;
-extern uint16_t __rpow__;
-extern uint16_t __matmul__;
-extern uint16_t __lshift__;
-extern uint16_t __rshift__;
-extern uint16_t __and__;
-extern uint16_t __or__;
-extern uint16_t __xor__;
-extern uint16_t __invert__;
-// indexer
-extern uint16_t __getitem__;
-extern uint16_t __setitem__;
-extern uint16_t __delitem__;
-
-// specials
-extern uint16_t __new__;
-extern uint16_t __init__;
-extern uint16_t __call__;
-extern uint16_t __divmod__;
-extern uint16_t __enter__;
-extern uint16_t __exit__;
-extern uint16_t __name__;
-extern uint16_t __all__;
-extern uint16_t __package__;
-extern uint16_t __path__;
-extern uint16_t __class__;
-extern uint16_t __missing__;
+#define MAGIC_METHOD(x) extern uint16_t x;
+#include "pocketpy/xmacros/magics.h"
+#undef MAGIC_METHOD
 
 extern uint16_t pk_id_add;
 extern uint16_t pk_id_set;
