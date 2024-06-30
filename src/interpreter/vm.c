@@ -3,11 +3,9 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/pocketpy.h"
 
-static unsigned char* pk_default_import_file(const char* path){
-    return NULL;
-}
+static unsigned char* pk_default_import_file(const char* path) { return NULL; }
 
-static void pk_default_stdout(const char* fmt, ...){
+static void pk_default_stdout(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vfprintf(stdout, fmt, args);
@@ -15,7 +13,7 @@ static void pk_default_stdout(const char* fmt, ...){
     fflush(stdout);
 }
 
-static void pk_default_stderr(const char* fmt, ...){
+static void pk_default_stderr(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
@@ -23,9 +21,14 @@ static void pk_default_stderr(const char* fmt, ...){
     fflush(stderr);
 }
 
-void pk_TypeInfo__ctor(pk_TypeInfo *self, py_Name name, py_Type base, PyObject* obj, const py_TValue* module, bool subclass_enabled){
+void pk_TypeInfo__ctor(pk_TypeInfo* self,
+                       py_Name name,
+                       py_Type base,
+                       PyObject* obj,
+                       const py_TValue* module,
+                       bool subclass_enabled) {
     memset(self, 0, sizeof(pk_TypeInfo));
-    
+
     self->name = name;
     self->base = base;
 
@@ -36,11 +39,9 @@ void pk_TypeInfo__ctor(pk_TypeInfo *self, py_Name name, py_Type base, PyObject* 
     c11_vector__ctor(&self->annotated_fields, sizeof(py_Name));
 }
 
-void pk_TypeInfo__dtor(pk_TypeInfo *self){
-    c11_vector__dtor(&self->annotated_fields);
-}
+void pk_TypeInfo__dtor(pk_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
 
-void pk_VM__ctor(pk_VM* self){
+void pk_VM__ctor(pk_VM* self) {
     self->top_frame = NULL;
 
     pk_NameDict__ctor(&self->modules);
@@ -65,26 +66,39 @@ void pk_VM__ctor(pk_VM* self){
     pk_ManagedHeap__ctor(&self->heap, self);
     ValueStack__ctor(&self->stack);
 
-    self->True = (py_TValue){.type=tp_bool, .is_ptr=true, .extra=1,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 0),
+    self->True = (py_TValue){
+        .type = tp_bool,
+        .is_ptr = true,
+        .extra = 1,
+        ._obj = pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 0),
     };
-    self->False = (py_TValue){.type=tp_bool, .is_ptr=true, .extra=0,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 0),
+    self->False = (py_TValue){
+        .type = tp_bool,
+        .is_ptr = true,
+        .extra = 0,
+        ._obj = pk_ManagedHeap__gcnew(&self->heap, tp_bool, 0, 0),
     };
-    self->None = (py_TValue){.type=tp_none_type, .is_ptr=true,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_none_type, 0, 0),
+    self->None = (py_TValue){
+        .type = tp_none_type,
+        .is_ptr = true,
+        ._obj = pk_ManagedHeap__gcnew(&self->heap, tp_none_type, 0, 0),
     };
-    self->NotImplemented = (py_TValue){.type=tp_not_implemented_type, .is_ptr=true,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_not_implemented_type, 0, 0),
+    self->NotImplemented = (py_TValue){
+        .type = tp_not_implemented_type,
+        .is_ptr = true,
+        ._obj = pk_ManagedHeap__gcnew(&self->heap, tp_not_implemented_type, 0, 0),
     };
-    self->Ellipsis = (py_TValue){.type=tp_ellipsis, .is_ptr=true,
-        ._obj=pk_ManagedHeap__gcnew(&self->heap, tp_ellipsis, 0, 0),
+    self->Ellipsis = (py_TValue){
+        .type = tp_ellipsis,
+        .is_ptr = true,
+        ._obj = pk_ManagedHeap__gcnew(&self->heap, tp_ellipsis, 0, 0),
     };
 
     /* Init Builtin Types */
     // 0: unused
     pk_TypeInfo__ctor(c11_vector__emplace(&self->types), 0, 0, NULL, NULL, false);
-    #define validate(t, expr) if(t != (expr)) abort()
+#define validate(t, expr)                                                                          \
+    if(t != (expr)) abort()
 
     validate(tp_object, pk_VM__new_type(self, "object", 0, NULL, true));
     validate(tp_type, pk_VM__new_type(self, "type", 1, NULL, false));
@@ -95,6 +109,9 @@ void pk_VM__ctor(pk_VM* self){
     validate(tp_str, pk_VM__new_type(self, "str", tp_object, NULL, false));
 
     validate(tp_list, pk_VM__new_type(self, "list", tp_object, NULL, false));
+    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, tp_list);
+    ti->dtor = (void (*)(void*))c11_vector__dtor;
+
     validate(tp_tuple, pk_VM__new_type(self, "tuple", tp_object, NULL, false));
 
     validate(tp_slice, pk_VM__new_type(self, "slice", tp_object, NULL, false));
@@ -118,7 +135,8 @@ void pk_VM__ctor(pk_VM* self){
     validate(tp_classmethod, pk_VM__new_type(self, "classmethod", tp_object, NULL, false));
 
     validate(tp_none_type, pk_VM__new_type(self, "NoneType", tp_object, NULL, false));
-    validate(tp_not_implemented_type, pk_VM__new_type(self, "NotImplementedType", tp_object, NULL, false));
+    validate(tp_not_implemented_type,
+             pk_VM__new_type(self, "NotImplementedType", tp_object, NULL, false));
     validate(tp_ellipsis, pk_VM__new_type(self, "ellipsis", tp_object, NULL, false));
 
     validate(tp_op_call, pk_VM__new_type(self, "__op_call", tp_object, NULL, false));
@@ -126,22 +144,30 @@ void pk_VM__ctor(pk_VM* self){
 
     validate(tp_syntax_error, pk_VM__new_type(self, "SyntaxError", tp_exception, NULL, false));
     validate(tp_stop_iteration, pk_VM__new_type(self, "StopIteration", tp_exception, NULL, false));
-    #undef validate
+#undef validate
 
     self->StopIteration = c11__at(pk_TypeInfo, &self->types, tp_stop_iteration)->self;
     self->builtins = *py_newmodule("builtins", NULL);
-    
-    /* Setup Public Builtin Types */
-    py_Type public_types[] = {
-        tp_object, tp_type,
-        tp_int, tp_float, tp_bool, tp_str,
-        tp_list, tp_tuple,
-        tp_slice, tp_range,
-        tp_bytes, tp_dict, tp_property,
-        tp_exception, tp_stop_iteration, tp_syntax_error
-    };
 
-    for(int i=0; i<PK_ARRAY_COUNT(public_types); i++){
+    /* Setup Public Builtin Types */
+    py_Type public_types[] = {tp_object,
+                              tp_type,
+                              tp_int,
+                              tp_float,
+                              tp_bool,
+                              tp_str,
+                              tp_list,
+                              tp_tuple,
+                              tp_slice,
+                              tp_range,
+                              tp_bytes,
+                              tp_dict,
+                              tp_property,
+                              tp_exception,
+                              tp_stop_iteration,
+                              tp_syntax_error};
+
+    for(int i = 0; i < PK_ARRAY_COUNT(public_types); i++) {
         py_Type t = public_types[i];
         pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, t);
         py_setdict(&self->builtins, ti->name, &ti->self);
@@ -153,10 +179,8 @@ void pk_VM__ctor(pk_VM* self){
     self->main = *py_newmodule("__main__", NULL);
 }
 
-void pk_VM__dtor(pk_VM* self){
-    if(self->__dynamic_func_decl){
-        PK_DECREF(self->__dynamic_func_decl);
-    }
+void pk_VM__dtor(pk_VM* self) {
+    if(self->__dynamic_func_decl) { PK_DECREF(self->__dynamic_func_decl); }
     // destroy all objects
     pk_ManagedHeap__dtor(&self->heap);
     // clear frames
@@ -166,12 +190,12 @@ void pk_VM__dtor(pk_VM* self){
     ValueStack__clear(&self->stack);
 }
 
-void pk_VM__push_frame(pk_VM* self, Frame* frame){
+void pk_VM__push_frame(pk_VM* self, Frame* frame) {
     frame->f_back = self->top_frame;
     self->top_frame = frame;
 }
 
-void pk_VM__pop_frame(pk_VM* self){
+void pk_VM__pop_frame(pk_VM* self) {
     assert(self->top_frame);
     Frame* frame = self->top_frame;
     // reset stack pointer
@@ -181,7 +205,11 @@ void pk_VM__pop_frame(pk_VM* self){
     Frame__delete(frame);
 }
 
-py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const py_TValue* module, bool subclass_enabled){
+py_Type pk_VM__new_type(pk_VM* self,
+                        const char* name,
+                        py_Type base,
+                        const py_TValue* module,
+                        bool subclass_enabled) {
     py_Type type = self->types.count;
     pk_TypeInfo* ti = c11_vector__emplace(&self->types);
     PyObject* typeobj = pk_ManagedHeap__gcnew(&self->heap, tp_type, -1, sizeof(py_Type));
@@ -192,18 +220,18 @@ py_Type pk_VM__new_type(pk_VM* self, const char* name, py_Type base, const py_TV
 }
 
 /****************************************/
-void PyObject__delete(PyObject *self){
+void PyObject__delete(PyObject* self) {
     pk_TypeInfo* ti = c11__at(pk_TypeInfo, &pk_current_vm->types, self->type);
     if(ti->dtor) ti->dtor(PyObject__value(self));
     if(self->slots == -1) pk_NameDict__dtor(PyObject__dict(self));
-    if(self->gc_is_large){
+    if(self->gc_is_large) {
         free(self);
-    }else{
+    } else {
         PoolObject_dealloc(self);
     }
 }
 
-void pk_ManagedHeap__mark(pk_ManagedHeap* self){
+void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
     // for(int i=0; i<self->no_gc.count; i++){
     //     PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
     //     vm->__obj_gc_mark(obj);
