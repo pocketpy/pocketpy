@@ -133,8 +133,8 @@ void py_setdict(py_Ref self, py_Name name, const py_Ref val);
 py_Ref py_getslot(const py_Ref self, int i);
 void py_setslot(py_Ref self, int i, const py_Ref val);
 
-py_Ref py_getupvalue(py_Ref self);
-void py_setupvalue(py_Ref self, const py_Ref val);
+py_Ref py_getupvalue(py_Ref argv);
+void py_setupvalue(py_Ref argv, const py_Ref val);
 
 /// Gets the attribute of the object.
 bool py_getattr(const py_Ref self, py_Name name, py_Ref out);

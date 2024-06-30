@@ -22,9 +22,6 @@ bool py_castfloat(const py_Ref self, double* out){
         case tp_float:
             *out = self->_f64;
             return true;
-        case tp_bool:
-            *out = self->extra;
-            return true;
         default:
             return false;
     }
