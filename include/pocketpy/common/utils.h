@@ -40,6 +40,20 @@ extern const char* kPlatformStrings[];
 #define PK_NARGS(...) PK_NARGS_SEQ(__VA_ARGS__, 4, 3, 2, 1, 0)
 #define PK_NPTRS(...) PK_NARGS_SEQ(__VA_ARGS__, int****, int***, int**, int*, int)
 
+// ref counting
+typedef struct RefCounted {
+    int count;
+    void (*dtor)(void*);
+} RefCounted;
+
+#define PK_INCREF(obj) (obj)->rc.count++
+#define PK_DECREF(obj) do { \
+    if(--(obj)->rc.count == 0) { \
+        (obj)->rc.dtor(obj); \
+        free(obj); \
+    } \
+} while(0)
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/vector.h"
-#include "pocketpy/common/refcount.h"
 
 #ifdef __cplusplus
 extern "C" {

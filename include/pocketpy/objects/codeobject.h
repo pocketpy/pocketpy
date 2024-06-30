@@ -7,7 +7,6 @@
 #include "pocketpy/common/smallmap.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/objects/sourcedata.h"
-#include "pocketpy/common/refcount.h"
 #include "pocketpy/pocketpy.h"
 
 #ifdef __cplusplus
