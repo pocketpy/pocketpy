@@ -898,15 +898,18 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
     }
 
     vtemit_(self->rhs, ctx);
-    Opcode opcode;
+
+    Opcode opcode = OP_BINARY_OP;
+    uint16_t arg = BC_NOARG;
+
     switch(self->op) {
-        case TK_ADD: opcode = OP_BINARY_ADD; break;
-        case TK_SUB: opcode = OP_BINARY_SUB; break;
-        case TK_MUL: opcode = OP_BINARY_MUL; break;
-        case TK_DIV: opcode = OP_BINARY_TRUEDIV; break;
-        case TK_FLOORDIV: opcode = OP_BINARY_FLOORDIV; break;
-        case TK_MOD: opcode = OP_BINARY_MOD; break;
-        case TK_POW: opcode = OP_BINARY_POW; break;
+        case TK_ADD: arg = __add__ | (__radd__ << 8); break;
+        case TK_SUB: arg = __sub__ | (__rsub__ << 8); break;
+        case TK_MUL: arg = __mul__ | (__rmul__ << 8); break;
+        case TK_DIV: arg = __truediv__; break;
+        case TK_FLOORDIV: arg = __floordiv__; break;
+        case TK_MOD: arg = __mod__; break;
+        case TK_POW: arg = __pow__; break;
 
         case TK_LT: opcode = OP_COMPARE_LT; break;
         case TK_LE: opcode = OP_COMPARE_LE; break;
@@ -920,17 +923,16 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
         case TK_IS: opcode = OP_IS_OP; break;
         case TK_IS_NOT: opcode = OP_IS_NOT_OP; break;
 
-        case TK_LSHIFT: opcode = OP_BITWISE_LSHIFT; break;
-        case TK_RSHIFT: opcode = OP_BITWISE_RSHIFT; break;
-        case TK_AND: opcode = OP_BITWISE_AND; break;
-        case TK_OR: opcode = OP_BITWISE_OR; break;
-        case TK_XOR: opcode = OP_BITWISE_XOR; break;
-
-        case TK_DECORATOR: opcode = OP_BINARY_MATMUL; break;
+        case TK_LSHIFT: arg = __lshift__; break;
+        case TK_RSHIFT: arg = __rshift__; break;
+        case TK_AND: arg = __and__; break;
+        case TK_OR: arg = __or__; break;
+        case TK_XOR: arg = __xor__; break;
+        case TK_DECORATOR: arg = __matmul__; break;
         default: assert(false);
     }
 
-    Ctx__emit_(ctx, opcode, BC_NOARG, self->line);
+    Ctx__emit_(ctx, opcode, arg, self->line);
 
     c11__foreach(int, &jmps, i) { Ctx__patch_jump(ctx, *i); }
 }
@@ -1137,8 +1139,8 @@ void CallExpr__dtor(Expr* self_) {
 void CallExpr__emit_(Expr* self_, Ctx* ctx) {
     CallExpr* self = (CallExpr*)self_;
 
-    bool vargs = false;
-    bool vkwargs = false;
+    bool vargs = false;    // whether there is *args as input
+    bool vkwargs = false;  // whether there is **kwargs as input
     c11__foreach(Expr*, &self->args, e) {
         if((*e)->vt->is_starred) vargs = true;
     }
@@ -1147,7 +1149,6 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
     }
 
     // if callable is a AttrExpr, we should try to use `fast_call` instead of use `boundmethod`
-    // proxy
     if(self->callable->vt->is_attrib) {
         AttribExpr* p = (AttribExpr*)self->callable;
         vtemit_(p->child, ctx);
@@ -1157,41 +1158,22 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
         Ctx__emit_(ctx, OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
     }
 
-    c11__foreach(Expr*, &self->args, e) { vtemit_(*e, ctx); }
-
+    Opcode opcode = OP_CALL;
     if(vargs || vkwargs) {
-        Ctx__emit_(ctx, OP_BUILD_TUPLE_UNPACK, (uint16_t)self->args.count, self->line);
-
-        if(self->kwargs.count != 0) {
-            c11__foreach(CallExprKwArg, &self->kwargs, e) {
-                if(e->val->vt->is_starred) {
-                    // **kwargs
-                    StarredExpr* se = (StarredExpr*)e->val;
-                    assert(se->level == 2 && e->key == 0);
-                    vtemit_(e->val, ctx);
-                } else {
-                    // k=v
-                    int index = Ctx__add_const_string(ctx, pk_StrName__rmap2(e->key));
-                    Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
-                    vtemit_(e->val, ctx);
-                    Ctx__emit_(ctx, OP_BUILD_TUPLE, 2, self->line);
-                }
-            }
-            Ctx__emit_(ctx, OP_BUILD_DICT_UNPACK, self->kwargs.count, self->line);
-            Ctx__emit_(ctx, OP_CALL_TP, 1, self->line);
-        } else {
-            Ctx__emit_(ctx, OP_CALL_TP, 0, self->line);
-        }
-    } else {
-        // vectorcall protocol
-        c11__foreach(CallExprKwArg, &self->kwargs, e) {
-            Ctx__emit_int(ctx, e->key, self->line);
-            vtemit_(e->val, ctx);
-        }
-        int KWARGC = self->kwargs.count;
-        int ARGC = self->args.count;
-        Ctx__emit_(ctx, OP_CALL, (KWARGC << 8) | ARGC, self->line);
+        // in this case, there is at least one *args or **kwargs as StarredExpr
+        // OP_CALL_VARGS needs to unpack them via __vectorcall_buffer
+        opcode = OP_CALL_VARGS;
     }
+
+    c11__foreach(Expr*, &self->args, e) { vtemit_(*e, ctx); }
+    c11__foreach(CallExprKwArg, &self->kwargs, e) {
+        Ctx__emit_int(ctx, e->key, self->line);
+        vtemit_(e->val, ctx);
+    }
+    int KWARGC = self->kwargs.count;
+    int ARGC = self->args.count;
+    assert(KWARGC < 256 && ARGC < 256);
+    Ctx__emit_(ctx, opcode, (KWARGC << 8) | ARGC, self->line);
 }
 
 CallExpr* CallExpr__new(int line, Expr* callable) {

@@ -41,6 +41,7 @@
 
 #define DEF_NUM_BINARY_OP(name, op)                                                                \
     static bool _py_int##name(int argc, py_Ref argv, py_Ref out) {                                 \
+        py_checkargc(2);                                                                           \
         if(py_isint(&argv[1])) {                                                                   \
             int64_t lhs = py_toint(&argv[0]);                                                      \
             int64_t rhs = py_toint(&argv[1]);                                                      \
@@ -55,6 +56,7 @@
         return true;                                                                               \
     }                                                                                              \
     static bool _py_float##name(int argc, py_Ref argv, py_Ref out) {                               \
+        py_checkargc(2);                                                                           \
         double lhs = py_tofloat(&argv[0]);                                                         \
         double rhs;                                                                                \
         if(py_castfloat(&argv[1], &rhs)) {                                                         \
@@ -78,18 +80,21 @@ DEF_NUM_BINARY_OP(__ge__, >=)
 #undef DEF_NUM_BINARY_OP
 
 static bool _py_int__neg__(int argc, py_Ref argv, py_Ref out) {
+    py_checkargc(1);
     int64_t val = py_toint(&argv[0]);
     py_newint(out, -val);
     return true;
 }
 
 static bool _py_float__neg__(int argc, py_Ref argv, py_Ref out) {
+    py_checkargc(1);
     double val = py_tofloat(&argv[0]);
     py_newfloat(out, -val);
     return true;
 }
 
 static bool _py_int__truediv__(int argc, py_Ref argv, py_Ref out) {
+    py_checkargc(2);
     int64_t lhs = py_toint(&argv[0]);
     double rhs;
     if(py_castfloat(&argv[1], &rhs)) {
@@ -101,6 +106,7 @@ static bool _py_int__truediv__(int argc, py_Ref argv, py_Ref out) {
 }
 
 static bool _py_float__truediv__(int argc, py_Ref argv, py_Ref out) {
+    py_checkargc(2);
     double lhs = py_tofloat(&argv[0]);
     double rhs;
     if(py_castfloat(&argv[1], &rhs)) {
@@ -114,6 +120,7 @@ static bool _py_float__truediv__(int argc, py_Ref argv, py_Ref out) {
 #define ZeroDivisionError(msg) false
 
 static bool _py_number__pow__(int argc, py_Ref argv, py_Ref out) {
+    py_checkargc(2);
     if(py_isint(&argv[0]) && py_isint(&argv[1])) {
         int64_t lhs = py_toint(&argv[0]);
         int64_t rhs = py_toint(&argv[1]);
@@ -145,6 +152,7 @@ static bool _py_number__pow__(int argc, py_Ref argv, py_Ref out) {
 }
 
 static bool _py_int__floordiv__(int argc, py_Ref argv, py_Ref out) {
+    py_checkargc(2);
     int64_t lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
         int64_t rhs = py_toint(&argv[1]);
@@ -157,6 +165,7 @@ static bool _py_int__floordiv__(int argc, py_Ref argv, py_Ref out) {
 }
 
 static bool _py_int__mod__(int argc, py_Ref argv, py_Ref out) {
+    py_checkargc(2);
     int64_t lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
         int64_t rhs = py_toint(&argv[1]);
@@ -169,12 +178,14 @@ static bool _py_int__mod__(int argc, py_Ref argv, py_Ref out) {
 }
 
 static bool _py_int__invert__(int argc, py_Ref argv, py_Ref out) {
+    py_checkargc(1);
     int64_t val = py_toint(&argv[0]);
     py_newint(out, ~val);
     return true;
 }
 
 static bool _py_int__bit_length(int argc, py_Ref argv, py_Ref out) {
+    py_checkargc(1);
     int64_t x = py_toint(py_arg(0));
     if(x < 0) x = -x;
     int bits = 0;
@@ -188,6 +199,7 @@ static bool _py_int__bit_length(int argc, py_Ref argv, py_Ref out) {
 
 #define DEF_INT_BITWISE_OP(name, op)                                                               \
     static bool _py_int##name(int argc, py_Ref argv, py_Ref out) {                                 \
+        py_checkargc(2);                                                                           \
         int64_t lhs = py_toint(&argv[0]);                                                          \
         if(py_isint(&argv[1])) {                                                                   \
             int64_t rhs = py_toint(&argv[1]);                                                      \
@@ -208,81 +220,53 @@ DEF_INT_BITWISE_OP(__rshift__, >>)
 
 void pk_VM__init_builtins(pk_VM* self) {
     /****** tp_int & tp_float ******/
-    py_Ref tmp = py_pushtmp();
-    py_Ref int_type = py_pushtmp();
-    *int_type = *py_getdict(&self->builtins, py_name("int"));
-    py_Ref float_type = py_pushtmp();
-    *float_type = *py_getdict(&self->builtins, py_name("float"));
+    py_bindmagic(tp_int, __add__, _py_int__add__);
+    py_bindmagic(tp_float, __add__, _py_float__add__);
+    py_bindmagic(tp_int, __sub__, _py_int__sub__);
+    py_bindmagic(tp_float, __sub__, _py_float__sub__);
+    py_bindmagic(tp_int, __mul__, _py_int__mul__);
+    py_bindmagic(tp_float, __mul__, _py_float__mul__);
 
-#define BIND_INT_BINARY_OP(name)                                                                   \
-    py_newnativefunc(tmp, _py_int##name, 2);                                                       \
-    py_setdict(int_type, name, tmp);
-
-#define BIND_FLOAT_BINARY_OP(name)                                                                 \
-    py_newnativefunc(tmp, _py_float##name, 2);                                                     \
-    py_setdict(float_type, name, tmp);
-
-    BIND_INT_BINARY_OP(__add__);
-    BIND_FLOAT_BINARY_OP(__add__);
-    BIND_INT_BINARY_OP(__sub__);
-    BIND_FLOAT_BINARY_OP(__sub__);
-    BIND_INT_BINARY_OP(__mul__);
-    BIND_FLOAT_BINARY_OP(__mul__);
-
-    BIND_INT_BINARY_OP(__eq__);
-    BIND_FLOAT_BINARY_OP(__eq__);
-    BIND_INT_BINARY_OP(__lt__);
-    BIND_FLOAT_BINARY_OP(__lt__);
-    BIND_INT_BINARY_OP(__le__);
-    BIND_FLOAT_BINARY_OP(__le__);
-    BIND_INT_BINARY_OP(__gt__);
-    BIND_FLOAT_BINARY_OP(__gt__);
-    BIND_INT_BINARY_OP(__ge__);
-    BIND_FLOAT_BINARY_OP(__ge__);
+    py_bindmagic(tp_int, __eq__, _py_int__eq__);
+    py_bindmagic(tp_float, __eq__, _py_float__eq__);
+    py_bindmagic(tp_int, __lt__, _py_int__lt__);
+    py_bindmagic(tp_float, __lt__, _py_float__lt__);
+    py_bindmagic(tp_int, __le__, _py_int__le__);
+    py_bindmagic(tp_float, __le__, _py_float__le__);
+    py_bindmagic(tp_int, __gt__, _py_int__gt__);
+    py_bindmagic(tp_float, __gt__, _py_float__gt__);
+    py_bindmagic(tp_int, __ge__, _py_int__ge__);
+    py_bindmagic(tp_float, __ge__, _py_float__ge__);
 
     // __neg__
-    py_newnativefunc(tmp, _py_int__neg__, 1);
-    py_setdict(int_type, __neg__, tmp);
-    py_newnativefunc(tmp, _py_float__neg__, 1);
-    py_setdict(float_type, __neg__, tmp);
+    py_bindmagic(tp_int, __neg__, _py_int__neg__);
+    py_bindmagic(tp_float, __neg__, _py_float__neg__);
 
     // TODO: __repr__, __new__, __hash__
 
     // __truediv__
-    py_newnativefunc(tmp, _py_int__truediv__, 2);
-    py_setdict(int_type, __truediv__, tmp);
-    py_newnativefunc(tmp, _py_float__truediv__, 2);
-    py_setdict(float_type, __truediv__, tmp);
+    py_bindmagic(tp_int, __truediv__, _py_int__truediv__);
+    py_bindmagic(tp_float, __truediv__, _py_float__truediv__);
 
     // __pow__
-    py_newnativefunc(tmp, _py_number__pow__, 2);
-    py_setdict(int_type, __pow__, tmp);
-    py_setdict(float_type, __pow__, tmp);
+    py_bindmagic(tp_int, __pow__, _py_number__pow__);
+    py_bindmagic(tp_float, __pow__, _py_number__pow__);
 
     // __floordiv__ & __mod__
-    py_newnativefunc(tmp, _py_int__floordiv__, 2);
-    py_setdict(int_type, __floordiv__, tmp);
-    py_newnativefunc(tmp, _py_int__mod__, 2);
-    py_setdict(int_type, __mod__, tmp);
+    py_bindmagic(tp_int, __floordiv__, _py_int__floordiv__);
+    py_bindmagic(tp_int, __mod__, _py_int__mod__);
 
     // int.__invert__ & int.<BITWISE OP>
-    py_newnativefunc(tmp, _py_int__invert__, 1);
-    py_setdict(int_type, __invert__, tmp);
+    py_bindmagic(tp_int, __invert__, _py_int__invert__);
 
-    BIND_INT_BINARY_OP(__and__);
-    BIND_INT_BINARY_OP(__or__);
-    BIND_INT_BINARY_OP(__xor__);
-    BIND_INT_BINARY_OP(__lshift__);
-    BIND_INT_BINARY_OP(__rshift__);
+    py_bindmagic(tp_int, __and__, _py_int__and__);
+    py_bindmagic(tp_int, __or__, _py_int__or__);
+    py_bindmagic(tp_int, __xor__, _py_int__xor__);
+    py_bindmagic(tp_int, __lshift__, _py_int__lshift__);
+    py_bindmagic(tp_int, __rshift__, _py_int__rshift__);
 
     // int.bit_length
-    py_newnativefunc(tmp, _py_int__bit_length, 1);
-    py_setdict(int_type, py_name("bit_length"), tmp);
-
-#undef BIND_INT_BINARY_OP
-#undef BIND_FLOAT_BINARY_OP
-
-    py_poptmp(3);
+    py_bindmethod(tp_int, "bit_length", _py_int__bit_length);
 
     // py_Ref builtins = py_getmodule("builtins");
     // py_newfunction(py_reg(0), _py_print,

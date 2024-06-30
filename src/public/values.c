@@ -39,7 +39,7 @@ void py_newstrn(py_Ref out, const char* data, int size) {
     out->_obj = obj;
 }
 
-void py_newStr_(py_Ref out, py_Str input){
+void py_newStr_(py_Ref out, py_Str input) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_str, 0, sizeof(py_Str));
     py_Str* userdata = PyObject__value(obj);
@@ -79,30 +79,39 @@ void py_newfunction2(py_Ref out,
                      const char* docstring,
                      const py_Ref upvalue) {}
 
-void py_newnativefunc(py_Ref out, py_CFunction f, int argc) {
-    py_newnativefunc2(out, f, argc, BindType_FUNCTION, NULL, NULL);
+void py_newnativefunc(py_Ref out, py_CFunction f) {
+
 }
 
-void py_newnativefunc2(py_Ref out,
-                       py_CFunction f,
-                       int argc,
-                       BindType bt,
-                       const char* docstring,
-                       const py_Ref upvalue) {}
+void py_bindmethod(py_Type type, const char *name, py_CFunction f){
+    py_bindmethod2(type, name, f, BindType_FUNCTION);
+}
+
+void py_bindmethod2(py_Type type, const char *name, py_CFunction f, BindType bt){
+    py_TValue tmp;
+    py_newnativefunc(&tmp, f);
+    py_setdict(py_tpobject(type), py_name(name), &tmp);
+}
+
+void py_bindnativefunc(py_Ref obj, const char *name, py_CFunction f){
+    py_TValue tmp;
+    py_newnativefunc(&tmp, f);
+    py_setdict(obj, py_name(name), &tmp);
+}
 
 void py_newnotimplemented(py_Ref out) {
     pk_VM* vm = pk_current_vm;
     *out = vm->NotImplemented;
 }
 
-void py_newslice(py_Ref out, const py_Ref start, const py_Ref stop, const py_Ref step){
+void py_newslice(py_Ref out, const py_Ref start, const py_Ref stop, const py_Ref step) {
     py_newobject(out, tp_slice, 3, 0);
     py_setslot(out, 0, start);
     py_setslot(out, 1, stop);
     py_setslot(out, 2, step);
 }
 
-void py_newobject(py_Ref out, py_Type type, int slots, int udsize){
+void py_newobject(py_Ref out, py_Type type, int slots, int udsize) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* obj = pk_ManagedHeap__gcnew(heap, type, slots, udsize);
     out->type = type;

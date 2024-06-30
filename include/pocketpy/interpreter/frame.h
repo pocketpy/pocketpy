@@ -15,7 +15,8 @@ py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, 
 pk_NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co);
 
 typedef struct ValueStack {
-    // We allocate extra PK_VM_STACK_SIZE/128 places to keep `_sp` valid when `is_overflow() == true`.
+    // We allocate extra PK_VM_STACK_SIZE/128 places to keep `_sp` valid when `is_overflow() ==
+    // true`.
     py_TValue* sp;
     py_TValue* end;
     py_TValue begin[PK_VM_STACK_SIZE + PK_VM_STACK_SIZE / 128];
@@ -34,44 +35,44 @@ UnwindTarget* UnwindTarget__new(UnwindTarget* next, int iblock, int offset);
 void UnwindTarget__delete(UnwindTarget* self);
 
 typedef struct Frame {
-    struct Frame* f_back;   // TODO: set this
+    struct Frame* f_back;
     const Bytecode* ip;
     const CodeObject* co;
     PyObject* module;
-    PyObject* function;     // a function object or NULL (global scope)
-    py_TValue* p0;              // unwinding base
-    py_TValue* locals;          // locals base
+    PyObject* function;  // a function object or NULL (global scope)
+    py_TValue* p0;       // unwinding base
+    py_TValue* locals;   // locals base
     const CodeObject* locals_co;
     UnwindTarget* uw_list;
 } Frame;
 
-
-Frame* Frame__new(const CodeObject* co, const py_TValue* module, const py_TValue* function, py_TValue* p0, py_TValue* locals, const CodeObject* locals_co);
+Frame* Frame__new(const CodeObject* co,
+                  const py_TValue* module,
+                  const py_TValue* function,
+                  py_TValue* p0,
+                  py_TValue* locals,
+                  const CodeObject* locals_co);
 void Frame__delete(Frame* self);
 
-PK_INLINE int Frame__ip(const Frame* self){
-    return self->ip - (Bytecode*)self->co->codes.data;
-}
+PK_INLINE int Frame__ip(const Frame* self) { return self->ip - (Bytecode*)self->co->codes.data; }
 
-PK_INLINE int Frame__lineno(const Frame* self){
+PK_INLINE int Frame__lineno(const Frame* self) {
     int ip = Frame__ip(self);
     return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).lineno;
 }
 
-PK_INLINE int Frame__iblock(const Frame* self){
+PK_INLINE int Frame__iblock(const Frame* self) {
     int ip = Frame__ip(self);
     return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).iblock;
 }
 
-PK_INLINE pk_NameDict* Frame__f_globals(Frame* self){
-    return PyObject__dict(self->module);
-}
+PK_INLINE pk_NameDict* Frame__f_globals(Frame* self) { return PyObject__dict(self->module); }
 
-PK_INLINE py_TValue* Frame__f_globals_try_get(Frame* self, py_Name name){
+PK_INLINE py_TValue* Frame__f_globals_try_get(Frame* self, py_Name name) {
     return pk_NameDict__try_get(Frame__f_globals(self), name);
 }
 
-PK_INLINE py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name){
+PK_INLINE py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name) {
     return FastLocals__try_get_by_name(self->locals, self->locals_co, name);
 }
 

@@ -18,7 +18,8 @@ typedef struct py_Error {
 /// Native function signature.
 /// @param argc number of arguments.
 /// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
-/// @param out output reference to the result.
+/// @param out output reference to the result. Please note that `out` could overlap with `argv`.
+/// Always set `out` after using `argv`.
 /// @return true if the function is successful.
 typedef bool (*py_CFunction)(int argc, py_TValue* argv, py_TValue* out);
 
@@ -74,13 +75,7 @@ void py_newfunction2(py_Ref out,
                      const char* docstring,
                      const py_Ref upvalue);
 // old style argc-based function
-void py_newnativefunc(py_Ref out, py_CFunction, int argc);
-void py_newnativefunc2(py_Ref out,
-                       py_CFunction,
-                       int argc,
-                       BindType bt,
-                       const char* docstring,
-                       const py_Ref upvalue);
+void py_newnativefunc(py_Ref out, py_CFunction);
 
 void py_newnotimplemented(py_Ref out);
 
@@ -110,7 +105,21 @@ bool py_istype(const py_Ref, py_Type);
 // bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
-#define py_arg(i)       (py_Ref)((char*)argv+((i)<<4))
+#define TypeError(x) false
+#define py_arg(i) (py_Ref)((char*)argv + ((i) << 4))
+#define py_checkargc(n)                                                                            \
+    if(argc != n) return TypeError()
+
+py_Ref py_tpmagic(py_Type type, py_Name name);
+#define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
+
+// new style decl-based bindings
+py_Ref py_bind(py_Ref obj, const char* sig, py_CFunction f);
+py_Ref py_bind2(py_Ref obj, const char* sig, py_CFunction f, BindType bt, const char* docstring, const py_Ref upvalue);
+// old style argc-based bindings
+void py_bindmethod(py_Type type, const char* name, py_CFunction f);
+void py_bindmethod2(py_Type type, const char* name, py_CFunction f, BindType bt);
+void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f);
 
 py_Ref py_reg(int i);
 
@@ -126,7 +135,11 @@ void py_setupvalue(py_Ref self, const py_Ref val);
 /// Gets the attribute of the object.
 bool py_getattr(const py_Ref self, py_Name name, py_Ref out);
 /// Gets the unbound method of the object.
-bool py_getunboundmethod(const py_Ref self, py_Name name, bool fallback, py_Ref out, py_Ref out_self);
+bool py_getunboundmethod(const py_Ref self,
+                         py_Name name,
+                         bool fallback,
+                         py_Ref out,
+                         py_Ref out_self);
 /// Sets the attribute of the object.
 bool py_setattr(py_Ref self, py_Name name, const py_Ref val);
 /// Deletes the attribute of the object.
@@ -177,21 +190,29 @@ int py_eq(const py_Ref, const py_Ref);
 int py_le(const py_Ref, const py_Ref);
 bool py_hash(const py_Ref, int64_t* out);
 
-bool py_str(const py_Ref, py_Ref out);
-bool py_repr(const py_Ref, py_Ref out);
-
 /// A stack operation that calls a function.
-/// It consumes `argc + kwargc` arguments from the stack.
+/// It assumes `argc + kwargc` arguments are already pushed to the stack.
 /// The result will be set to `vm->last_retval`.
-int pk_vectorcall(int argc, int kwargc, bool op_call);
+/// The stack size will be reduced by `argc + kwargc`.
+bool pk_vectorcall(int argc, int kwargc, bool op_call);
 /// Call a function.
 /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
 /// The result will be set to `vm->last_retval`.
+/// The stack remains unchanged after the operation.
 bool py_call(py_Ref f, int argc, py_Ref argv);
-/// Call a method.
+/// Call a non-magic method.
 /// It prepares the stack and then performs a `vectorcall(argc+1, 0, false)`.
 /// The result will be set to `vm->last_retval`.
-bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv);
+/// The stack remains unchanged after the operation.
+bool py_callmethod(py_Ref self, py_Name, int argc, py_Ref argv);
+/// Call a magic method.
+/// The result will be set to `vm->last_retval`.
+/// The stack remains unchanged after the operation.
+bool py_callmagic(py_Name name, int argc, py_Ref argv);
+
+#define py_repr(self) py_callmagic(__repr__, 1, self)
+#define py_str(self) py_callmagic(__str__, 1, self)
+
 /// The return value of the most recent vectorcall.
 py_Ref py_lastretval();
 
@@ -216,6 +237,15 @@ void py_list__insert(py_Ref self, int i, const py_Ref val);
 // internal functions
 typedef struct pk_TypeInfo pk_TypeInfo;
 pk_TypeInfo* pk_tpinfo(const py_Ref self);
+
+/// Search the magic method from the given type to the base type.
+/// Returns the reference or NULL if not found.
+/// @lifespan: Permanent.
+py_Ref py_tpfindmagic(py_Type, py_Name name);
+
+/// Get the type object of the given type.
+/// @lifespan: Permanent.
+py_Ref py_tpobject(py_Type type);
 
 #ifdef __cplusplus
 }

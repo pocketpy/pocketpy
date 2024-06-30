@@ -108,10 +108,7 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_bool, pk_VM__new_type(self, "bool", tp_object, NULL, false));
     validate(tp_str, pk_VM__new_type(self, "str", tp_object, NULL, false));
 
-    validate(tp_list, pk_VM__new_type(self, "list", tp_object, NULL, false));
-    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, tp_list);
-    ti->dtor = (void (*)(void*))c11_vector__dtor;
-
+    validate(tp_list, pk_list__register());
     validate(tp_tuple, pk_VM__new_type(self, "tuple", tp_object, NULL, false));
 
     validate(tp_slice, pk_VM__new_type(self, "slice", tp_object, NULL, false));

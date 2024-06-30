@@ -40,35 +40,60 @@ int py_eval(const char* source, py_Ref out) {
     CodeObject__dtor(&co);
     PK_DECREF(src);
     if(res == RES_ERROR) return vm->last_error->type;
-    if(res == RES_RETURN){
+    if(res == RES_RETURN) {
         *out = vm->last_retval;
         return 0;
     }
     PK_UNREACHABLE();
 }
 
-bool py_call(py_Ref f, int argc, py_Ref argv){
+bool py_call(py_Ref f, int argc, py_Ref argv) { return -1; }
+
+bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv) { return -1; }
+
+bool pk_vectorcall(int argc, int kwargc, bool op_call) { return -1; }
+
+py_Ref py_lastretval() { return &pk_current_vm->last_retval; }
+
+bool py_getunboundmethod(const py_Ref self,
+                         py_Name name,
+                         bool fallback,
+                         py_Ref out,
+                         py_Ref out_self) {
     return -1;
 }
 
-bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv){
-    return -1;
-}
-
-int pk_vectorcall(int argc, int kwargc, bool op_call){
-    return -1;
-}
-
-py_Ref py_lastretval(){
-    return &pk_current_vm->last_retval;
-}
-
-bool py_getunboundmethod(const py_Ref self, py_Name name, bool fallback, py_Ref out, py_Ref out_self){
-    return -1;
-}
-
-pk_TypeInfo* pk_tpinfo(const py_Ref self){
+pk_TypeInfo* pk_tpinfo(const py_Ref self) {
     pk_VM* vm = pk_current_vm;
     return c11__at(pk_TypeInfo, &vm->types, self->type);
 }
 
+py_Ref py_tpfindmagic(py_Type t, py_Name name) {
+    assert(name < 64);
+    pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
+    do {
+        py_Ref f = &types[t].magic[name];
+        if(!py_isnull(f)) return f;
+        t = types[t].base;
+    } while(t);
+    return NULL;
+}
+
+py_Ref py_tpmagic(py_Type type, py_Name name) {
+    assert(name < 64);
+    pk_VM* vm = pk_current_vm;
+    return &c11__at(pk_TypeInfo, &vm->types, type)->magic[name];
+}
+
+py_Ref py_tpobject(py_Type type) {
+    pk_VM* vm = pk_current_vm;
+    return &c11__at(pk_TypeInfo, &vm->types, type)->self;
+}
+
+bool py_callmagic(py_Name name, int argc, py_Ref argv) {
+    assert(argc >= 1);
+    py_Ref tmp = py_tpfindmagic(argv->type, name);
+    if(!tmp) return TypeError(name);
+    if(tmp->type == tp_nativefunc) { return tmp->_cfunc(argc, argv, &pk_current_vm->last_retval); }
+    return py_call(tmp, argc, argv);
+}

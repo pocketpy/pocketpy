@@ -9,6 +9,7 @@ int UnboundLocalError(py_Name name) { return -1; }
 int NameError(py_Name name) { return -1; }
 
 #define AttributeError(obj, name)
+#define BinaryOptError(op)
 
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
@@ -37,6 +38,13 @@ int NameError(py_Name name) { return -1; }
 #define POP() (--self->stack.sp)
 #define POPX() (*--self->stack.sp)
 #define SP() (self->stack.sp)
+
+// [a, b] -> [?, a, b]
+#define INSERT_THIRD()                                                                             \
+    do {                                                                                           \
+        PUSH(TOP());                                                                               \
+        *SECOND() = *THIRD();                                                                      \
+    } while(0)
 
 #define vectorcall_opcall(n)                                                                       \
     do {                                                                                           \
@@ -104,8 +112,9 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_PRINT_EXPR:
                 if(TOP()->type != tp_none_type) {
-                    py_TValue tmp;
-                    if(py_repr(TOP(), &tmp)) self->_stdout("%s\n", py_tostr(&tmp));
+                    bool ok = py_repr(TOP());
+                    if(!ok) goto __ERROR;
+                    self->_stdout("%s\n", py_tostr(&self->last_retval));
                 }
                 POP();
                 DISPATCH();
@@ -247,19 +256,21 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_LOAD_SUBSCR: {
                 // [a, b] -> a[b]
-                pk_TypeInfo* ti = pk_tpinfo(SECOND());
-                if(ti->m__getitem__) {
-                    if(!ti->m__getitem__(2, SECOND(), SECOND())) goto __ERROR;
-                } else {
-                    // [a, b] -> [?, a, b]
-                    PUSH(TOP());           // [a, b, b]
-                    *SECOND() = *THIRD();  // [a, a, b]
-                    bool ok = py_getunboundmethod(SECOND(), __getitem__, false, THIRD(), SECOND());
-                    // [__getitem__, self, b]
-                    if(!ok) goto __ERROR;
-                    vectorcall_opcall(2);
+                py_Ref magic = py_tpfindmagic(SECOND()->type, __getitem__);
+                if(magic) {
+                    if(magic->type == tp_nativefunc) {
+                        bool ok = magic->_cfunc(2, SECOND(), SECOND());
+                        if(!ok) goto __ERROR;
+                        POP();
+                    } else {
+                        INSERT_THIRD();     // [?, a, b]
+                        *THIRD() = *magic;  // [__getitem__, a, b]
+                        vectorcall_opcall(2);
+                    }
+                    DISPATCH();
                 }
-                DISPATCH();
+                TypeError();
+                goto __ERROR;
             }
             case OP_STORE_FAST: frame->locals[byte.arg] = POPX(); DISPATCH();
             case OP_STORE_NAME: {
@@ -296,19 +307,23 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_STORE_SUBSCR: {
                 // [val, a, b] -> a[b] = val
-                pk_TypeInfo* ti = pk_tpinfo(SECOND());
                 PUSH(THIRD());  // [val, a, b, val]
-                if(ti->m__setitem__) {
-                    if(!ti->m__setitem__(3, THIRD(), FOURTH())) goto __ERROR;
-                    STACK_SHRINK(3);  // [retval]
-                } else {
-                    bool ok = py_getunboundmethod(THIRD(), __setitem__, false, FOURTH(), THIRD());
-                    if(!ok) goto __ERROR;
-                    // [__setitem__, self, b, val]
-                    vectorcall_opcall(3);
-                    POP();  // discard retval
+                py_Ref magic = py_tpfindmagic(SECOND()->type, __setitem__);
+                if(magic) {
+                    if(magic->type == tp_nativefunc) {
+                        bool ok = magic->_cfunc(3, THIRD(), FOURTH());
+                        if(!ok) goto __ERROR;
+                        STACK_SHRINK(4);
+                    } else {
+                        INSERT_THIRD();      // [?, a, b]
+                        *FOURTH() = *magic;  // [__selitem__, a, b, val]
+                        vectorcall_opcall(3);
+                        POP();  // discard retval
+                    }
+                    DISPATCH();
                 }
-                DISPATCH();
+                TypeError();
+                goto __ERROR;
             }
             case OP_DELETE_FAST: {
                 py_Ref tmp = &frame->locals[byte.arg];
@@ -362,22 +377,23 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
 
             case OP_DELETE_SUBSCR: {
                 // [a, b] -> del a[b]
-                pk_TypeInfo* ti = pk_tpinfo(SECOND());
-                if(ti->m__delitem__) {
-                    if(!ti->m__delitem__(2, SECOND(), SECOND())) goto __ERROR;
-                    POP();
-                } else {
-                    PUSH(TOP());           // [a, b, b]
-                    *SECOND() = *THIRD();  // [a, a, b]
-                    bool ok = py_getunboundmethod(SECOND(), __delitem__, false, THIRD(), SECOND());
-                    // [__delitem__, self, b]
-                    if(!ok) goto __ERROR;
-                    vectorcall_opcall(2);
-                    POP();  // discard retval
+                py_Ref magic = py_tpfindmagic(SECOND()->type, __delitem__);
+                if(magic) {
+                    if(magic->type == tp_nativefunc) {
+                        bool ok = magic->_cfunc(2, SECOND(), SECOND());
+                        if(!ok) goto __ERROR;
+                        STACK_SHRINK(2);
+                    } else {
+                        INSERT_THIRD();     // [?, a, b]
+                        *THIRD() = *magic;  // [__delitem__, a, b]
+                        vectorcall_opcall(2);
+                        POP();  // discard retval
+                    }
+                    DISPATCH();
                 }
-                DISPATCH();
+                TypeError();
+                goto __ERROR;
             }
-
                 /*****************************************/
 
             case OP_BUILD_LONG: {
@@ -394,11 +410,11 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref f = py_getdict(&self->builtins, pk_id_complex);
                 assert(f != NULL);
                 py_TValue tmp = *TOP();
-                *TOP() = *f;            // [complex]
-                py_newnull(SP()++);     // [complex, NULL]
-                py_newint(SP()++, 0);   // [complex, NULL, 0]
-                *SP()++ = tmp;          // [complex, NULL, 0, x]
-                vectorcall_opcall(2);   // [complex(x, 0)]
+                *TOP() = *f;           // [complex]
+                py_newnull(SP()++);    // [complex, NULL]
+                py_newint(SP()++, 0);  // [complex, NULL, 0]
+                *SP()++ = tmp;         // [complex, NULL, 0, x]
+                vectorcall_opcall(2);  // [complex(x)]
                 DISPATCH();
             }
             case OP_BUILD_BYTES: {
@@ -462,20 +478,77 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_BUILD_STRING: {
                 py_TValue* begin = SP() - byte.arg;
-                py_Ref tmp = py_pushtmp();
                 pk_SStream ss;
                 pk_SStream__ctor(&ss);
                 for(int i = 0; i < byte.arg; i++) {
-                    if(!py_str(begin + i, tmp)) goto __ERROR;
-                    py_Str* item = py_touserdata(tmp);
+                    if(!py_str(begin + i)) goto __ERROR;
+                    py_Str* item = py_touserdata(&self->last_retval);
                     pk_SStream__write_Str(&ss, item);
                 }
                 SP() = begin;
-                py_newStr_(tmp, pk_SStream__submit(&ss));
-                PUSH(tmp);
+                py_newStr_(SP()++, pk_SStream__submit(&ss));
                 DISPATCH();
             }
-            /**************************** */
+            /*****************************/
+            case OP_BINARY_OP: {
+                py_Name op = byte.arg & 0xFF;
+                // [a, b]
+                py_Ref _0 = py_tpfindmagic(SECOND()->type, op);
+                py_Ref _1;
+                py_TValue tmp;
+                if(_0) {
+                    if(_0->type == tp_nativefunc) {
+                        bool ok = _0->_cfunc(2, SECOND(), &tmp);
+                        if(!ok) goto __ERROR;
+                        if(tmp.type != tp_not_implemented_type) {
+                            POP();
+                            *TOP() = tmp;
+                            DISPATCH();
+                        }
+                    } else {
+                        // standard call
+                        bool ok = py_call(_0, 2, SECOND());
+                        if(!ok) goto __ERROR;
+                        if(self->last_retval.type != tp_not_implemented_type) {
+                            POP();
+                            *TOP() = self->last_retval;
+                            DISPATCH();
+                        }
+                    }
+                }
+                // try reverse operation
+                op = byte.arg >> 8;
+                if(op) {
+                    // [a, b] -> [b, a]
+                    tmp = *TOP();
+                    *TOP() = *SECOND();
+                    *SECOND() = tmp;
+                    _1 = py_tpfindmagic(SECOND()->type, op);
+                    if(_1) {
+                        if(_1->type == tp_nativefunc) {
+                            bool ok = _1->_cfunc(2, SECOND(), &tmp);
+                            if(!ok) goto __ERROR;
+                            if(tmp.type != tp_not_implemented_type) {
+                                POP();
+                                *TOP() = tmp;
+                                DISPATCH();
+                            }
+                        } else {
+                            // standard call
+                            bool ok = py_call(_1, 2, SECOND());
+                            if(!ok) goto __ERROR;
+                            if(self->last_retval.type != tp_not_implemented_type) {
+                                POP();
+                                *TOP() = self->last_retval;
+                                DISPATCH();
+                            }
+                        }
+                    }
+                }
+                BinaryOptError(byte.arg);
+                goto __ERROR;
+            }
+
             case OP_RETURN_VALUE: {
                 self->last_retval = byte.arg == BC_NOARG ? POPX() : self->None;
                 pk_VM__pop_frame(self);

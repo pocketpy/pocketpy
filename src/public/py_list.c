@@ -6,6 +6,14 @@
 
 typedef c11_vector List;
 
+py_Type pk_list__register() {
+    pk_VM* vm = pk_current_vm;
+    py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
+    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &vm->types, type);
+    ti->dtor = (void (*)(void*))c11_vector__dtor;
+    return type;
+}
+
 void py_newlist(py_Ref out) {
     pk_VM* vm = pk_current_vm;
     PyObject* obj = pk_ManagedHeap__gcnew(&vm->heap, tp_list, 0, sizeof(List));
