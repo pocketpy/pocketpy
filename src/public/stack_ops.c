@@ -35,34 +35,6 @@ void py_assign(py_Ref dst, const py_Ref src){
 }
 
 /* Stack References */
-py_Ref py_gettop(){
-    return pk_current_vm->stack.sp - 1;
-}
-
-void py_settop(const py_Ref val){
-    pk_current_vm->stack.sp[-1] = *val;
-}
-
-py_Ref py_getsecond(){
-    return pk_current_vm->stack.sp - 2;
-}
-
-void py_setsecond(const py_Ref val){
-    pk_current_vm->stack.sp[-2] = *val;
-}
-
-void py_duptop(){
-    pk_VM* vm = pk_current_vm;
-    *vm->stack.sp = vm->stack.sp[-1];
-    vm->stack.sp++;
-}
-
-void py_dupsecond(){
-    pk_VM* vm = pk_current_vm;
-    *vm->stack.sp = vm->stack.sp[-2];
-    vm->stack.sp++;
-}
-
 py_Ref py_peek(int i){
     assert(i < 0);
     return pk_current_vm->stack.sp + i;
@@ -87,8 +59,4 @@ py_Ref py_pushtmp(){
     pk_VM* vm = pk_current_vm;
     py_newnull(vm->stack.sp++);
     return py_gettop();
-}
-
-void py_poptmp(int n){
-    py_shrink(n);
 }

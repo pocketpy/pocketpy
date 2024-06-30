@@ -177,27 +177,26 @@ bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop);
 void py_assign(py_Ref dst, const py_Ref src);
 
 /************* Stack Operations *************/
-py_Ref py_gettop();
-void py_settop(const py_Ref);
-py_Ref py_getsecond();
-void py_setsecond(const py_Ref);
-void py_duptop();
-void py_dupsecond();
 /// Returns a reference to the i-th object from the top of the stack.
 /// i should be negative, e.g. (-1) means TOS.
 py_Ref py_peek(int i);
-/// Pops an object from the stack.
-void py_pop();
-void py_shrink(int n);
-
 /// Pushes the object to the stack.
 void py_push(const py_Ref src);
-
+/// Pops an object from the stack.
+void py_pop();
+/// Shrink the stack by n.
+void py_shrink(int n);
 /// Get a temporary variable from the stack and returns the reference to it.
 py_Ref py_pushtmp();
 /// Free n temporary variable.
-void py_poptmp(int n);
+#define py_poptmp(n) py_shrink(n)
 
+#define py_gettop() py_peek(-1)
+#define py_getsecond() py_peek(-2)
+#define py_settop(v) py_assign(py_peek(-1), v)
+#define py_setsecond(v) py_assign(py_peek(-2), v)
+#define py_duptop() py_push(py_peek(-1))
+#define py_dupsecond() py_push(py_peek(-2))
 /************* Modules *************/
 py_Ref py_newmodule(const char* name, const char* package);
 py_Ref py_getmodule(const char* name);
