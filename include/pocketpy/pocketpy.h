@@ -45,13 +45,25 @@ void py_newfloat(py_Ref, double);
 void py_newbool(py_Ref, bool);
 void py_newstr(py_Ref, const char*);
 void py_newstrn(py_Ref, const char*, int);
+void py_newStr_(py_Ref, py_Str);
 // void py_newfstr(py_Ref, const char*, ...);
 void py_newbytes(py_Ref, const unsigned char*, int);
 void py_newnone(py_Ref);
 void py_newnull(py_Ref);
 
-void py_newtuple(py_Ref, int count);
+/// Create a tuple with n UNINITIALIZED elements.
+/// You should initialize all elements before using it.
+void py_newtuple(py_Ref, int n);
+/// Create a list.
 void py_newlist(py_Ref);
+/// Create a list with n UNINITIALIZED elements.
+/// You should initialize all elements before using it.
+void py_newlistn(py_Ref, int n);
+
+// opaque types
+void py_newdict(py_Ref);
+void py_newset(py_Ref);
+void py_newslice(py_Ref, const py_Ref start, const py_Ref stop, const py_Ref step);
 
 // new style decl-based function
 void py_newfunction(py_Ref out, py_CFunction, const char* sig);
@@ -99,6 +111,7 @@ bool py_istype(const py_Ref, py_Type);
 
 /************* References *************/
 #define py_arg(i)       (py_Ref)((char*)argv+((i)<<4))
+
 py_Ref py_reg(int i);
 
 py_Ref py_getdict(const py_Ref self, py_Name name);
@@ -118,6 +131,10 @@ bool py_getunboundmethod(const py_Ref self, py_Name name, bool fallback, py_Ref 
 bool py_setattr(py_Ref self, py_Name name, const py_Ref val);
 /// Deletes the attribute of the object.
 bool py_delattr(py_Ref self, py_Name name);
+
+bool py_getitem(const py_Ref self, const py_Ref key, py_Ref out);
+bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val);
+bool py_delitem(py_Ref self, const py_Ref key);
 
 /// Equivalent to `*dst = *src`.
 void py_assign(py_Ref dst, const py_Ref src);
@@ -193,17 +210,8 @@ void py_list__setitem(py_Ref self, int i, const py_Ref val);
 void py_list__delitem(py_Ref self, int i);
 int py_list__len(const py_Ref self);
 void py_list__append(py_Ref self, const py_Ref val);
-void py_list__extend(py_Ref self, const py_Ref begin, const py_Ref end);
 void py_list__clear(py_Ref self);
 void py_list__insert(py_Ref self, int i, const py_Ref val);
-
-// unchecked functions, if self is not a dict, the behavior is undefined
-int py_dict__len(const py_Ref self);
-bool py_dict__contains(const py_Ref self, const py_Ref key);
-py_Ref py_dict__getitem(const py_Ref self, const py_Ref key);
-void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val);
-void py_dict__delitem(py_Ref self, const py_Ref key);
-void py_dict__clear(py_Ref self);
 
 // internal functions
 typedef struct pk_TypeInfo pk_TypeInfo;

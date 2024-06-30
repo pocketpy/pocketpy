@@ -419,46 +419,62 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 PUSH(&tmp);
                 DISPATCH();
             }
-            // case OP_BUILD_LIST: {
-            //     PyVar _0 = VAR(STACK_VIEW(byte.arg).to_list());
-            //     STACK_SHRINK(byte.arg);
-            //     PUSH(_0);
-            //     DISPATCH();
-            // }
-            // case OP_BUILD_DICT: {
-            //     if(byte.arg == 0) {
-            //         PUSH(VAR(Dict()));
-            //         DISPATCH()
-            //     }
-            //     PyVar _0 = VAR(STACK_VIEW(byte.arg).to_list());
-            //     _0 = call(_t(tp_dict), _0);
-            //     STACK_SHRINK(byte.arg);
-            //     PUSH(_0);
-            //     DISPATCH();
-            // }
-            // case OP_BUILD_SET: {
-            //     PyVar _0 = VAR(STACK_VIEW(byte.arg).to_list());
-            //     _0 = call(builtins->attr()[pk_id_set], _0);
-            //     STACK_SHRINK(byte.arg);
-            //     PUSH(_0);
-            //     DISPATCH();
-            // }
-            // case OP_BUILD_SLICE: {
-            //     PyVar _2 = POPX();  // step
-            //     PyVar _1 = POPX();  // stop
-            //     PyVar _0 = POPX();  // start
-            //     PUSH(VAR(Slice(_0, _1, _2)));
-            //     DISPATCH();
-            // }
-            // case OP_BUILD_STRING: {
-            //     SStream ss;
-            //     ArgsView view = STACK_VIEW(byte.arg);
-            //     for(PyVar obj: view)
-            //         ss << py_str(obj);
-            //     STACK_SHRINK(byte.arg);
-            //     PUSH(VAR(ss.str()));
-            //     DISPATCH();
-            // }
+            case OP_BUILD_LIST: {
+                py_TValue tmp;
+                py_newlistn(&tmp, byte.arg);
+                py_TValue* begin = SP() - byte.arg;
+                for(int i = 0; i < byte.arg; i++) {
+                    py_list__setitem(&tmp, i, begin + i);
+                }
+                SP() = begin;
+                PUSH(&tmp);
+                DISPATCH();
+            }
+            case OP_BUILD_DICT: {
+                py_TValue* begin = SP() - byte.arg;
+                py_Ref tmp = py_pushtmp();
+                py_newdict(tmp);
+                for(int i = 0; i < byte.arg; i += 2) {
+                    if(!py_setitem(tmp, begin + i, begin + i + 1)) goto __ERROR;
+                }
+                SP() = begin;
+                PUSH(tmp);
+                DISPATCH();
+            }
+            case OP_BUILD_SET: {
+                py_TValue* begin = SP() - byte.arg;
+                py_Ref tmp = py_pushtmp();
+                py_newset(tmp);
+                for(int i = 0; i < byte.arg; i++) {
+                    if(!py_callmethod(tmp, pk_id_add, 1, begin + i)) goto __ERROR;
+                }
+                SP() = begin;
+                PUSH(tmp);
+                DISPATCH();
+            }
+            case OP_BUILD_SLICE: {
+                // [start, stop, step]
+                py_TValue tmp;
+                py_newslice(&tmp, THIRD(), SECOND(), TOP());
+                STACK_SHRINK(3);
+                PUSH(&tmp);
+                DISPATCH();
+            }
+            case OP_BUILD_STRING: {
+                py_TValue* begin = SP() - byte.arg;
+                py_Ref tmp = py_pushtmp();
+                pk_SStream ss;
+                pk_SStream__ctor(&ss);
+                for(int i = 0; i < byte.arg; i++) {
+                    if(!py_str(begin + i, tmp)) goto __ERROR;
+                    py_Str* item = py_touserdata(tmp);
+                    pk_SStream__write_Str(&ss, item);
+                }
+                SP() = begin;
+                py_newStr_(tmp, pk_SStream__submit(&ss));
+                PUSH(tmp);
+                DISPATCH();
+            }
             /**************************** */
             case OP_RETURN_VALUE: {
                 self->last_retval = byte.arg == BC_NOARG ? POPX() : self->None;
