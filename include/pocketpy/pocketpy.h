@@ -10,11 +10,17 @@ typedef uint16_t py_Name;
 typedef int16_t py_Type;
 typedef py_TValue* py_Ref;
 typedef struct py_Str py_Str;
-typedef int (*py_CFunction)(int argc, py_Ref argv);
 
 typedef struct py_Error {
     py_Type type;
 } py_Error;
+
+/// Native function signature.
+/// @param argc number of arguments.
+/// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
+/// @param out output reference to the result.
+/// @return true if the function is successful.
+typedef bool (*py_CFunction)(int argc, py_TValue* argv, py_TValue* out);
 
 typedef enum BindType {
     BindType_FUNCTION,
@@ -64,6 +70,8 @@ void py_newnativefunc2(py_Ref out,
                        const char* docstring,
                        const py_Ref upvalue);
 
+void py_newnotimplemented(py_Ref out);
+
 /// Create a new object.
 /// @param out output reference.
 /// @param type type of the object.
@@ -79,7 +87,6 @@ void py_pushstrn(const char*, int);
 
 void py_pushnone();
 void py_pushnull();
-void py_push_notimplemented();
 
 /************* Type Cast *************/
 int64_t py_toint(const py_Ref);
@@ -101,7 +108,7 @@ bool py_istype(const py_Ref, py_Type);
 // bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
-#define py_arg(i)   (py_Ref)((char*)argv+((i)<<4))
+#define py_arg(i)       (py_Ref)((char*)argv+((i)<<4))
 
 py_Ref py_getreg(int i);
 void py_setreg(int i, const py_Ref val);
@@ -120,9 +127,9 @@ bool py_getattr(const py_Ref self, py_Name name, py_Ref out);
 /// Gets the unbound method of the object.
 bool py_getunboundmethod(const py_Ref self, py_Name name, bool fallback, py_Ref out, py_Ref out_self);
 /// Sets the attribute of the object.
-int py_setattr(py_Ref self, py_Name name, const py_Ref val);
+bool py_setattr(py_Ref self, py_Name name, const py_Ref val);
 /// Deletes the attribute of the object.
-int py_delattr(py_Ref self, py_Name name);
+bool py_delattr(py_Ref self, py_Name name);
 
 /// Equivalent to `*dst = *src`.
 void py_assign(py_Ref dst, const py_Ref src);
@@ -163,14 +170,18 @@ void py_Error__print(py_Error*);
 /************* Operators *************/
 int py_eq(const py_Ref, const py_Ref);
 int py_le(const py_Ref, const py_Ref);
-int py_hash(const py_Ref, int64_t* out);
+bool py_hash(const py_Ref, int64_t* out);
 
-int py_str(const py_Ref);
-int py_repr(const py_Ref);
+bool py_str(const py_Ref, py_Ref out);
+bool py_repr(const py_Ref, py_Ref out);
 
-int py_vectorcall(int argc, int kwargc);
-int py_call(py_Ref f, ...);
-int py_callmethod(py_Ref self, py_Name name, ...);
+/// A stack operation that calls a function.
+/// It consumes `argc + kwargc` arguments from the stack.
+/// The result will be set to `vm->last_retval`.
+int pk_vectorcall(int argc, int kwargc, bool op_call);
+
+bool py_call(py_Ref f, ...);
+bool py_callmethod(py_Ref self, py_Name name, ...);
 
 #define py_isnull(self) ((self)->type == 0)
 

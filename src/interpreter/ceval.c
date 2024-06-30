@@ -38,28 +38,19 @@ int NameError(py_Name name) { return -1; }
 #define POPX() (*--self->stack.sp)
 #define SP() (self->stack.sp)
 
-static void pack_stack_values(int n) {
-    assert(n > 1);
-    pk_VM* self = pk_current_vm;
-    py_TValue tmp;
-    py_newtuple(&tmp, n);
-    for(int i = 0; i < n; i++)
-        py_tuple__setitem(&tmp, i, SP() - n + i);
-    STACK_SHRINK(n);
-    PUSH(&tmp);
-}
-
-// n == 1 is the most likely result
-#define HANDLE_RETVAL(n)                                                                           \
-    if(n != 1) {                                                                                   \
-        if(n == 0) {                                                                               \
-            PUSH(&self->None);                                                                     \
-        } else if(n > 1) {                                                                         \
-            pack_stack_values(n);                                                                  \
-        } else {                                                                                   \
-            goto __ERROR;                                                                          \
+#define vectorcall_opcall(n)                                                                       \
+    do {                                                                                           \
+        pk_FrameResult res = pk_vectorcall(n, 0, true);                                            \
+        switch(res) {                                                                              \
+            case RES_RETURN: PUSH(&self->last_retval); break;                                      \
+            case RES_CALL:                                                                         \
+                frame = self->top_frame;                                                           \
+                PUSH(&self->last_retval);                                                          \
+                goto __NEXT_FRAME;                                                                 \
+            case RES_ERROR: goto __ERROR;                                                          \
+            default: PK_UNREACHABLE();                                                             \
         }                                                                                          \
-    }
+    } while(0)
 
 pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     Frame* frame = self->top_frame;
@@ -113,10 +104,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_PRINT_EXPR:
                 if(TOP()->type != tp_none_type) {
-                    int err = py_repr(TOP());
-                    if(err) goto __ERROR;
-                    self->_stdout("%s\n", py_tostr(TOP()));
-                    POP();
+                    py_TValue tmp;
+                    if(py_repr(TOP(), &tmp)) self->_stdout("%s\n", py_tostr(&tmp));
                 }
                 POP();
                 DISPATCH();
@@ -258,11 +247,21 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_LOAD_SUBSCR: {
                 // [a, b] -> a[b]
-                int n = py_callmethod(SECOND(), __getitem__, TOP());
-                HANDLE_RETVAL(n);
-                // [a, b, retval]
-                *THIRD() = *TOP();  // [retval, b, retval]
-                STACK_SHRINK(2);    // [retval]
+                pk_TypeInfo* ti = pk_tpinfo(SECOND());
+                if(ti->m__getitem__) {
+                    if(!ti->m__getitem__(2, SECOND(), SECOND())) goto __ERROR;
+                } else {
+                    if(!py_callmethod(SECOND(), __getitem__, TOP())) goto __ERROR;
+                    // // [a, b] -> [?, a, b]
+                    // PUSH(TOP());           // [a, b, b]
+                    // *SECOND() = *THIRD();  // [a, a, b]
+                    // bool ok = py_getunboundmethod(SECOND(), __getitem__, false, THIRD(),
+                    // SECOND()); if(!ok) {
+                    //     // __getitem__ not found
+                    //     goto __ERROR;
+                    // }
+                    // py_vectorcall(2, 0, );
+                }
                 DISPATCH();
             }
             case OP_STORE_FAST: frame->locals[byte.arg] = POPX(); DISPATCH();
@@ -300,17 +299,18 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_STORE_SUBSCR: {
                 // [val, a, b] -> a[b] = val
-                py_TValue* backup = SP();
+                pk_TypeInfo* ti = pk_tpinfo(SECOND());
                 PUSH(THIRD());  // [val, a, b, val]
-                bool ok = py_getunboundmethod(THIRD(), __setitem__, false, FOURTH(), THIRD());
-                if(!ok) {
-                    // __setitem__ not found
-                    goto __ERROR;
+                if(ti->m__setitem__) {
+                    if(!ti->m__setitem__(3, THIRD(), FOURTH())) goto __ERROR;
+                    STACK_SHRINK(3);  // [retval]
+                } else {
+                    bool ok = py_getunboundmethod(THIRD(), __setitem__, false, FOURTH(), THIRD());
+                    if(!ok) goto __ERROR;
+                    // [__setitem__, self, b, val]
+                    vectorcall_opcall(3);
+                    POP();  // discard retval
                 }
-                // [__setitem__, self, b, val]
-                int n = py_vectorcall(3, 0);
-                if(n < 0) goto __ERROR;
-                SP() = backup;  // discard retval if any
                 DISPATCH();
             }
             case OP_DELETE_FAST: {
@@ -359,32 +359,36 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
 
             case OP_DELETE_ATTR: {
-                int err = py_delattr(TOP(), byte.arg);
-                if(err) goto __ERROR;
-                POP();
+                if(!py_delattr(TOP(), byte.arg)) goto __ERROR;
                 DISPATCH();
             }
 
             case OP_DELETE_SUBSCR: {
                 // [a, b] -> del a[b]
-                py_Ref backup = SP();
-                int n = py_callmethod(SECOND(), __delitem__, TOP());
-                if(n < 0) { goto __ERROR; }
-                SP() = backup;  // discard retval if any
+                pk_TypeInfo* ti = pk_tpinfo(SECOND());
+                if(ti->m__delitem__) {
+                    if(!ti->m__delitem__(2, SECOND(), SECOND())) goto __ERROR;
+                    POP();
+                } else {
+                    PUSH(TOP());           // [a, b, b]
+                    *SECOND() = *THIRD();  // [a, a, b]
+                    bool ok = py_getunboundmethod(SECOND(), __delitem__, false, THIRD(), SECOND());
+                    // [__delitem__, self, b]
+                    if(!ok) goto __ERROR;
+                    vectorcall_opcall(2);
+                    POP();  // discard retval
+                }
                 DISPATCH();
             }
 
                 /*****************************************/
 
             case OP_BUILD_LONG: {
-                py_Ref _0 = py_getdict(&self->builtins, pk_id_long);
-                assert(_0 != NULL);
-                int n = py_call(_0, TOP());
-                if(n < 0) goto __ERROR;
-                assert(n == 1);
-                // [x, long(x)]
-                *SECOND() = *TOP();  // [long(x), long(x)]
-                POP();               // [long(x)]
+                // [x]
+                py_Ref f = py_getdict(&self->builtins, pk_id_long);
+                assert(f != NULL);
+                if(!py_call(f, TOP())) goto __ERROR;
+                *TOP() = self->last_retval;
                 DISPATCH();
             }
 
@@ -393,19 +397,15 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 assert(_0 != NULL);
                 py_TValue zero;
                 py_newint(&zero, 0);
-                int n = py_call(_0, &zero, TOP());
-                if(n < 0) goto __ERROR;
-                assert(n == 1);
-                // [x, complex(0, x)]
-                *SECOND() = *TOP();  // [complex(0, x), complex(0, x)]
-                POP();               // [complex(0, x)]
+                if(!py_call(_0, &zero, TOP())) goto __ERROR;
+                *TOP() = self->last_retval;
                 DISPATCH();
             }
             case OP_BUILD_BYTES: {
                 py_Str* s = py_touserdata(TOP());
                 unsigned char* p = (unsigned char*)malloc(s->size);
                 memcpy(p, py_Str__data(s), s->size);
-                py_newbytes(SP()++, p, s->size);
+                py_newbytes(TOP(), p, s->size);
                 DISPATCH();
             }
             case OP_BUILD_TUPLE: {
@@ -461,14 +461,13 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             // }
             /**************************** */
             case OP_RETURN_VALUE: {
-                py_TValue tmp = byte.arg == BC_NOARG ? POPX() : self->None;
+                self->last_retval = byte.arg == BC_NOARG ? POPX() : self->None;
                 pk_VM__pop_frame(self);
                 if(frame == base_frame) {  // [ frameBase<- ]
-                    self->last_retval = tmp;
                     return RES_RETURN;
                 } else {
                     frame = self->top_frame;
-                    PUSH(&tmp);
+                    PUSH(&self->last_retval);
                     goto __NEXT_FRAME;
                 }
                 DISPATCH();

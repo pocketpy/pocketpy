@@ -40,29 +40,29 @@
 // }
 
 #define DEF_NUM_BINARY_OP(name, op)                                                                \
-    static int _py_int##name(int argc, py_Ref argv) {                                              \
+    static bool _py_int##name(int argc, py_Ref argv, py_Ref out) {                                 \
         if(py_isint(&argv[1])) {                                                                   \
             int64_t lhs = py_toint(&argv[0]);                                                      \
             int64_t rhs = py_toint(&argv[1]);                                                      \
-            py_pushint(lhs op rhs);                                                                \
+            py_newint(out, lhs op rhs);                                                            \
         } else if(py_isfloat(&argv[1])) {                                                          \
             int64_t lhs = py_toint(&argv[0]);                                                      \
             double rhs = py_tofloat(&argv[1]);                                                     \
-            py_pushfloat(lhs op rhs);                                                              \
+            py_newfloat(out, lhs op rhs);                                                          \
         } else {                                                                                   \
-            py_push_notimplemented();                                                              \
+            py_newnotimplemented(out);                                                             \
         }                                                                                          \
-        return 1;                                                                                  \
+        return true;                                                                               \
     }                                                                                              \
-    static int _py_float##name(int argc, py_Ref argv) {                                            \
+    static bool _py_float##name(int argc, py_Ref argv, py_Ref out) {                               \
         double lhs = py_tofloat(&argv[0]);                                                         \
         double rhs;                                                                                \
         if(py_castfloat(&argv[1], &rhs)) {                                                         \
-            py_pushfloat(lhs op rhs);                                                              \
+            py_newfloat(out, lhs op rhs);                                                          \
         } else {                                                                                   \
-            py_push_notimplemented();                                                              \
+            py_newnotimplemented(out);                                                             \
         }                                                                                          \
-        return 1;                                                                                  \
+        return true;                                                                               \
     }
 
 DEF_NUM_BINARY_OP(__add__, +)
@@ -77,51 +77,51 @@ DEF_NUM_BINARY_OP(__ge__, >=)
 
 #undef DEF_NUM_BINARY_OP
 
-static int _py_int__neg__(int argc, py_Ref argv) {
+static bool _py_int__neg__(int argc, py_Ref argv, py_Ref out) {
     int64_t val = py_toint(&argv[0]);
-    py_pushint(-val);
-    return 1;
+    py_newint(out, -val);
+    return true;
 }
 
-static int _py_float__neg__(int argc, py_Ref argv) {
+static bool _py_float__neg__(int argc, py_Ref argv, py_Ref out) {
     double val = py_tofloat(&argv[0]);
-    py_pushfloat(-val);
-    return 1;
+    py_newfloat(out, -val);
+    return true;
 }
 
-static int _py_int__truediv__(int argc, py_Ref argv) {
+static bool _py_int__truediv__(int argc, py_Ref argv, py_Ref out) {
     int64_t lhs = py_toint(&argv[0]);
     double rhs;
     if(py_castfloat(&argv[1], &rhs)) {
-        py_pushfloat(lhs / rhs);
+        py_newfloat(out, lhs / rhs);
     } else {
-        py_push_notimplemented();
+        py_newnotimplemented(out);
     }
-    return 1;
+    return true;
 }
 
-static int _py_float__truediv__(int argc, py_Ref argv) {
+static bool _py_float__truediv__(int argc, py_Ref argv, py_Ref out) {
     double lhs = py_tofloat(&argv[0]);
     double rhs;
     if(py_castfloat(&argv[1], &rhs)) {
-        py_pushfloat(lhs / rhs);
+        py_newfloat(out, lhs / rhs);
     } else {
-        py_push_notimplemented();
+        py_newnotimplemented(out);
     }
-    return 1;
+    return true;
 }
 
-static int _py_number__pow__(int argc, py_Ref argv) {
+#define ZeroDivisionError(msg) false
+
+static bool _py_number__pow__(int argc, py_Ref argv, py_Ref out) {
     if(py_isint(&argv[0]) && py_isint(&argv[1])) {
         int64_t lhs = py_toint(&argv[0]);
         int64_t rhs = py_toint(&argv[1]);
         if(rhs < 0) {
             if(lhs == 0) {
-                // py_pusherror("0.0 cannot be raised to a negative power");
-                // TODO: ZeroDivisionError
-                return -1;
+                return ZeroDivisionError("0.0 cannot be raised to a negative power");
             } else {
-                py_pushfloat(pow(lhs, rhs));
+                py_newfloat(out, pow(lhs, rhs));
             }
         } else {
             int64_t ret = 1;
@@ -130,51 +130,51 @@ static int _py_number__pow__(int argc, py_Ref argv) {
                 lhs *= lhs;
                 rhs >>= 1;
             }
-            py_pushint(ret);
+            py_newint(out, ret);
         }
     } else {
         double lhs, rhs;
         py_castfloat(&argv[0], &lhs);
         if(py_castfloat(&argv[1], &rhs)) {
-            py_pushfloat(pow(lhs, rhs));
+            py_newfloat(out, pow(lhs, rhs));
         } else {
-            py_push_notimplemented();
+            py_newnotimplemented(out);
         }
     }
-    return 1;
+    return true;
 }
 
-static int _py_int__floordiv__(int argc, py_Ref argv) {
+static bool _py_int__floordiv__(int argc, py_Ref argv, py_Ref out) {
     int64_t lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
         int64_t rhs = py_toint(&argv[1]);
         if(rhs == 0) return -1;
-        py_pushint(lhs / rhs);
+        py_newint(out, lhs / rhs);
     } else {
-        py_push_notimplemented();
+        py_newnotimplemented(out);
     }
-    return 1;
+    return true;
 }
 
-static int _py_int__mod__(int argc, py_Ref argv) {
+static bool _py_int__mod__(int argc, py_Ref argv, py_Ref out) {
     int64_t lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
         int64_t rhs = py_toint(&argv[1]);
-        if(rhs == 0) return -1;
-        py_pushint(lhs % rhs);
+        if(rhs == 0) return ZeroDivisionError("integer division or modulo by zero");
+        py_newint(out, lhs % rhs);
     } else {
-        py_push_notimplemented();
+        py_newnotimplemented(out);
     }
-    return 1;
+    return true;
 }
 
-static int _py_int__invert__(int argc, py_Ref argv) {
+static bool _py_int__invert__(int argc, py_Ref argv, py_Ref out) {
     int64_t val = py_toint(&argv[0]);
-    py_pushint(~val);
-    return 1;
+    py_newint(out, ~val);
+    return true;
 }
 
-static int _py_int__bit_length(int argc, py_Ref argv) {
+static bool _py_int__bit_length(int argc, py_Ref argv, py_Ref out) {
     int64_t x = py_toint(py_arg(0));
     if(x < 0) x = -x;
     int bits = 0;
@@ -182,20 +182,20 @@ static int _py_int__bit_length(int argc, py_Ref argv) {
         x >>= 1;
         bits++;
     }
-    py_pushint(bits);
-    return 1;
+    py_newint(out, bits);
+    return true;
 }
 
 #define DEF_INT_BITWISE_OP(name, op)                                                               \
-    static int _py_int##name(int argc, py_Ref argv) {                                              \
+    static bool _py_int##name(int argc, py_Ref argv, py_Ref out) {                                 \
         int64_t lhs = py_toint(&argv[0]);                                                          \
         if(py_isint(&argv[1])) {                                                                   \
             int64_t rhs = py_toint(&argv[1]);                                                      \
-            py_pushint(lhs op rhs);                                                                \
+            py_newint(out, lhs op rhs);                                                            \
         } else {                                                                                   \
-            py_push_notimplemented();                                                              \
+            py_newnotimplemented(out);                                                             \
         }                                                                                          \
-        return 1;                                                                                  \
+        return true;                                                                               \
     }
 
 DEF_INT_BITWISE_OP(__and__, &)

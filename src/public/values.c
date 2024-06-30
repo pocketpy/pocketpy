@@ -80,6 +80,11 @@ void py_newnativefunc2(py_Ref out,
                        const char* docstring,
                        const py_Ref upvalue) {}
 
+void py_newnotimplemented(py_Ref out) {
+    pk_VM* vm = pk_current_vm;
+    *out = vm->NotImplemented;
+}
+
 void py_newobject(py_Ref out, py_Type type, int slots, int udsize){
     pk_ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* obj = pk_ManagedHeap__gcnew(heap, type, slots, udsize);
@@ -103,7 +108,3 @@ void py_pushnone() { py_newnone(pk_current_vm->stack.sp++); }
 
 void py_pushnull() { py_newnull(pk_current_vm->stack.sp++); }
 
-void py_push_notimplemented() {
-    pk_VM* vm = pk_current_vm;
-    *vm->stack.sp++ = vm->NotImplemented;
-}
