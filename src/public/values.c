@@ -92,19 +92,3 @@ void py_newobject(py_Ref out, py_Type type, int slots, int udsize){
     out->is_ptr = true;
     out->_obj = obj;
 }
-
-
-void py_pushint(int64_t val) { py_newint(pk_current_vm->stack.sp++, val); }
-
-void py_pushfloat(double val) { py_newfloat(pk_current_vm->stack.sp++, val); }
-
-void py_pushbool(bool val) { py_newbool(pk_current_vm->stack.sp++, val); }
-
-void py_pushstr(const char* val) { py_newstr(pk_current_vm->stack.sp++, val); }
-
-void py_pushstrn(const char* val, int size) { py_newstrn(pk_current_vm->stack.sp++, val, size); }
-
-void py_pushnone() { py_newnone(pk_current_vm->stack.sp++); }
-
-void py_pushnull() { py_newnull(pk_current_vm->stack.sp++); }
-

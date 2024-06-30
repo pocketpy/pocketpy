@@ -78,16 +78,6 @@ void py_newnotimplemented(py_Ref out);
 /// @param slots number of slots. Use -1 to create a `__dict__`.
 /// @param udsize size of your userdata. You can use `py_touserdata()` to get the pointer to it.
 void py_newobject(py_Ref out, py_Type type, int slots, int udsize);
-/************* Stack Values Creation *************/
-void py_pushint(int64_t);
-void py_pushfloat(double);
-void py_pushbool(bool);
-void py_pushstr(const char*);
-void py_pushstrn(const char*, int);
-
-void py_pushnone();
-void py_pushnull();
-
 /************* Type Cast *************/
 int64_t py_toint(const py_Ref);
 double py_tofloat(const py_Ref);
@@ -177,12 +167,10 @@ bool py_repr(const py_Ref, py_Ref out);
 /// It consumes `argc + kwargc` arguments from the stack.
 /// The result will be set to `vm->last_retval`.
 int pk_vectorcall(int argc, int kwargc, bool op_call);
-
 /// Call a function.
 /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
 /// The result will be set to `vm->last_retval`.
 bool py_call(py_Ref f, int argc, py_Ref argv);
-
 /// Call a method.
 /// It prepares the stack and then performs a `vectorcall(argc+1, 0, false)`.
 /// The result will be set to `vm->last_retval`.
