@@ -251,16 +251,13 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 if(ti->m__getitem__) {
                     if(!ti->m__getitem__(2, SECOND(), SECOND())) goto __ERROR;
                 } else {
-                    if(!py_callmethod(SECOND(), __getitem__, TOP())) goto __ERROR;
-                    // // [a, b] -> [?, a, b]
-                    // PUSH(TOP());           // [a, b, b]
-                    // *SECOND() = *THIRD();  // [a, a, b]
-                    // bool ok = py_getunboundmethod(SECOND(), __getitem__, false, THIRD(),
-                    // SECOND()); if(!ok) {
-                    //     // __getitem__ not found
-                    //     goto __ERROR;
-                    // }
-                    // py_vectorcall(2, 0, );
+                    // [a, b] -> [?, a, b]
+                    PUSH(TOP());           // [a, b, b]
+                    *SECOND() = *THIRD();  // [a, a, b]
+                    bool ok = py_getunboundmethod(SECOND(), __getitem__, false, THIRD(), SECOND());
+                    // [__getitem__, self, b]
+                    if(!ok) goto __ERROR;
+                    vectorcall_opcall(2);
                 }
                 DISPATCH();
             }
@@ -387,18 +384,21 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 // [x]
                 py_Ref f = py_getdict(&self->builtins, pk_id_long);
                 assert(f != NULL);
-                if(!py_call(f, TOP())) goto __ERROR;
+                if(!py_call(f, 1, TOP())) goto __ERROR;
                 *TOP() = self->last_retval;
                 DISPATCH();
             }
 
             case OP_BUILD_IMAG: {
-                py_Ref _0 = py_getdict(&self->builtins, pk_id_complex);
-                assert(_0 != NULL);
-                py_TValue zero;
-                py_newint(&zero, 0);
-                if(!py_call(_0, &zero, TOP())) goto __ERROR;
-                *TOP() = self->last_retval;
+                // [x]
+                py_Ref f = py_getdict(&self->builtins, pk_id_complex);
+                assert(f != NULL);
+                py_TValue tmp = *TOP();
+                *TOP() = *f;            // [complex]
+                py_newnull(SP()++);     // [complex, NULL]
+                py_newint(SP()++, 0);   // [complex, NULL, 0]
+                *SP()++ = tmp;          // [complex, NULL, 0, x]
+                vectorcall_opcall(2);   // [complex(x, 0)]
                 DISPATCH();
             }
             case OP_BUILD_BYTES: {

@@ -27,9 +27,9 @@ int main(int argc, char** argv) {
     py_initialize();
     const char* source = "1, 'a'";
 
-    py_Ref r0 = py_getreg(0);
+    py_Ref r0 = py_reg(0);
     if(py_eval(source, r0)){
-        py_Error* err = py_getlasterror();
+        py_Error* err = py_lasterror();
         py_Error__print(err);
     }else{
         // handle the result

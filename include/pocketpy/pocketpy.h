@@ -109,9 +109,7 @@ bool py_istype(const py_Ref, py_Type);
 
 /************* References *************/
 #define py_arg(i)       (py_Ref)((char*)argv+((i)<<4))
-
-py_Ref py_getreg(int i);
-void py_setreg(int i, const py_Ref val);
+py_Ref py_reg(int i);
 
 py_Ref py_getdict(const py_Ref self, py_Name name);
 void py_setdict(py_Ref self, py_Name name, const py_Ref val);
@@ -164,7 +162,7 @@ py_Ref py_getmodule(const char* name);
 int py_import(const char* name, py_Ref out);
 
 /************* Errors *************/
-py_Error* py_getlasterror();
+py_Error* py_lasterror();
 void py_Error__print(py_Error*);
 
 /************* Operators *************/
@@ -180,8 +178,17 @@ bool py_repr(const py_Ref, py_Ref out);
 /// The result will be set to `vm->last_retval`.
 int pk_vectorcall(int argc, int kwargc, bool op_call);
 
-bool py_call(py_Ref f, ...);
-bool py_callmethod(py_Ref self, py_Name name, ...);
+/// Call a function.
+/// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
+/// The result will be set to `vm->last_retval`.
+bool py_call(py_Ref f, int argc, py_Ref argv);
+
+/// Call a method.
+/// It prepares the stack and then performs a `vectorcall(argc+1, 0, false)`.
+/// The result will be set to `vm->last_retval`.
+bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv);
+/// The return value of the most recent vectorcall.
+py_Ref py_lastretval();
 
 #define py_isnull(self) ((self)->type == 0)
 

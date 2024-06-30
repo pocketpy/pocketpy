@@ -5,7 +5,7 @@
 #include "pocketpy/interpreter/vm.h"
 
 
-py_Error* py_getlasterror(){
+py_Error* py_lasterror(){
     return pk_current_vm->last_error;
 }
 

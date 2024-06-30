@@ -12,7 +12,7 @@ bool py_str(const py_Ref val, py_Ref out) { return 0; }
 bool py_repr(const py_Ref val, py_Ref out) {
     const pk_TypeInfo* ti = pk_tpinfo(val);
     if(ti->m__repr__) return ti->m__repr__(1, val, out);
-    bool ok = py_callmethod(val, __repr__);
+    bool ok = py_callmethod(val, __repr__, 0, NULL);
     if(ok) {
         *out = pk_current_vm->last_retval;
         return true;
