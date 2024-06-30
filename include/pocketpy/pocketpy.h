@@ -34,10 +34,10 @@ void py_initialize();
 void py_finalize();
 
 /// Run a simple source string. Do not change the stack.
-int py_exec(const char*);
+bool py_exec(const char*);
 /// Eval a simple expression.
 /// The result will be set to `vm->last_retval`.
-int py_eval(const char*);
+bool py_eval(const char*);
 
 /************* Values Creation *************/
 void py_newint(py_Ref, int64_t);
@@ -90,7 +90,7 @@ double py_tofloat(const py_Ref);
 bool py_castfloat(const py_Ref, double* out);
 bool py_tobool(const py_Ref);
 const char* py_tostr(const py_Ref);
-const char* py_tostrn(const py_Ref, int* out);
+const char* py_tostrn(const py_Ref, int* size);
 
 void* py_touserdata(const py_Ref);
 
@@ -100,8 +100,8 @@ void* py_touserdata(const py_Ref);
 #define py_isstr(self) py_istype(self, tp_str)
 
 bool py_istype(const py_Ref, py_Type);
-// bool py_isinstance(const py_Ref obj, py_Type type);
-// bool py_issubclass(py_Type derived, py_Type base);
+bool py_isinstance(const py_Ref obj, py_Type type);
+bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
 #define TypeError(x) false
@@ -125,11 +125,20 @@ void py_bindmethod(py_Type type, const char* name, py_CFunction f);
 void py_bindmethod2(py_Type type, const char* name, py_CFunction f, BindType bt);
 void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f);
 
+/// Get the reference to the i-th register.
+/// @lifespan: Permanent.
 py_Ref py_reg(int i);
 
+/// Get the reference of the object's `__dict__`.
+/// The object must have a `__dict__`.
+/// Returns a reference to the value or NULL if not found.
+/// @lifespan: Object.
 py_Ref py_getdict(const py_Ref self, py_Name name);
 void py_setdict(py_Ref self, py_Name name, const py_Ref val);
 
+/// Get the reference of the i-th slot of the object.
+/// The object must have slots and `i` must be in range.
+/// @lifespan: Object.
 py_Ref py_getslot(const py_Ref self, int i);
 void py_setslot(py_Ref self, int i, const py_Ref val);
 
@@ -209,7 +218,10 @@ py_Error* py_lasterror();
 void py_Error__print(py_Error*);
 
 /************* Operators *************/
-bool py_bool(const py_Ref);
+/// Equivalent to `bool(val)`.
+/// Returns 1 if `val` is truthy, otherwise 0.
+/// Returns -1 if an error occurred.
+int py_bool(const py_Ref val);
 
 int py_eq(const py_Ref, const py_Ref);
 int py_ne(const py_Ref, const py_Ref);

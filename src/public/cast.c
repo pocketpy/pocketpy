@@ -38,10 +38,10 @@ const char* py_tostr(const py_Ref self){
     return py_Str__data(ud);
 }
 
-const char* py_tostrn(const py_Ref self, int* out){
+const char* py_tostrn(const py_Ref self, int* size){
     assert(self->type == tp_str);
     py_Str* ud = PyObject__value(self->_obj);
-    *out = ud->size;
+    *size = ud->size;
     return py_Str__data(ud);
 }
 

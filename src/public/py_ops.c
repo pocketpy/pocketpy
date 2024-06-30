@@ -6,7 +6,7 @@ bool py_isidentical(const py_Ref lhs, const py_Ref rhs) {
     return false;
 }
 
-bool py_bool(const py_Ref val) { return 0; }
+int py_bool(const py_Ref val) { return 1; }
 
 bool py_hash(const py_Ref val, int64_t* out) { return 0; }
 

@@ -534,33 +534,43 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 /*****************************************/
             case OP_JUMP_FORWARD: DISPATCH_JUMP((int16_t)byte.arg);
             case OP_POP_JUMP_IF_FALSE: {
-                bool res = py_bool(TOP());
+                int res = py_bool(TOP());
+                if(res < 0) goto __ERROR;
                 POP();
                 if(!res) DISPATCH_JUMP((int16_t)byte.arg);
                 DISPATCH();
             }
             case OP_POP_JUMP_IF_TRUE: {
-                bool res = py_bool(TOP());
+                int res = py_bool(TOP());
+                if(res < 0) goto __ERROR;
                 POP();
                 if(res) DISPATCH_JUMP((int16_t)byte.arg);
                 DISPATCH();
             }
-            case OP_JUMP_IF_TRUE_OR_POP:
-                if(py_bool(TOP())) {
+            case OP_JUMP_IF_TRUE_OR_POP: {
+                int res = py_bool(TOP());
+                if(res < 0) goto __ERROR;
+                if(res) {
                     DISPATCH_JUMP((int16_t)byte.arg);
                 } else {
                     POP();
                     DISPATCH();
                 }
-            case OP_JUMP_IF_FALSE_OR_POP:
-                if(!py_bool(TOP())) {
+            }
+            case OP_JUMP_IF_FALSE_OR_POP: {
+                int res = py_bool(TOP());
+                if(res < 0) goto __ERROR;
+                if(!res) {
                     DISPATCH_JUMP((int16_t)byte.arg);
                 } else {
                     POP();
                     DISPATCH();
                 }
-            case OP_SHORTCUT_IF_FALSE_OR_POP:
-                if(!py_bool(TOP())) {    // [b, False]
+            }
+            case OP_SHORTCUT_IF_FALSE_OR_POP: {
+                int res = py_bool(TOP());
+                if(res < 0) goto __ERROR;
+                if(!res) {               // [b, False]
                     STACK_SHRINK(2);     // []
                     PUSH(&self->False);  // [False]
                     DISPATCH_JUMP((int16_t)byte.arg);
@@ -568,6 +578,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     POP();  // [b]
                     DISPATCH();
                 }
+            }
             case OP_LOOP_CONTINUE:
                 // just an alias of OP_JUMP_FORWARD
                 DISPATCH_JUMP((int16_t)byte.arg);

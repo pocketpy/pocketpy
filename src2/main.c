@@ -29,9 +29,6 @@ int main(int argc, char** argv) {
     const char* source = "1 < 2";
 
     if(py_eval(source)) {
-        py_Error* err = py_lasterror();
-        py_Error__print(err);
-    } else {
         // handle the result
         bool _L0 = py_tobool(py_lastretval());
         printf("%d\n", _L0);
