@@ -149,6 +149,23 @@ bool py_getitem(const py_Ref self, const py_Ref key, py_Ref out);
 bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val);
 bool py_delitem(py_Ref self, const py_Ref key);
 
+bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop);
+
+#define py_binaryadd(lhs, rhs) py_binaryop(lhs, rhs, __add__, __radd__)
+#define py_binarysub(lhs, rhs) py_binaryop(lhs, rhs, __sub__, __rsub__)
+#define py_binarymul(lhs, rhs) py_binaryop(lhs, rhs, __mul__, __rmul__)
+#define py_binarytruediv(lhs, rhs) py_binaryop(lhs, rhs, __truediv__, __rtruediv__)
+#define py_binaryfloordiv(lhs, rhs) py_binaryop(lhs, rhs, __floordiv__, __rfloordiv__)
+#define py_binarymod(lhs, rhs) py_binaryop(lhs, rhs, __mod__, __rmod__)
+#define py_binarypow(lhs, rhs) py_binaryop(lhs, rhs, __pow__, __rpow__)
+
+#define py_binarylshift(lhs, rhs) py_binaryop(lhs, rhs, __lshift__, 0)
+#define py_binaryrshift(lhs, rhs) py_binaryop(lhs, rhs, __rshift__, 0)
+#define py_binaryand(lhs, rhs) py_binaryop(lhs, rhs, __and__, 0)
+#define py_binaryor(lhs, rhs) py_binaryop(lhs, rhs, __or__, 0)
+#define py_binaryxor(lhs, rhs) py_binaryop(lhs, rhs, __xor__, 0)
+#define py_binarymatmul(lhs, rhs) py_binaryop(lhs, rhs, __matmul__, 0)
+
 /// Equivalent to `*dst = *src`.
 void py_assign(py_Ref dst, const py_Ref src);
 
@@ -187,8 +204,14 @@ void py_Error__print(py_Error*);
 
 /************* Operators *************/
 bool py_bool(const py_Ref);
+
 int py_eq(const py_Ref, const py_Ref);
+int py_ne(const py_Ref, const py_Ref);
 int py_le(const py_Ref, const py_Ref);
+int py_lt(const py_Ref, const py_Ref);
+int py_ge(const py_Ref, const py_Ref);
+int py_gt(const py_Ref, const py_Ref);
+
 bool py_hash(const py_Ref, int64_t* out);
 
 /// Compare two objects without using magic methods.

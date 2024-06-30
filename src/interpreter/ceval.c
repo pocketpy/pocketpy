@@ -666,3 +666,64 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
 
     return RES_RETURN;
 }
+
+bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {
+    pk_VM* self = pk_current_vm;
+    PUSH(lhs);
+    PUSH(rhs);
+    // [a, b]
+    py_Ref _0 = py_tpfindmagic(SECOND()->type, op);
+    py_Ref _1;
+    if(_0) {
+        if(_0->type == tp_nativefunc) {
+            bool ok = _0->_cfunc(2, SECOND(), &self->last_retval);
+            if(!ok) return false;
+            if(self->last_retval.type != tp_not_implemented_type) {
+                STACK_SHRINK(2);
+                return true;
+            }
+        } else {
+            // standard call
+            bool ok = py_call(_0, 2, SECOND());
+            if(!ok) return false;
+            if(self->last_retval.type != tp_not_implemented_type) {
+                STACK_SHRINK(2);
+                return true;
+            }
+        }
+    }
+    // try reverse operation
+    if(rop) {
+        // [a, b] -> [b, a]
+        py_TValue tmp = *TOP();
+        *TOP() = *SECOND();
+        *SECOND() = tmp;
+        _1 = py_tpfindmagic(SECOND()->type, rop);
+        if(_1) {
+            if(_1->type == tp_nativefunc) {
+                bool ok = _1->_cfunc(2, SECOND(), &self->last_retval);
+                if(!ok) return false;
+                if(tmp.type != tp_not_implemented_type) {
+                    STACK_SHRINK(2);
+                    return true;
+                }
+            } else {
+                // standard call
+                bool ok = py_call(_1, 2, SECOND());
+                if(!ok) return false;
+                if(self->last_retval.type != tp_not_implemented_type) {
+                    STACK_SHRINK(2);
+                    return true;
+                }
+            }
+        }
+    }
+    // eq/ne op never fails
+    if(op == __eq__ || op == __ne__) {
+        STACK_SHRINK(2);
+        self->last_retval = (op == __eq__) ? self->False : self->True;
+        return true;
+    }
+    BinaryOptError(byte.arg);
+    return false;
+}
