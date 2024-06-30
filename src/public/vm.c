@@ -25,7 +25,7 @@ void py_finalize() {
 
 int py_exec(const char* source) { PK_UNREACHABLE(); }
 
-int py_eval(const char* source, py_Ref out) {
+int py_eval(const char* source) {
     CodeObject co;
     pk_SourceData_ src = pk_SourceData__rcnew(source, "main.py", EVAL_MODE, false);
     Error* err = pk_compile(src, &co);
@@ -40,10 +40,7 @@ int py_eval(const char* source, py_Ref out) {
     CodeObject__dtor(&co);
     PK_DECREF(src);
     if(res == RES_ERROR) return vm->last_error->type;
-    if(res == RES_RETURN) {
-        *out = vm->last_retval;
-        return 0;
-    }
+    if(res == RES_RETURN) return 0;
     PK_UNREACHABLE();
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "pocketpy/pocketpy.h"
 #include "pocketpy/common/str.h"
 
 #ifdef __cplusplus
@@ -19,26 +20,11 @@ c11_string pk_StrName__rmap2(uint16_t index);
 void pk_StrName__initialize();
 void pk_StrName__finalize();
 
-#ifdef __cplusplus
-}
-#endif
-
-/* global names */
-#ifdef __cplusplus
-extern "C" {
-namespace pkpy {
-#endif
-
-#define MAGIC_METHOD(x) extern uint16_t x;
-#include "pocketpy/xmacros/magics.h"
-#undef MAGIC_METHOD
-
 extern uint16_t pk_id_add;
 extern uint16_t pk_id_set;
 extern uint16_t pk_id_long;
 extern uint16_t pk_id_complex;
 
 #ifdef __cplusplus
-}   // namespace pkpy
-}   // extern "C"
+}
 #endif

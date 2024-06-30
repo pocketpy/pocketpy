@@ -8,8 +8,8 @@ int UnboundLocalError(py_Name name) { return -1; }
 
 int NameError(py_Name name) { return -1; }
 
-#define AttributeError(obj, name)
-#define BinaryOptError(op)
+#define AttributeError(obj, name) false
+#define BinaryOptError(op) false
 
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
@@ -724,6 +724,5 @@ bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {
         self->last_retval = (op == __eq__) ? self->False : self->True;
         return true;
     }
-    BinaryOptError(byte.arg);
-    return false;
+    return BinaryOptError(byte.arg);
 }

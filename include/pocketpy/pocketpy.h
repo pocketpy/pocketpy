@@ -37,8 +37,9 @@ void py_finalize();
 
 /// Run a simple source string. Do not change the stack.
 int py_exec(const char*);
-/// Eval a simple expression. The result is pushed to the stack.
-int py_eval(const char*, py_Ref out);
+/// Eval a simple expression.
+/// The result will be set to `vm->last_retval`.
+int py_eval(const char*);
 
 /************* Values Creation *************/
 void py_newint(py_Ref, int64_t);
@@ -115,7 +116,12 @@ py_Ref py_tpmagic(py_Type type, py_Name name);
 
 // new style decl-based bindings
 py_Ref py_bind(py_Ref obj, const char* sig, py_CFunction f);
-py_Ref py_bind2(py_Ref obj, const char* sig, py_CFunction f, BindType bt, const char* docstring, const py_Ref upvalue);
+py_Ref py_bind2(py_Ref obj,
+                const char* sig,
+                py_CFunction f,
+                BindType bt,
+                const char* docstring,
+                const py_Ref upvalue);
 // old style argc-based bindings
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
 void py_bindmethod2(py_Type type, const char* name, py_CFunction f, BindType bt);
@@ -149,6 +155,9 @@ bool py_getitem(const py_Ref self, const py_Ref key, py_Ref out);
 bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val);
 bool py_delitem(py_Ref self, const py_Ref key);
 
+/// Perform a binary operation on the stack.
+/// It assumes `lhs` and `rhs` are already pushed to the stack.
+/// The result will be set to `vm->last_retval`.
 bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop);
 
 #define py_binaryadd(lhs, rhs) py_binaryop(lhs, rhs, __add__, __radd__)
@@ -196,7 +205,7 @@ py_Ref py_newmodule(const char* name, const char* package);
 py_Ref py_getmodule(const char* name);
 
 /// Import a module.
-int py_import(const char* name, py_Ref out);
+bool py_import(const char* name, py_Ref out);
 
 /************* Errors *************/
 py_Error* py_lasterror();
@@ -273,6 +282,10 @@ py_Ref py_tpfindmagic(py_Type, py_Name name);
 /// Get the type object of the given type.
 /// @lifespan: Permanent.
 py_Ref py_tpobject(py_Type type);
+
+#define MAGIC_METHOD(x) extern uint16_t x;
+#include "pocketpy/xmacros/magics.h"
+#undef MAGIC_METHOD
 
 #ifdef __cplusplus
 }
