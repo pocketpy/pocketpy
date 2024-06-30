@@ -934,7 +934,9 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
 
     Ctx__emit_(ctx, opcode, arg, self->line);
 
-    c11__foreach(int, &jmps, i) { Ctx__patch_jump(ctx, *i); }
+    for(int i = 0; i < jmps.count; i++) {
+        Ctx__patch_jump(ctx, c11__getitem(int, &jmps, i));
+    }
 }
 
 BinaryExpr* BinaryExpr__new(int line, TokenIndex op, bool inplace) {

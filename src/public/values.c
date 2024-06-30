@@ -80,7 +80,9 @@ void py_newfunction2(py_Ref out,
                      const py_Ref upvalue) {}
 
 void py_newnativefunc(py_Ref out, py_CFunction f) {
-
+    out->type = tp_nativefunc;
+    out->is_ptr = false;
+    out->_cfunc = f;
 }
 
 void py_bindmethod(py_Type type, const char *name, py_CFunction f){

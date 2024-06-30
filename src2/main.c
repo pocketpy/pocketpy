@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 #endif
 
     py_initialize();
-    const char* source = "[1, 'a']";
+    const char* source = "[1+2, 'a']";
 
     py_Ref r0 = py_reg(0);
     if(py_eval(source, r0)){
