@@ -823,7 +823,7 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out) {
                 break;
             case TokenValue_F64:
                 pk_SStream__write_char(&ss, 'F');
-                pk_SStream__write_float(&ss, token->value._f64, -1);
+                pk_SStream__write_f64(&ss, token->value._f64, -1);
                 break;
             case TokenValue_STR: {
                 pk_SStream__write_char(&ss, 'S');

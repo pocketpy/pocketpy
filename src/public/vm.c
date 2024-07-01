@@ -87,6 +87,12 @@ py_Ref py_tpobject(py_Type type) {
     return &c11__at(pk_TypeInfo, &vm->types, type)->self;
 }
 
+const char* py_tpname(py_Type type) {
+    pk_VM* vm = pk_current_vm;
+    py_Name name = c11__at(pk_TypeInfo, &vm->types, type)->name;
+    return py_name2str(name);
+}
+
 bool py_callmagic(py_Name name, int argc, py_Ref argv) {
     assert(argc >= 1);
     assert(py_ismagicname(name));

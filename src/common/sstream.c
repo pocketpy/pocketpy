@@ -1,31 +1,27 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/utils.h"
+#include "pocketpy/pocketpy.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
 
-void pk_SStream__ctor(pk_SStream* self) {
-    c11_vector__ctor(&self->data, sizeof(char));
-}
+void pk_SStream__ctor(pk_SStream* self) { c11_vector__ctor(&self->data, sizeof(char)); }
 
 void pk_SStream__ctor2(pk_SStream* self, int capacity) {
     c11_vector__ctor(&self->data, sizeof(char));
     c11_vector__reserve(&self->data, capacity);
 }
 
-void pk_SStream__dtor(pk_SStream* self) {
-    c11_vector__dtor(&self->data);
-}
+void pk_SStream__dtor(pk_SStream* self) { c11_vector__dtor(&self->data); }
 
-void pk_SStream__write_char(pk_SStream* self, char c) {
-    c11_vector__push(char, &self->data, c);
-}
+void pk_SStream__write_char(pk_SStream* self, char c) { c11_vector__push(char, &self->data, c); }
 
 void pk_SStream__write_int(pk_SStream* self, int i) {
-    char buf[12]; // sign + 10 digits + null terminator
+    char buf[12];  // sign + 10 digits + null terminator
     snprintf(buf, sizeof(buf), "%d", i);
     pk_SStream__write_cstr(self, buf);
 }
@@ -34,16 +30,16 @@ void pk_SStream__write_i64(pk_SStream* self, int64_t val) {
     // sign + 21 digits + null terminator
     // str(-2**64).__len__() == 21
     c11_vector__reserve(&self->data, self->data.count + 23);
-    if(val == 0){
+    if(val == 0) {
         pk_SStream__write_char(self, '0');
         return;
     }
-    if(val < 0){
+    if(val < 0) {
         pk_SStream__write_char(self, '-');
         val = -val;
     }
     int start = self->data.count;
-    while(val){
+    while(val) {
         c11_vector__push(char, &self->data, '0' + val % 10);
         val /= 10;
     }
@@ -51,11 +47,7 @@ void pk_SStream__write_i64(pk_SStream* self, int64_t val) {
     c11_vector__reverse(char, &self->data, start, end);
 }
 
-void pk_SStream__write_float(pk_SStream* self, float val, int precision){
-    pk_SStream__write_double(self, val, precision);
-}
-
-void pk_SStream__write_double(pk_SStream* self, double val, int precision){
+void pk_SStream__write_f64(pk_SStream* self, double val, int precision) {
     if(isinf(val)) {
         pk_SStream__write_cstr(self, val > 0 ? "inf" : "-inf");
         return;
@@ -75,8 +67,11 @@ void pk_SStream__write_double(pk_SStream* self, double val, int precision){
     }
     pk_SStream__write_cstr(self, b);
     bool all_is_digit = true;
-    for(int i = 1; i < size; i++){
-        if(!isdigit(b[i])){ all_is_digit = false; break; }
+    for(int i = 1; i < size; i++) {
+        if(!isdigit(b[i])) {
+            all_is_digit = false;
+            break;
+        }
     }
     if(all_is_digit) pk_SStream__write_cstr(self, ".0");
 }
@@ -124,53 +119,103 @@ void pk_SStream__write_ptr(pk_SStream* self, void* p) {
     }
 }
 
-void pk_SStream__write_any(pk_SStream* self, const char* fmt, const pk_AnyStr* args, int n){
-    int i = 0;
-    while(*fmt){
-        if(*fmt == '{' && fmt[1] == '}'){
-            assert(i < n);
-            switch(args[i].type){
-                case 1: pk_SStream__write_int(self, args[i]._int); break;
-                case 2: pk_SStream__write_i64(self, args[i]._i64); break;
-                case 3: pk_SStream__write_float(self, args[i]._float, -1); break;
-                case 4: pk_SStream__write_double(self, args[i]._double, -1); break;
-                case 5: pk_SStream__write_char(self, args[i]._char); break;
-                case 6: pk_SStream__write_Str(self, args[i]._str); break;
-                case 7: pk_SStream__write_sv(self, args[i]._sv); break;
-                case 8: pk_SStream__write_cstr(self, args[i]._cstr); break;
-                case 9: pk_SStream__write_ptr(self, args[i]._ptr); break;
-                default: assert(0); break;
-            }
-            fmt += 2;
-            i++;
-        }else{
-            pk_SStream__write_char(self, *fmt);
-            fmt++;
-        }
-    }
-}
-
 py_Str pk_SStream__submit(pk_SStream* self) {
     c11_vector__push(char, &self->data, '\0');
     c11_array a = c11_vector__submit(&self->data);
     // TODO: optimize c11__isascii
-    py_Str retval = {
-        .size = a.count - 1,
-        .is_ascii = c11__isascii((char*)a.data, a.count),
-        .is_sso = false,
-        ._ptr = (char*)a.data
-    };
+    py_Str retval = {.size = a.count - 1,
+                     .is_ascii = c11__isascii((char*)a.data, a.count),
+                     .is_sso = false,
+                     ._ptr = (char*)a.data};
     return retval;
 }
 
-const char* pk_format_any(const char* fmt, const pk_AnyStr* args, int n){
+void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args) {
+    while(fmt) {
+        char c = *fmt;
+        if(c != '%') {
+            pk_SStream__write_char(ss, c);
+            fmt++;
+            continue;
+        }
+
+        fmt++;
+        c = *fmt;
+
+        switch(c) {
+            case 'd': {
+                int i = va_arg(args, int);
+                pk_SStream__write_int(ss, i);
+                break;
+            }
+            case 'i': {
+                int64_t i = va_arg(args, int64_t);
+                pk_SStream__write_i64(ss, i);
+                break;
+            }
+            case 'f': {
+                double d = va_arg(args, double);
+                pk_SStream__write_f64(ss, d, -1);
+                break;
+            }
+            case 's': {
+                const char* s = va_arg(args, const char*);
+                pk_SStream__write_cstr(ss, s);
+                break;
+            }
+            case 'S': {
+                const py_Str* s = va_arg(args, const py_Str*);
+                pk_SStream__write_Str(ss, s);
+                break;
+            }
+            case 'c': {
+                char c = va_arg(args, int);
+                pk_SStream__write_char(ss, c);
+                break;
+            }
+            case 'p': {
+                void* p = va_arg(args, void*);
+                pk_SStream__write_ptr(ss, p);
+                break;
+            }
+            case 't': {
+                py_Type t = va_arg(args, int);
+                pk_SStream__write_cstr(ss, py_tpname(t));
+                break;
+            }
+            case 'n': {
+                py_Name n = va_arg(args, int);
+                pk_SStream__write_cstr(ss, py_name2str(n));
+                break;
+            }
+            case '%': pk_SStream__write_char(ss, '%'); break;
+            default:
+                pk_SStream__write_char(ss, c);
+                assert(false);  // invalid format
+                break;
+        }
+        fmt++;
+    }
+}
+
+void pk_sprintf(pk_SStream* ss, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    pk_vsprintf(ss, fmt, args);
+    va_end(args);
+}
+
+const char* py_fmt(const char* fmt, ...) {
     PK_THREAD_LOCAL pk_SStream ss;
-    if(ss.data.elem_size == 0){
-        pk_SStream__ctor2(&ss, 128);
-    }else{
+    if(ss.data.elem_size == 0) {
+        pk_SStream__ctor2(&ss, 256);
+    } else {
         c11_vector__clear(&ss.data);
     }
-    pk_SStream__write_any(&ss, fmt, args, n);
+    va_list args;
+    va_start(args, fmt);
+    pk_vsprintf(&ss, fmt, args);
+    va_end(args);
     pk_SStream__write_char(&ss, '\0');
     return (const char*)ss.data.data;
 }

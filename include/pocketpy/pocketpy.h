@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 /************* Public Types *************/
 typedef struct py_TValue py_TValue;
@@ -141,7 +142,6 @@ void py_bindmethod2(py_Type type, const char* name, py_CFunction f, BindType bt)
 void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f);
 
 /// Get the reference to the i-th register.
-/// @lifespan: Permanent.
 py_GlobalRef py_reg(int i);
 
 /// Get the reference of the object's `__dict__`.
@@ -302,13 +302,25 @@ typedef struct pk_TypeInfo pk_TypeInfo;
 pk_TypeInfo* pk_tpinfo(const py_Ref self);
 
 /// Search the magic method from the given type to the base type.
-/// Returns the reference or NULL if not found.
-/// @lifespan: Permanent.
+/// Return the reference or NULL if not found.
 py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
 
 /// Get the type object of the given type.
-/// @lifespan: Permanent.
 py_GlobalRef py_tpobject(py_Type type);
+
+/// Get the type name.
+const char* py_tpname(py_Type type);
+
+/// Python favored string formatting.
+/// %d: int
+/// %i: py_i64 (int64_t)
+/// %f: py_f64 (double)
+/// %s: const char*
+/// %c: char
+/// %p: void*
+/// %t: py_Type
+/// %n: py_Name
+const char* py_fmt(const char* fmt, ...);
 
 #define MAGIC_METHOD(x) extern uint16_t x;
 #include "pocketpy/xmacros/magics.h"
