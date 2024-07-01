@@ -105,6 +105,7 @@ bool py_tobool(const py_Ref);
 py_Type py_totype(const py_Ref);
 const char* py_tostr(const py_Ref);
 const char* py_tostrn(const py_Ref, int* size);
+const unsigned char* py_tobytes(const py_Ref, int* size);
 
 void* py_touserdata(const py_Ref);
 

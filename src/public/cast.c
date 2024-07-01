@@ -51,6 +51,13 @@ const char* py_tostrn(const py_Ref self, int* size){
     return py_Str__data(ud);
 }
 
+const unsigned char* py_tobytes(const py_Ref self, int* size){
+    assert(self->type == tp_bytes);
+    int* ud = PyObject__value(self->_obj);
+    *size = *ud;
+    return (unsigned char*)(ud + 1);
+}
+
 void* py_touserdata(const py_Ref self){
     assert(self && self->is_ptr);
     return PyObject__value(self->_obj);
