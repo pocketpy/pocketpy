@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
     if(py_eval(source)) {
         // handle the result
-        bool _L0 = py_tobool(py_lastretval());
+        bool _L0 = py_tobool(py_retval());
         printf("%d\n", _L0);
     }
 
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
 
     bool ok = py_binaryadd(r0, r1);
     assert(ok);
-    double res = py_tofloat(py_lastretval());
+    double res = py_tofloat(py_retval());
     printf("%f\n", res);
 
     py_finalize();

@@ -10,11 +10,20 @@ py_Ref py_reg(int i){
 
 py_Ref py_getdict(const py_Ref self, py_Name name){
     assert(self && self->is_ptr);
+    if(self->type == tp_type && py_ismagicname(name)){
+        py_Type* ud = py_touserdata(self);
+        py_Ref slot = py_tpmagic(*ud, name);
+        return py_isnull(slot) ? NULL : slot;
+    }
     return pk_NameDict__try_get(PyObject__dict(self->_obj), name);
 }
 
 void py_setdict(py_Ref self, py_Name name, const py_Ref val){
     assert(self && self->is_ptr);
+    if(self->type == tp_type && py_ismagicname(name)){
+        py_Type* ud = py_touserdata(self);
+        *py_tpmagic(*ud, name) = *val;
+    }
     pk_NameDict__set(PyObject__dict(self->_obj), name, *val);
 }
 

@@ -29,7 +29,13 @@ bool py_castfloat(const py_Ref self, double* out){
 
 bool py_tobool(const py_Ref self){
     assert(self->type == tp_bool);
-    return self->extra;
+    return self->_bool;
+}
+
+py_Type py_totype(const py_Ref self){
+    assert(self->type == tp_type);
+    py_Type* ud = py_touserdata(self);
+    return *ud;
 }
 
 const char* py_tostr(const py_Ref self){

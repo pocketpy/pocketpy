@@ -50,7 +50,7 @@ bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv) { return -1
 
 bool pk_vectorcall(int argc, int kwargc, bool op_call) { return -1; }
 
-py_Ref py_lastretval() { return &pk_current_vm->last_retval; }
+py_Ref py_retval() { return &pk_current_vm->last_retval; }
 
 bool py_getunboundmethod(const py_Ref self,
                          py_Name name,
@@ -66,7 +66,7 @@ pk_TypeInfo* pk_tpinfo(const py_Ref self) {
 }
 
 py_Ref py_tpfindmagic(py_Type t, py_Name name) {
-    assert(name < 64);
+    assert(py_ismagicname(name));
     pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
     do {
         py_Ref f = &types[t].magic[name];
@@ -77,7 +77,7 @@ py_Ref py_tpfindmagic(py_Type t, py_Name name) {
 }
 
 py_Ref py_tpmagic(py_Type type, py_Name name) {
-    assert(name < 64);
+    assert(py_ismagicname(name));
     pk_VM* vm = pk_current_vm;
     return &c11__at(pk_TypeInfo, &vm->types, type)->magic[name];
 }
@@ -89,6 +89,7 @@ py_Ref py_tpobject(py_Type type) {
 
 bool py_callmagic(py_Name name, int argc, py_Ref argv) {
     assert(argc >= 1);
+    assert(py_ismagicname(name));
     py_Ref tmp = py_tpfindmagic(argv->type, name);
     if(!tmp) return TypeError(name);
     if(tmp->type == tp_nativefunc) { return tmp->_cfunc(argc, argv); }

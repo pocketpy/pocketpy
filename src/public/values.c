@@ -17,9 +17,28 @@ void py_newfloat(py_Ref out, double val) {
 }
 
 void py_newbool(py_Ref out, bool val) {
-    pk_VM* vm = pk_current_vm;
-    *out = val ? vm->True : vm->False;
+    out->type = tp_bool;
+    out->is_ptr = false;
+    out->_bool = val;
 }
+
+void py_newnone(py_Ref out) {
+    out->type = tp_none_type;
+    out->is_ptr = false;
+}
+
+void py_newnotimplemented(py_Ref out) {
+    out->type = tp_not_implemented_type;
+    out->is_ptr = false;
+}
+
+void py_newellipsis(py_Ref out) {
+    out->type = tp_ellipsis;
+    out->is_ptr = false;
+}
+
+
+void py_newnull(py_Ref out) { out->type = 0; }
 
 void py_newstr(py_Ref out, const char* data) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
@@ -61,13 +80,6 @@ void py_newbytes(py_Ref out, const unsigned char* data, int size) {
     out->_obj = obj;
 }
 
-void py_newnone(py_Ref out) {
-    pk_VM* vm = pk_current_vm;
-    *out = vm->None;
-}
-
-void py_newnull(py_Ref out) { out->type = 0; }
-
 void py_newfunction(py_Ref out, py_CFunction f, const char* sig) {
     py_newfunction2(out, f, sig, BindType_FUNCTION, NULL, NULL);
 }
@@ -99,11 +111,6 @@ void py_bindnativefunc(py_Ref obj, const char *name, py_CFunction f){
     py_TValue tmp;
     py_newnativefunc(&tmp, f);
     py_setdict(obj, py_name(name), &tmp);
-}
-
-void py_newnotimplemented(py_Ref out) {
-    pk_VM* vm = pk_current_vm;
-    *out = vm->NotImplemented;
 }
 
 void py_newslice(py_Ref out, const py_Ref start, const py_Ref stop, const py_Ref step) {

@@ -2,6 +2,7 @@
 #include "pocketpy/common/smallmap.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/common/vector.h"
+#include "pocketpy/pocketpy.h"
 
 #include <stdio.h>
 
@@ -78,6 +79,18 @@ const char* pk_StrName__rmap(uint16_t index) {
 c11_string pk_StrName__rmap2(uint16_t index) {
     const char* p = pk_StrName__rmap(index);
     return (c11_string){p, strlen(p)};
+}
+
+py_Name py_name(const char* name) {
+    return pk_StrName__map(name);
+}
+
+const char* py_name2str(py_Name name) {
+    return pk_StrName__rmap(name);
+}
+
+bool py_ismagicname(py_Name name){
+    return name <= __missing__;
 }
 
 ///////////////////////////////////

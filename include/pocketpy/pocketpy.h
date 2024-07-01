@@ -36,7 +36,7 @@ void py_finalize();
 /// Run a simple source string. Do not change the stack.
 bool py_exec(const char*);
 /// Eval a simple expression.
-/// The result will be set to `vm->last_retval`.
+/// The result will be set to `py_retval()`.
 bool py_eval(const char*);
 
 /************* Values Creation *************/
@@ -45,10 +45,11 @@ void py_newfloat(py_Ref, double);
 void py_newbool(py_Ref, bool);
 void py_newstr(py_Ref, const char*);
 void py_newstrn(py_Ref, const char*, int);
-void py_newStr_(py_Ref, py_Str);
 // void py_newfstr(py_Ref, const char*, ...);
 void py_newbytes(py_Ref, const unsigned char*, int);
 void py_newnone(py_Ref);
+void py_newnotimplemented(py_Ref out);
+void py_newellipsis(py_Ref out);
 void py_newnull(py_Ref);
 
 /// Create a tuple with n UNINITIALIZED elements.
@@ -59,6 +60,10 @@ void py_newlist(py_Ref);
 /// Create a list with n UNINITIALIZED elements.
 /// You should initialize all elements before using it.
 void py_newlistn(py_Ref, int n);
+
+py_Name py_name(const char*);
+const char* py_name2str(py_Name);
+bool py_ismagicname(py_Name);
 
 // opaque types
 void py_newdict(py_Ref);
@@ -76,8 +81,6 @@ void py_newfunction2(py_Ref out,
 // old style argc-based function
 void py_newnativefunc(py_Ref out, py_CFunction);
 
-void py_newnotimplemented(py_Ref out);
-
 /// Create a new object.
 /// @param out output reference.
 /// @param type type of the object.
@@ -89,6 +92,7 @@ int64_t py_toint(const py_Ref);
 double py_tofloat(const py_Ref);
 bool py_castfloat(const py_Ref, double* out);
 bool py_tobool(const py_Ref);
+py_Type py_totype(const py_Ref);
 const char* py_tostr(const py_Ref);
 const char* py_tostrn(const py_Ref, int* size);
 
@@ -104,8 +108,10 @@ bool py_isinstance(const py_Ref obj, py_Type type);
 bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
+#define py_offset(p, i) (py_Ref)((char*)p + ((i) << 4))
+
 #define TypeError(x) false
-#define py_arg(i) (py_Ref)((char*)argv + ((i) << 4))
+#define py_arg(i) py_offset(argv, i)
 #define py_checkargc(n)                                                                            \
     if(argc != n) return TypeError()
 
@@ -164,7 +170,7 @@ bool py_delitem(py_Ref self, const py_Ref key);
 
 /// Perform a binary operation on the stack.
 /// It assumes `lhs` and `rhs` are already pushed to the stack.
-/// The result will be set to `vm->last_retval`.
+/// The result will be set to `py_retval()`.
 bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop);
 
 #define py_binaryadd(lhs, rhs) py_binaryop(lhs, rhs, __add__, __radd__)
@@ -237,21 +243,21 @@ bool py_isidentical(const py_Ref, const py_Ref);
 
 /// A stack operation that calls a function.
 /// It assumes `argc + kwargc` arguments are already pushed to the stack.
-/// The result will be set to `vm->last_retval`.
+/// The result will be set to `py_retval()`.
 /// The stack size will be reduced by `argc + kwargc`.
 bool pk_vectorcall(int argc, int kwargc, bool op_call);
 /// Call a function.
 /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
-/// The result will be set to `vm->last_retval`.
+/// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_call(py_Ref f, int argc, py_Ref argv);
 /// Call a non-magic method.
 /// It prepares the stack and then performs a `vectorcall(argc+1, 0, false)`.
-/// The result will be set to `vm->last_retval`.
+/// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_callmethod(py_Ref self, py_Name, int argc, py_Ref argv);
 /// Call a magic method.
-/// The result will be set to `vm->last_retval`.
+/// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_callmagic(py_Name name, int argc, py_Ref argv);
 
@@ -259,7 +265,7 @@ bool py_callmagic(py_Name name, int argc, py_Ref argv);
 #define py_str(self) py_callmagic(__str__, 1, self)
 
 /// The return value of the most recent vectorcall.
-py_Ref py_lastretval();
+py_Ref py_retval();
 
 #define py_isnull(self) ((self)->type == 0)
 

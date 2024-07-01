@@ -24,9 +24,9 @@ typedef struct py_TValue {
     union {
         int64_t _i64;
         double _f64;
-        PyObject* _obj;
-        void* _ptr;
+        bool _bool;
         py_CFunction _cfunc;
+        PyObject* _obj;
         // Vec2
     };
 } py_TValue;
@@ -46,20 +46,10 @@ const static py_Type tp_dict = {19}, tp_property = {20}, tp_star_wrapper = {21};
 const static py_Type tp_staticmethod = {22}, tp_classmethod = {23};
 const static py_Type tp_none_type = {24}, tp_not_implemented_type = {25};
 const static py_Type tp_ellipsis = {26};
-const static py_Type tp_op_call = {27}, tp_op_yield = {28};
-const static py_Type tp_syntax_error = {29}, tp_stop_iteration = {30};
+const static py_Type tp_syntax_error = {27}, tp_stop_iteration = {28};
 
-extern py_TValue PY_NULL, PY_OP_CALL, PY_OP_YIELD;
+extern py_TValue PY_NULL;
 
 #ifdef __cplusplus
 }
 #endif
-
-/*
-SSO types:
-1. int64_t
-2. double
-3. bool (dummy)
-4. tuple (extra + void*)
-5. string (extra + void* or buf)
-*/

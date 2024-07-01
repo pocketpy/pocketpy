@@ -13,6 +13,9 @@ int NameError(py_Name name) { return -1; }
 
 static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 
+// private
+void py_newStr_(py_Ref, py_Str);
+
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
