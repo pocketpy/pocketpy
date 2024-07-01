@@ -220,8 +220,10 @@ py_Ref py_getmodule(const char* name);
 bool py_import(const char* name, py_Ref out);
 
 /************* Errors *************/
-py_Error* py_lasterror();
-void py_Error__print(py_Error*);
+/// Print the last error to the console.
+void py_printexc();
+/// Format the last error to a string.
+void py_formatexc(char* out);
 
 /************* Operators *************/
 /// Equivalent to `bool(val)`.
@@ -238,7 +240,7 @@ int py_gt(const py_Ref, const py_Ref);
 
 bool py_hash(const py_Ref, int64_t* out);
 
-/// Compare two objects without using magic methods.
+/// Python equivalent to `lhs is rhs`.
 bool py_isidentical(const py_Ref, const py_Ref);
 
 /// A stack operation that calls a function.
@@ -256,7 +258,7 @@ bool py_call(py_Ref f, int argc, py_Ref argv);
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_callmethod(py_Ref self, py_Name, int argc, py_Ref argv);
-/// Call a magic method.
+/// Call a magic method using a continuous buffer.
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_callmagic(py_Name name, int argc, py_Ref argv);
@@ -264,7 +266,7 @@ bool py_callmagic(py_Name name, int argc, py_Ref argv);
 #define py_repr(self) py_callmagic(__repr__, 1, self)
 #define py_str(self) py_callmagic(__str__, 1, self)
 
-/// The return value of the most recent vectorcall.
+/// The return value of the most recent call.
 py_Ref py_retval();
 
 #define py_isnull(self) ((self)->type == 0)
