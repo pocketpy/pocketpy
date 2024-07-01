@@ -9,7 +9,6 @@ typedef struct py_TValue py_TValue;
 typedef struct pk_VM pk_VM;
 typedef uint16_t py_Name;
 typedef int16_t py_Type;
-typedef struct py_Str py_Str;
 
 typedef int64_t py_i64;
 typedef double py_f64;

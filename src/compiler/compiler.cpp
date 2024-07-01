@@ -28,7 +28,7 @@ CodeObject* Compiler::push_global_context() noexcept{
     return co;
 }
 
-FuncDecl_ Compiler::push_f_context(c11_string name, int* out_index) noexcept{
+FuncDecl_ Compiler::push_f_context(c11_stringview name, int* out_index) noexcept{
     FuncDecl_ decl = FuncDecl__rcnew(lexer.src, name);
     decl->code->start_line = __i == 0 ? 1 : prev().line;
     decl->nested = name_scope() == NAME_LOCAL;

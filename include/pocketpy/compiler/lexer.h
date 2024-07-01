@@ -46,9 +46,9 @@ enum TokenValueIndex{
 typedef struct TokenValue {
     enum TokenValueIndex index;  // 0: empty
     union {
-        int64_t _i64;   // 1
-        double _f64;    // 2
-        py_Str _str;    // 3
+        int64_t _i64;       // 1
+        double _f64;        // 2
+        c11_string* _str;   // 3
     };
 } TokenValue;
 
@@ -93,17 +93,17 @@ typedef enum IntParsingResult{
     IntParsing_OVERFLOW,
 } IntParsingResult;
 
-IntParsingResult parse_uint(c11_string text, int64_t* out, int base);
+IntParsingResult parse_uint(c11_stringview text, int64_t* out, int base);
 
 typedef struct Error Error;
 
 typedef c11_array pk_TokenArray;
 
 Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens);
-Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out_string);
+Error* pk_Lexer__process_and_dump(pk_SourceData_ src, c11_string** out_string);
 void pk_TokenArray__dtor(pk_TokenArray* self);
 
-#define Token__sv(self) (c11_string){(self)->start, (self)->length}
+#define Token__sv(self) (c11_stringview){(self)->start, (self)->length}
 
 #ifdef __cplusplus
 }

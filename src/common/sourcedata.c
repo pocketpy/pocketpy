@@ -9,10 +9,10 @@ static void pk_SourceData__ctor(struct pk_SourceData* self,
                                 const char* filename,
                                 enum CompileMode mode,
                                 bool is_dynamic) {
-    py_Str__ctor(&self->filename, filename);
+    self->filename = c11_string__new(filename);
     self->mode = mode;
     c11_vector__ctor(&self->line_starts, sizeof(const char*));
-    c11_vector__ctor(&self->_precompiled_tokens, sizeof(py_Str));
+    c11_vector__ctor(&self->_precompiled_tokens, sizeof(c11_string*));
 
     // Skip utf8 BOM if there is any.
     if(strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
@@ -26,18 +26,18 @@ static void pk_SourceData__ctor(struct pk_SourceData* self,
         source++;
     }
     self->source = pk_SStream__submit(&ss);
-    source = py_Str__data(&self->source);
     self->is_precompiled = (strncmp(source, "pkpy:", 5) == 0);
-    c11_vector__push(const char*, &self->line_starts, source);
+    c11_vector__push(const char*, &self->line_starts, self->source);
 }
 
 static void pk_SourceData__dtor(struct pk_SourceData* self) {
-    py_Str__dtor(&self->filename);
-    py_Str__dtor(&self->source);
+    c11_string__delete(self->filename);
+    c11_string__delete(self->source);
+
     c11_vector__dtor(&self->line_starts);
 
     for(int i = 0; i < self->_precompiled_tokens.count; i++) {
-        py_Str__dtor(c11__at(py_Str, &self->_precompiled_tokens, i));
+        c11_string__delete(c11__getitem(c11_string*, &self->_precompiled_tokens, i));
     }
     c11_vector__dtor(&self->_precompiled_tokens);
 }
@@ -70,7 +70,7 @@ bool pk_SourceData__get_line(const struct pk_SourceData* self,
     return true;
 }
 
-py_Str pk_SourceData__snapshot(const struct pk_SourceData* self,
+c11_string* pk_SourceData__snapshot(const struct pk_SourceData* self,
                                int lineno,
                                const char* cursor,
                                const char* name) {

@@ -16,18 +16,18 @@ struct pk_SourceData {
     bool is_precompiled;
     bool is_dynamic;    // for exec() and eval()
 
-    py_Str filename;
-    py_Str source;
+    c11_string* filename;
+    c11_string* source;
 
     c11_vector/*T=const char* */ line_starts;
-    c11_vector/*T=py_Str*/ _precompiled_tokens;
+    c11_vector/*T=c11_string* */ _precompiled_tokens;
 };
 
 typedef struct pk_SourceData* pk_SourceData_;
 
 pk_SourceData_ pk_SourceData__rcnew(const char* source, const char* filename, enum CompileMode mode, bool is_dynamic);
 bool pk_SourceData__get_line(const struct pk_SourceData* self, int lineno, const char** st, const char** ed);
-py_Str pk_SourceData__snapshot(const struct pk_SourceData *self, int lineno, const char *cursor, const char *name);
+c11_string* pk_SourceData__snapshot(const struct pk_SourceData *self, int lineno, const char *cursor, const char *name);
 
 #ifdef __cplusplus
 }

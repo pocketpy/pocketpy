@@ -13,8 +13,6 @@ int NameError(py_Name name) { return -1; }
 
 static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 
-// private
-void py_newStr_(py_Ref, py_Str);
 
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
@@ -426,10 +424,11 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_BUILD_BYTES: {
-                py_Str* s = py_touserdata(TOP());
-                unsigned char* p = (unsigned char*)malloc(s->size);
-                memcpy(p, py_Str__data(s), s->size);
-                py_newbytes(TOP(), p, s->size);
+                int size;
+                const char* data = py_tostrn(TOP(), &size);
+                unsigned char* p = (unsigned char*)malloc(size);
+                memcpy(p, data, size);
+                py_newbytes(TOP(), p, size);
                 DISPATCH();
             }
             case OP_BUILD_TUPLE: {
@@ -490,11 +489,14 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 pk_SStream__ctor(&ss);
                 for(int i = 0; i < byte.arg; i++) {
                     if(!py_str(begin + i)) goto __ERROR;
-                    py_Str* item = py_touserdata(&self->last_retval);
-                    pk_SStream__write_Str(&ss, item);
+                    int size;
+                    const char* data = py_tostrn(&self->last_retval, &size);
+                    pk_SStream__write_cstrn(&ss, data, size);
                 }
                 SP() = begin;
-                py_newStr_(SP()++, pk_SStream__submit(&ss));
+                c11_string* res = pk_SStream__submit(&ss);
+                py_newstrn(SP()++, res, c11_string__len(res));
+                c11_string__delete(res);
                 DISPATCH();
             }
             /*****************************/

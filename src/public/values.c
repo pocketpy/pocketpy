@@ -41,28 +41,15 @@ void py_newellipsis(py_Ref out) {
 void py_newnull(py_Ref out) { out->type = 0; }
 
 void py_newstr(py_Ref out, const char* data) {
-    pk_ManagedHeap* heap = &pk_current_vm->heap;
-    PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_str, 0, sizeof(py_Str));
-    py_Str__ctor(PyObject__value(obj), data);
-    out->type = tp_str;
-    out->is_ptr = true;
-    out->_obj = obj;
+    return py_newstrn(out, data, strlen(data));
 }
 
 void py_newstrn(py_Ref out, const char* data, int size) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
-    PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_str, 0, sizeof(py_Str));
-    py_Str__ctor2((py_Str*)PyObject__value(obj), data, size);
-    out->type = tp_str;
-    out->is_ptr = true;
-    out->_obj = obj;
-}
-
-void py_newStr_(py_Ref out, py_Str input) {
-    pk_ManagedHeap* heap = &pk_current_vm->heap;
-    PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_str, 0, sizeof(py_Str));
-    py_Str* userdata = PyObject__value(obj);
-    *userdata = input;
+    int total_size = sizeof(int) + size + 1;
+    PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_str, 0, total_size);
+    int* p = PyObject__value(obj);
+    *p = size;
     out->type = tp_str;
     out->is_ptr = true;
     out->_obj = obj;

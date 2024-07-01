@@ -9,30 +9,30 @@
 extern "C" {
 #endif
 
-typedef struct pkpy_ExceptionFrame {
-    pk_SourceData_ src;
-    int lineno;
-    const char* cursor;
-    py_Str name;
-} pkpy_ExceptionFrame;
+// typedef struct pkpy_ExceptionFrame {
+//     pk_SourceData_ src;
+//     int lineno;
+//     const char* cursor;
+//     py_Str name;
+// } pkpy_ExceptionFrame;
 
-typedef struct pkpy_Exception {
-    StrName type;
-    py_Str msg;
-    bool is_re;
+// typedef struct pkpy_Exception {
+//     StrName type;
+//     py_Str msg;
+//     bool is_re;
 
-    int _ip_on_error;
-    void* _code_on_error;
+//     int _ip_on_error;
+//     void* _code_on_error;
 
-    PyObject* self;  // weak reference
+//     PyObject* self;  // weak reference
 
-    c11_vector/*T=pkpy_ExceptionFrame*/ stacktrace;
-} pkpy_Exception;
+//     c11_vector/*T=pkpy_ExceptionFrame*/ stacktrace;
+// } pkpy_Exception;
 
-void pkpy_Exception__ctor(pkpy_Exception* self, StrName type);
-void pkpy_Exception__dtor(pkpy_Exception* self);
-void pkpy_Exception__stpush(pkpy_Exception* self, pk_SourceData_ src, int lineno, const char* cursor, const char* name);
-py_Str pkpy_Exception__summary(pkpy_Exception* self);
+// void pkpy_Exception__ctor(pkpy_Exception* self, StrName type);
+// void pkpy_Exception__dtor(pkpy_Exception* self);
+// void pkpy_Exception__stpush(pkpy_Exception* self, pk_SourceData_ src, int lineno, const char* cursor, const char* name);
+// py_Str pkpy_Exception__summary(pkpy_Exception* self);
 
 struct Error{
     const char* type;

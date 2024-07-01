@@ -17,7 +17,7 @@ void pk_StrName__initialize() {
     for(int i = 0; i < _r_interned.count; i++) {
         free(c11__at(char*, &_r_interned, i));
     }
-    c11_vector__ctor(&_r_interned, sizeof(c11_string));
+    c11_vector__ctor(&_r_interned, sizeof(c11_stringview));
     _initialized = true;
 
 #define MAGIC_METHOD(x) x = pk_StrName__map(#x);
@@ -46,10 +46,10 @@ void pk_StrName__finalize() {
 }
 
 uint16_t pk_StrName__map(const char* name) {
-    return pk_StrName__map2((c11_string){name, strlen(name)});
+    return pk_StrName__map2((c11_stringview){name, strlen(name)});
 }
 
-uint16_t pk_StrName__map2(c11_string name) {
+uint16_t pk_StrName__map2(c11_stringview name) {
     // TODO: PK_GLOBAL_SCOPE_LOCK()
     if(!_initialized) {
         pk_StrName__initialize();  // lazy init
@@ -65,7 +65,7 @@ uint16_t pk_StrName__map2(c11_string name) {
     c11_vector__push(char*, &_r_interned, p);
     index = _r_interned.count;  // 1-based
     // save to _interned
-    c11_smallmap_s2n__set(&_interned, (c11_string){p, name.size}, index);
+    c11_smallmap_s2n__set(&_interned, (c11_stringview){p, name.size}, index);
     assert(_interned.count == _r_interned.count);
     return index;
 }
@@ -76,9 +76,9 @@ const char* pk_StrName__rmap(uint16_t index) {
     return c11__getitem(char*, &_r_interned, index - 1);
 }
 
-c11_string pk_StrName__rmap2(uint16_t index) {
+c11_stringview pk_StrName__rmap2(uint16_t index) {
     const char* p = pk_StrName__rmap(index);
-    return (c11_string){p, strlen(p)};
+    return (c11_stringview){p, strlen(p)};
 }
 
 py_Name py_name(const char* name) {

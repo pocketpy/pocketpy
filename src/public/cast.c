@@ -40,15 +40,15 @@ py_Type py_totype(const py_Ref self){
 
 const char* py_tostr(const py_Ref self){
     assert(self->type == tp_str);
-    py_Str* ud = PyObject__value(self->_obj);
-    return py_Str__data(ud);
+    int* p = PyObject__value(self->_obj);
+    return (const char*)(p+1);
 }
 
 const char* py_tostrn(const py_Ref self, int* size){
     assert(self->type == tp_str);
-    py_Str* ud = PyObject__value(self->_obj);
-    *size = ud->size;
-    return py_Str__data(ud);
+    int* p = PyObject__value(self->_obj);
+    *size = *p;
+    return (const char*)(p+1);
 }
 
 const unsigned char* py_tobytes(const py_Ref self, int* size){

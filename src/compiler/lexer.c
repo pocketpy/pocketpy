@@ -28,8 +28,8 @@ typedef struct TokenDeserializer {
 
 void TokenDeserializer__ctor(TokenDeserializer* self, const char* source);
 bool TokenDeserializer__match_char(TokenDeserializer* self, char c);
-c11_string TokenDeserializer__read_string(TokenDeserializer* self, char c);
-py_Str TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c);
+c11_stringview TokenDeserializer__read_string(TokenDeserializer* self, char c);
+c11_string* TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c);
 int TokenDeserializer__read_count(TokenDeserializer* self);
 int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c);
 double TokenDeserializer__read_float(TokenDeserializer* self, char c);
@@ -40,7 +40,7 @@ const static TokenValue EmptyTokenValue;
 static void pk_Lexer__ctor(pk_Lexer* self, pk_SourceData_ src){
     PK_INCREF(src);
     self->src = src;
-    self->curr_char = self->token_start = py_Str__data(&src->source);
+    self->curr_char = self->token_start = src->source;
     self->current_line = 1;
     self->brackets_level = 0;
     c11_vector__ctor(&self->nexts, sizeof(Token));
@@ -220,15 +220,9 @@ static Error* eat_name(pk_Lexer* self){
             }
         }
         // handle multibyte char
-        py_Str u8str;
-        py_Str__ctor2(&u8str, self->curr_char, u8bytes);
-        if(u8str.size != u8bytes){
-            py_Str__dtor(&u8str);
-            return SyntaxError("invalid utf8 sequence: %s", py_Str__data(&u8str));
-        }
         uint32_t value = 0;
         for(int k = 0; k < u8bytes; k++) {
-            uint8_t b = py_Str__data(&u8str)[k];
+            uint8_t b = self->curr_char[k];
             if(k == 0) {
                 if(u8bytes == 2)
                     value = (b & 0b00011111) << 6;
@@ -240,15 +234,16 @@ static Error* eat_name(pk_Lexer* self){
                 value |= (b & 0b00111111) << (6 * (u8bytes - k - 1));
             }
         }
-        if(c11__is_unicode_Lo_char(value))
+        if(c11__is_unicode_Lo_char(value)){
             self->curr_char += u8bytes;
-        else
+        }else{
             break;
+        }
     }
 
     int length = (int)(self->curr_char - self->token_start);
     if(length == 0) return SyntaxError("@id contains invalid char");
-    c11_string name = {self->token_start, length};
+    c11_stringview name = {self->token_start, length};
 
     if(self->src->mode == JSON_MODE) {
         if(c11_string__cmp3(name, "true") == 0) {
@@ -278,7 +273,7 @@ static Error* eat_name(pk_Lexer* self){
     return NULL;
 }
 
-static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, py_Str* out) {
+static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, c11_string** out) {
     // previous char is quote
     bool quote3 = match_n_chars(self, 2, quote);
     pk_SStream buff;
@@ -341,7 +336,7 @@ enum StringType {
 };
 
 static Error* eat_string(pk_Lexer* self, char quote, enum StringType type){
-    py_Str s;
+    c11_string* s;
     Error* err = eat_string_until(self, quote, type == RAW_STRING, &s);
     if(err) return err;
     TokenValue value = {TokenValue_STR, ._str = s};
@@ -366,7 +361,7 @@ static Error* eat_number(pk_Lexer* self){
         is_scientific_notation = true;
     }
 
-    c11_string text = {self->token_start, i - self->token_start};
+    c11_stringview text = {self->token_start, i - self->token_start};
     self->curr_char = i;
 
     if(text.data[0] != '.' && !is_scientific_notation) {
@@ -554,10 +549,10 @@ static Error* lex_one_token(pk_Lexer* self, bool* eof){
 
 static Error* from_precompiled(pk_Lexer* self) {
     TokenDeserializer deserializer;
-    TokenDeserializer__ctor(&deserializer, py_Str__data(&self->src->source));
+    TokenDeserializer__ctor(&deserializer, self->src->source);
 
     deserializer.curr += 5;  // skip "pkpy:"
-    c11_string version = TokenDeserializer__read_string(&deserializer, '\n');
+    c11_stringview version = TokenDeserializer__read_string(&deserializer, '\n');
 
     if(c11_string__cmp3(version, PK_VERSION) != 0) {
         return SyntaxError("precompiled version mismatch");
@@ -569,10 +564,9 @@ static Error* from_precompiled(pk_Lexer* self) {
     int count = TokenDeserializer__read_count(&deserializer);
     c11_vector* precompiled_tokens = &self->src->_precompiled_tokens;
     for(int i = 0; i < count; i++) {
-        c11_string item = TokenDeserializer__read_string(&deserializer, '\n');
-        py_Str copied_item;
-        py_Str__ctor2(&copied_item, item.data, item.size);
-        c11_vector__push(py_Str, precompiled_tokens, copied_item);
+        c11_stringview item = TokenDeserializer__read_string(&deserializer, '\n');
+        c11_string* copied_item = c11_string__new2(item.data, item.size);
+        c11_vector__push(c11_string*, precompiled_tokens, copied_item);
     }
 
     count = TokenDeserializer__read_count(&deserializer);
@@ -581,9 +575,9 @@ static Error* from_precompiled(pk_Lexer* self) {
         t.type = (TokenIndex)TokenDeserializer__read_uint(&deserializer, ',');
         if(is_raw_string_used(t.type)) {
             int64_t index = TokenDeserializer__read_uint(&deserializer, ',');
-            py_Str* p = c11__at(py_Str, precompiled_tokens, index);
-            t.start = py_Str__data(p);
-            t.length = c11__getitem(py_Str, precompiled_tokens, index).size;
+            c11_string* p = c11__getitem(c11_string*, precompiled_tokens, index);
+            t.start = p;
+            t.length = c11_string__len(p);
         } else {
             t.start = NULL;
             t.length = 0;
@@ -612,7 +606,7 @@ static Error* from_precompiled(pk_Lexer* self) {
                 t.value = (TokenValue){TokenValue_F64, ._f64 = res};
             } break;
             case 'S': {
-                py_Str res = TokenDeserializer__read_string_from_hex(&deserializer, '\n');
+                c11_string* res = TokenDeserializer__read_string_from_hex(&deserializer, '\n');
                 t.value = (TokenValue){TokenValue_STR, ._str = res};
             } break;
             default:
@@ -624,10 +618,10 @@ static Error* from_precompiled(pk_Lexer* self) {
     return NULL;
 }
 
-IntParsingResult parse_uint(c11_string text, int64_t* out, int base) {
+IntParsingResult parse_uint(c11_stringview text, int64_t* out, int base) {
     *out = 0;
 
-    c11_string prefix = {.data = text.data, .size = PK_MIN(2, text.size)};
+    c11_stringview prefix = {.data = text.data, .size = PK_MIN(2, text.size)};
     if(base == -1) {
         if(c11_string__cmp3(prefix, "0b") == 0)
             base = 2;
@@ -657,7 +651,7 @@ IntParsingResult parse_uint(c11_string text, int64_t* out, int base) {
         // 2-base   0b101010
         if(c11_string__cmp3(prefix, "0b") == 0) {
             // text.remove_prefix(2);
-            text = (c11_string){text.data + 2, text.size - 2};
+            text = (c11_stringview){text.data + 2, text.size - 2};
         }
         if(text.size == 0) return IntParsing_FAILURE;
         for(int i = 0; i < text.size; i++) {
@@ -675,7 +669,7 @@ IntParsingResult parse_uint(c11_string text, int64_t* out, int base) {
         // 8-base   0o123
         if(c11_string__cmp3(prefix, "0o") == 0) {
             // text.remove_prefix(2);
-            text = (c11_string){text.data + 2, text.size - 2};
+            text = (c11_stringview){text.data + 2, text.size - 2};
         }
         if(text.size == 0) return IntParsing_FAILURE;
         for(int i = 0; i < text.size; i++) {
@@ -693,7 +687,7 @@ IntParsingResult parse_uint(c11_string text, int64_t* out, int base) {
         // 16-base  0x123
         if(c11_string__cmp3(prefix, "0x") == 0) {
             // text.remove_prefix(2);
-            text = (c11_string){text.data + 2, text.size - 2};
+            text = (c11_stringview){text.data + 2, text.size - 2};
         }
         if(text.size == 0) return IntParsing_FAILURE;
         for(int i = 0; i < text.size; i++) {
@@ -745,7 +739,7 @@ Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens){
     return NULL;
 }
 
-Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out) {
+Error* pk_Lexer__process_and_dump(pk_SourceData_ src, c11_string** out) {
     assert(!src->is_precompiled);
     pk_TokenArray nexts;    // output tokens
     Error* err = pk_Lexer__process(src, &nexts);
@@ -765,7 +759,7 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out) {
 
     c11__foreach(Token, &nexts, token) {
         if(is_raw_string_used(token->type)) {
-            c11_string token_sv = {token->start, token->length};
+            c11_stringview token_sv = {token->start, token->length};
             if(!c11_smallmap_s2n__contains(&token_indices, token_sv)) {
                 c11_smallmap_s2n__set(&token_indices, token_sv, 0);
             }
@@ -796,7 +790,7 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out) {
 
         if(is_raw_string_used(token->type)) {
             uint16_t *p = c11_smallmap_s2n__try_get(
-                &token_indices, (c11_string){token->start, token->length});
+                &token_indices, (c11_stringview){token->start, token->length});
             assert(p != NULL);
             pk_SStream__write_int(&ss, (int)*p);
             pk_SStream__write_char(&ss, ',');
@@ -827,7 +821,7 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, py_Str* out) {
                 break;
             case TokenValue_STR: {
                 pk_SStream__write_char(&ss, 'S');
-                c11_string sv = py_Str__sv(&token->value._str);
+                c11_stringview sv = c11_string__view(token->value._str);
                 for(int i=0; i<sv.size; i++){
                     pk_SStream__write_hex(&ss, sv.data[i], false);
                 }
@@ -845,7 +839,7 @@ void pk_TokenArray__dtor(pk_TokenArray *self){
     Token* data = self->data;
     for(int i=0; i<self->count; i++){
         if(data[i].value.index == TokenValue_STR){
-            py_Str__dtor(&data[i].value._str);
+            c11_string__delete(data[i].value._str);
         }
     }
     c11_array__dtor(self);
@@ -888,19 +882,20 @@ bool TokenDeserializer__match_char(TokenDeserializer* self, char c){
     return false;
 }
 
-c11_string TokenDeserializer__read_string(TokenDeserializer* self, char c){
+c11_stringview TokenDeserializer__read_string(TokenDeserializer* self, char c){
     const char* start = self->curr;
     while(*self->curr != c)
         self->curr++;
-    c11_string retval = {start, (int)(self->curr-start)};
+    c11_stringview retval = {start, (int)(self->curr-start)};
     self->curr++;  // skip the delimiter
     return retval;
 }
 
-py_Str TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c){
-    c11_string sv = TokenDeserializer__read_string(self, c);
+c11_string* TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c){
+    c11_stringview sv = TokenDeserializer__read_string(self, c);
     const char* s = sv.data;
-    char* buffer = (char*)malloc(sv.size / 2 + 1);
+    pk_SStream ss;
+    pk_SStream__ctor(&ss);
     for(int i = 0; i < sv.size; i += 2) {
         char c = 0;
         if(s[i] >= '0' && s[i] <= '9')
@@ -916,15 +911,9 @@ py_Str TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c){
             c += s[i + 1] - 'a' + 10;
         else
             assert(false);
-        buffer[i / 2] = c;
+        pk_SStream__write_char(&ss, c);
     }
-    buffer[sv.size / 2] = 0;
-    return (py_Str){
-        .size = sv.size / 2,
-        .is_ascii = c11__isascii(buffer, sv.size / 2),
-        .is_sso = false,
-        ._ptr = buffer
-    };
+    return pk_SStream__submit(&ss);
 }
 
 int TokenDeserializer__read_count(TokenDeserializer* self){
@@ -944,12 +933,12 @@ int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c){
 }
 
 double TokenDeserializer__read_float(TokenDeserializer* self, char c){
-    c11_string sv = TokenDeserializer__read_string(self, c);
-    py_Str nullterm;
-    py_Str__ctor2(&nullterm, sv.data, sv.size);
+    c11_stringview sv = TokenDeserializer__read_string(self, c);
+    // TODO: optimize this
+    c11_string* nullterm = c11_string__new2(sv.data, sv.size);
     char* end;
-    double retval = strtod(py_Str__data(&nullterm), &end);
-    py_Str__dtor(&nullterm);
+    double retval = strtod(nullterm, &end);
+    c11_string__delete(nullterm);
     assert(*end == 0);
     return retval;
 }

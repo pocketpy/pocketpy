@@ -9,11 +9,12 @@
 #include <ctype.h>
 #include <math.h>
 
-void pk_SStream__ctor(pk_SStream* self) { c11_vector__ctor(&self->data, sizeof(char)); }
+const static int C11_STRING_HEADER_SIZE = sizeof(int);
 
-void pk_SStream__ctor2(pk_SStream* self, int capacity) {
+void pk_SStream__ctor(pk_SStream* self) {
     c11_vector__ctor(&self->data, sizeof(char));
-    c11_vector__reserve(&self->data, capacity);
+    c11_vector__reserve(&self->data, 100 + C11_STRING_HEADER_SIZE);
+    self->data.count = C11_STRING_HEADER_SIZE;
 }
 
 void pk_SStream__dtor(pk_SStream* self) { c11_vector__dtor(&self->data); }
@@ -21,30 +22,17 @@ void pk_SStream__dtor(pk_SStream* self) { c11_vector__dtor(&self->data); }
 void pk_SStream__write_char(pk_SStream* self, char c) { c11_vector__push(char, &self->data, c); }
 
 void pk_SStream__write_int(pk_SStream* self, int i) {
-    char buf[12];  // sign + 10 digits + null terminator
-    snprintf(buf, sizeof(buf), "%d", i);
-    pk_SStream__write_cstr(self, buf);
+    // len('-2147483648') == 11
+    c11_vector__reserve(&self->data, self->data.count + 11 + 1);
+    int n = sprintf(self->data.data, "%d", i);
+    self->data.count += n;
 }
 
 void pk_SStream__write_i64(pk_SStream* self, int64_t val) {
-    // sign + 21 digits + null terminator
-    // str(-2**64).__len__() == 21
-    c11_vector__reserve(&self->data, self->data.count + 23);
-    if(val == 0) {
-        pk_SStream__write_char(self, '0');
-        return;
-    }
-    if(val < 0) {
-        pk_SStream__write_char(self, '-');
-        val = -val;
-    }
-    int start = self->data.count;
-    while(val) {
-        c11_vector__push(char, &self->data, '0' + val % 10);
-        val /= 10;
-    }
-    int end = self->data.count - 1;
-    c11_vector__reverse(char, &self->data, start, end);
+    // len('-9223372036854775808') == 20
+    c11_vector__reserve(&self->data, self->data.count + 20 + 1);
+    int n = sprintf(self->data.data, "%lld", (long long)val);
+    self->data.count += n;
 }
 
 void pk_SStream__write_f64(pk_SStream* self, double val, int precision) {
@@ -76,11 +64,7 @@ void pk_SStream__write_f64(pk_SStream* self, double val, int precision) {
     if(all_is_digit) pk_SStream__write_cstr(self, ".0");
 }
 
-void pk_SStream__write_Str(pk_SStream* self, const py_Str* str) {
-    pk_SStream__write_cstrn(self, py_Str__data(str), str->size);
-}
-
-void pk_SStream__write_sv(pk_SStream* self, c11_string sv) {
+void pk_SStream__write_sv(pk_SStream* self, c11_stringview sv) {
     pk_SStream__write_cstrn(self, sv.data, sv.size);
 }
 
@@ -119,15 +103,12 @@ void pk_SStream__write_ptr(pk_SStream* self, void* p) {
     }
 }
 
-py_Str pk_SStream__submit(pk_SStream* self) {
+c11_string* pk_SStream__submit(pk_SStream* self) {
     c11_vector__push(char, &self->data, '\0');
-    c11_array a = c11_vector__submit(&self->data);
-    // TODO: optimize c11__isascii
-    py_Str retval = {.size = a.count - 1,
-                     .is_ascii = c11__isascii((char*)a.data, a.count),
-                     .is_sso = false,
-                     ._ptr = (char*)a.data};
-    return retval;
+    c11_array arr = c11_vector__submit(&self->data);
+    int* p = arr.data;
+    *p = arr.count - C11_STRING_HEADER_SIZE - 1;
+    return (c11_string*)(p + 1);
 }
 
 void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args) {
@@ -165,17 +146,8 @@ void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args) {
             }
             case 'q': {
                 const char* s = va_arg(args, const char*);
-                py_Str tmp, tmp2;
-                py_Str__ctor(&tmp, s);
-                tmp2 = py_Str__escape(&tmp, '\'');
-                pk_SStream__write_Str(ss, &tmp2);
-                py_Str__dtor(&tmp);
-                py_Str__dtor(&tmp2);
-                break;
-            }
-            case 'S': {
-                const py_Str* s = va_arg(args, const py_Str*);
-                pk_SStream__write_Str(ss, s);
+                c11_stringview sv = {s, strlen(s)};
+                c11_sv__quote(sv, '\'', &ss->data);
                 break;
             }
             case 'c': {
@@ -218,7 +190,7 @@ void pk_sprintf(pk_SStream* ss, const char* fmt, ...) {
 const char* py_fmt(const char* fmt, ...) {
     PK_THREAD_LOCAL pk_SStream ss;
     if(ss.data.elem_size == 0) {
-        pk_SStream__ctor2(&ss, 256);
+        pk_SStream__ctor(&ss);
     } else {
         c11_vector__clear(&ss.data);
     }

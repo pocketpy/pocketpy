@@ -9,7 +9,7 @@
 
 
 #define SMALLMAP_T__SOURCE
-#define K c11_string
+#define K c11_stringview
 #define V uint16_t
 #define NAME c11_smallmap_s2n
 #define less(a, b)      (c11_string__cmp((a), (b)) <  0)

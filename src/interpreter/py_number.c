@@ -2,56 +2,19 @@
 
 #include <math.h>
 
-// static int _py_print(const py_Ref args, int argc){
-//     int length = py_tuple__len(args+0);
-//     py_Str* sep;
-//     py_Str* end;
-
-//     int err;
-//     err = py_tostr(args+1, &sep);
-//     if(err) return err;
-//     err = py_tostr(args+2, &end);
-//     if(err) return err;
-
-//     pk_SStream ss;
-//     pk_SStream__ctor(&ss);
-
-//     for(int i=0; i<length; i++){
-//         const py_Ref item = py_tuple__getitem(args+0, i);
-//         py_Str tmp;
-//         int err = py_str(item, &tmp);
-//         if(!err){
-//             pk_SStream__write_Str(&ss, &tmp);
-//             py_Str__dtor(&tmp);
-//             if(i != length-1){
-//                 pk_SStream__write_Str(&ss, sep);
-//             }
-//         }else{
-//             py_Str__dtor(&tmp);
-//             pk_SStream__dtor(&ss);
-//             return err;
-//         }
-//     }
-//     pk_SStream__write_Str(&ss, end);
-//     py_Str out = pk_SStream__submit(&ss);
-//     pk_current_vm->_stdout(py_Str__data(&out));
-//     py_Str__dtor(&out);
-//     return 0;
-// }
-
 #define DEF_NUM_BINARY_OP(name, op, rint, rfloat)                                                  \
     static bool _py_int##name(int argc, py_Ref argv) {                                             \
         py_checkargc(2);                                                                           \
         if(py_isint(&argv[1])) {                                                                   \
             int64_t lhs = py_toint(&argv[0]);                                                      \
             int64_t rhs = py_toint(&argv[1]);                                                      \
-            rint(py_retval(), lhs op rhs);                                                     \
+            rint(py_retval(), lhs op rhs);                                                         \
         } else if(py_isfloat(&argv[1])) {                                                          \
             int64_t lhs = py_toint(&argv[0]);                                                      \
             double rhs = py_tofloat(&argv[1]);                                                     \
-            rfloat(py_retval(), lhs op rhs);                                                   \
+            rfloat(py_retval(), lhs op rhs);                                                       \
         } else {                                                                                   \
-            py_newnotimplemented(py_retval());                                                 \
+            py_newnotimplemented(py_retval());                                                     \
         }                                                                                          \
         return true;                                                                               \
     }                                                                                              \
@@ -60,9 +23,9 @@
         double lhs = py_tofloat(&argv[0]);                                                         \
         double rhs;                                                                                \
         if(py_castfloat(&argv[1], &rhs)) {                                                         \
-            rfloat(py_retval(), lhs op rhs);                                                   \
+            rfloat(py_retval(), lhs op rhs);                                                       \
         } else {                                                                                   \
-            py_newnotimplemented(py_retval());                                                 \
+            py_newnotimplemented(py_retval());                                                     \
         }                                                                                          \
         return true;                                                                               \
     }
@@ -204,9 +167,9 @@ static bool _py_int__bit_length(int argc, py_Ref argv) {
         int64_t lhs = py_toint(&argv[0]);                                                          \
         if(py_isint(&argv[1])) {                                                                   \
             int64_t rhs = py_toint(&argv[1]);                                                      \
-            py_newint(py_retval(), lhs op rhs);                                                \
+            py_newint(py_retval(), lhs op rhs);                                                    \
         } else {                                                                                   \
-            py_newnotimplemented(py_retval());                                                 \
+            py_newnotimplemented(py_retval());                                                     \
         }                                                                                          \
         return true;                                                                               \
     }
@@ -270,11 +233,4 @@ void pk_VM__init_builtins(pk_VM* self) {
 
     // int.bit_length
     py_bindmethod(tp_int, "bit_length", _py_int__bit_length);
-
-    // py_Ref builtins = py_getmodule("builtins");
-    // py_newfunction(py_reg(0), _py_print,
-    //     "print(*args, sep=' ', end='\\n')",
-    //     BindType_FUNCTION
-    // );
-    // py_setdict(builtins, py_name("hello"), py_reg(0));
 }
