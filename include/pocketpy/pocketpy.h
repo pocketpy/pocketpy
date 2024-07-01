@@ -8,18 +8,24 @@ typedef struct py_TValue py_TValue;
 typedef struct pk_VM pk_VM;
 typedef uint16_t py_Name;
 typedef int16_t py_Type;
-typedef py_TValue* py_Ref;
 typedef struct py_Str py_Str;
 
-typedef struct py_Error {
-    py_Type type;
-} py_Error;
+/// Generic reference.
+typedef py_TValue* py_Ref;
+/// An object reference which has the same lifespan as the object.
+typedef py_TValue* py_ObjectRef;
+/// A global reference which has the same lifespan as the VM.
+typedef py_TValue* py_GlobalRef;
+/// A specific location in the stack.
+typedef py_TValue* py_StackRef;
+/// A temporary reference which has a short or unknown lifespan.
+typedef py_TValue* py_TmpRef;
 
 /// Native function signature.
 /// @param argc number of arguments.
 /// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
 /// @return true if the function is successful.
-typedef bool (*py_CFunction)(int argc, py_TValue* argv);
+typedef bool (*py_CFunction)(int argc, py_StackRef argv);
 
 typedef enum BindType {
     BindType_FUNCTION,
@@ -115,12 +121,12 @@ bool py_issubclass(py_Type derived, py_Type base);
 #define py_checkargc(n)                                                                            \
     if(argc != n) return TypeError()
 
-py_Ref py_tpmagic(py_Type type, py_Name name);
+py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 #define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
 
 // new style decl-based bindings
-py_Ref py_bind(py_Ref obj, const char* sig, py_CFunction f);
-py_Ref py_bind2(py_Ref obj,
+py_TmpRef py_bind(py_Ref obj, const char* sig, py_CFunction f);
+py_TmpRef py_bind2(py_Ref obj,
                 const char* sig,
                 py_CFunction f,
                 BindType bt,
@@ -133,23 +139,23 @@ void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f);
 
 /// Get the reference to the i-th register.
 /// @lifespan: Permanent.
-py_Ref py_reg(int i);
+py_GlobalRef py_reg(int i);
 
 /// Get the reference of the object's `__dict__`.
 /// The object must have a `__dict__`.
 /// Returns a reference to the value or NULL if not found.
 /// @lifespan: Object.
-py_Ref py_getdict(const py_Ref self, py_Name name);
+py_ObjectRef py_getdict(const py_Ref self, py_Name name);
 void py_setdict(py_Ref self, py_Name name, const py_Ref val);
 
 /// Get the reference of the i-th slot of the object.
 /// The object must have slots and `i` must be in range.
 /// @lifespan: Object.
-py_Ref py_getslot(const py_Ref self, int i);
+py_ObjectRef py_getslot(const py_Ref self, int i);
 void py_setslot(py_Ref self, int i, const py_Ref val);
 
-py_Ref py_getupvalue(py_Ref argv);
-void py_setupvalue(py_Ref argv, const py_Ref val);
+py_TmpRef py_getupvalue(py_StackRef argv);
+void py_setupvalue(py_StackRef argv, const py_Ref val);
 
 /// Gets the attribute of the object.
 bool py_getattr(const py_Ref self, py_Name name, py_Ref out);
@@ -194,7 +200,7 @@ void py_assign(py_Ref dst, const py_Ref src);
 /************* Stack Operations *************/
 /// Returns a reference to the i-th object from the top of the stack.
 /// i should be negative, e.g. (-1) means TOS.
-py_Ref py_peek(int i);
+py_StackRef py_peek(int i);
 /// Pushes the object to the stack.
 void py_push(const py_Ref src);
 /// Pops an object from the stack.
@@ -202,7 +208,7 @@ void py_pop();
 /// Shrink the stack by n.
 void py_shrink(int n);
 /// Get a temporary variable from the stack and returns the reference to it.
-py_Ref py_pushtmp();
+py_StackRef py_pushtmp();
 /// Free n temporary variable.
 #define py_poptmp(n) py_shrink(n)
 
@@ -213,11 +219,12 @@ py_Ref py_pushtmp();
 #define py_duptop() py_push(py_peek(-1))
 #define py_dupsecond() py_push(py_peek(-2))
 /************* Modules *************/
-py_Ref py_newmodule(const char* name, const char* package);
-py_Ref py_getmodule(const char* name);
+py_TmpRef py_newmodule(const char* name, const char* package);
+py_TmpRef py_getmodule(const char* name);
 
 /// Import a module.
-bool py_import(const char* name, py_Ref out);
+/// The result will be set to `py_retval()`.
+bool py_import(const char* name);
 
 /************* Errors *************/
 /// Print the last error to the console.
@@ -267,19 +274,19 @@ bool py_callmagic(py_Name name, int argc, py_Ref argv);
 #define py_str(self) py_callmagic(__str__, 1, self)
 
 /// The return value of the most recent call.
-py_Ref py_retval();
+py_GlobalRef py_retval();
 
 #define py_isnull(self) ((self)->type == 0)
 
 /* tuple */
 
 // unchecked functions, if self is not a tuple, the behavior is undefined
-py_Ref py_tuple__getitem(const py_Ref self, int i);
+py_ObjectRef py_tuple__getitem(const py_Ref self, int i);
 void py_tuple__setitem(py_Ref self, int i, const py_Ref val);
 int py_tuple__len(const py_Ref self);
 
 // unchecked functions, if self is not a list, the behavior is undefined
-py_Ref py_list__getitem(const py_Ref self, int i);
+py_ObjectRef py_list__getitem(const py_Ref self, int i);
 void py_list__setitem(py_Ref self, int i, const py_Ref val);
 void py_list__delitem(py_Ref self, int i);
 int py_list__len(const py_Ref self);
@@ -294,11 +301,11 @@ pk_TypeInfo* pk_tpinfo(const py_Ref self);
 /// Search the magic method from the given type to the base type.
 /// Returns the reference or NULL if not found.
 /// @lifespan: Permanent.
-py_Ref py_tpfindmagic(py_Type, py_Name name);
+py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
 
 /// Get the type object of the given type.
 /// @lifespan: Permanent.
-py_Ref py_tpobject(py_Type type);
+py_GlobalRef py_tpobject(py_Type type);
 
 #define MAGIC_METHOD(x) extern uint16_t x;
 #include "pocketpy/xmacros/magics.h"

@@ -53,7 +53,6 @@ typedef struct pk_VM {
     // singleton objects
     py_TValue True, False, None, NotImplemented, Ellipsis;
 
-    py_Error* last_error;
     py_TValue last_retval;
     py_TValue reg[8];  // users' registers
 
