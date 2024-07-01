@@ -10,6 +10,9 @@ typedef uint16_t py_Name;
 typedef int16_t py_Type;
 typedef struct py_Str py_Str;
 
+typedef int64_t py_i64;
+typedef double py_f64;
+
 /// Generic reference.
 typedef py_TValue* py_Ref;
 /// An object reference which has the same lifespan as the object.
@@ -46,8 +49,8 @@ bool py_exec(const char*);
 bool py_eval(const char*);
 
 /************* Values Creation *************/
-void py_newint(py_Ref, int64_t);
-void py_newfloat(py_Ref, double);
+void py_newint(py_Ref, py_i64);
+void py_newfloat(py_Ref, py_f64);
 void py_newbool(py_Ref, bool);
 void py_newstr(py_Ref, const char*);
 void py_newstrn(py_Ref, const char*, int);
@@ -94,9 +97,9 @@ void py_newnativefunc(py_Ref out, py_CFunction);
 /// @param udsize size of your userdata. You can use `py_touserdata()` to get the pointer to it.
 void py_newobject(py_Ref out, py_Type type, int slots, int udsize);
 /************* Type Cast *************/
-int64_t py_toint(const py_Ref);
-double py_tofloat(const py_Ref);
-bool py_castfloat(const py_Ref, double* out);
+py_i64 py_toint(const py_Ref);
+py_f64 py_tofloat(const py_Ref);
+bool py_castfloat(const py_Ref, py_f64* out);
 bool py_tobool(const py_Ref);
 py_Type py_totype(const py_Ref);
 const char* py_tostr(const py_Ref);
@@ -245,7 +248,7 @@ int py_lt(const py_Ref, const py_Ref);
 int py_ge(const py_Ref, const py_Ref);
 int py_gt(const py_Ref, const py_Ref);
 
-bool py_hash(const py_Ref, int64_t* out);
+bool py_hash(const py_Ref, py_i64* out);
 
 /// Python equivalent to `lhs is rhs`.
 bool py_isidentical(const py_Ref, const py_Ref);
