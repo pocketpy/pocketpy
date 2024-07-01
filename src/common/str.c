@@ -36,9 +36,9 @@ int c11_string__len(c11_string* self) {
     return *p;
 }
 
-c11_stringview c11_string__view(c11_string* self) {
+c11_sv c11_string__view(c11_string* self) {
     int* p = (int*)self - 1;
-    return (c11_stringview){self, *p};
+    return (c11_sv){self, *p};
 }
 
 c11_string* c11_string__replace(c11_string* self, char old, char new_) {
@@ -56,7 +56,7 @@ int c11_string__u8_length(c11_string* self) {
     return c11__byte_index_to_unicode(self, size);
 }
 
-c11_stringview c11_string__u8_getitem(c11_string* self, int i) {
+c11_sv c11_string__u8_getitem(c11_string* self, int i) {
     i = c11__unicode_index_to_byte(self, i);
     int size = c11__u8_header(self[i], false);
     return c11_sv__slice2(c11_string__view(self), i, i + size);
@@ -67,14 +67,14 @@ c11_string* c11_string__u8_slice(c11_string* self, int start, int stop, int step
     pk_SStream__ctor(&ss);
     assert(step != 0);
     for(int i = start; step > 0 ? i < stop : i > stop; i += step) {
-        c11_stringview unicode = c11_string__u8_getitem(self, i);
+        c11_sv unicode = c11_string__u8_getitem(self, i);
         pk_SStream__write_sv(&ss, unicode);
     }
     return pk_SStream__submit(&ss);
 }
 
 /////////////////////////////////////////
-void c11_sv__quote(c11_stringview sv, char quote, c11_vector* buf) {
+void c11_sv__quote(c11_sv sv, char quote, c11_vector* buf) {
     assert(quote == '"' || quote == '\'');
     c11_vector__push(char, buf, quote);
     for(int i = 0; i < sv.size; i++) {
@@ -103,7 +103,7 @@ void c11_sv__quote(c11_stringview sv, char quote, c11_vector* buf) {
     c11_vector__push(char, buf, quote);
 }
 
-void c11_sv__lower(c11_stringview sv, c11_vector* buf) {
+void c11_sv__lower(c11_sv sv, c11_vector* buf) {
     for(int i = 0; i < sv.size; i++) {
         char c = sv.data[i];
         if('A' <= c && c <= 'Z') c += 32;
@@ -111,7 +111,7 @@ void c11_sv__lower(c11_stringview sv, c11_vector* buf) {
     }
 }
 
-void c11_sv__upper(c11_stringview sv, c11_vector* buf) {
+void c11_sv__upper(c11_sv sv, c11_vector* buf) {
     for(int i = 0; i < sv.size; i++) {
         char c = sv.data[i];
         if('a' <= c && c <= 'z') c -= 32;
@@ -119,16 +119,16 @@ void c11_sv__upper(c11_stringview sv, c11_vector* buf) {
     }
 }
 
-c11_stringview c11_sv__slice(c11_stringview sv, int start) {
+c11_sv c11_sv__slice(c11_sv sv, int start) {
     return c11_sv__slice2(sv, start, sv.size);
 }
 
-c11_stringview c11_sv__slice2(c11_stringview sv, int start, int stop) {
+c11_sv c11_sv__slice2(c11_sv sv, int start, int stop) {
     if(stop < start) stop = start;
-    return (c11_stringview){sv.data + start, stop - start};
+    return (c11_sv){sv.data + start, stop - start};
 }
 
-c11_stringview c11_sv__strip(c11_stringview sv, bool left, bool right) {
+c11_sv c11_sv__strip(c11_sv sv, bool left, bool right) {
     int L = 0;
     int R = sv.size;
     const char* data = sv.data;
@@ -144,14 +144,14 @@ c11_stringview c11_sv__strip(c11_stringview sv, bool left, bool right) {
     return c11_sv__slice2(sv, L, R);
 }
 
-int c11_sv__index(c11_stringview self, char c) {
+int c11_sv__index(c11_sv self, char c) {
     for(int i = 0; i < self.size; i++) {
         if(self.data[i] == c) return i;
     }
     return -1;
 }
 
-int c11_sv__index2(c11_stringview self, c11_stringview sub, int start) {
+int c11_sv__index2(c11_sv self, c11_sv sub, int start) {
     if(sub.size == 0) return start;
     int max_end = self.size - sub.size;
     for(int i = start; i <= max_end; i++) {
@@ -161,7 +161,7 @@ int c11_sv__index2(c11_stringview self, c11_stringview sub, int start) {
     return -1;
 }
 
-int c11_sv__count(c11_stringview self, c11_stringview sub) {
+int c11_sv__count(c11_sv self, c11_sv sub) {
     if(sub.size == 0) return self.size + 1;
     int cnt = 0;
     int start = 0;
@@ -174,42 +174,42 @@ int c11_sv__count(c11_stringview self, c11_stringview sub) {
     return cnt;
 }
 
-c11_vector /* T=c11_stringview */ c11_sv__split(c11_stringview self, char sep) {
+c11_vector /* T=c11_sv */ c11_sv__split(c11_sv self, char sep) {
     c11_vector retval;
-    c11_vector__ctor(&retval, sizeof(c11_stringview));
+    c11_vector__ctor(&retval, sizeof(c11_sv));
     const char* data = self.data;
     int i = 0;
     for(int j = 0; j < self.size; j++) {
         if(data[j] == sep) {
             if(j > i) {
-                c11_stringview tmp = {data + i, j - i};
-                c11_vector__push(c11_stringview, &retval, tmp);
+                c11_sv tmp = {data + i, j - i};
+                c11_vector__push(c11_sv, &retval, tmp);
             }
             i = j + 1;
             continue;
         }
     }
     if(self.size > i) {
-        c11_stringview tmp = {data + i, self.size - i};
-        c11_vector__push(c11_stringview, &retval, tmp);
+        c11_sv tmp = {data + i, self.size - i};
+        c11_vector__push(c11_sv, &retval, tmp);
     }
     return retval;
 }
 
-c11_vector /* T=c11_stringview */ c11_sv__split2(c11_stringview self, c11_stringview sep) {
+c11_vector /* T=c11_sv */ c11_sv__split2(c11_sv self, c11_sv sep) {
     c11_vector retval;
-    c11_vector__ctor(&retval, sizeof(c11_stringview));
+    c11_vector__ctor(&retval, sizeof(c11_sv));
     int start = 0;
     const char* data = self.data;
     while(true) {
         int i = c11_sv__index2(self, sep, start);
         if(i == -1) break;
-        c11_stringview tmp = {data + start, i - start};
-        if(tmp.size != 0) c11_vector__push(c11_stringview, &retval, tmp);
+        c11_sv tmp = {data + start, i - start};
+        if(tmp.size != 0) c11_vector__push(c11_sv, &retval, tmp);
         start = i + sep.size;
     }
-    c11_stringview tmp = {data + start, self.size - start};
-    if(tmp.size != 0) c11_vector__push(c11_stringview, &retval, tmp);
+    c11_sv tmp = {data + start, self.size - start};
+    if(tmp.size != 0) c11_vector__push(c11_sv, &retval, tmp);
     return retval;
 }
 
@@ -232,18 +232,18 @@ int c11__byte_index_to_unicode(const char* data, int n) {
 
 //////////////
 
-int c11_string__cmp(c11_stringview self, c11_stringview other) {
-    return c11_string__cmp2(self, other.data, other.size);
+int c11_sv__cmp(c11_sv self, c11_sv other) {
+    return c11_sv__cmp2(self, other.data, other.size);
 }
 
-int c11_string__cmp2(c11_stringview self, const char* other, int size) {
+int c11_sv__cmp2(c11_sv self, const char* other, int size) {
     int res = strncmp(self.data, other, PK_MIN(self.size, size));
     if(res != 0) return res;
     return self.size - size;
 }
 
-int c11_string__cmp3(c11_stringview self, const char* other) {
-    return c11_string__cmp2(self, other, strlen(other));
+int c11_sv__cmp3(c11_sv self, const char* other) {
+    return c11_sv__cmp2(self, other, strlen(other));
 }
 
 

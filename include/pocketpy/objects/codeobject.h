@@ -87,7 +87,7 @@ typedef struct CodeObject {
     int end_line;
 } CodeObject;
 
-void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_stringview name);
+void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_sv name);
 void CodeObject__dtor(CodeObject* self);
 void CodeObject__gc_mark(const CodeObject* self);
 
@@ -116,7 +116,7 @@ typedef struct FuncDecl {
 
 typedef FuncDecl* FuncDecl_;
 
-FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_stringview name);
+FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name);
 void FuncDecl__dtor(FuncDecl* self);
 void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const py_TValue* value);
 void FuncDecl__gc_mark(const FuncDecl* self);

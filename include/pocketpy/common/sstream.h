@@ -21,7 +21,7 @@ void pk_SStream__write_int(pk_SStream* self, int);
 void pk_SStream__write_i64(pk_SStream* self, int64_t);
 void pk_SStream__write_f64(pk_SStream* self, double, int precision);
 void pk_SStream__write_char(pk_SStream* self, char);
-void pk_SStream__write_sv(pk_SStream* self, c11_stringview);
+void pk_SStream__write_sv(pk_SStream* self, c11_sv);
 void pk_SStream__write_cstr(pk_SStream* self, const char*);
 void pk_SStream__write_cstrn(pk_SStream* self, const char*, int);
 void pk_SStream__write_hex(pk_SStream* self, unsigned char, bool non_zero);

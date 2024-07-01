@@ -64,7 +64,7 @@ void pk_SStream__write_f64(pk_SStream* self, double val, int precision) {
     if(all_is_digit) pk_SStream__write_cstr(self, ".0");
 }
 
-void pk_SStream__write_sv(pk_SStream* self, c11_stringview sv) {
+void pk_SStream__write_sv(pk_SStream* self, c11_sv sv) {
     pk_SStream__write_cstrn(self, sv.data, sv.size);
 }
 
@@ -146,7 +146,7 @@ void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args) {
             }
             case 'q': {
                 const char* s = va_arg(args, const char*);
-                c11_stringview sv = {s, strlen(s)};
+                c11_sv sv = {s, strlen(s)};
                 c11_sv__quote(sv, '\'', &ss->data);
                 break;
             }

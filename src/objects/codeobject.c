@@ -13,7 +13,7 @@ bool Bytecode__is_forward_jump(const Bytecode* self) {
     return self->op >= OP_JUMP_FORWARD && self->op <= OP_LOOP_BREAK;
 }
 
-FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_stringview name) {
+FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name) {
     FuncDecl* self = malloc(sizeof(FuncDecl));
     self->rc.count = 1;
     self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
@@ -46,7 +46,7 @@ void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const py_TValu
     c11_vector__push(FuncDeclKwArg, &self->kwargs, item);
 }
 
-void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_stringview name) {
+void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_sv name) {
     self->src = src;
     PK_INCREF(src);
     self->name = c11_string__new2(name.data, name.size);

@@ -93,7 +93,7 @@ typedef enum IntParsingResult{
     IntParsing_OVERFLOW,
 } IntParsingResult;
 
-IntParsingResult parse_uint(c11_stringview text, int64_t* out, int base);
+IntParsingResult parse_uint(c11_sv text, int64_t* out, int base);
 
 typedef struct Error Error;
 
@@ -103,7 +103,7 @@ Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens);
 Error* pk_Lexer__process_and_dump(pk_SourceData_ src, c11_string** out_string);
 void pk_TokenArray__dtor(pk_TokenArray* self);
 
-#define Token__sv(self) (c11_stringview){(self)->start, (self)->length}
+#define Token__sv(self) (c11_sv){(self)->start, (self)->length}
 
 #ifdef __cplusplus
 }

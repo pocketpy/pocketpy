@@ -83,7 +83,7 @@ void Ctx__patch_jump(Ctx* self, int index);
 bool Ctx__add_label(Ctx* self, StrName name);
 int Ctx__add_varname(Ctx* self, StrName name);
 int Ctx__add_const(Ctx* self, py_Ref);
-int Ctx__add_const_string(Ctx* self, c11_stringview);
+int Ctx__add_const_string(Ctx* self, c11_sv);
 void Ctx__emit_store_name(Ctx* self, NameScope scope, StrName name, int line);
 void Ctx__try_merge_for_iter_store(Ctx* self, int);
 void Ctx__s_emit_top(Ctx*);     // emit top -> pop -> delete
@@ -222,7 +222,7 @@ UnaryExpr* UnaryExpr__new(int line, Expr* child, Opcode opcode) {
 
 typedef struct RawStringExpr {
     EXPR_COMMON_HEADER
-    c11_stringview value;
+    c11_sv value;
     Opcode opcode;
 } RawStringExpr;
 
@@ -233,7 +233,7 @@ void RawStringExpr__emit_(Expr* self_, Ctx* ctx) {
     Ctx__emit_(ctx, self->opcode, BC_NOARG, self->line);
 }
 
-RawStringExpr* RawStringExpr__new(int line, c11_stringview value, Opcode opcode) {
+RawStringExpr* RawStringExpr__new(int line, c11_sv value, Opcode opcode) {
     const static ExprVt Vt = {.emit_ = RawStringExpr__emit_};
     static_assert_expr_size(RawStringExpr);
     RawStringExpr* self = PoolExpr_alloc();
@@ -289,7 +289,7 @@ void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
             break;
         }
         case TokenValue_STR: {
-            c11_stringview sv = c11_string__view(self->value->_str);
+            c11_sv sv = c11_string__view(self->value->_str);
             int index = Ctx__add_const_string(ctx, sv);
             Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
             break;
@@ -585,7 +585,7 @@ LambdaExpr* LambdaExpr__new(int line, int index) {
 
 typedef struct FStringExpr {
     EXPR_COMMON_HEADER
-    c11_stringview src;
+    c11_sv src;
 } FStringExpr;
 
 static bool is_fmt_valid_char(char c) {
@@ -601,7 +601,7 @@ static bool is_fmt_valid_char(char c) {
     }
 }
 
-static bool is_identifier(c11_stringview s) {
+static bool is_identifier(c11_sv s) {
     if(s.size == 0) return false;
     if(!isalpha(s.data[0]) && s.data[0] != '_') return false;
     for(int i = 0; i < s.size; i++) {
@@ -611,7 +611,7 @@ static bool is_identifier(c11_stringview s) {
     return true;
 }
 
-static void _load_simple_expr(Ctx* ctx, c11_stringview expr, int line) {
+static void _load_simple_expr(Ctx* ctx, c11_sv expr, int line) {
     bool repr = false;
     const char* expr_end = expr.data + expr.size;
     if(expr.size >= 2 && expr_end[-2] == '!') {
@@ -636,8 +636,8 @@ static void _load_simple_expr(Ctx* ctx, c11_stringview expr, int line) {
     } else {
         int dot = c11_sv__index(expr, '.');
         if(dot > 0) {
-            c11_stringview a = {expr.data, dot};                                // expr[:dot]
-            c11_stringview b = {expr.data + (dot + 1), expr.size - (dot + 1)};  // expr[dot+1:]
+            c11_sv a = {expr.data, dot};                                // expr[:dot]
+            c11_sv b = {expr.data + (dot + 1), expr.size - (dot + 1)};  // expr[dot+1:]
             if(is_identifier(a) && is_identifier(b)) {
                 Ctx__emit_(ctx, OP_LOAD_NAME, pk_StrName__map2(a), line);
                 Ctx__emit_(ctx, OP_LOAD_ATTR, pk_StrName__map2(b), line);
@@ -666,11 +666,11 @@ static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
         if(flag) {
             if(src[j] == '}') {
                 // add expression
-                c11_stringview expr = {src + i, j - i};  // src[i:j]
+                c11_sv expr = {src + i, j - i};  // src[i:j]
                 // BUG: ':' is not a format specifier in f"{stack[2:]}"
                 int conon = c11_sv__index(expr, ':');
                 if(conon >= 0) {
-                    c11_stringview spec = {expr.data + (conon + 1),
+                    c11_sv spec = {expr.data + (conon + 1),
                                        expr.size - (conon + 1)};  // expr[conon+1:]
                     // filter some invalid spec
                     bool ok = true;
@@ -707,7 +707,7 @@ static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
                     j++;
                     Ctx__emit_(ctx,
                                OP_LOAD_CONST,
-                               Ctx__add_const_string(ctx, (c11_stringview){"{", 1}),
+                               Ctx__add_const_string(ctx, (c11_sv){"{", 1}),
                                self->line);
                     count++;
                 } else {
@@ -722,7 +722,7 @@ static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
                     j++;
                     Ctx__emit_(ctx,
                                OP_LOAD_CONST,
-                               Ctx__add_const_string(ctx, (c11_stringview){"}", 1}),
+                               Ctx__add_const_string(ctx, (c11_sv){"}", 1}),
                                self->line);
                     count++;
                 } else {
@@ -735,7 +735,7 @@ static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
                 i = j;
                 while(j < self->src.size && src[j] != '{' && src[j] != '}')
                     j++;
-                c11_stringview literal = {src + i, j - i};  // src[i:j]
+                c11_sv literal = {src + i, j - i};  // src[i:j]
                 Ctx__emit_(ctx, OP_LOAD_CONST, Ctx__add_const_string(ctx, literal), self->line);
                 count++;
                 continue;  // skip j++
@@ -746,14 +746,14 @@ static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
 
     if(flag) {
         // literal
-        c11_stringview literal = {src + i, self->src.size - i};  // src[i:]
+        c11_sv literal = {src + i, self->src.size - i};  // src[i:]
         Ctx__emit_(ctx, OP_LOAD_CONST, Ctx__add_const_string(ctx, literal), self->line);
         count++;
     }
     Ctx__emit_(ctx, OP_BUILD_STRING, count, self->line);
 }
 
-FStringExpr* FStringExpr__new(int line, c11_stringview src) {
+FStringExpr* FStringExpr__new(int line, c11_sv src) {
     const static ExprVt Vt = {.emit_ = FStringExpr__emit_};
     static_assert_expr_size(FStringExpr);
     FStringExpr* self = PoolExpr_alloc();
@@ -1344,7 +1344,7 @@ int Ctx__add_varname(Ctx* self, StrName name) {
     return index;
 }
 
-int Ctx__add_const_string(Ctx* self, c11_stringview key) {
+int Ctx__add_const_string(Ctx* self, c11_sv key) {
     uint16_t* val = c11_smallmap_s2n__try_get(&self->co_consts_string_dedup_map, key);
     if(val) {
         return *val;
@@ -1659,19 +1659,19 @@ static Error* exprLiteral(Compiler* self) {
 }
 
 static Error* exprLong(Compiler* self) {
-    c11_stringview sv = Token__sv(prev());
+    c11_sv sv = Token__sv(prev());
     Ctx__s_push(ctx(), (Expr*)RawStringExpr__new(prev()->line, sv, OP_BUILD_LONG));
     return NULL;
 }
 
 static Error* exprBytes(Compiler* self) {
-    c11_stringview sv = c11_string__view(prev()->value._str);
+    c11_sv sv = c11_string__view(prev()->value._str);
     Ctx__s_push(ctx(), (Expr*)RawStringExpr__new(prev()->line, sv, OP_BUILD_BYTES));
     return NULL;
 }
 
 static Error* exprFString(Compiler* self) {
-    c11_stringview sv = c11_string__view(prev()->value._str);
+    c11_sv sv = c11_string__view(prev()->value._str);
     Ctx__s_push(ctx(), (Expr*)FStringExpr__new(prev()->line, sv));
     return NULL;
 }
