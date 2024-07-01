@@ -668,11 +668,7 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
             }
         }
     }
-    // eq/ne op never fails
-    if(op == __eq__ || op == __ne__) {
-        self->last_retval = (op == __eq__) ? self->False : self->True;
-        return true;
-    }
+    // eq/ne op never fails due to object.__eq__
     return BinaryOptError(byte.arg);
 }
 
