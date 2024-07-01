@@ -163,6 +163,16 @@ void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args) {
                 pk_SStream__write_cstr(ss, s);
                 break;
             }
+            case 'q': {
+                const char* s = va_arg(args, const char*);
+                py_Str tmp, tmp2;
+                py_Str__ctor(&tmp, s);
+                tmp2 = py_Str__escape(&tmp, '\'');
+                pk_SStream__write_Str(ss, &tmp2);
+                py_Str__dtor(&tmp);
+                py_Str__dtor(&tmp2);
+                break;
+            }
             case 'S': {
                 const py_Str* s = va_arg(args, const py_Str*);
                 pk_SStream__write_Str(ss, s);

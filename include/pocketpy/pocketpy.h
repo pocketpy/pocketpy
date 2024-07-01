@@ -316,6 +316,7 @@ const char* py_tpname(py_Type type);
 /// %i: py_i64 (int64_t)
 /// %f: py_f64 (double)
 /// %s: const char*
+/// %q: single quoted %s
 /// %c: char
 /// %p: void*
 /// %t: py_Type

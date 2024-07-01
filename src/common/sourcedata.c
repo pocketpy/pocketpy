@@ -77,17 +77,6 @@ py_Str pk_SourceData__snapshot(const struct pk_SourceData* self,
     pk_SStream ss;
     pk_SStream__ctor(&ss);
 
-    // pk_SStream__write_cstr(&ss, "  File \"");
-    // pk_SStream__write_Str(&ss, &self->filename);
-    // pk_SStream__write_cstr(&ss, "\", line ");
-    // pk_SStream__write_int(&ss, lineno);
-
-    // pk_SStream__write(&ss,
-    //     "  File \"{}\", line {}",
-    //     &self->filename,
-    //     lineno
-    // );
-
     pk_sprintf(&ss, "  File \"%S\", line %d", &self->filename, lineno);
 
     if(name && *name) {
