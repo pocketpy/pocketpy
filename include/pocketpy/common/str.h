@@ -27,7 +27,7 @@ c11_string* c11_string__new2(const char* data, int size);
 c11_string* c11_string__copy(c11_string* self);
 void c11_string__delete(c11_string* self);
 int c11_string__len(c11_string* self);
-c11_sv c11_string__view(c11_string* self);
+c11_sv c11_string__sv(c11_string* self);
 c11_string* c11_string__replace(c11_string* self, char old, char new_);
 
 int c11_string__u8_length(const c11_string* self);

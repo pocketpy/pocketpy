@@ -821,7 +821,7 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, c11_string** out) {
                 break;
             case TokenValue_STR: {
                 pk_SStream__write_char(&ss, 'S');
-                c11_sv sv = c11_string__view(token->value._str);
+                c11_sv sv = c11_string__sv(token->value._str);
                 for(int i=0; i<sv.size; i++){
                     pk_SStream__write_hex(&ss, sv.data[i], false);
                 }

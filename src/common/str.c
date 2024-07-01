@@ -36,7 +36,7 @@ int c11_string__len(c11_string* self) {
     return *p;
 }
 
-c11_sv c11_string__view(c11_string* self) {
+c11_sv c11_string__sv(c11_string* self) {
     int* p = (int*)self - 1;
     return (c11_sv){self, *p};
 }
@@ -59,7 +59,7 @@ int c11_string__u8_length(c11_string* self) {
 c11_sv c11_string__u8_getitem(c11_string* self, int i) {
     i = c11__unicode_index_to_byte(self, i);
     int size = c11__u8_header(self[i], false);
-    return c11_sv__slice2(c11_string__view(self), i, i + size);
+    return c11_sv__slice2(c11_string__sv(self), i, i + size);
 }
 
 c11_string* c11_string__u8_slice(c11_string* self, int start, int stop, int step) {

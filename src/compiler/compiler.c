@@ -289,7 +289,7 @@ void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
             break;
         }
         case TokenValue_STR: {
-            c11_sv sv = c11_string__view(self->value->_str);
+            c11_sv sv = c11_string__sv(self->value->_str);
             int index = Ctx__add_const_string(ctx, sv);
             Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
             break;
@@ -1354,7 +1354,7 @@ int Ctx__add_const_string(Ctx* self, c11_sv key) {
         c11_vector__push(py_TValue, &self->co->consts, tmp);
         int index = self->co->consts.count - 1;
         c11_smallmap_s2n__set(&self->co_consts_string_dedup_map,
-                              c11_string__view(PyObject__value(tmp._obj)),
+                              c11_string__sv(PyObject__value(tmp._obj)),
                               index);
         return index;
     }
@@ -1665,13 +1665,13 @@ static Error* exprLong(Compiler* self) {
 }
 
 static Error* exprBytes(Compiler* self) {
-    c11_sv sv = c11_string__view(prev()->value._str);
+    c11_sv sv = c11_string__sv(prev()->value._str);
     Ctx__s_push(ctx(), (Expr*)RawStringExpr__new(prev()->line, sv, OP_BUILD_BYTES));
     return NULL;
 }
 
 static Error* exprFString(Compiler* self) {
-    c11_sv sv = c11_string__view(prev()->value._str);
+    c11_sv sv = c11_string__sv(prev()->value._str);
     Ctx__s_push(ctx(), (Expr*)FStringExpr__new(prev()->line, sv));
     return NULL;
 }
@@ -2064,7 +2064,7 @@ Error* pk_compile(pk_SourceData_ src, CodeObject* out) {
 
     Compiler compiler;
     Compiler__ctor(&compiler, src, tokens);
-    CodeObject__ctor(out, src, c11_string__view(src->filename));
+    CodeObject__ctor(out, src, c11_string__sv(src->filename));
     err = Compiler__compile(&compiler, out);
     if(err) {
         // if error occurs, dispose the code object
