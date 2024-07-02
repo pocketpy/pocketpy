@@ -86,19 +86,11 @@ void METHOD(set)(NAME* self, K key, V value) {
 }
 
 V* METHOD(try_get)(const NAME* self, K key) {
-    // use `bsearch` which is faster than `lower_bound`
-    int low = 0;
-    int high = self->count - 1;
-    KV* a = self->data;
-    while(low <= high){
-        int mid = (low + high) / 2;
-        if(equal(a[mid].key, key)){
-            return &a[mid].value;
-        } else if(less(a[mid].key, key)){
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
+    int index;
+    c11__lower_bound(KV, self->data, self->count, key, partial_less, &index);
+    if(index != self->count){
+        KV* it = c11__at(KV, self, index);
+        if(equal(it->key, key)) return &it->value;
     }
     return NULL;
 }
