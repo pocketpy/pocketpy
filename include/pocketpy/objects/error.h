@@ -17,7 +17,7 @@ extern "C" {
 // } pkpy_ExceptionFrame;
 
 // typedef struct pkpy_Exception {
-//     StrName type;
+//     py_Name type;
 //     py_Str msg;
 //     bool is_re;
 
@@ -29,7 +29,7 @@ extern "C" {
 //     c11_vector/*T=pkpy_ExceptionFrame*/ stacktrace;
 // } pkpy_Exception;
 
-// void pkpy_Exception__ctor(pkpy_Exception* self, StrName type);
+// void pkpy_Exception__ctor(pkpy_Exception* self, py_Name type);
 // void pkpy_Exception__dtor(pkpy_Exception* self);
 // void pkpy_Exception__stpush(pkpy_Exception* self, pk_SourceData_ src, int lineno, const char* cursor, const char* name);
 // py_Str pkpy_Exception__summary(pkpy_Exception* self);

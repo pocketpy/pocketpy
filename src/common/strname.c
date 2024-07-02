@@ -11,7 +11,7 @@ static c11_smallmap_s2n _interned;
 static c11_vector /*T=char* */ _r_interned;
 static bool _initialized = false;
 
-void pk_StrName__initialize() {
+void py_Name__initialize() {
     if(_initialized) return;
     c11_smallmap_s2n__ctor(&_interned);
     for(int i = 0; i < _r_interned.count; i++) {
@@ -30,7 +30,7 @@ void pk_StrName__initialize() {
     }
 }
 
-void pk_StrName__finalize() {
+void py_Name__finalize() {
     if(!_initialized) return;
     // free all char*
     for(int i = 0; i < _r_interned.count; i++) {
@@ -40,19 +40,19 @@ void pk_StrName__finalize() {
     c11_vector__dtor(&_r_interned);
 }
 
-uint16_t pk_StrName__map(const char* name) {
-    return pk_StrName__map2((c11_sv){name, strlen(name)});
+py_Name py_name(const char* name) {
+    return py_name2((c11_sv){name, strlen(name)});
 }
 
-uint16_t pk_StrName__map2(c11_sv name) {
+py_Name py_name2(c11_sv name) {
     // TODO: PK_GLOBAL_SCOPE_LOCK()
     if(!_initialized) {
-        pk_StrName__initialize();  // lazy init
+        py_Name__initialize();  // lazy init
     }
     uint16_t index = c11_smallmap_s2n__get(&_interned, name, 0);
     if(index != 0) return index;
     // generate new index
-    if(_interned.count > 65530) { PK_FATAL_ERROR("StrName index overflow\n"); }
+    if(_interned.count > 65530) { PK_FATAL_ERROR("py_Name index overflow\n"); }
     // NOTE: we must allocate the string in the heap so iterators are not invalidated
     char* p = malloc(name.size + 1);
     memcpy(p, name.data, name.size);
@@ -65,24 +65,17 @@ uint16_t pk_StrName__map2(c11_sv name) {
     return index;
 }
 
-const char* pk_StrName__rmap(uint16_t index) {
+const char* py_name2str(py_Name index) {
     assert(_initialized);
     assert(index > 0 && index <= _interned.count);
     return c11__getitem(char*, &_r_interned, index - 1);
 }
 
-c11_sv pk_StrName__rmap2(uint16_t index) {
-    const char* p = pk_StrName__rmap(index);
+c11_sv py_name2sv(py_Name index) {
+    const char* p = py_name2str(index);
     return (c11_sv){p, strlen(p)};
 }
 
-py_Name py_name(const char* name) {
-    return pk_StrName__map(name);
-}
-
-const char* py_name2str(py_Name name) {
-    return pk_StrName__rmap(name);
-}
 
 bool py_ismagicname(py_Name name){
     return name <= __missing__;

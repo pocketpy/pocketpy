@@ -138,7 +138,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 //     obj =
                 //         new_object<Function>(tp_function, decl, frame->_module, nullptr,
                 //         captured);
-                //     uint16_t name = pk_StrName__map2(py_Str__sv(&decl->code->name));
+                //     uint16_t name = py_Name__map2(py_Str__sv(&decl->code->name));
                 //     captured->set(name, obj);
                 // } else {
                 //     obj = new_object<Function>(tp_function, decl, frame->_module, nullptr,
@@ -340,7 +340,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_DELETE_NAME: {
-                StrName name = byte.arg;
+                py_Name name = byte.arg;
                 if(frame->function) {
                     py_TValue* slot = Frame__f_locals_try_get(frame, name);
                     if(slot) {
@@ -366,7 +366,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_DELETE_GLOBAL: {
-                StrName name = byte.arg;
+                py_Name name = byte.arg;
                 bool ok = pk_NameDict__del(Frame__f_globals(frame), name);
                 if(!ok) {
                     NameError(name);
@@ -598,7 +598,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH_JUMP_ABSOLUTE(target);
             }
                 // case OP_GOTO: {
-                //     StrName _name(byte.arg);
+                //     py_Name _name(byte.arg);
                 //     int target = c11_smallmap_n2i__get(&frame->co->labels, byte.arg, -1);
                 //     if(target < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
                 //     frame->prepare_jump_break(&s_data, target);

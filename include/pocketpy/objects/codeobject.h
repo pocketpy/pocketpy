@@ -74,7 +74,7 @@ typedef struct CodeObject {
     c11_vector/*T=CodeObjectByteCodeEx*/    codes_ex;
 
     c11_vector/*T=py_TValue*/   consts;     // constants
-    c11_vector/*T=StrName*/ varnames;   // local variables
+    c11_vector/*T=py_Name*/ varnames;   // local variables
     int nlocals;                        // cached varnames.size()
 
     c11_smallmap_n2i varnames_inv;

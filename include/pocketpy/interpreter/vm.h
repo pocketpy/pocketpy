@@ -19,7 +19,7 @@ typedef struct pk_TypeInfo {
     void (*dtor)(void*);
     void (*gc_mark)(void*);
 
-    c11_vector /*T=StrName*/ annotated_fields;
+    c11_vector /*T=py_Name*/ annotated_fields;
 
     py_CFunction on_end_subclass;  // backdoor for enum module
 

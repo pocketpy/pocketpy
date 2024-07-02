@@ -132,7 +132,7 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
     }
 }
 
-py_TValue* Frame__f_closure_try_get(Frame* self, StrName name){
+py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name){
     // if(self->function == NULL) return NULL;
     // pkpy::Function* fn = PyObject__as(pkpy::Function, self->function);
     // if(fn->_closure == nullptr) return nullptr;

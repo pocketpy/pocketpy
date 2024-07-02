@@ -64,7 +64,7 @@ typedef struct Ctx {
     int curr_iblock;
     bool is_compiling_class;
     c11_vector /*T=Expr* */ s_expr;
-    c11_vector /*T=StrName*/ global_names;
+    c11_vector /*T=py_Name*/ global_names;
     c11_smallmap_s2n co_consts_string_dedup_map;
 } Ctx;
 
@@ -80,11 +80,11 @@ int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool vir
 void Ctx__revert_last_emit_(Ctx* self);
 int Ctx__emit_int(Ctx* self, int64_t value, int line);
 void Ctx__patch_jump(Ctx* self, int index);
-bool Ctx__add_label(Ctx* self, StrName name);
-int Ctx__add_varname(Ctx* self, StrName name);
+bool Ctx__add_label(Ctx* self, py_Name name);
+int Ctx__add_varname(Ctx* self, py_Name name);
 int Ctx__add_const(Ctx* self, py_Ref);
 int Ctx__add_const_string(Ctx* self, c11_sv);
-void Ctx__emit_store_name(Ctx* self, NameScope scope, StrName name, int line);
+void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line);
 void Ctx__try_merge_for_iter_store(Ctx* self, int);
 void Ctx__s_emit_top(Ctx*);     // emit top -> pop -> delete
 void Ctx__s_push(Ctx*, Expr*);  // push
@@ -97,7 +97,7 @@ void Ctx__s_emit_decorators(Ctx*, int count);
 /* expr.c */
 typedef struct NameExpr {
     EXPR_COMMON_HEADER
-    StrName name;
+    py_Name name;
     NameScope scope;
 } NameExpr;
 
@@ -144,7 +144,7 @@ bool NameExpr__emit_store(Expr* self_, Ctx* ctx) {
     return true;
 }
 
-NameExpr* NameExpr__new(int line, StrName name, NameScope scope) {
+NameExpr* NameExpr__new(int line, py_Name name, NameScope scope) {
     const static ExprVt Vt = {.emit_ = NameExpr__emit_,
                               .emit_del = NameExpr__emit_del,
                               .emit_store = NameExpr__emit_store,
@@ -630,8 +630,8 @@ static void _load_simple_expr(Ctx* ctx, c11_sv expr, int line) {
     // name or name.name
     bool is_fastpath = false;
     if(is_identifier(expr)) {
-        // ctx->emit_(OP_LOAD_NAME, StrName(expr.sv()).index, line);
-        Ctx__emit_(ctx, OP_LOAD_NAME, pk_StrName__map2(expr), line);
+        // ctx->emit_(OP_LOAD_NAME, py_Name(expr.sv()).index, line);
+        Ctx__emit_(ctx, OP_LOAD_NAME, py_name2(expr), line);
         is_fastpath = true;
     } else {
         int dot = c11_sv__index(expr, '.');
@@ -639,8 +639,8 @@ static void _load_simple_expr(Ctx* ctx, c11_sv expr, int line) {
             c11_sv a = {expr.data, dot};                                // expr[:dot]
             c11_sv b = {expr.data + (dot + 1), expr.size - (dot + 1)};  // expr[dot+1:]
             if(is_identifier(a) && is_identifier(b)) {
-                Ctx__emit_(ctx, OP_LOAD_NAME, pk_StrName__map2(a), line);
-                Ctx__emit_(ctx, OP_LOAD_ATTR, pk_StrName__map2(b), line);
+                Ctx__emit_(ctx, OP_LOAD_NAME, py_name2(a), line);
+                Ctx__emit_(ctx, OP_LOAD_ATTR, py_name2(b), line);
                 is_fastpath = true;
             }
         }
@@ -1073,7 +1073,7 @@ SubscrExpr* SubscrExpr__new(int line) {
 typedef struct AttribExpr {
     EXPR_COMMON_HEADER
     Expr* child;
-    StrName name;
+    py_Name name;
 } AttribExpr;
 
 void AttribExpr__emit_(Expr* self_, Ctx* ctx) {
@@ -1111,7 +1111,7 @@ bool AttribExpr__emit_istore(Expr* self_, Ctx* ctx) {
     return true;
 }
 
-AttribExpr* AttribExpr__new(int line, Expr* child, StrName name) {
+AttribExpr* AttribExpr__new(int line, Expr* child, py_Name name) {
     const static ExprVt Vt = {.emit_ = AttribExpr__emit_,
                               .emit_del = AttribExpr__emit_del,
                               .emit_store = AttribExpr__emit_store,
@@ -1128,7 +1128,7 @@ AttribExpr* AttribExpr__new(int line, Expr* child, StrName name) {
 }
 
 typedef struct CallExprKwArg {
-    StrName key;
+    py_Name key;
     Expr* val;
 } CallExprKwArg;
 
@@ -1209,7 +1209,7 @@ void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
     self->curr_iblock = 0;
     self->is_compiling_class = false;
     c11_vector__ctor(&self->s_expr, sizeof(Expr*));
-    c11_vector__ctor(&self->global_names, sizeof(StrName));
+    c11_vector__ctor(&self->global_names, sizeof(py_Name));
     c11_smallmap_s2n__ctor(&self->co_consts_string_dedup_map);
 }
 
@@ -1326,14 +1326,14 @@ void Ctx__patch_jump(Ctx* self, int index) {
     Bytecode__set_signed_arg(&co_codes[index], target - index);
 }
 
-bool Ctx__add_label(Ctx* self, StrName name) {
+bool Ctx__add_label(Ctx* self, py_Name name) {
     bool ok = c11_smallmap_n2i__contains(&self->co->labels, name);
     if(ok) return false;
     c11_smallmap_n2i__set(&self->co->labels, name, self->co->codes.count);
     return true;
 }
 
-int Ctx__add_varname(Ctx* self, StrName name) {
+int Ctx__add_varname(Ctx* self, py_Name name) {
     // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
     int index = c11_smallmap_n2i__get(&self->co->varnames_inv, name, -1);
     if(index >= 0) return index;
@@ -1366,7 +1366,7 @@ int Ctx__add_const(Ctx* self, py_Ref v) {
     return self->co->consts.count - 1;
 }
 
-void Ctx__emit_store_name(Ctx* self, NameScope scope, StrName name, int line) {
+void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line) {
     switch(scope) {
         case NAME_LOCAL: Ctx__emit_(self, OP_STORE_FAST, Ctx__add_varname(self, name), line); break;
         case NAME_GLOBAL: Ctx__emit_(self, OP_STORE_GLOBAL, name, line); break;
@@ -1795,11 +1795,11 @@ static Error* exprGroup(Compiler* self) {
 }
 
 static Error* exprName(Compiler* self) {
-    StrName name = pk_StrName__map2(Token__sv(prev()));
+    py_Name name = py_name2(Token__sv(prev()));
     NameScope scope = name_scope(self);
     // promote this name to global scope if needed
     c11_vector* global_names = &ctx()->global_names;
-    c11__foreach(StrName, global_names, it) {
+    c11__foreach(py_Name, global_names, it) {
         if(*it == name) scope = NAME_GLOBAL;
     }
     NameExpr* e = NameExpr__new(prev()->line, name, scope);
@@ -1809,7 +1809,7 @@ static Error* exprName(Compiler* self) {
 
 static Error* exprAttrib(Compiler* self) {
     consume(TK_ID);
-    StrName name = pk_StrName__map2(Token__sv(prev()));
+    py_Name name = py_name2(Token__sv(prev()));
     AttribExpr* e = AttribExpr__new(prev()->line, Ctx__s_popx(ctx()), name);
     Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
@@ -1922,7 +1922,7 @@ static Error* exprCall(Compiler* self) {
         if(curr()->type == TK_RPAREN) break;
         if(curr()->type == TK_ID && next()->type == TK_ASSIGN) {
             consume(TK_ID);
-            StrName key = pk_StrName__map2(Token__sv(prev()));
+            py_Name key = py_name2(Token__sv(prev()));
             consume(TK_ASSIGN);
             check(EXPR(self));
             CallExprKwArg kw = {key, Ctx__s_popx(ctx())};
