@@ -326,9 +326,13 @@ bool py_checktype(const py_Ref self, py_Type type);
 /// %t: py_Type
 /// %n: py_Name
 
-#define MAGIC_METHOD(x) extern uint16_t x;
-#include "pocketpy/xmacros/magics.h"
-#undef MAGIC_METHOD
+
+enum py_MagicMethods{
+    py_MagicMethods__NULL,  // 0 is reserved
+    #define MAGIC_METHOD(x) x,
+    #include "pocketpy/xmacros/magics.h"
+    #undef MAGIC_METHOD
+};
 
 enum py_PredefinedTypes{
     tp_object = 1, tp_type,

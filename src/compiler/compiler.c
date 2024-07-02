@@ -849,7 +849,7 @@ static void BinaryExpr__dtor(Expr* self_) {
     vtdelete(self->rhs);
 }
 
-static Opcode cmp_token2name(TokenIndex token) {
+static py_Name cmp_token2name(TokenIndex token) {
     switch(token) {
         case TK_LT: return __lt__;
         case TK_LE: return __le__;

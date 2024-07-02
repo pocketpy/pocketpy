@@ -20,7 +20,7 @@ void pk_StrName__initialize() {
     c11_vector__ctor(&_r_interned, sizeof(c11_sv));
     _initialized = true;
 
-#define MAGIC_METHOD(x) x = pk_StrName__map(#x);
+#define MAGIC_METHOD(x) assert(x == py_name(#x));
 #include "pocketpy/xmacros/magics.h"
 #undef MAGIC_METHOD
 
@@ -94,10 +94,6 @@ bool py_ismagicname(py_Name name){
 }
 
 ///////////////////////////////////
-#define MAGIC_METHOD(x) uint16_t x;
-#include "pocketpy/xmacros/magics.h"
-#undef MAGIC_METHOD
-
 uint16_t pk_id_add;
 uint16_t pk_id_set;
 uint16_t pk_id_long;
