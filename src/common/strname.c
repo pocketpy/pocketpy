@@ -9,16 +9,13 @@
 // TODO: use a more efficient data structure
 static c11_smallmap_s2n _interned;
 static c11_vector /*T=char* */ _r_interned;
-static bool _initialized = false;
 
 void py_Name__initialize() {
-    if(_initialized) return;
     c11_smallmap_s2n__ctor(&_interned);
     for(int i = 0; i < _r_interned.count; i++) {
         free(c11__at(char*, &_r_interned, i));
     }
     c11_vector__ctor(&_r_interned, sizeof(c11_sv));
-    _initialized = true;
 
 #define MAGIC_METHOD(x) assert(x == py_name(#x));
 #include "pocketpy/xmacros/magics.h"
@@ -31,7 +28,6 @@ void py_Name__initialize() {
 }
 
 void py_Name__finalize() {
-    if(!_initialized) return;
     // free all char*
     for(int i = 0; i < _r_interned.count; i++) {
         free(c11__getitem(char*, &_r_interned, i));
@@ -46,9 +42,6 @@ py_Name py_name(const char* name) {
 
 py_Name py_name2(c11_sv name) {
     // TODO: PK_GLOBAL_SCOPE_LOCK()
-    if(!_initialized) {
-        py_Name__initialize();  // lazy init
-    }
     uint16_t index = c11_smallmap_s2n__get(&_interned, name, 0);
     if(index != 0) return index;
     // generate new index
@@ -66,12 +59,12 @@ py_Name py_name2(c11_sv name) {
 }
 
 const char* py_name2str(py_Name index) {
-    assert(_initialized);
     assert(index > 0 && index <= _interned.count);
     return c11__getitem(char*, &_r_interned, index - 1);
 }
 
 c11_sv py_name2sv(py_Name index) {
+    assert(index > 0 && index <= _interned.count);
     const char* p = py_name2str(index);
     return (c11_sv){p, strlen(p)};
 }
