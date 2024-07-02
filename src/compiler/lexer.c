@@ -246,11 +246,11 @@ static Error* eat_name(pk_Lexer* self){
     c11_sv name = {self->token_start, length};
 
     if(self->src->mode == JSON_MODE) {
-        if(c11_sv__cmp3(name, "true") == 0) {
+        if(c11__sveq(name, "true")) {
             add_token(self, TK_TRUE);
-        } else if(c11_sv__cmp3(name, "false") == 0) {
+        } else if(c11__sveq(name, "false")) {
             add_token(self, TK_FALSE);
-        } else if(c11_sv__cmp3(name, "null") == 0) {
+        } else if(c11__sveq(name, "null")) {
             add_token(self, TK_NONE);
         } else {
             return SyntaxError("invalid JSON token");
@@ -260,12 +260,12 @@ static Error* eat_name(pk_Lexer* self){
 
     const char** KW_BEGIN = pk_TokenSymbols + TK_FALSE;
     int KW_COUNT = TK__COUNT__ - TK_FALSE;
-    #define less(a, b) (c11_sv__cmp3(b, a) > 0)
+    #define less(a, b) (c11_sv__cmp2(b, a) > 0)
     int out;
     c11__lower_bound(const char*, KW_BEGIN, KW_COUNT, name, less, &out);
     #undef less
 
-    if(out != KW_COUNT && c11_sv__cmp3(name, KW_BEGIN[out]) == 0) {
+    if(out != KW_COUNT && c11__sveq(name, KW_BEGIN[out])) {
         add_token(self, (TokenIndex)(out + TK_FALSE));
     } else {
         add_token(self, TK_ID);
@@ -372,7 +372,7 @@ static Error* eat_number(pk_Lexer* self){
         }
         // try integer
         TokenValue value = {.index = TokenValue_I64};
-        switch(parse_uint(text, &value._i64, -1)) {
+        switch(c11__parse_uint(text, &value._i64, -1)) {
             case IntParsing_SUCCESS:
                 add_token_with_value(self, TK_NUM, value);
                 return NULL;
@@ -554,7 +554,7 @@ static Error* from_precompiled(pk_Lexer* self) {
     deserializer.curr += 5;  // skip "pkpy:"
     c11_sv version = TokenDeserializer__read_string(&deserializer, '\n');
 
-    if(c11_sv__cmp3(version, PK_VERSION) != 0) {
+    if(c11_sv__cmp2(version, PK_VERSION) != 0) {
         return SyntaxError("precompiled version mismatch");
     }
     if(TokenDeserializer__read_uint(&deserializer, '\n') != (int64_t)self->src->mode){
@@ -616,97 +616,6 @@ static Error* from_precompiled(pk_Lexer* self) {
         c11_vector__push(Token, &self->nexts, t);
     }
     return NULL;
-}
-
-IntParsingResult parse_uint(c11_sv text, int64_t* out, int base) {
-    *out = 0;
-
-    c11_sv prefix = {.data = text.data, .size = PK_MIN(2, text.size)};
-    if(base == -1) {
-        if(c11_sv__cmp3(prefix, "0b") == 0)
-            base = 2;
-        else if(c11_sv__cmp3(prefix, "0o") == 0)
-            base = 8;
-        else if(c11_sv__cmp3(prefix, "0x") == 0)
-            base = 16;
-        else
-            base = 10;
-    }
-
-    if(base == 10) {
-        // 10-base  12334
-        if(text.size == 0) return IntParsing_FAILURE;
-        for(int i = 0; i < text.size; i++) {
-            char c = text.data[i];
-            if(c >= '0' && c <= '9') {
-                *out = (*out * 10) + (c - '0');
-            } else {
-                return IntParsing_FAILURE;
-            }
-        }
-        // "9223372036854775807".__len__() == 19
-        if(text.size > 19) return IntParsing_OVERFLOW;
-        return IntParsing_SUCCESS;
-    } else if(base == 2) {
-        // 2-base   0b101010
-        if(c11_sv__cmp3(prefix, "0b") == 0) {
-            // text.remove_prefix(2);
-            text = (c11_sv){text.data + 2, text.size - 2};
-        }
-        if(text.size == 0) return IntParsing_FAILURE;
-        for(int i = 0; i < text.size; i++) {
-            char c = text.data[i];
-            if(c == '0' || c == '1') {
-                *out = (*out << 1) | (c - '0');
-            } else {
-                return IntParsing_FAILURE;
-            }
-        }
-        // "111111111111111111111111111111111111111111111111111111111111111".__len__() == 63
-        if(text.size > 63) return IntParsing_OVERFLOW;
-        return IntParsing_SUCCESS;
-    } else if(base == 8) {
-        // 8-base   0o123
-        if(c11_sv__cmp3(prefix, "0o") == 0) {
-            // text.remove_prefix(2);
-            text = (c11_sv){text.data + 2, text.size - 2};
-        }
-        if(text.size == 0) return IntParsing_FAILURE;
-        for(int i = 0; i < text.size; i++) {
-            char c = text.data[i];
-            if(c >= '0' && c <= '7') {
-                *out = (*out << 3) | (c - '0');
-            } else {
-                return IntParsing_FAILURE;
-            }
-        }
-        // "777777777777777777777".__len__() == 21
-        if(text.size > 21) return IntParsing_OVERFLOW;
-        return IntParsing_SUCCESS;
-    } else if(base == 16) {
-        // 16-base  0x123
-        if(c11_sv__cmp3(prefix, "0x") == 0) {
-            // text.remove_prefix(2);
-            text = (c11_sv){text.data + 2, text.size - 2};
-        }
-        if(text.size == 0) return IntParsing_FAILURE;
-        for(int i = 0; i < text.size; i++) {
-            char c = text.data[i];
-            if(c >= '0' && c <= '9') {
-                *out = (*out << 4) | (c - '0');
-            } else if(c >= 'a' && c <= 'f') {
-                *out = (*out << 4) | (c - 'a' + 10);
-            } else if(c >= 'A' && c <= 'F') {
-                *out = (*out << 4) | (c - 'A' + 10);
-            } else {
-                return IntParsing_FAILURE;
-            }
-        }
-        // "7fffffffffffffff".__len__() == 16
-        if(text.size > 16) return IntParsing_OVERFLOW;
-        return IntParsing_SUCCESS;
-    }
-    return IntParsing_FAILURE;
 }
 
 Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens){

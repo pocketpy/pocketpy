@@ -29,8 +29,10 @@ typedef struct c11_bytes{
 } c11_bytes;
 
 int c11_sv__cmp(c11_sv self, c11_sv other);
-int c11_sv__cmp2(c11_sv self, const char* other, int size);
-int c11_sv__cmp3(c11_sv self, const char* other);
+int c11_sv__cmp2(c11_sv self, const char* other);
+
+bool c11__streq(const char* a, const char* b);
+bool c11__sveq(c11_sv a, const char* b);
 
 c11_string* c11_string__new(const char* data);
 c11_string* c11_string__new2(const char* data, int size);
@@ -65,6 +67,14 @@ int c11__byte_index_to_unicode(const char* data, int n);
 
 bool c11__is_unicode_Lo_char(int c);
 int c11__u8_header(unsigned char c, bool suppress);
+
+typedef enum IntParsingResult{
+    IntParsing_SUCCESS,
+    IntParsing_FAILURE,
+    IntParsing_OVERFLOW,
+} IntParsingResult;
+
+IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base);
 
 #ifdef __cplusplus
 }

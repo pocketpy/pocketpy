@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/pocketpy.h"
 
 #include <math.h>
 
@@ -42,6 +43,8 @@ DEF_NUM_BINARY_OP(__gt__, >, py_newbool, py_newbool)
 DEF_NUM_BINARY_OP(__ge__, >=, py_newbool, py_newbool)
 
 #undef DEF_NUM_BINARY_OP
+
+static bool ValueError(const char* fmt, ...) { return false; }
 
 static bool _py_int__neg__(int argc, py_Ref argv) {
     py_checkargc(1);
@@ -182,6 +185,161 @@ DEF_INT_BITWISE_OP(__rshift__, >>)
 
 #undef DEF_INT_BITWISE_OP
 
+static bool _py_int__repr__(int argc, py_Ref argv) {
+    py_checkargc(1);
+    int64_t val = py_toint(&argv[0]);
+    char buf[32];
+    int size = snprintf(buf, sizeof(buf), "%lld", (long long)val);
+    py_newstrn(py_retval(), buf, size);
+    return true;
+}
+
+static bool _py_float__repr__(int argc, py_Ref argv) {
+    py_checkargc(1);
+    double val = py_tofloat(&argv[0]);
+    char buf[32];
+    int size = snprintf(buf, sizeof(buf), "%f", val);
+    py_newstrn(py_retval(), buf, size);
+    return true;
+}
+
+union c11_8bytes {
+    py_i64 _i64;
+    py_f64 _f64;
+
+    union {
+        uint32_t upper;
+        uint32_t lower;
+    } bits;
+};
+
+static py_i64 c11_8bytes__hash(union c11_8bytes u) {
+    // https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
+    const uint32_t C = 2654435761;
+    u.bits.upper *= C;
+    u.bits.lower *= C;
+    return u._i64;
+}
+
+static bool _py_int__hash__(int argc, py_Ref argv) {
+    py_checkargc(1);
+    int64_t val = py_toint(&argv[0]);
+    union c11_8bytes u = {._i64 = val};
+    py_newint(py_retval(), c11_8bytes__hash(u));
+    return true;
+}
+
+static bool _py_float__hash__(int argc, py_Ref argv) {
+    py_checkargc(1);
+    double val = py_tofloat(&argv[0]);
+    union c11_8bytes u = {._f64 = val};
+    py_newint(py_retval(), c11_8bytes__hash(u));
+    return true;
+}
+
+static bool _py_int__new__(int argc, py_Ref argv) {
+    if(argc == 1 + 0) {
+        // int() == 0
+        py_newint(py_retval(), 0);
+        return true;
+    }
+    // 1 arg
+    if(argc == 1 + 1) {
+        switch(argv[1].type) {
+            case tp_float: {
+                // int(1.1) == 1
+                py_newint(py_retval(), (int64_t)py_tofloat(&argv[1]));
+                return true;
+            }
+            case tp_int: {
+                // int(1) == 1
+                *py_retval() = argv[1];
+                return true;
+            }
+            case tp_bool: {
+                // int(True) == 1
+                py_newint(py_retval(), (int64_t)py_tobool(&argv[1]));
+                return true;
+            }
+            case tp_str: break;  // leave to the next block
+            default: return TypeError("invalid arguments for int()");
+        }
+    }
+    // 2+ args -> error
+    if(argc > 1 + 2) return TypeError("int() takes at most 2 arguments");
+    // 1 or 2 args with str
+    int base = 10;
+    if(argc == 1 + 2) {
+        if(!py_checktype(py_arg(2), tp_int)) return false;
+        base = py_toint(py_arg(2));
+    }
+
+    if(!py_checktype(py_arg(1), tp_str)) return false;
+    int size;
+    const char* data = py_tostrn(py_arg(1), &size);
+    bool negative = false;
+    if(size && (data[0] == '+' || data[0] == '-')) {
+        negative = data[0] == '-';
+        data++;
+        size--;
+    }
+    py_i64 val;
+    if(c11__parse_uint((c11_sv){data, size}, &val, base) != IntParsing_SUCCESS) {
+        return ValueError("invalid literal for int() with base %d: %q", base, data);
+    }
+    py_newint(py_retval(), negative ? -val : val);
+    return true;
+}
+
+static bool _py_float__new__(int argc, py_Ref argv) {
+    if(argc == 1 + 0) {
+        // float() == 0.0
+        py_newfloat(py_retval(), 0.0);
+        return true;
+    }
+    if(argc > 1 + 1) return TypeError("float() takes at most 1 argument");
+    // 1 arg
+    switch(argv[1].type) {
+        case tp_int: {
+            // float(1) == 1.0
+            py_newfloat(py_retval(), py_toint(&argv[1]));
+            return true;
+        }
+        case tp_float: {
+            // float(1.1) == 1.1
+            *py_retval() = argv[1];
+            return true;
+        }
+        case tp_bool: {
+            // float(True) == 1.0
+            py_newfloat(py_retval(), py_tobool(&argv[1]));
+            return true;
+        }
+        case tp_str: break;  // leave to the next block
+        default: return TypeError("invalid arguments for float()");
+    }
+    // str to float
+    int size;
+    const char* data = py_tostrn(py_arg(1), &size);
+
+    if(c11__streq(data, "inf")){
+        py_newfloat(py_retval(), INFINITY);
+        return true;
+    }
+    if(c11__streq(data, "-inf")){
+        py_newfloat(py_retval(), -INFINITY);
+        return true;
+    }
+
+    char* p_end;
+    py_f64 float_out = strtod(data, &p_end);
+    if(p_end != data + size){
+        return ValueError("invalid literal for float(): %q", data);
+    }
+    py_newfloat(py_retval(), float_out);
+    return true;
+}
+
 void pk_VM__init_builtins(pk_VM* self) {
     /****** tp_int & tp_float ******/
     py_bindmagic(tp_int, __add__, _py_int__add__);
@@ -208,7 +366,17 @@ void pk_VM__init_builtins(pk_VM* self) {
     py_bindmagic(tp_int, __neg__, _py_int__neg__);
     py_bindmagic(tp_float, __neg__, _py_float__neg__);
 
-    // TODO: __repr__, __new__, __hash__
+    // __repr__
+    py_bindmagic(tp_int, __repr__, _py_int__repr__);
+    py_bindmagic(tp_float, __repr__, _py_float__repr__);
+
+    // __hash__
+    py_bindmagic(tp_int, __hash__, _py_int__hash__);
+    py_bindmagic(tp_float, __hash__, _py_float__hash__);
+
+    // __new__
+    py_bindmagic(tp_int, __new__, _py_int__new__);
+    py_bindmagic(tp_float, __new__, _py_float__new__);
 
     // __truediv__
     py_bindmagic(tp_int, __truediv__, _py_int__truediv__);

@@ -311,6 +311,10 @@ py_GlobalRef py_tpobject(py_Type type);
 /// Get the type name.
 const char* py_tpname(py_Type type);
 
+/// Check if the object is an instance of the given type.
+/// Re
+bool py_checktype(const py_Ref self, py_Type type);
+
 /// Python favored string formatting.
 /// %d: int
 /// %i: py_i64 (int64_t)

@@ -40,3 +40,11 @@ void* py_touserdata(const py_Ref self) {
 }
 
 bool py_istype(const py_Ref self, py_Type type) { return self->type == type; }
+
+bool py_checktype(const py_Ref self, py_Type type) {
+    if(self->type != type) {
+        // py_raise(PyExc_TypeError, "expected %s, got %s", py_typename(type), py_typename(self->type));
+        return false;
+    }
+    return true;
+}

@@ -87,14 +87,6 @@ enum Precedence {
     PREC_HIGHEST,
 };
 
-typedef enum IntParsingResult{
-    IntParsing_SUCCESS,
-    IntParsing_FAILURE,
-    IntParsing_OVERFLOW,
-} IntParsingResult;
-
-IntParsingResult parse_uint(c11_sv text, int64_t* out, int base);
-
 typedef struct Error Error;
 
 typedef c11_array pk_TokenArray;
