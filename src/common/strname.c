@@ -28,11 +28,6 @@ void pk_StrName__initialize() {
     for(int i = 0; i < _interned.count; i++) {
         printf("%d: %s\n", i + 1, c11__getitem(char*, &_r_interned, i));
     }
-
-    pk_id_add = pk_StrName__map("add");
-    pk_id_set = pk_StrName__map("set");
-    pk_id_long = pk_StrName__map("long");
-    pk_id_complex = pk_StrName__map("complex");
 }
 
 void pk_StrName__finalize() {
@@ -93,8 +88,3 @@ bool py_ismagicname(py_Name name){
     return name <= __missing__;
 }
 
-///////////////////////////////////
-uint16_t pk_id_add;
-uint16_t pk_id_set;
-uint16_t pk_id_long;
-uint16_t pk_id_complex;

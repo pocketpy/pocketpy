@@ -404,7 +404,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
 
             case OP_BUILD_LONG: {
                 // [x]
-                py_Ref f = py_getdict(&self->builtins, pk_id_long);
+                py_Ref f = py_getdict(&self->builtins, py_name("long"));
                 assert(f != NULL);
                 if(!py_call(f, 1, TOP())) goto __ERROR;
                 *TOP() = self->last_retval;
@@ -413,7 +413,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
 
             case OP_BUILD_IMAG: {
                 // [x]
-                py_Ref f = py_getdict(&self->builtins, pk_id_complex);
+                py_Ref f = py_getdict(&self->builtins, py_name("complex"));
                 assert(f != NULL);
                 py_TValue tmp = *TOP();
                 *TOP() = *f;           // [complex]
@@ -467,8 +467,9 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_TValue* begin = SP() - byte.arg;
                 py_Ref tmp = py_pushtmp();
                 py_newset(tmp);
+                py_Name id_add = py_name("add");
                 for(int i = 0; i < byte.arg; i++) {
-                    if(!py_callmethod(tmp, pk_id_add, 1, begin + i)) goto __ERROR;
+                    if(!py_callmethod(tmp, id_add, 1, begin + i)) goto __ERROR;
                 }
                 SP() = begin;
                 PUSH(tmp);

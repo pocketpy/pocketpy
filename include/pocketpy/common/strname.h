@@ -18,11 +18,6 @@ c11_sv pk_StrName__rmap2(uint16_t index);
 void pk_StrName__initialize();
 void pk_StrName__finalize();
 
-extern uint16_t pk_id_add;
-extern uint16_t pk_id_set;
-extern uint16_t pk_id_long;
-extern uint16_t pk_id_complex;
-
 #ifdef __cplusplus
 }
 #endif
