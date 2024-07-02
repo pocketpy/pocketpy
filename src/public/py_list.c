@@ -17,7 +17,7 @@ py_Type pk_list__register() {
 void py_newlist(py_Ref out) {
     pk_VM* vm = pk_current_vm;
     PyObject* obj = pk_ManagedHeap__gcnew(&vm->heap, tp_list, 0, sizeof(List));
-    List* userdata = PyObject__value(obj);
+    List* userdata = PyObject__userdata(obj);
     c11_vector__ctor(userdata, sizeof(py_TValue));
     out->type = tp_list;
     out->is_ptr = true;

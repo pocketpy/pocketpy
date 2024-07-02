@@ -1,3 +1,4 @@
+#include "pocketpy/common/str.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
@@ -33,29 +34,9 @@ py_Type py_totype(const py_Ref self) {
     return *ud;
 }
 
-const char* py_tostr(const py_Ref self) {
-    assert(self->type == tp_str);
-    c11_string* ud = PyObject__value(self->_obj);
-    return ud->data;
-}
-
-const char* py_tostrn(const py_Ref self, int* size) {
-    assert(self->type == tp_str);
-    c11_string* ud = PyObject__value(self->_obj);
-    *size = ud->size;
-    return ud->data;
-}
-
-const unsigned char* py_tobytes(const py_Ref self, int* size) {
-    assert(self->type == tp_bytes);
-    int* ud = PyObject__value(self->_obj);
-    *size = *ud;
-    return (unsigned char*)(ud + 1);
-}
-
 void* py_touserdata(const py_Ref self) {
     assert(self && self->is_ptr);
-    return PyObject__value(self->_obj);
+    return PyObject__userdata(self->_obj);
 }
 
 bool py_istype(const py_Ref self, py_Type type) { return self->type == type; }

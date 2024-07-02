@@ -38,7 +38,11 @@ void pk_TypeInfo__ctor(pk_TypeInfo* self,
     // create type object with __dict__
     pk_ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* typeobj = pk_ManagedHeap__new(heap, tp_type, -1, sizeof(py_Type));
-    self->self = PyVar__fromobj(typeobj);
+    self->self = (py_TValue){
+        .type = typeobj->type,
+        .is_ptr = true,
+        ._obj = typeobj,
+    };
 
     self->module = module ? *module : PY_NULL;
     self->subclass_enabled = subclass_enabled;
@@ -84,7 +88,7 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_int, pk_VM__new_type(self, "int", tp_object, NULL, false));
     validate(tp_float, pk_VM__new_type(self, "float", tp_object, NULL, false));
     validate(tp_bool, pk_VM__new_type(self, "bool", tp_object, NULL, false));
-    validate(tp_str, pk_VM__new_type(self, "str", tp_object, NULL, false));
+    validate(tp_str, pk_str__register());
 
     validate(tp_list, pk_list__register());
     validate(tp_tuple, pk_VM__new_type(self, "tuple", tp_object, NULL, false));
@@ -99,7 +103,7 @@ void pk_VM__ctor(pk_VM* self) {
 
     validate(tp_super, pk_VM__new_type(self, "super", tp_object, NULL, false));
     validate(tp_exception, pk_VM__new_type(self, "Exception", tp_object, NULL, true));
-    validate(tp_bytes, pk_VM__new_type(self, "bytes", tp_object, NULL, false));
+    validate(tp_bytes, pk_bytes__register());
     validate(tp_mappingproxy, pk_VM__new_type(self, "mappingproxy", tp_object, NULL, false));
 
     validate(tp_dict, pk_VM__new_type(self, "dict", tp_object, NULL, true));
@@ -191,7 +195,7 @@ py_Type pk_VM__new_type(pk_VM* self,
 /****************************************/
 void PyObject__delete(PyObject* self) {
     pk_TypeInfo* ti = c11__at(pk_TypeInfo, &pk_current_vm->types, self->type);
-    if(ti->dtor) ti->dtor(PyObject__value(self));
+    if(ti->dtor) ti->dtor(PyObject__userdata(self));
     if(self->slots == -1) pk_NameDict__dtor(PyObject__dict(self));
     if(self->gc_is_large) {
         free(self);

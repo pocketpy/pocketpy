@@ -2,16 +2,14 @@
 #include "pocketpy/pocketpy.h"
 #include <assert.h>
 
-void* PyObject__value(PyObject* self){
-    return (char*)self + PK_OBJ_HEADER_SIZE(self->slots);
-}
+void* PyObject__userdata(PyObject* self) { return self->flex + PK_OBJ_SLOTS_SIZE(self->slots); }
 
-pk_NameDict* PyObject__dict(PyObject* self){
+pk_NameDict* PyObject__dict(PyObject* self) {
     assert(self->slots == -1);
-    return (pk_NameDict*)((char*)self + 8);
+    return (pk_NameDict*)(self->flex);
 }
 
-py_TValue* PyObject__slots(PyObject* self){
+py_TValue* PyObject__slots(PyObject* self) {
     assert(self->slots >= 0);
-    return (py_TValue*)((char*)self + 8);
+    return (py_TValue*)(self->flex);
 }

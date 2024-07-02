@@ -426,9 +426,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             case OP_BUILD_BYTES: {
                 int size;
                 const char* data = py_tostrn(TOP(), &size);
-                unsigned char* p = (unsigned char*)malloc(size);
+                unsigned char* p = py_newbytes(TOP(), size);
                 memcpy(p, data, size);
-                py_newbytes(TOP(), p, size);
                 DISPATCH();
             }
             case OP_BUILD_TUPLE: {

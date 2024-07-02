@@ -22,6 +22,12 @@ typedef struct c11_string{
     const char data[];      // flexible array member
 } c11_string;
 
+/* bytes */
+typedef struct c11_bytes{
+    int size;
+    unsigned char data[];   // flexible array member
+} c11_bytes;
+
 int c11_sv__cmp(c11_sv self, c11_sv other);
 int c11_sv__cmp2(c11_sv self, const char* other, int size);
 int c11_sv__cmp3(c11_sv self, const char* other);

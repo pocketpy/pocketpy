@@ -1354,7 +1354,7 @@ int Ctx__add_const_string(Ctx* self, c11_sv key) {
         c11_vector__push(py_TValue, &self->co->consts, tmp);
         int index = self->co->consts.count - 1;
         c11_smallmap_s2n__set(&self->co_consts_string_dedup_map,
-                              c11_string__sv(PyObject__value(tmp._obj)),
+                              c11_string__sv(PyObject__userdata(tmp._obj)),
                               index);
         return index;
     }

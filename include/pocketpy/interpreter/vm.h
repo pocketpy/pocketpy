@@ -89,6 +89,8 @@ py_Type pk_VM__new_type(pk_VM* self,
                         bool subclass_enabled);
 
 // type registration
+py_Type pk_str__register();
+py_Type pk_bytes__register();
 py_Type pk_list__register();
 
 #ifdef __cplusplus

@@ -55,7 +55,7 @@ void py_newbool(py_Ref, bool);
 void py_newstr(py_Ref, const char*);
 void py_newstrn(py_Ref, const char*, int);
 // void py_newfstr(py_Ref, const char*, ...);
-void py_newbytes(py_Ref, const unsigned char*, int);
+unsigned char* py_newbytes(py_Ref, int);
 void py_newnone(py_Ref);
 void py_newnotimplemented(py_Ref out);
 void py_newellipsis(py_Ref out);
@@ -104,7 +104,7 @@ bool py_tobool(const py_Ref);
 py_Type py_totype(const py_Ref);
 const char* py_tostr(const py_Ref);
 const char* py_tostrn(const py_Ref, int* size);
-const unsigned char* py_tobytes(const py_Ref, int* size);
+unsigned char* py_tobytes(const py_Ref, int* size);
 
 void* py_touserdata(const py_Ref);
 

@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <stdio.h>
 
+
 c11_string* c11_string__new(const char* data) { return c11_string__new2(data, strlen(data)); }
 
 c11_string* c11_string__new2(const char* data, int size) {
