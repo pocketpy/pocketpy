@@ -53,7 +53,7 @@ public:
     static type of() {
         return type_visitor::type<T>();
     }
-    
+
     static type of(const handle& obj) { return type(vm->_t(obj.ptr())); }
 };
 
@@ -367,6 +367,10 @@ class capsule : public object {
 public:
     template <typename T>
     capsule(T&& value) : object(create(std::forward<T>(value))) {}
+
+    capsule(void* ptr, void (*destructor)(void*) = nullptr) : object(create(ptr, destructor)) {}
+
+    void* data() const { return self().ptr; }
 
     template <typename T>
     T& cast() const {
