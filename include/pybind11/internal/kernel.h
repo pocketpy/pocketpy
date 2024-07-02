@@ -10,7 +10,7 @@ struct capsule {
     void* ptr;
     void (*destructor)(void*);
 
-    template <typename T>
+    template <typename T, typename = std::enable_if_t<!(std::is_same_v<remove_cvref_t<T>, capsule>)>>
     capsule(T&& value) :
         ptr(new auto(std::forward<T>(value))), destructor([](void* ptr) {
             delete static_cast<std::decay_t<T>*>(ptr);
@@ -26,7 +26,7 @@ struct capsule {
     }
 
     ~capsule() {
-        if(ptr != nullptr && destructor != nullptr) destructor(ptr);
+        if(ptr && destructor) destructor(ptr);
     }
 };
 }  // namespace pybind11::impl
