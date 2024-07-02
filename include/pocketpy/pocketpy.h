@@ -6,7 +6,6 @@
 
 /************* Public Types *************/
 typedef struct py_TValue py_TValue;
-typedef struct pk_VM pk_VM;
 typedef uint16_t py_Name;
 typedef int16_t py_Type;
 
@@ -35,8 +34,6 @@ typedef enum BindType {
     BindType_STATICMETHOD,
     BindType_CLASSMETHOD,
 } BindType;
-
-extern pk_VM* pk_current_vm;
 
 /************* Global VMs *************/
 void py_initialize();
@@ -142,18 +139,17 @@ void py_bindmethod2(py_Type type, const char* name, py_CFunction f, BindType bt)
 void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f);
 
 /// Get the reference to the i-th register.
+/// All registers are located in a contiguous memory.
 py_GlobalRef py_reg(int i);
 
 /// Get the reference of the object's `__dict__`.
 /// The object must have a `__dict__`.
 /// Returns a reference to the value or NULL if not found.
-/// @lifespan: Object.
 py_ObjectRef py_getdict(const py_Ref self, py_Name name);
 void py_setdict(py_Ref self, py_Name name, const py_Ref val);
 
 /// Get the reference of the i-th slot of the object.
 /// The object must have slots and `i` must be in range.
-/// @lifespan: Object.
 py_ObjectRef py_getslot(const py_Ref self, int i);
 void py_setslot(py_Ref self, int i, const py_Ref val);
 

@@ -13,8 +13,9 @@
 extern "C" {
 #endif
 
-typedef int16_t py_Type;
 typedef struct PyObject PyObject;
+typedef struct pk_VM pk_VM;
+extern pk_VM* pk_current_vm;
 
 typedef struct py_TValue {
     py_Type type;
