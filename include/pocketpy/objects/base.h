@@ -35,19 +35,6 @@ typedef struct py_TValue {
 static_assert(sizeof(py_CFunction) <= 8, "sizeof(py_CFunction) > 8");
 static_assert(sizeof(py_TValue) == 16, "sizeof(py_TValue) != 16");
 
-/* predefined vars */
-const static py_Type tp_object = {1}, tp_type = {2};
-const static py_Type tp_int = {3}, tp_float = {4}, tp_bool = {5}, tp_str = {6};
-const static py_Type tp_list = {7}, tp_tuple = {8};
-const static py_Type tp_slice = {9}, tp_range = {10}, tp_module = {11};
-const static py_Type tp_function = {12}, tp_nativefunc = {13}, tp_bound_method = {14};
-const static py_Type tp_super = {15}, tp_exception = {16}, tp_bytes = {17}, tp_mappingproxy = {18};
-const static py_Type tp_dict = {19}, tp_property = {20}, tp_star_wrapper = {21};
-const static py_Type tp_staticmethod = {22}, tp_classmethod = {23};
-const static py_Type tp_none_type = {24}, tp_not_implemented_type = {25};
-const static py_Type tp_ellipsis = {26};
-const static py_Type tp_syntax_error = {27}, tp_stop_iteration = {28};
-
 extern py_TValue PY_NULL;
 
 #ifdef __cplusplus

@@ -330,6 +330,20 @@ bool py_checktype(const py_Ref self, py_Type type);
 #include "pocketpy/xmacros/magics.h"
 #undef MAGIC_METHOD
 
+enum py_PredefinedTypes{
+    tp_object = 1, tp_type,
+    tp_int, tp_float, tp_bool, tp_str,
+    tp_list, tp_tuple,
+    tp_slice, tp_range, tp_module,
+    tp_function, tp_nativefunc, tp_bound_method,
+    tp_super, tp_exception, tp_bytes, tp_mappingproxy,
+    tp_dict, tp_property, tp_star_wrapper,
+    tp_staticmethod, tp_classmethod,
+    tp_none_type, tp_not_implemented_type,
+    tp_ellipsis,
+    tp_syntax_error, tp_stop_iteration
+};
+
 #ifdef __cplusplus
 }
 #endif
