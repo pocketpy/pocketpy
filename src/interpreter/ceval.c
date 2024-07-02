@@ -653,6 +653,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     __ERROR:
         // 1. Exception can be handled inside the current frame
         // 2. Exception need to be propagated to the upper frame
+        printf("byte.op: %d, line: %d\n", byte.op, Frame__lineno(frame));
         assert(false);
         return RES_ERROR;
     }

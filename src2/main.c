@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
+#if 0
     py_initialize();
     const char* source = "1 < 2";
 
@@ -47,20 +48,18 @@ int main(int argc, char** argv) {
 
     py_finalize();
     return 0;
+#endif
 
-    //     if(argc != 2) goto __HELP;
-    //     char* source = read_file(argv[1]);
-    //     py_initialize();
+    if(argc != 2) goto __HELP;
+    char* source = read_file(argv[1]);
+    py_initialize();
 
-    //     if(py_exec(source)){
-    //         py_Error* err = py_getlasterror();
-    //         py_Error__print(err);
-    //     }
+    if(!py_exec(source)) py_printexc();
 
-    //     py_finalize();
-    //     free(source);
+    py_finalize();
+    free(source);
 
-    // __HELP:
-    //     printf("Usage: pocketpy [filename]\n");
-    //     return 0;
+__HELP:
+    printf("Usage: pocketpy [filename]\n");
+    return 0;
 }

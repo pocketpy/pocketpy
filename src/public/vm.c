@@ -49,9 +49,9 @@ static void disassemble(CodeObject* co) {
         Bytecode byte = c11__getitem(Bytecode, &co->codes, i);
         BytecodeEx ex = c11__getitem(BytecodeEx, &co->codes_ex, i);
 
-        char line[8];
+        char line[8] = "";
         if(ex.lineno == prev_line) {
-            line[0] = '\0';
+            // do nothing
         } else {
             snprintf(line, sizeof(line), "%d", ex.lineno);
             if(prev_line != -1) c11_sbuf__write_char(&ss, '\n');
@@ -66,7 +66,7 @@ static void disassemble(CodeObject* co) {
             }
         }
 
-        char buf[64];
+        char buf[32];
         snprintf(buf, sizeof(buf), "%-8s%-3s%-3d", line, pointer, i);
         c11_sbuf__write_cstr(&ss, buf);
 
@@ -129,6 +129,13 @@ static void disassemble(CodeObject* co) {
                     const FuncDecl* decl = c11__getitem(FuncDecl*, &co->func_decls, byte.arg);
                     c11_sbuf__write_cstr(&ss, " (");
                     c11_sbuf__write_cstr(&ss, decl->code.name->data);
+                    c11_sbuf__write_char(&ss, ')');
+                    break;
+                }
+                case OP_BINARY_OP: {
+                    py_Name name = byte.arg & 0xFF;
+                    c11_sbuf__write_cstr(&ss, " (");
+                    c11_sbuf__write_cstr(&ss, py_name2str(name));
                     c11_sbuf__write_char(&ss, ')');
                     break;
                 }
