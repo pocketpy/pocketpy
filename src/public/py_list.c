@@ -65,3 +65,11 @@ void py_list__insert(py_Ref self, int i, const py_Ref val) {
     List* userdata = py_touserdata(self);
     c11_vector__insert(py_TValue, userdata, i, *val);
 }
+
+////////////////////////////////
+bool _py_list__len__(int argc, py_Ref argv){
+    py_checkargc(1);
+    py_i64 res = py_list__len(py_arg(0));
+    py_newint(py_retval(), res);
+    return true;
+}
