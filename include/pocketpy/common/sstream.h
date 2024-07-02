@@ -10,27 +10,28 @@
 extern "C" {
 #endif
 
-typedef struct pk_SStream {
+typedef struct c11_sbuf {
     c11_vector data;
-} pk_SStream;
+} c11_sbuf;
 
-void pk_SStream__ctor(pk_SStream* self);
-void pk_SStream__dtor(pk_SStream* self);
+void c11_sbuf__ctor(c11_sbuf* self);
+void c11_sbuf__dtor(c11_sbuf* self);
 
-void pk_SStream__write_int(pk_SStream* self, int);
-void pk_SStream__write_i64(pk_SStream* self, int64_t);
-void pk_SStream__write_f64(pk_SStream* self, double, int precision);
-void pk_SStream__write_char(pk_SStream* self, char);
-void pk_SStream__write_sv(pk_SStream* self, c11_sv);
-void pk_SStream__write_cstr(pk_SStream* self, const char*);
-void pk_SStream__write_cstrn(pk_SStream* self, const char*, int);
-void pk_SStream__write_hex(pk_SStream* self, unsigned char, bool non_zero);
-void pk_SStream__write_ptr(pk_SStream* self, void*);
+void c11_sbuf__write_int(c11_sbuf* self, int);
+void c11_sbuf__write_i64(c11_sbuf* self, int64_t);
+void c11_sbuf__write_f64(c11_sbuf* self, double, int precision);
+void c11_sbuf__write_char(c11_sbuf* self, char);
+void c11_sbuf__write_sv(c11_sbuf* self, c11_sv);
+void c11_sbuf__write_cstr(c11_sbuf* self, const char*);
+void c11_sbuf__write_cstrn(c11_sbuf* self, const char*, int);
+void c11_sbuf__write_quoted(c11_sbuf* self, c11_sv, char quote);
+void c11_sbuf__write_hex(c11_sbuf* self, unsigned char, bool non_zero);
+void c11_sbuf__write_ptr(c11_sbuf* self, void*);
 // Submit the stream and return the final string. The stream becomes invalid after this call
-c11_string* pk_SStream__submit(pk_SStream* self);
+c11_string* c11_sbuf__submit(c11_sbuf* self);
 
-void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args);
-void pk_sprintf(pk_SStream* ss, const char* fmt, ...);
+void pk_vsprintf(c11_sbuf* ss, const char* fmt, va_list args);
+void pk_sprintf(c11_sbuf* ss, const char* fmt, ...);
 
 #ifdef __cplusplus
 }

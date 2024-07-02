@@ -320,15 +320,16 @@ bool py_checktype(const py_Ref self, py_Type type);
 /// %i: py_i64 (int64_t)
 /// %f: py_f64 (double)
 /// %s: const char*
-/// %q: single quoted %s
+/// %q: c11_sv
+/// %v: c11_sv
 /// %c: char
 /// %p: void*
 /// %t: py_Type
 /// %n: py_Name
 
 
-enum py_MagicMethods{
-    py_MagicMethods__NULL,  // 0 is reserved
+enum py_MagicNames{
+    py_MagicNames__NULL,  // 0 is reserved
     #define MAGIC_METHOD(x) x,
     #include "pocketpy/xmacros/magics.h"
     #undef MAGIC_METHOD

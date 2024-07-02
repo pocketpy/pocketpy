@@ -17,15 +17,15 @@ static void pk_SourceData__ctor(struct pk_SourceData* self,
     // Skip utf8 BOM if there is any.
     if(strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
     // Drop all '\r'
-    pk_SStream ss;
-    pk_SStream__ctor(&ss);
+    c11_sbuf ss;
+    c11_sbuf__ctor(&ss);
     while(true) {
         char c = *source;
         if(c == '\0') break;
-        if(c != '\r') pk_SStream__write_char(&ss, c);
+        if(c != '\r') c11_sbuf__write_char(&ss, c);
         source++;
     }
-    self->source = pk_SStream__submit(&ss);
+    self->source = c11_sbuf__submit(&ss);
     self->is_precompiled = (strncmp(source, "pkpy:", 5) == 0);
     c11_vector__push(const char*, &self->line_starts, self->source->data);
 }
@@ -74,37 +74,37 @@ c11_string* pk_SourceData__snapshot(const struct pk_SourceData* self,
                                int lineno,
                                const char* cursor,
                                const char* name) {
-    pk_SStream ss;
-    pk_SStream__ctor(&ss);
+    c11_sbuf ss;
+    c11_sbuf__ctor(&ss);
 
     pk_sprintf(&ss, "  File \"%s\", line %d", self->filename->data, lineno);
 
     if(name && *name) {
-        pk_SStream__write_cstr(&ss, ", in ");
-        pk_SStream__write_cstr(&ss, name);
+        c11_sbuf__write_cstr(&ss, ", in ");
+        c11_sbuf__write_cstr(&ss, name);
     }
 
     if(!self->is_precompiled) {
-        pk_SStream__write_char(&ss, '\n');
+        c11_sbuf__write_char(&ss, '\n');
         const char *st = NULL, *ed;
         if(pk_SourceData__get_line(self, lineno, &st, &ed)) {
             while(st < ed && isblank(*st))
                 ++st;
             if(st < ed) {
-                pk_SStream__write_cstr(&ss, "    ");
-                pk_SStream__write_cstrn(&ss, st, ed - st);
+                c11_sbuf__write_cstr(&ss, "    ");
+                c11_sbuf__write_cstrn(&ss, st, ed - st);
                 if(cursor && st <= cursor && cursor <= ed) {
-                    pk_SStream__write_cstr(&ss, "\n    ");
+                    c11_sbuf__write_cstr(&ss, "\n    ");
                     for(int i = 0; i < (cursor - st); ++i)
-                        pk_SStream__write_char(&ss, ' ');
-                    pk_SStream__write_cstr(&ss, "^");
+                        c11_sbuf__write_char(&ss, ' ');
+                    c11_sbuf__write_cstr(&ss, "^");
                 }
             } else {
                 st = NULL;
             }
         }
 
-        if(!st) { pk_SStream__write_cstr(&ss, "    <?>"); }
+        if(!st) { c11_sbuf__write_cstr(&ss, "    <?>"); }
     }
-    return pk_SStream__submit(&ss);
+    return c11_sbuf__submit(&ss);
 }

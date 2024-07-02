@@ -485,16 +485,16 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_BUILD_STRING: {
                 py_TValue* begin = SP() - byte.arg;
-                pk_SStream ss;
-                pk_SStream__ctor(&ss);
+                c11_sbuf ss;
+                c11_sbuf__ctor(&ss);
                 for(int i = 0; i < byte.arg; i++) {
                     if(!py_str(begin + i)) goto __ERROR;
                     int size;
                     const char* data = py_tostrn(&self->last_retval, &size);
-                    pk_SStream__write_cstrn(&ss, data, size);
+                    c11_sbuf__write_cstrn(&ss, data, size);
                 }
                 SP() = begin;
-                c11_string* res = pk_SStream__submit(&ss);
+                c11_string* res = c11_sbuf__submit(&ss);
                 py_newstrn(SP()++, res->data, res->size);
                 c11_string__delete(res);
                 DISPATCH();

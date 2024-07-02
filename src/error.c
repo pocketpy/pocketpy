@@ -34,26 +34,26 @@
 // }
 
 // py_Str pkpy_Exception__summary(pkpy_Exception* self){
-//     pk_SStream ss;
-//     pk_SStream__ctor(&ss);
+//     c11_sbuf ss;
+//     c11_sbuf__ctor(&ss);
 
 //     if(self->is_re){
-//         pk_SStream__write_cstr(&ss, "Traceback (most recent call last):\n");
+//         c11_sbuf__write_cstr(&ss, "Traceback (most recent call last):\n");
 //     }
 //     for(int i=self->stacktrace.count-1; i >= 0; i--) {
 //         pkpy_ExceptionFrame* frame = c11__at(pkpy_ExceptionFrame, &self->stacktrace, i);
 //         py_Str s = pk_SourceData__snapshot(frame->src, frame->lineno, frame->cursor, py_Str__data(&frame->name));
-//         pk_SStream__write_Str(&ss, &s);
+//         c11_sbuf__write_Str(&ss, &s);
 //         py_Str__dtor(&s);
-//         pk_SStream__write_cstr(&ss, "\n");
+//         c11_sbuf__write_cstr(&ss, "\n");
 //     }
 
 //     const char* name = pk_StrName__rmap(self->type);
-//     pk_SStream__write_cstr(&ss, name);
+//     c11_sbuf__write_cstr(&ss, name);
 
 //     if(self->msg.size > 0){
-//         pk_SStream__write_cstr(&ss, ": ");
-//         pk_SStream__write_Str(&ss, &self->msg);
+//         c11_sbuf__write_cstr(&ss, ": ");
+//         c11_sbuf__write_Str(&ss, &self->msg);
 //     }
-//     return pk_SStream__submit(&ss);
+//     return c11_sbuf__submit(&ss);
 // }

@@ -58,46 +58,17 @@ c11_sv c11_string__u8_getitem(c11_string* self, int i) {
 }
 
 c11_string* c11_string__u8_slice(c11_string* self, int start, int stop, int step) {
-    pk_SStream ss;
-    pk_SStream__ctor(&ss);
+    c11_sbuf ss;
+    c11_sbuf__ctor(&ss);
     assert(step != 0);
     for(int i = start; step > 0 ? i < stop : i > stop; i += step) {
         c11_sv unicode = c11_string__u8_getitem(self, i);
-        pk_SStream__write_sv(&ss, unicode);
+        c11_sbuf__write_sv(&ss, unicode);
     }
-    return pk_SStream__submit(&ss);
+    return c11_sbuf__submit(&ss);
 }
 
 /////////////////////////////////////////
-void c11_sv__quote(c11_sv sv, char quote, c11_vector* buf) {
-    assert(quote == '"' || quote == '\'');
-    c11_vector__push(char, buf, quote);
-    for(int i = 0; i < sv.size; i++) {
-        char c = sv.data[i];
-        switch(c) {
-            case '"':
-            case '\'':
-                if(c == quote) c11_vector__push(char, buf, '\\');
-                c11_vector__push(char, buf, c);
-                break;
-            case '\\': c11_vector__extend(char, buf, "\\\\", 2); break;
-            case '\n': c11_vector__extend(char, buf, "\\n", 2); break;
-            case '\r': c11_vector__extend(char, buf, "\\r", 2); break;
-            case '\t': c11_vector__extend(char, buf, "\\t", 2); break;
-            case '\b': c11_vector__extend(char, buf, "\\b", 2); break;
-            default:
-                if('\x00' <= c && c <= '\x1f') {
-                    c11_vector__extend(char, buf, "\\x", 2);
-                    c11_vector__push(char, buf, PK_HEX_TABLE[c >> 4]);
-                    c11_vector__push(char, buf, PK_HEX_TABLE[c & 0xf]);
-                } else {
-                    c11_vector__push(char, buf, c);
-                }
-        }
-    }
-    c11_vector__push(char, buf, quote);
-}
-
 void c11_sv__lower(c11_sv sv, c11_vector* buf) {
     for(int i = 0; i < sv.size; i++) {
         char c = sv.data[i];

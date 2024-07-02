@@ -48,7 +48,6 @@ c11_sv c11_string__u8_getitem(c11_string* self, int i);
 c11_string* c11_string__u8_slice(c11_string* self, int start, int stop, int step);
 
 // general string operations
-void c11_sv__quote(c11_sv sv, char quote, c11_vector* buf);
 void c11_sv__lower(c11_sv sv, c11_vector* buf);
 void c11_sv__upper(c11_sv sv, c11_vector* buf);
 c11_sv c11_sv__slice(c11_sv sv, int start);

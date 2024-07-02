@@ -12,37 +12,37 @@
 
 const static int C11_STRING_HEADER_SIZE = sizeof(c11_string);
 
-void pk_SStream__ctor(pk_SStream* self) {
+void c11_sbuf__ctor(c11_sbuf* self) {
     c11_vector__ctor(&self->data, sizeof(char));
     c11_vector__reserve(&self->data, 100 + C11_STRING_HEADER_SIZE);
     self->data.count = C11_STRING_HEADER_SIZE;
 }
 
-void pk_SStream__dtor(pk_SStream* self) { c11_vector__dtor(&self->data); }
+void c11_sbuf__dtor(c11_sbuf* self) { c11_vector__dtor(&self->data); }
 
-void pk_SStream__write_char(pk_SStream* self, char c) { c11_vector__push(char, &self->data, c); }
+void c11_sbuf__write_char(c11_sbuf* self, char c) { c11_vector__push(char, &self->data, c); }
 
-void pk_SStream__write_int(pk_SStream* self, int i) {
+void c11_sbuf__write_int(c11_sbuf* self, int i) {
     // len('-2147483648') == 11
     c11_vector__reserve(&self->data, self->data.count + 11 + 1);
     int n = snprintf(self->data.data, 11 + 1, "%d", i);
     self->data.count += n;
 }
 
-void pk_SStream__write_i64(pk_SStream* self, int64_t val) {
+void c11_sbuf__write_i64(c11_sbuf* self, int64_t val) {
     // len('-9223372036854775808') == 20
     c11_vector__reserve(&self->data, self->data.count + 20 + 1);
     int n = snprintf(self->data.data, 20 + 1, "%lld", (long long)val);
     self->data.count += n;
 }
 
-void pk_SStream__write_f64(pk_SStream* self, double val, int precision) {
+void c11_sbuf__write_f64(c11_sbuf* self, double val, int precision) {
     if(isinf(val)) {
-        pk_SStream__write_cstr(self, val > 0 ? "inf" : "-inf");
+        c11_sbuf__write_cstr(self, val > 0 ? "inf" : "-inf");
         return;
     }
     if(isnan(val)) {
-        pk_SStream__write_cstr(self, "nan");
+        c11_sbuf__write_cstr(self, "nan");
         return;
     }
     char b[32];
@@ -54,7 +54,7 @@ void pk_SStream__write_f64(pk_SStream* self, double val, int precision) {
         int prec = precision;
         size = snprintf(b, sizeof(b), "%.*f", prec, val);
     }
-    pk_SStream__write_cstr(self, b);
+    c11_sbuf__write_cstr(self, b);
     bool all_is_digit = true;
     for(int i = 1; i < size; i++) {
         if(!isdigit(b[i])) {
@@ -62,49 +62,78 @@ void pk_SStream__write_f64(pk_SStream* self, double val, int precision) {
             break;
         }
     }
-    if(all_is_digit) pk_SStream__write_cstr(self, ".0");
+    if(all_is_digit) c11_sbuf__write_cstr(self, ".0");
 }
 
-void pk_SStream__write_sv(pk_SStream* self, c11_sv sv) {
-    pk_SStream__write_cstrn(self, sv.data, sv.size);
+void c11_sbuf__write_sv(c11_sbuf* self, c11_sv sv) {
+    c11_sbuf__write_cstrn(self, sv.data, sv.size);
 }
 
-void pk_SStream__write_cstr(pk_SStream* self, const char* str) {
-    pk_SStream__write_cstrn(self, str, strlen(str));
+void c11_sbuf__write_cstr(c11_sbuf* self, const char* str) {
+    c11_sbuf__write_cstrn(self, str, strlen(str));
 }
 
-void pk_SStream__write_cstrn(pk_SStream* self, const char* str, int n) {
+void c11_sbuf__write_cstrn(c11_sbuf* self, const char* str, int n) {
     c11_vector__extend(char, &self->data, str, n);
 }
 
-void pk_SStream__write_hex(pk_SStream* self, unsigned char c, bool non_zero) {
+void c11_sbuf__write_quoted(c11_sbuf* self, c11_sv sv, char quote) {
+    assert(quote == '"' || quote == '\'');
+    c11_sbuf__write_char(self, quote);
+    for(int i = 0; i < sv.size; i++) {
+        char c = sv.data[i];
+        switch(c) {
+            case '"':
+            case '\'':
+                if(c == quote) c11_sbuf__write_char(self, '\\');
+                c11_sbuf__write_char(self, c);
+                break;
+            case '\\': c11_sbuf__write_cstrn(self, "\\\\", 2); break;
+            case '\n': c11_sbuf__write_cstrn(self, "\\n", 2); break;
+            case '\r': c11_sbuf__write_cstrn(self, "\\r", 2); break;
+            case '\t': c11_sbuf__write_cstrn(self, "\\t", 2); break;
+            case '\b': c11_sbuf__write_cstrn(self, "\\b", 2); break;
+            default:
+                if('\x00' <= c && c <= '\x1f') {
+                    c11_sbuf__write_cstrn(self, "\\x", 2);
+                    c11_sbuf__write_char(self, PK_HEX_TABLE[c >> 4]);
+                    c11_sbuf__write_char(self, PK_HEX_TABLE[c & 0xf]);
+                } else {
+                    c11_sbuf__write_char(self, c);
+                }
+        }
+    }
+    c11_sbuf__write_char(self, quote);
+}
+
+void c11_sbuf__write_hex(c11_sbuf* self, unsigned char c, bool non_zero) {
     unsigned char high = c >> 4;
     unsigned char low = c & 0xf;
     if(non_zero) {
-        if(high) pk_SStream__write_char(self, PK_HEX_TABLE[high]);
-        if(high || low) pk_SStream__write_char(self, PK_HEX_TABLE[low]);
+        if(high) c11_sbuf__write_char(self, PK_HEX_TABLE[high]);
+        if(high || low) c11_sbuf__write_char(self, PK_HEX_TABLE[low]);
     } else {
-        pk_SStream__write_char(self, PK_HEX_TABLE[high]);
-        pk_SStream__write_char(self, PK_HEX_TABLE[low]);
+        c11_sbuf__write_char(self, PK_HEX_TABLE[high]);
+        c11_sbuf__write_char(self, PK_HEX_TABLE[low]);
     }
 }
 
-void pk_SStream__write_ptr(pk_SStream* self, void* p) {
+void c11_sbuf__write_ptr(c11_sbuf* self, void* p) {
     if(p == NULL) {
-        pk_SStream__write_cstr(self, "0x0");
+        c11_sbuf__write_cstr(self, "0x0");
         return;
     }
-    pk_SStream__write_cstr(self, "0x");
+    c11_sbuf__write_cstr(self, "0x");
     uintptr_t p_t = (uintptr_t)(p);
     bool non_zero = true;
     for(int i = sizeof(void*) - 1; i >= 0; i--) {
         unsigned char cpnt = (p_t >> (i * 8)) & 0xff;
-        pk_SStream__write_hex(self, cpnt, non_zero);
+        c11_sbuf__write_hex(self, cpnt, non_zero);
         if(cpnt != 0) non_zero = false;
     }
 }
 
-c11_string* pk_SStream__submit(pk_SStream* self) {
+c11_string* c11_sbuf__submit(c11_sbuf* self) {
     c11_vector__push(char, &self->data, '\0');
     c11_array arr = c11_vector__submit(&self->data);
     c11_string* retval = (c11_string*)arr.data;
@@ -112,11 +141,11 @@ c11_string* pk_SStream__submit(pk_SStream* self) {
     return retval;
 }
 
-void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args) {
+void pk_vsprintf(c11_sbuf* ss, const char* fmt, va_list args) {
     while(fmt) {
         char c = *fmt;
         if(c != '%') {
-            pk_SStream__write_char(ss, c);
+            c11_sbuf__write_char(ss, c);
             fmt++;
             continue;
         }
@@ -127,53 +156,57 @@ void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args) {
         switch(c) {
             case 'd': {
                 int i = va_arg(args, int);
-                pk_SStream__write_int(ss, i);
+                c11_sbuf__write_int(ss, i);
                 break;
             }
             case 'i': {
                 int64_t i = va_arg(args, int64_t);
-                pk_SStream__write_i64(ss, i);
+                c11_sbuf__write_i64(ss, i);
                 break;
             }
             case 'f': {
                 double d = va_arg(args, double);
-                pk_SStream__write_f64(ss, d, -1);
+                c11_sbuf__write_f64(ss, d, -1);
                 break;
             }
             case 's': {
                 const char* s = va_arg(args, const char*);
-                pk_SStream__write_cstr(ss, s);
+                c11_sbuf__write_cstr(ss, s);
                 break;
             }
             case 'q': {
-                const char* s = va_arg(args, const char*);
-                c11_sv sv = {s, strlen(s)};
-                c11_sv__quote(sv, '\'', &ss->data);
+                c11_sv sv = va_arg(args, c11_sv);
+                c11_sbuf__write_quoted(ss, sv, '\'');
+                break;
+            }
+            case 'v': {
+                c11_sv sv = va_arg(args, c11_sv);
+                c11_sbuf__write_sv(ss, sv);
                 break;
             }
             case 'c': {
                 char c = va_arg(args, int);
-                pk_SStream__write_char(ss, c);
+                c11_sbuf__write_char(ss, c);
                 break;
             }
             case 'p': {
                 void* p = va_arg(args, void*);
-                pk_SStream__write_ptr(ss, p);
+                c11_sbuf__write_ptr(ss, p);
                 break;
             }
             case 't': {
                 py_Type t = va_arg(args, int);
-                pk_SStream__write_cstr(ss, py_tpname(t));
+                c11_sbuf__write_cstr(ss, py_tpname(t));
                 break;
             }
             case 'n': {
                 py_Name n = va_arg(args, int);
-                pk_SStream__write_cstr(ss, py_name2str(n));
+                c11_sbuf__write_cstr(ss, py_name2str(n));
                 break;
             }
-            case '%': pk_SStream__write_char(ss, '%'); break;
+            case '%': c11_sbuf__write_char(ss, '%'); break;
             default:
-                pk_SStream__write_char(ss, c);
+                c11_sbuf__write_char(ss, c);
                 assert(false);  // invalid format
                 break;
         }
@@ -181,7 +214,7 @@ void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args) {
     }
 }
 
-void pk_sprintf(pk_SStream* ss, const char* fmt, ...) {
+void pk_sprintf(c11_sbuf* ss, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     pk_vsprintf(ss, fmt, args);

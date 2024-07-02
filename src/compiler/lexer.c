@@ -276,13 +276,13 @@ static Error* eat_name(pk_Lexer* self){
 static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, c11_string** out) {
     // previous char is quote
     bool quote3 = match_n_chars(self, 2, quote);
-    pk_SStream buff;
-    pk_SStream__ctor(&buff);
+    c11_sbuf buff;
+    c11_sbuf__ctor(&buff);
     while(true) {
         char c = eatchar_include_newline(self);
         if(c == quote) {
             if(quote3 && !match_n_chars(self, 2, quote)) {
-                pk_SStream__write_char(&buff, c);
+                c11_sbuf__write_char(&buff, c);
                 continue;
             }
             break;
@@ -297,34 +297,34 @@ static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, c11_string*
             if(!quote3)
                 return SyntaxError("EOL while scanning string literal");
             else {
-                pk_SStream__write_char(&buff, c);
+                c11_sbuf__write_char(&buff, c);
                 continue;
             }
         }
         if(!raw && c == '\\') {
             switch(eatchar_include_newline(self)) {
-                case '"': pk_SStream__write_char(&buff, '"'); break;
-                case '\'': pk_SStream__write_char(&buff, '\''); break;
-                case '\\': pk_SStream__write_char(&buff, '\\'); break;
-                case 'n': pk_SStream__write_char(&buff, '\n'); break;
-                case 'r': pk_SStream__write_char(&buff, '\r'); break;
-                case 't': pk_SStream__write_char(&buff, '\t'); break;
-                case 'b': pk_SStream__write_char(&buff, '\b'); break;
+                case '"': c11_sbuf__write_char(&buff, '"'); break;
+                case '\'': c11_sbuf__write_char(&buff, '\''); break;
+                case '\\': c11_sbuf__write_char(&buff, '\\'); break;
+                case 'n': c11_sbuf__write_char(&buff, '\n'); break;
+                case 'r': c11_sbuf__write_char(&buff, '\r'); break;
+                case 't': c11_sbuf__write_char(&buff, '\t'); break;
+                case 'b': c11_sbuf__write_char(&buff, '\b'); break;
                 case 'x': {
                     char hex[3] = {eatchar(self), eatchar(self), '\0'};
                     int code;
                     if(sscanf(hex, "%x", &code) != 1) {
                         return SyntaxError("invalid hex char");
                     }
-                    pk_SStream__write_char(&buff, (char)code);
+                    c11_sbuf__write_char(&buff, (char)code);
                 } break;
                 default: return SyntaxError("invalid escape char");
             }
         } else {
-            pk_SStream__write_char(&buff, c);
+            c11_sbuf__write_char(&buff, c);
         }
     }
-    *out = pk_SStream__submit(&buff);
+    *out = c11_sbuf__submit(&buff);
     return NULL;
 }
 
@@ -654,14 +654,14 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, c11_string** out) {
     Error* err = pk_Lexer__process(src, &nexts);
     if(err) return err;
 
-    pk_SStream ss;
-    pk_SStream__ctor(&ss);
+    c11_sbuf ss;
+    c11_sbuf__ctor(&ss);
 
     // L1: version string
-    pk_SStream__write_cstr(&ss, "pkpy:" PK_VERSION "\n");
+    c11_sbuf__write_cstr(&ss, "pkpy:" PK_VERSION "\n");
     // L2: mode
-    pk_SStream__write_int(&ss, (int)src->mode);
-    pk_SStream__write_char(&ss, '\n');
+    c11_sbuf__write_int(&ss, (int)src->mode);
+    c11_sbuf__write_char(&ss, '\n');
 
     c11_smallmap_s2n token_indices;
     c11_smallmap_s2n__ctor(&token_indices);
@@ -675,71 +675,71 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, c11_string** out) {
         }
     }
     // L3: raw string count
-    pk_SStream__write_char(&ss, '=');
-    pk_SStream__write_int(&ss, token_indices.count);
-    pk_SStream__write_char(&ss, '\n');
+    c11_sbuf__write_char(&ss, '=');
+    c11_sbuf__write_int(&ss, token_indices.count);
+    c11_sbuf__write_char(&ss, '\n');
 
     uint16_t index = 0;
     for(int i=0; i<token_indices.count; i++){
         c11_smallmap_s2n_KV* kv = c11__at(c11_smallmap_s2n_KV, &token_indices, i);
         // L4: raw strings
-        pk_SStream__write_cstrn(&ss, kv->key.data, kv->key.size);
+        c11_sbuf__write_cstrn(&ss, kv->key.data, kv->key.size);
         kv->value = index++;
     }
 
     // L5: token count
-    pk_SStream__write_char(&ss, '=');
-    pk_SStream__write_int(&ss, nexts.count);
-    pk_SStream__write_char(&ss, '\n');
+    c11_sbuf__write_char(&ss, '=');
+    c11_sbuf__write_int(&ss, nexts.count);
+    c11_sbuf__write_char(&ss, '\n');
 
     for(int i = 0; i < nexts.count; i++) {
         const Token* token = c11__at(Token, &nexts, i);
-        pk_SStream__write_int(&ss, (int)token->type);
-        pk_SStream__write_char(&ss, ',');
+        c11_sbuf__write_int(&ss, (int)token->type);
+        c11_sbuf__write_char(&ss, ',');
 
         if(is_raw_string_used(token->type)) {
             uint16_t *p = c11_smallmap_s2n__try_get(
                 &token_indices, (c11_sv){token->start, token->length});
             assert(p != NULL);
-            pk_SStream__write_int(&ss, (int)*p);
-            pk_SStream__write_char(&ss, ',');
+            c11_sbuf__write_int(&ss, (int)*p);
+            c11_sbuf__write_char(&ss, ',');
         }
         if(i > 0 && c11__getitem(Token, &nexts, i-1).line == token->line){
-            pk_SStream__write_char(&ss, ',');
+            c11_sbuf__write_char(&ss, ',');
         }else{
-            pk_SStream__write_int(&ss, token->line);
-            pk_SStream__write_char(&ss, ',');
+            c11_sbuf__write_int(&ss, token->line);
+            c11_sbuf__write_char(&ss, ',');
         }
             
         if(i > 0 && c11__getitem(Token, &nexts, i-1).brackets_level == token->brackets_level){
-            pk_SStream__write_char(&ss, ',');
+            c11_sbuf__write_char(&ss, ',');
         }else{
-            pk_SStream__write_int(&ss, token->brackets_level);
-            pk_SStream__write_char(&ss, ',');
+            c11_sbuf__write_int(&ss, token->brackets_level);
+            c11_sbuf__write_char(&ss, ',');
         }
         // visit token value
         switch(token->value.index){
             case TokenValue_EMPTY: break;
             case TokenValue_I64:
-                pk_SStream__write_char(&ss, 'I');
-                pk_SStream__write_int(&ss, token->value._i64);
+                c11_sbuf__write_char(&ss, 'I');
+                c11_sbuf__write_int(&ss, token->value._i64);
                 break;
             case TokenValue_F64:
-                pk_SStream__write_char(&ss, 'F');
-                pk_SStream__write_f64(&ss, token->value._f64, -1);
+                c11_sbuf__write_char(&ss, 'F');
+                c11_sbuf__write_f64(&ss, token->value._f64, -1);
                 break;
             case TokenValue_STR: {
-                pk_SStream__write_char(&ss, 'S');
+                c11_sbuf__write_char(&ss, 'S');
                 c11_sv sv = c11_string__sv(token->value._str);
                 for(int i=0; i<sv.size; i++){
-                    pk_SStream__write_hex(&ss, sv.data[i], false);
+                    c11_sbuf__write_hex(&ss, sv.data[i], false);
                 }
                 break;
             }
         }
-        pk_SStream__write_char(&ss, '\n');
+        c11_sbuf__write_char(&ss, '\n');
     }
-    *out = pk_SStream__submit(&ss);
+    *out = c11_sbuf__submit(&ss);
     c11_smallmap_s2n__dtor(&token_indices);
     return NULL;
 }
@@ -803,8 +803,8 @@ c11_sv TokenDeserializer__read_string(TokenDeserializer* self, char c){
 c11_string* TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c){
     c11_sv sv = TokenDeserializer__read_string(self, c);
     const char* s = sv.data;
-    pk_SStream ss;
-    pk_SStream__ctor(&ss);
+    c11_sbuf ss;
+    c11_sbuf__ctor(&ss);
     for(int i = 0; i < sv.size; i += 2) {
         char c = 0;
         if(s[i] >= '0' && s[i] <= '9')
@@ -820,9 +820,9 @@ c11_string* TokenDeserializer__read_string_from_hex(TokenDeserializer* self, cha
             c += s[i + 1] - 'a' + 10;
         else
             assert(false);
-        pk_SStream__write_char(&ss, c);
+        c11_sbuf__write_char(&ss, c);
     }
-    return pk_SStream__submit(&ss);
+    return c11_sbuf__submit(&ss);
 }
 
 int TokenDeserializer__read_count(TokenDeserializer* self){
