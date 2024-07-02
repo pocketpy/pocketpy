@@ -16,13 +16,11 @@ typedef struct c11_sv{
 } c11_sv;
 
 /* string */
-typedef struct c11_bytes{
+typedef struct c11_string{
+    // int size | char[] | '\0'
     int size;
-    const char data[];
-} c11_bytes;
-
-// int size | char[] | '\0'
-typedef c11_bytes c11_string;
+    const char data[];      // flexible array member
+} c11_string;
 
 int c11_sv__cmp(c11_sv self, c11_sv other);
 int c11_sv__cmp2(c11_sv self, const char* other, int size);
