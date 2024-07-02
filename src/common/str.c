@@ -11,54 +11,53 @@
 c11_string* c11_string__new(const char* data) { return c11_string__new2(data, strlen(data)); }
 
 c11_string* c11_string__new2(const char* data, int size) {
-    int* p = malloc(sizeof(int) + size + 1);
-    *p++ = size;
+    c11_string* retval = malloc(sizeof(c11_string) + size + 1);
+    c11_string__ctor2(retval, data, size);
+    return retval;
+}
+
+void c11_string__ctor(c11_string* self, const char* data) {
+    c11_string__ctor2(self, data, strlen(data));
+}
+
+void c11_string__ctor2(c11_string* self, const char* data, int size) {
+    self->size = size;
+    char* p = (char*)self->data;
     memcpy(p, data, size);
-    ((char*)p)[size] = '\0';
-    return (c11_string*)p;
+    p[size] = '\0';
 }
 
 c11_string* c11_string__copy(c11_string* self) {
-    int* p = (int*)self - 1;
-    int total_size = sizeof(int) + *p + 1;
-    int* q = malloc(total_size);
-    memcpy(q, p, total_size);
-    return (c11_string*)(q + 1);
+    int total_size = sizeof(c11_string) + self->size + 1;
+    c11_string* retval = malloc(total_size);
+    memcpy(retval, self, total_size);
+    return retval;
 }
 
 void c11_string__delete(c11_string* self) {
-    int* p = (int*)self - 1;
-    free(p);
-}
-
-int c11_string__len(c11_string* self) {
-    int* p = (int*)self - 1;
-    return *p;
+    free(self);
 }
 
 c11_sv c11_string__sv(c11_string* self) {
-    int* p = (int*)self - 1;
-    return (c11_sv){self, *p};
+    return (c11_sv){self->data, self->size};
 }
 
 c11_string* c11_string__replace(c11_string* self, char old, char new_) {
     c11_string* retval = c11_string__copy(self);
-    char* p = (char*)retval;
-    int size = c11_string__len(retval);
-    for(int i = 0; i < size; i++) {
+    char* p = (char*)retval->data;
+    for(int i = 0; i < retval->size; i++) {
         if(p[i] == old) p[i] = new_;
     }
     return retval;
 }
 
 int c11_string__u8_length(c11_string* self) {
-    int size = c11_string__len(self);
-    return c11__byte_index_to_unicode(self, size);
+    return c11__byte_index_to_unicode(self->data, self->size);
 }
 
 c11_sv c11_string__u8_getitem(c11_string* self, int i) {
-    i = c11__unicode_index_to_byte(self, i);
-    int size = c11__u8_header(self[i], false);
+    i = c11__unicode_index_to_byte(self->data, i);
+    int size = c11__u8_header(self->data[i], false);
     return c11_sv__slice2(c11_string__sv(self), i, i + size);
 }
 

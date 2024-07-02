@@ -1,5 +1,6 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/config.h"
+#include "pocketpy/common/str.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/pocketpy.h"
 
@@ -9,7 +10,7 @@
 #include <ctype.h>
 #include <math.h>
 
-const static int C11_STRING_HEADER_SIZE = sizeof(int);
+const static int C11_STRING_HEADER_SIZE = sizeof(c11_string);
 
 void pk_SStream__ctor(pk_SStream* self) {
     c11_vector__ctor(&self->data, sizeof(char));
@@ -24,14 +25,14 @@ void pk_SStream__write_char(pk_SStream* self, char c) { c11_vector__push(char, &
 void pk_SStream__write_int(pk_SStream* self, int i) {
     // len('-2147483648') == 11
     c11_vector__reserve(&self->data, self->data.count + 11 + 1);
-    int n = sprintf(self->data.data, "%d", i);
+    int n = snprintf(self->data.data, 11 + 1, "%d", i);
     self->data.count += n;
 }
 
 void pk_SStream__write_i64(pk_SStream* self, int64_t val) {
     // len('-9223372036854775808') == 20
     c11_vector__reserve(&self->data, self->data.count + 20 + 1);
-    int n = sprintf(self->data.data, "%lld", (long long)val);
+    int n = snprintf(self->data.data, 20 + 1, "%lld", (long long)val);
     self->data.count += n;
 }
 
@@ -106,9 +107,9 @@ void pk_SStream__write_ptr(pk_SStream* self, void* p) {
 c11_string* pk_SStream__submit(pk_SStream* self) {
     c11_vector__push(char, &self->data, '\0');
     c11_array arr = c11_vector__submit(&self->data);
-    int* p = arr.data;
-    *p = arr.count - C11_STRING_HEADER_SIZE - 1;
-    return (c11_string*)(p + 1);
+    c11_string* retval = (c11_string*)arr.data;
+    retval->size = arr.count - C11_STRING_HEADER_SIZE - 1;
+    return retval;
 }
 
 void pk_vsprintf(pk_SStream* ss, const char* fmt, va_list args) {
@@ -185,19 +186,4 @@ void pk_sprintf(pk_SStream* ss, const char* fmt, ...) {
     va_start(args, fmt);
     pk_vsprintf(ss, fmt, args);
     va_end(args);
-}
-
-const char* py_fmt(const char* fmt, ...) {
-    PK_THREAD_LOCAL pk_SStream ss;
-    if(ss.data.elem_size == 0) {
-        pk_SStream__ctor(&ss);
-    } else {
-        c11_vector__clear(&ss.data);
-    }
-    va_list args;
-    va_start(args, fmt);
-    pk_vsprintf(&ss, fmt, args);
-    va_end(args);
-    pk_SStream__write_char(&ss, '\0');
-    return (const char*)ss.data.data;
 }

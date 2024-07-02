@@ -27,7 +27,7 @@ static void pk_SourceData__ctor(struct pk_SourceData* self,
     }
     self->source = pk_SStream__submit(&ss);
     self->is_precompiled = (strncmp(source, "pkpy:", 5) == 0);
-    c11_vector__push(const char*, &self->line_starts, self->source);
+    c11_vector__push(const char*, &self->line_starts, self->source->data);
 }
 
 static void pk_SourceData__dtor(struct pk_SourceData* self) {
@@ -77,7 +77,7 @@ c11_string* pk_SourceData__snapshot(const struct pk_SourceData* self,
     pk_SStream ss;
     pk_SStream__ctor(&ss);
 
-    pk_sprintf(&ss, "  File \"%S\", line %d", &self->filename, lineno);
+    pk_sprintf(&ss, "  File \"%s\", line %d", self->filename->data, lineno);
 
     if(name && *name) {
         pk_SStream__write_cstr(&ss, ", in ");

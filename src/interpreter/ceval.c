@@ -495,7 +495,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 }
                 SP() = begin;
                 c11_string* res = pk_SStream__submit(&ss);
-                py_newstrn(SP()++, res, c11_string__len(res));
+                py_newstrn(SP()++, res->data, res->size);
                 c11_string__delete(res);
                 DISPATCH();
             }

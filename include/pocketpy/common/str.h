@@ -15,22 +15,29 @@ typedef struct c11_sv{
     int size;
 } c11_sv;
 
+/* string */
+typedef struct c11_bytes{
+    int size;
+    const char data[];
+} c11_bytes;
+
+// int size | char[] | '\0'
+typedef c11_bytes c11_string;
+
 int c11_sv__cmp(c11_sv self, c11_sv other);
 int c11_sv__cmp2(c11_sv self, const char* other, int size);
 int c11_sv__cmp3(c11_sv self, const char* other);
 
-// int size | char[] | '\0'
-typedef const char c11_string;
-
 c11_string* c11_string__new(const char* data);
 c11_string* c11_string__new2(const char* data, int size);
+void c11_string__ctor(c11_string* self, const char* data);
+void c11_string__ctor2(c11_string* self, const char* data, int size);
 c11_string* c11_string__copy(c11_string* self);
 void c11_string__delete(c11_string* self);
-int c11_string__len(c11_string* self);
 c11_sv c11_string__sv(c11_string* self);
 c11_string* c11_string__replace(c11_string* self, char old, char new_);
 
-int c11_string__u8_length(const c11_string* self);
+int c11_string__u8_length(c11_string* self);
 c11_sv c11_string__u8_getitem(c11_string* self, int i);
 c11_string* c11_string__u8_slice(c11_string* self, int start, int stop, int step);
 

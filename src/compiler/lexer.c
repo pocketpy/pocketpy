@@ -40,7 +40,7 @@ const static TokenValue EmptyTokenValue;
 static void pk_Lexer__ctor(pk_Lexer* self, pk_SourceData_ src){
     PK_INCREF(src);
     self->src = src;
-    self->curr_char = self->token_start = src->source;
+    self->curr_char = self->token_start = src->source->data;
     self->current_line = 1;
     self->brackets_level = 0;
     c11_vector__ctor(&self->nexts, sizeof(Token));
@@ -549,7 +549,7 @@ static Error* lex_one_token(pk_Lexer* self, bool* eof){
 
 static Error* from_precompiled(pk_Lexer* self) {
     TokenDeserializer deserializer;
-    TokenDeserializer__ctor(&deserializer, self->src->source);
+    TokenDeserializer__ctor(&deserializer, self->src->source->data);
 
     deserializer.curr += 5;  // skip "pkpy:"
     c11_sv version = TokenDeserializer__read_string(&deserializer, '\n');
@@ -576,8 +576,8 @@ static Error* from_precompiled(pk_Lexer* self) {
         if(is_raw_string_used(t.type)) {
             int64_t index = TokenDeserializer__read_uint(&deserializer, ',');
             c11_string* p = c11__getitem(c11_string*, precompiled_tokens, index);
-            t.start = p;
-            t.length = c11_string__len(p);
+            t.start = p->data;
+            t.length = p->size;
         } else {
             t.start = NULL;
             t.length = 0;
@@ -937,7 +937,7 @@ double TokenDeserializer__read_float(TokenDeserializer* self, char c){
     // TODO: optimize this
     c11_string* nullterm = c11_string__new2(sv.data, sv.size);
     char* end;
-    double retval = strtod(nullterm, &end);
+    double retval = strtod(nullterm->data, &end);
     c11_string__delete(nullterm);
     assert(*end == 0);
     return retval;

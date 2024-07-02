@@ -46,10 +46,10 @@ void py_newstr(py_Ref out, const char* data) {
 
 void py_newstrn(py_Ref out, const char* data, int size) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
-    int total_size = sizeof(int) + size + 1;
+    int total_size = sizeof(c11_string) + size + 1;
     PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_str, 0, total_size);
-    int* p = PyObject__value(obj);
-    *p = size;
+    c11_string* ud = PyObject__value(obj);
+    c11_string__ctor2(ud, data, size);
     out->type = tp_str;
     out->is_ptr = true;
     out->_obj = obj;

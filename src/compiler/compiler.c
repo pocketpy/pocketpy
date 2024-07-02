@@ -2054,11 +2054,11 @@ Error* pk_compile(pk_SourceData_ src, CodeObject* out) {
     if(err) return err;
 
     Token* data = (Token*)tokens.data;
-    printf("%s\n", src->filename);
+    printf("%s\n", src->filename->data);
     for(int i = 0; i < tokens.count; i++) {
         Token* t = data + i;
         c11_string* tmp = c11_string__new2(t->start, t->length);
-        printf("[%d] %s: %s\n", t->line, pk_TokenSymbols[t->type], tmp);
+        printf("[%d] %s: %s\n", t->line, pk_TokenSymbols[t->type], tmp->data);
         c11_string__delete(tmp);
     }
 

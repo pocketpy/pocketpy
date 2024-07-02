@@ -321,7 +321,6 @@ const char* py_tpname(py_Type type);
 /// %p: void*
 /// %t: py_Type
 /// %n: py_Name
-const char* py_fmt(const char* fmt, ...);
 
 #define MAGIC_METHOD(x) extern uint16_t x;
 #include "pocketpy/xmacros/magics.h"
