@@ -64,7 +64,7 @@ typedef struct Ctx {
     int curr_iblock;
     bool is_compiling_class;
     c11_vector /*T=Expr* */ s_expr;
-    c11_vector /*T=py_Name*/ global_names;
+    c11_smallmap_n2i global_names;
     c11_smallmap_s2n co_consts_string_dedup_map;
 } Ctx;
 
@@ -671,7 +671,7 @@ static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
                 int conon = c11_sv__index(expr, ':');
                 if(conon >= 0) {
                     c11_sv spec = {expr.data + (conon + 1),
-                                       expr.size - (conon + 1)};  // expr[conon+1:]
+                                   expr.size - (conon + 1)};  // expr[conon+1:]
                     // filter some invalid spec
                     bool ok = true;
                     for(int k = 0; k < spec.size; k++) {
@@ -1209,7 +1209,7 @@ void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
     self->curr_iblock = 0;
     self->is_compiling_class = false;
     c11_vector__ctor(&self->s_expr, sizeof(Expr*));
-    c11_vector__ctor(&self->global_names, sizeof(py_Name));
+    c11_smallmap_n2i__ctor(&self->global_names);
     c11_smallmap_s2n__ctor(&self->co_consts_string_dedup_map);
 }
 
@@ -1220,7 +1220,7 @@ void Ctx__dtor(Ctx* self) {
     }
     c11_vector__clear(&self->s_expr);
     c11_vector__dtor(&self->s_expr);
-    c11_vector__dtor(&self->global_names);
+    c11_smallmap_n2i__dtor(&self->global_names);
     c11_smallmap_s2n__dtor(&self->co_consts_string_dedup_map);
 }
 
@@ -1455,7 +1455,7 @@ static void Compiler__dtor(Compiler* self) {
                            pk_TokenSymbols[expected],                                              \
                            pk_TokenSymbols[curr()->type]);
 #define consume_end_stmt()                                                                         \
-    if(!match_end_stmt()) return SyntaxError("expected statement end")
+    if(!match_end_stmt(self)) return SyntaxError("expected statement end")
 #define check_newlines_repl()                                                                      \
     do {                                                                                           \
         bool __nml;                                                                                \
@@ -1471,7 +1471,7 @@ static NameScope name_scope(Compiler* self) {
     return s;
 }
 
-static Error* SyntaxError(const char* fmt, ...) { return NULL; }
+#define SyntaxError(...) NULL
 
 static Error* NeedMoreLines() { return NULL; }
 
@@ -1798,10 +1798,7 @@ static Error* exprName(Compiler* self) {
     py_Name name = py_name2(Token__sv(prev()));
     NameScope scope = name_scope(self);
     // promote this name to global scope if needed
-    c11_vector* global_names = &ctx()->global_names;
-    c11__foreach(py_Name, global_names, it) {
-        if(*it == name) scope = NAME_GLOBAL;
-    }
+    if(c11_smallmap_n2i__contains(&ctx()->global_names, name)) { scope = NAME_GLOBAL; }
     NameExpr* e = NameExpr__new(prev()->line, name, scope);
     Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
@@ -2005,6 +2002,258 @@ static Error* exprSubscr(Compiler* self) {
     return NULL;
 }
 
+////////////////
+static Error* consume_type_hints(Compiler* self) {
+    Error* err;
+    check(EXPR(self));
+    Ctx__s_pop(ctx());
+    return NULL;
+}
+
+Error* try_compile_assignment(Compiler* self, bool* is_assign) {
+    Error* err;
+    switch(curr()->type) {
+        case TK_IADD:
+        case TK_ISUB:
+        case TK_IMUL:
+        case TK_IDIV:
+        case TK_IFLOORDIV:
+        case TK_IMOD:
+        case TK_ILSHIFT:
+        case TK_IRSHIFT:
+        case TK_IAND:
+        case TK_IOR:
+        case TK_IXOR: {
+            if(Ctx__s_top(ctx())->vt->is_starred) return SyntaxError();
+            if(ctx()->is_compiling_class) {
+                return SyntaxError("can't use inplace operator in class definition");
+            }
+            advance();
+            // a[x] += 1;   a and x should be evaluated only once
+            // a.x += 1;    a should be evaluated only once
+            // -1 to remove =; inplace=true
+            int line = prev()->line;
+            TokenIndex op = (TokenIndex)(prev()->type - 1);
+            // [lhs]
+            check(EXPR_TUPLE(self));  // [lhs, rhs]
+            if(Ctx__s_top(ctx())->vt->is_starred) return SyntaxError();
+            BinaryExpr* e = BinaryExpr__new(line, op, true);
+            e->rhs = Ctx__s_popx(ctx());  // [lhs]
+            e->lhs = Ctx__s_popx(ctx());  // []
+            vtemit_((Expr*)e, ctx());
+            bool ok = vtemit_istore(e->lhs, ctx());
+            vtdelete((Expr*)e);
+            if(!ok) return SyntaxError();
+            *is_assign = true;
+            return NULL;
+        }
+        case TK_ASSIGN: {
+            int n = 0;
+            while(match(TK_ASSIGN)) {
+                check(EXPR_TUPLE(self));
+                n += 1;
+            }
+            // stack size is n+1
+            Ctx__s_emit_top(ctx());
+            for(int j = 1; j < n; j++)
+                Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
+            for(int j = 0; j < n; j++) {
+                if(Ctx__s_top(ctx())->vt->is_starred) return SyntaxError();
+                Expr* e = Ctx__s_top(ctx());
+                bool ok = vtemit_store(e, ctx());
+                Ctx__s_pop(ctx());
+                if(!ok) return SyntaxError();
+            }
+            *is_assign = true;
+            return NULL;
+        }
+        default: *is_assign = false;
+    }
+    return NULL;
+}
+
+static Error* compile_stmt(Compiler* self) {
+    Error* err;
+    if(match(TK_CLASS)) {
+        // check(compile_class());
+        assert(false);
+        return NULL;
+    }
+    advance();
+    int kw_line = prev()->line;  // backup line number
+    int curr_loop_block = Ctx__get_loop(ctx());
+    switch(prev()->type) {
+        case TK_BREAK:
+            if(curr_loop_block < 0) return SyntaxError("'break' outside loop");
+            Ctx__emit_(ctx(), OP_LOOP_BREAK, curr_loop_block, kw_line);
+            consume_end_stmt();
+            break;
+        case TK_CONTINUE:
+            if(curr_loop_block < 0) return SyntaxError("'continue' not properly in loop");
+            Ctx__emit_(ctx(), OP_LOOP_CONTINUE, curr_loop_block, kw_line);
+            consume_end_stmt();
+            break;
+        case TK_YIELD:
+            if(self->contexts.count <= 1) return SyntaxError("'yield' outside function");
+            check(EXPR_TUPLE(self));
+            Ctx__s_emit_top(ctx());
+            Ctx__emit_(ctx(), OP_YIELD_VALUE, BC_NOARG, kw_line);
+            consume_end_stmt();
+            break;
+        case TK_YIELD_FROM:
+            if(self->contexts.count <= 1) return SyntaxError("'yield from' outside function");
+            check(EXPR_TUPLE(self));
+            Ctx__s_emit_top(ctx());
+            Ctx__emit_(ctx(), OP_GET_ITER_NEW, BC_NOARG, kw_line);
+            Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
+            Ctx__emit_(ctx(), OP_FOR_ITER_YIELD_VALUE, BC_NOARG, kw_line);
+            Ctx__emit_(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), kw_line);
+            Ctx__exit_block(ctx());
+            consume_end_stmt();
+            break;
+        case TK_RETURN:
+            if(self->contexts.count <= 1) return SyntaxError("'return' outside function");
+            if(match_end_stmt(self)) {
+                Ctx__emit_(ctx(), OP_RETURN_VALUE, 1, kw_line);
+            } else {
+                check(EXPR_TUPLE(self));
+                Ctx__s_emit_top(ctx());
+                consume_end_stmt();
+                Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_NOARG, kw_line);
+            }
+            break;
+        /*************************************************/
+        // case TK_IF: check(compile_if_stmt()); break;
+        // case TK_WHILE: check(compile_while_loop()); break;
+        // case TK_FOR: check(compile_for_loop()); break;
+        // case TK_IMPORT: check(compile_normal_import()); break;
+        // case TK_FROM: check(compile_from_import()); break;
+        // case TK_DEF: check(compile_function()); break;
+        // case TK_DECORATOR: check(compile_decorated()); break;
+        // case TK_TRY: check(compile_try_except()); break;
+        case TK_PASS: consume_end_stmt(); break;
+        /*************************************************/
+        case TK_ASSERT: {
+            check(EXPR(self));  // condition
+            Ctx__s_emit_top(ctx());
+            int index = Ctx__emit_(ctx(), OP_POP_JUMP_IF_TRUE, BC_NOARG, kw_line);
+            int has_msg = 0;
+            if(match(TK_COMMA)) {
+                check(EXPR(self));  // message
+                Ctx__s_emit_top(ctx());
+                has_msg = 1;
+            }
+            Ctx__emit_(ctx(), OP_RAISE_ASSERT, has_msg, kw_line);
+            Ctx__patch_jump(ctx(), index);
+            consume_end_stmt();
+            break;
+        }
+        case TK_GLOBAL:
+            do {
+                consume(TK_ID);
+                py_Name name = py_name2(Token__sv(prev()));
+                c11_smallmap_n2i__set(&ctx()->global_names, name, 0);
+            } while(match(TK_COMMA));
+            consume_end_stmt();
+            break;
+        case TK_RAISE: {
+            check(EXPR(self));
+            Ctx__s_emit_top(ctx());
+            Ctx__emit_(ctx(), OP_RAISE, BC_NOARG, kw_line);
+            consume_end_stmt();
+        } break;
+        case TK_DEL: {
+            check(EXPR_TUPLE(self));
+            Expr* e = Ctx__s_top(ctx());
+            if(!vtemit_del(e, ctx())) return SyntaxError();
+            Ctx__s_pop(ctx());
+            consume_end_stmt();
+        } break;
+        // case TK_WITH: {
+        //     check(EXPR(self));  // [ <expr> ]
+        //     Ctx__s_emit_top(ctx());
+        //     Ctx__enter_block(ctx(), CodeBlockType_CONTEXT_MANAGER);
+        //     Expr* as_name = nullptr;
+        //     if(match(TK_AS)) {
+        //         consume(TK_ID);
+        //         as_name = make_expr<NameExpr>(prev().str(), name_scope());
+        //     }
+        //     Ctx__emit_(ctx(), OP_WITH_ENTER, BC_NOARG, prev().line);
+        //     // [ <expr> <expr>.__enter__() ]
+        //     if(as_name) {
+        //         bool ok = as_name->emit_store(ctx());
+        //         delete_expr(as_name);
+        //         if(!ok) return SyntaxError();
+        //     } else {
+        //         Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+        //     }
+        //     check(compile_block_body());
+        //     Ctx__emit_(ctx(), OP_WITH_EXIT, BC_NOARG, prev().line);
+        //     Ctx__exit_block(ctx());
+        // } break;
+        /*************************************************/
+        case TK_EQ: {
+            consume(TK_ID);
+            if(mode() != EXEC_MODE) return SyntaxError("'label' is only available in EXEC_MODE");
+            c11_sv name = Token__sv(prev());
+            bool ok = Ctx__add_label(ctx(), py_name2(name));
+            if(!ok) return SyntaxError("label %q already exists", name);
+            consume(TK_EQ);
+            consume_end_stmt();
+        } break;
+        case TK_ARROW:
+            consume(TK_ID);
+            if(mode() != EXEC_MODE) return SyntaxError("'goto' is only available in EXEC_MODE");
+            py_Name name = py_name2(Token__sv(prev()));
+            Ctx__emit_(ctx(), OP_GOTO, name, prev()->line);
+            consume_end_stmt();
+            break;
+        /*************************************************/
+        // handle dangling expression or assignment
+        default: {
+            // do revert since we have pre-called advance() at the beginning
+            --self->i;
+
+            check(EXPR_TUPLE(self));
+
+            bool is_typed_name = false;  // e.g. x: int
+            // eat variable's type hint if it is a single name
+            if(Ctx__s_top(ctx())->vt->is_name) {
+                if(match(TK_COLON)) {
+                    check(consume_type_hints(self));
+                    is_typed_name = true;
+
+                    if(ctx()->is_compiling_class) {
+                        NameExpr* ne = (NameExpr*)Ctx__s_top(ctx());
+                        Ctx__emit_(ctx(), OP_ADD_CLASS_ANNOTATION, ne->name, BC_KEEPLINE);
+                    }
+                }
+            }
+            bool is_assign = false;
+            check(try_compile_assignment(self, &is_assign));
+            if(!is_assign) {
+                if(Ctx__s_size(ctx()) > 0 && Ctx__s_top(ctx())->vt->is_starred) {
+                    return SyntaxError();
+                }
+                if(!is_typed_name) {
+                    Ctx__s_emit_top(ctx());
+                    if((mode() == CELL_MODE || mode() == REPL_MODE) &&
+                       name_scope(self) == NAME_GLOBAL) {
+                        Ctx__emit_(ctx(), OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
+                    } else {
+                        Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+                    }
+                } else {
+                    Ctx__s_pop(ctx());
+                }
+            }
+            consume_end_stmt();
+            break;
+        }
+    }
+    return NULL;
+}
+
 /////////////////////////////////////////////////////////////////
 
 Error* Compiler__compile(Compiler* self, CodeObject* out) {
@@ -2026,25 +2275,22 @@ Error* Compiler__compile(Compiler* self, CodeObject* out) {
         Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         check(pop_context(self));
         return NULL;
+    } else if(mode() == JSON_MODE) {
+        check(EXPR(self));
+        Expr* e = Ctx__s_popx(ctx());
+        if(!e->vt->is_json_object) { return SyntaxError("expect a JSON object, literal or array"); }
+        consume(TK_EOF);
+        vtemit_(e, ctx());
+        Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
+        check(pop_context(self));
+        return NULL;
     }
-    // } else if(mode() == JSON_MODE) {
-    //     check(EXPR(self));
-    //     Expr* e = Ctx__s_popx(ctx());
-    //     if(!e->is_json_object()){
-    //         return SyntaxError("expect a JSON object, literal or array");
-    //     }
-    //     consume(TK_EOF);
-    //     e->emit_(ctx());
-    //     ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
-    //     check(pop_context());
-    //     return NULL;
-    // }
 
-    // while(!match(TK_EOF)) {
-    //     check(compile_stmt());
-    //     match_newlines();
-    // }
-    // check(pop_context());
+    while(!match(TK_EOF)) {
+        check(compile_stmt(self));
+        match_newlines();
+    }
+    check(pop_context(self));
     return NULL;
 }
 
@@ -2069,6 +2315,8 @@ Error* pk_compile(pk_SourceData_ src, CodeObject* out) {
     if(err) {
         // if error occurs, dispose the code object
         CodeObject__dtor(out);
+    } else {
+        assert(out->codes.count);
     }
     Compiler__dtor(&compiler);
     return err;

@@ -27,6 +27,7 @@ static void pk_SourceData__ctor(struct pk_SourceData* self,
     }
     self->source = c11_sbuf__submit(&ss);
     self->is_precompiled = (strncmp(source, "pkpy:", 5) == 0);
+    self->is_dynamic = is_dynamic;
     c11_vector__push(const char*, &self->line_starts, self->source->data);
 }
 

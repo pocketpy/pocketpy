@@ -10,12 +10,10 @@
 #include <ctype.h>
 #include <math.h>
 
-const static int C11_STRING_HEADER_SIZE = sizeof(c11_string);
-
 void c11_sbuf__ctor(c11_sbuf* self) {
     c11_vector__ctor(&self->data, sizeof(char));
-    c11_vector__reserve(&self->data, 100 + C11_STRING_HEADER_SIZE);
-    self->data.count = C11_STRING_HEADER_SIZE;
+    c11_vector__reserve(&self->data, 100 + sizeof(c11_string));
+    self->data.count = sizeof(c11_string);
 }
 
 void c11_sbuf__dtor(c11_sbuf* self) { c11_vector__dtor(&self->data); }
@@ -137,7 +135,7 @@ c11_string* c11_sbuf__submit(c11_sbuf* self) {
     c11_vector__push(char, &self->data, '\0');
     c11_array arr = c11_vector__submit(&self->data);
     c11_string* retval = (c11_string*)arr.data;
-    retval->size = arr.count - C11_STRING_HEADER_SIZE - 1;
+    retval->size = arr.count - sizeof(c11_string) - 1;
     return retval;
 }
 

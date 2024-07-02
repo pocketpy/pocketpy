@@ -89,10 +89,12 @@ static void disassemble(CodeObject* co) {
                 case OP_LOAD_CONST:
                 case OP_FORMAT_STRING:
                 case OP_IMPORT_PATH: {
-                    c11_string* ud = py_touserdata(c11__at(py_TValue, &co->consts, byte.arg));
+                    py_Ref tmp = c11__at(py_TValue, &co->consts, byte.arg);
                     c11_sbuf__write_cstr(&ss, " (");
-                    c11_sbuf__write_cstr(&ss, ud->data);
-                    c11_sbuf__write_char(&ss, ')');
+                    // here we need to use py_repr, however this function is not ready yet
+                    c11_sbuf__write_cstr(&ss, "<class '");
+                    c11_sbuf__write_cstr(&ss, py_tpname(tmp->type));
+                    c11_sbuf__write_cstr(&ss, "'>)");
                     break;
                 }
                 case OP_LOAD_NAME:

@@ -605,9 +605,9 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 // }
                 /*****************************************/
             case OP_RETURN_VALUE: {
-                if(byte.arg == BC_NOARG){
+                if(byte.arg == BC_NOARG) {
                     self->last_retval = POPX();
-                }else{
+                } else {
                     py_newnone(&self->last_retval);
                 }
                 pk_VM__pop_frame(self);
@@ -620,6 +620,31 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 }
                 DISPATCH();
             }
+
+                /////////
+            case OP_UNARY_NEGATIVE: {
+                if(!py_callmagic(__neg__, 1, TOP())) goto __ERROR;
+                *TOP() = self->last_retval;
+                DISPATCH();
+            }
+            case OP_UNARY_NOT: {
+                int res = py_bool(TOP());
+                if(res < 0) goto __ERROR;
+                py_newbool(TOP(), !res);
+                DISPATCH();
+            }
+                // case OP_UNARY_STAR: TOP() = VAR(StarWrapper(byte.arg, TOP())); DISPATCH();
+                // case OP_UNARY_INVERT: {
+                //     PyVar _0;
+                //     auto _ti = _tp_info(TOP());
+                //     if(_ti->m__invert__)
+                //         _0 = _ti->m__invert__(this, TOP());
+                //     else
+                //         _0 = call_method(TOP(), __invert__);
+                //     TOP() = _0;
+                //     DISPATCH();
+                // }
+
             default: PK_UNREACHABLE();
         }
 
