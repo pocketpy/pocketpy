@@ -13,7 +13,6 @@ int NameError(py_Name name) { return -1; }
 
 static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 
-
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
@@ -123,13 +122,13 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             /*****************************************/
             case OP_LOAD_CONST: PUSH(c11__at(py_TValue, &frame->co->consts, byte.arg)); DISPATCH();
-            case OP_LOAD_NONE: PUSH(&self->None); DISPATCH();
-            case OP_LOAD_TRUE: PUSH(&self->True); DISPATCH();
-            case OP_LOAD_FALSE: PUSH(&self->False); DISPATCH();
+            case OP_LOAD_NONE: py_newnone(SP()++); DISPATCH();
+            case OP_LOAD_TRUE: py_newbool(SP()++, true); DISPATCH();
+            case OP_LOAD_FALSE: py_newbool(SP()++, false); DISPATCH();
             /*****************************************/
             case OP_LOAD_SMALL_INT: py_newint(SP()++, (int64_t)(int16_t)byte.arg); DISPATCH();
             /*****************************************/
-            case OP_LOAD_ELLIPSIS: PUSH(&self->Ellipsis); DISPATCH();
+            case OP_LOAD_ELLIPSIS: py_newellipsis(SP()++); DISPATCH();
             case OP_LOAD_FUNCTION: {
                 // FuncDecl_ decl = c11__getitem(FuncDecl_, &frame->co->func_decls, byte.arg);
                 // py_TValue obj;
@@ -512,7 +511,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 bool res = py_isidentical(SECOND(), TOP());
                 POP();
                 if(byte.arg) res = !res;
-                *TOP() = res ? self->True : self->False;
+                py_newbool(TOP(), res);
                 DISPATCH();
             }
             case OP_CONTAINS_OP: {
@@ -575,9 +574,9 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             case OP_SHORTCUT_IF_FALSE_OR_POP: {
                 int res = py_bool(TOP());
                 if(res < 0) goto __ERROR;
-                if(!res) {               // [b, False]
-                    STACK_SHRINK(2);     // []
-                    PUSH(&self->False);  // [False]
+                if(!res) {                      // [b, False]
+                    STACK_SHRINK(2);            // []
+                    py_newbool(SP()++, false);  // [False]
                     DISPATCH_JUMP((int16_t)byte.arg);
                 } else {
                     POP();  // [b]
@@ -606,7 +605,11 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 // }
                 /*****************************************/
             case OP_RETURN_VALUE: {
-                self->last_retval = byte.arg == BC_NOARG ? POPX() : self->None;
+                if(byte.arg == BC_NOARG){
+                    self->last_retval = POPX();
+                }else{
+                    py_newnone(&self->last_retval);
+                }
                 pk_VM__pop_frame(self);
                 if(frame == base_frame) {  // [ frameBase<- ]
                     return RES_RETURN;

@@ -50,10 +50,9 @@ typedef struct pk_VM {
     void (*_stdout)(const char*, ...);
     void (*_stderr)(const char*, ...);
 
-    // singleton objects
-    py_TValue True, False, None, NotImplemented, Ellipsis;
-
     py_TValue last_retval;
+    bool has_error;
+    
     py_TValue reg[8];  // users' registers
 
     py_TValue __curr_class;

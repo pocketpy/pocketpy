@@ -68,7 +68,8 @@ void pk_VM__ctor(pk_VM* self) {
     self->_stderr = pk_default_stderr;
 
     self->last_retval = PY_NULL;
-
+    self->has_error = false;
+    
     self->__curr_class = PY_NULL;
     self->__cached_object_new = PY_NULL;
     self->__dynamic_func_decl = NULL;
@@ -148,7 +149,10 @@ void pk_VM__ctor(pk_VM* self) {
         pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, t);
         py_setdict(&self->builtins, ti->name, py_tpobject(t));
     }
-    py_setdict(&self->builtins, py_name("NotImplemented"), &self->NotImplemented);
+
+    py_TValue tmp;
+    py_newnotimplemented(&tmp);
+    py_setdict(&self->builtins, py_name("NotImplemented"), &tmp);
 
     /* Do Buildin Bindings*/
     pk_VM__init_builtins(self);

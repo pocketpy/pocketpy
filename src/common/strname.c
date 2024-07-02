@@ -20,11 +20,6 @@ void py_Name__initialize() {
 #define MAGIC_METHOD(x) assert(x == py_name(#x));
 #include "pocketpy/xmacros/magics.h"
 #undef MAGIC_METHOD
-
-    // print all names
-    for(int i = 0; i < _interned.count; i++) {
-        printf("%d: %s\n", i + 1, c11__getitem(char*, &_r_interned, i));
-    }
 }
 
 void py_Name__finalize() {

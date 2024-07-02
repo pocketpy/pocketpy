@@ -40,10 +40,10 @@ void py_initialize();
 void py_finalize();
 
 /// Run a simple source string. Do not change the stack.
-bool py_exec(const char*);
+bool py_exec(const char* source);
 /// Eval a simple expression.
 /// The result will be set to `py_retval()`.
-bool py_eval(const char*);
+bool py_eval(const char* source);
 
 /************* Values Creation *************/
 void py_newint(py_Ref, py_i64);
