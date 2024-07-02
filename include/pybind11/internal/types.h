@@ -365,9 +365,6 @@ class capsule : public object {
     PYBIND11_TYPE_IMPLEMENT(object, impl::capsule, handle(vm->builtins->attr("capsule"))._as<pkpy::Type>());
 
 public:
-    template <typename T>
-    capsule(T&& value) : object(create(std::forward<T>(value))) {}
-
     capsule(void* ptr, void (*destructor)(void*) = nullptr) : object(create(ptr, destructor)) {}
 
     void* data() const { return self().ptr; }
