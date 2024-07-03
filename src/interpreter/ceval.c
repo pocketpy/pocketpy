@@ -3,6 +3,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
+#include <stdbool.h>
 
 int UnboundLocalError(py_Name name) { return -1; }
 
@@ -604,6 +605,18 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 //     DISPATCH_JUMP_ABSOLUTE(target)
                 // }
                 /*****************************************/
+            case OP_FSTRING_EVAL: {
+                assert(false);
+            }
+            case OP_REPR: {
+                assert(false);
+            }
+            case OP_CALL: {
+                assert(false);
+            }
+            case OP_CALL_VARGS: {
+                assert(false);
+            }
             case OP_RETURN_VALUE: {
                 if(byte.arg == BC_NOARG) {
                     self->last_retval = POPX();

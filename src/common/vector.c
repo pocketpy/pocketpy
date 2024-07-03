@@ -48,8 +48,8 @@ c11_vector c11_vector__copy(const c11_vector* self){
 void c11_vector__reserve(c11_vector* self, int capacity){
     if(capacity < 4) capacity = 4;
     if(capacity <= self->capacity) return;
+    self->data = realloc(self->data, self->elem_size * capacity);
     self->capacity = capacity;
-    self->data = realloc(self->data, self->elem_size * self->capacity);
 }
 
 void c11_vector__clear(c11_vector* self){

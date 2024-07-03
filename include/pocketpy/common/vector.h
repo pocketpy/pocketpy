@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-typedef struct c11_array{
+typedef struct c11_array {
     void* data;
     int count;
     int elem_size;
@@ -21,7 +21,7 @@ void c11_array__ctor(c11_array* self, int elem_size, int count);
 void c11_array__dtor(c11_array* self);
 c11_array c11_array__copy(const c11_array* self);
 
-typedef struct c11_vector{
+typedef struct c11_vector {
     void* data;
     int count;
     int capacity;
@@ -40,54 +40,57 @@ c11_array c11_vector__submit(c11_vector* self);
 #define c11__setitem(T, self, index, value) ((T*)(self)->data)[index] = value;
 #define c11__at(T, self, index) ((T*)(self)->data + index)
 
-#define c11_vector__push(T, self, elem) \
-    do{ \
-        if((self)->count == (self)->capacity) c11_vector__reserve((self), (self)->capacity*2); \
-        ((T*)(self)->data)[(self)->count] = (elem); \
-        (self)->count++; \
-    }while(0)
+#define c11_vector__push(T, self, elem)                                                            \
+    do {                                                                                           \
+        if((self)->count == (self)->capacity) c11_vector__reserve((self), (self)->capacity * 2);   \
+        ((T*)(self)->data)[(self)->count] = (elem);                                                \
+        (self)->count++;                                                                           \
+    } while(0)
 
 #define c11_vector__pop(self) (--(self)->count)
 
-#define c11_vector__back(T, self) \
-    (((T*)(self)->data)[(self)->count - 1])
+#define c11_vector__back(T, self) (((T*)(self)->data)[(self)->count - 1])
 
-#define c11_vector__extend(T, self, p, size) \
-    do{ \
-        c11_vector__reserve((self), (self)->count + (size)); \
-        memcpy((T*)(self)->data + (self)->count, (p), (size) * sizeof(T)); \
-        (self)->count += (size); \
-    }while(0)
+#define c11_vector__extend(T, self, p, size)                                                       \
+    do {                                                                                           \
+        c11_vector__reserve((self), (self)->count + (size));                                       \
+        memcpy((T*)(self)->data + (self)->count, (p), (size) * sizeof(T));                         \
+        (self)->count += (size);                                                                   \
+    } while(0)
+
+#define c11_vector__insert(T, self, index, elem)                                                   \
+    do {                                                                                           \
+        if((self)->count == (self)->capacity) c11_vector__reserve((self), (self)->capacity * 2);   \
+        T* p = (T*)(self)->data + (index);                                                         \
+        memmove(p + 1, p, ((self)->count - (index)) * sizeof(T));                                  \
+        *p = (elem);                                                                               \
+        (self)->count++;                                                                           \
+    } while(0)
+
+#define c11_vector__erase(T, self, index)                                                          \
+    do {                                                                                           \
+        T* p = (T*)(self)->data + (index);                                                         \
+        memmove(p, p + 1, ((self)->count - (index)-1) * sizeof(T));                                \
+        (self)->count--;                                                                           \
+    } while(0)
+
+#define c11_vector__reverse(T, self, start, end)                                                   \
+    do {                                                                                           \
+        T* p = (T*)(self)->data + (start);                                                         \
+        T* q = (T*)(self)->data + (end);                                                           \
+        while(p < q) {                                                                             \
+            T tmp = *p;                                                                            \
+            *p = *q;                                                                               \
+            *q = tmp;                                                                              \
+            p++;                                                                                   \
+            q--;                                                                                   \
+        }                                                                                          \
+    } while(0)
 
 
-#define c11_vector__insert(T, self, index, elem) \
-    do{ \
-        if((self)->count == (self)->capacity) c11_vector__reserve((self), (self)->capacity*2); \
-        T* p = (T*)(self)->data + (index); \
-        memmove(p + 1, p, ((self)->count - (index)) * sizeof(T)); \
-        *p = (elem); \
-        (self)->count++; \
-    }while(0)
-
-#define c11_vector__erase(T, self, index) \
-    do{ \
-        T* p = (T*)(self)->data + (index); \
-        memmove(p, p + 1, ((self)->count - (index) - 1) * sizeof(T)); \
-        (self)->count--; \
-    }while(0)
-
-#define c11_vector__reverse(T, self, start, end) \
-    do{ \
-        T* p = (T*)(self)->data + (start); \
-        T* q = (T*)(self)->data + (end); \
-        while(p < q){ \
-            T tmp = *p; *p = *q; *q = tmp; \
-            p++; q--; \
-        } \
-    }while(0)
-
-#define c11__foreach(T, self, it) \
-    for(T* it = (T*)(self)->data; it != (T*)(self)->data + (self)->count; it++)
+// NOTE: here we do an extra NULL check for it to avoid UB
+#define c11__foreach(T, self, it)                                                                  \
+    for(T* it = (self)->data; it && it != (T*)(self)->data + (self)->count; it++)
 
 #ifdef __cplusplus
 }

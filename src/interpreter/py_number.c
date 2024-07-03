@@ -98,11 +98,13 @@ static bool _py_number__pow__(int argc, py_Ref argv) {
                 py_newfloat(py_retval(), pow(lhs, rhs));
             }
         } else {
+            // rhs >= 0
             int64_t ret = 1;
-            while(rhs) {
+            while(true){
                 if(rhs & 1) ret *= lhs;
-                lhs *= lhs;
                 rhs >>= 1;
+                if(!rhs) break;
+                lhs *= lhs;     // place this here to avoid overflow
             }
             py_newint(py_retval(), ret);
         }

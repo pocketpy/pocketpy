@@ -67,12 +67,13 @@ static void disassemble(CodeObject* co) {
         }
 
         char buf[32];
-        snprintf(buf, sizeof(buf), "%-8s%-3s%-3d", line, pointer, i);
+        snprintf(buf, sizeof(buf), "%-8s%-3s%-3d ", line, pointer, i);
         c11_sbuf__write_cstr(&ss, buf);
 
-        snprintf(buf, sizeof(buf), " %-24s", OP_NAMES[byte.op]);
-        c11_sbuf__write_cstr(&ss, buf);
+        c11_sbuf__write_cstr(&ss, OP_NAMES[byte.op]);
         c11_sbuf__write_char(&ss, ex.is_virtual ? '*' : ' ');
+        int padding = 24 - strlen(OP_NAMES[byte.op]);
+        for(int j = 0; j < padding; j++) c11_sbuf__write_char(&ss, ' ');
 
         // _opcode_argstr(this, i, byte, co);
         do {
