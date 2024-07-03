@@ -6,6 +6,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/compiler/compiler.h"
+#include <stdint.h>
 
 pk_VM* pk_current_vm;
 static pk_VM pk_default_vm;
@@ -73,7 +74,8 @@ static void disassemble(CodeObject* co) {
         c11_sbuf__write_cstr(&ss, OP_NAMES[byte.op]);
         c11_sbuf__write_char(&ss, ex.is_virtual ? '*' : ' ');
         int padding = 24 - strlen(OP_NAMES[byte.op]);
-        for(int j = 0; j < padding; j++) c11_sbuf__write_char(&ss, ' ');
+        for(int j = 0; j < padding; j++)
+            c11_sbuf__write_char(&ss, ' ');
 
         // _opcode_argstr(this, i, byte, co);
         do {
@@ -182,7 +184,10 @@ bool py_call(py_Ref f, int argc, py_Ref argv) { return -1; }
 
 bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv) { return -1; }
 
-bool pk_vectorcall(int argc, int kwargc, bool op_call) { return -1; }
+bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
+    pk_VM* vm = pk_current_vm;
+    return pk_VM__vectorcall(vm, argc, kwargc, false) == RES_ERROR;
+}
 
 py_Ref py_retval() { return &pk_current_vm->last_retval; }
 

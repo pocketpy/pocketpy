@@ -128,11 +128,11 @@ py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 // new style decl-based bindings
 py_TmpRef py_bind(py_Ref obj, const char* sig, py_CFunction f);
 py_TmpRef py_bind2(py_Ref obj,
-                const char* sig,
-                py_CFunction f,
-                BindType bt,
-                const char* docstring,
-                const py_Ref upvalue);
+                   const char* sig,
+                   py_CFunction f,
+                   BindType bt,
+                   const char* docstring,
+                   const py_Ref upvalue);
 // old style argc-based bindings
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
 void py_bindmethod2(py_Type type, const char* name, py_CFunction f, BindType bt);
@@ -253,7 +253,7 @@ bool py_isidentical(const py_Ref, const py_Ref);
 /// It assumes `argc + kwargc` arguments are already pushed to the stack.
 /// The result will be set to `py_retval()`.
 /// The stack size will be reduced by `argc + kwargc`.
-bool pk_vectorcall(int argc, int kwargc, bool op_call);
+bool py_vectorcall(uint16_t argc, uint16_t kwargc);
 /// Call a function.
 /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
 /// The result will be set to `py_retval()`.
@@ -323,26 +323,43 @@ bool py_checktype(const py_Ref self, py_Type type);
 /// %t: py_Type
 /// %n: py_Name
 
-
-enum py_MagicNames{
+enum py_MagicNames {
     py_MagicNames__NULL,  // 0 is reserved
-    #define MAGIC_METHOD(x) x,
-    #include "pocketpy/xmacros/magics.h"
-    #undef MAGIC_METHOD
+
+#define MAGIC_METHOD(x) x,
+#include "pocketpy/xmacros/magics.h"
+#undef MAGIC_METHOD
 };
 
-enum py_PredefinedTypes{
-    tp_object = 1, tp_type,
-    tp_int, tp_float, tp_bool, tp_str,
-    tp_list, tp_tuple,
-    tp_slice, tp_range, tp_module,
-    tp_function, tp_nativefunc, tp_bound_method,
-    tp_super, tp_exception, tp_bytes, tp_mappingproxy,
-    tp_dict, tp_property, tp_star_wrapper,
-    tp_staticmethod, tp_classmethod,
-    tp_none_type, tp_not_implemented_type,
+enum py_PredefinedTypes {
+    tp_object = 1,
+    tp_type,
+    tp_int,
+    tp_float,
+    tp_bool,
+    tp_str,
+    tp_list,
+    tp_tuple,
+    tp_slice,
+    tp_range,
+    tp_module,
+    tp_function,
+    tp_nativefunc,
+    tp_bound_method,
+    tp_super,
+    tp_exception,
+    tp_bytes,
+    tp_mappingproxy,
+    tp_dict,
+    tp_property,
+    tp_star_wrapper,
+    tp_staticmethod,
+    tp_classmethod,
+    tp_none_type,
+    tp_not_implemented_type,
     tp_ellipsis,
-    tp_syntax_error, tp_stop_iteration
+    tp_syntax_error,
+    tp_stop_iteration
 };
 
 #ifdef __cplusplus

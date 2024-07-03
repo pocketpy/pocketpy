@@ -87,6 +87,8 @@ py_Type pk_VM__new_type(pk_VM* self,
                         const py_TValue* module,
                         bool subclass_enabled);
 
+pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall);
+
 // type registration
 py_Type pk_str__register();
 py_Type pk_bytes__register();

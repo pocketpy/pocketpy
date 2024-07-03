@@ -49,9 +49,9 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
         *SECOND() = *THIRD();                                                                      \
     } while(0)
 
-#define vectorcall_opcall(n)                                                                       \
+#define vectorcall_opcall(argc, kwargc)                                                            \
     do {                                                                                           \
-        pk_FrameResult res = pk_vectorcall(n, 0, true);                                            \
+        pk_FrameResult res = pk_VM__vectorcall(self, (argc), (kwargc), true);                                \
         switch(res) {                                                                              \
             case RES_RETURN: PUSH(&self->last_retval); break;                                      \
             case RES_CALL:                                                                         \
@@ -269,7 +269,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__getitem__, a, b]
-                        vectorcall_opcall(2);
+                        vectorcall_opcall(2, 0);
                     }
                     DISPATCH();
                 }
@@ -322,7 +322,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     } else {
                         INSERT_THIRD();      // [?, a, b]
                         *FOURTH() = *magic;  // [__selitem__, a, b, val]
-                        vectorcall_opcall(3);
+                        vectorcall_opcall(3, 0);
                         POP();  // discard retval
                     }
                     DISPATCH();
@@ -392,7 +392,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__delitem__, a, b]
-                        vectorcall_opcall(2);
+                        vectorcall_opcall(2, 0);
                         POP();  // discard retval
                     }
                     DISPATCH();
@@ -416,11 +416,11 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref f = py_getdict(&self->builtins, py_name("complex"));
                 assert(f != NULL);
                 py_TValue tmp = *TOP();
-                *TOP() = *f;           // [complex]
-                py_newnull(SP()++);    // [complex, NULL]
-                py_newint(SP()++, 0);  // [complex, NULL, 0]
-                *SP()++ = tmp;         // [complex, NULL, 0, x]
-                vectorcall_opcall(2);  // [complex(x)]
+                *TOP() = *f;              // [complex]
+                py_newnull(SP()++);       // [complex, NULL]
+                py_newint(SP()++, 0);     // [complex, NULL, 0]
+                *SP()++ = tmp;            // [complex, NULL, 0, x]
+                vectorcall_opcall(2, 0);  // [complex(x)]
                 DISPATCH();
             }
             case OP_BUILD_BYTES: {
@@ -527,7 +527,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     } else {
                         INSERT_THIRD();     // [?, b, a]
                         *THIRD() = *magic;  // [__contains__, a, b]
-                        vectorcall_opcall(2);
+                        vectorcall_opcall(2, 0);
                     }
                     bool res = py_tobool(TOP());
                     if(byte.arg) py_newbool(TOP(), !res);
@@ -612,7 +612,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 assert(false);
             }
             case OP_CALL: {
-                assert(false);
+                pk_ManagedHeap__collect_if_needed(&self->heap);
+                vectorcall_opcall(byte.arg & 0xFF, byte.arg >> 8);
             }
             case OP_CALL_VARGS: {
                 assert(false);

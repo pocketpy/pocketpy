@@ -1,10 +1,13 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/sstream.h"
+#include "pocketpy/common/utils.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 
+#include <assert.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 static unsigned char* pk_default_import_file(const char* path) { return NULL; }
 
@@ -69,7 +72,7 @@ void pk_VM__ctor(pk_VM* self) {
 
     self->last_retval = PY_NULL;
     self->has_error = false;
-    
+
     self->__curr_class = PY_NULL;
     self->__cached_object_new = PY_NULL;
     self->__dynamic_func_decl = NULL;
@@ -194,6 +197,176 @@ py_Type pk_VM__new_type(pk_VM* self,
     pk_TypeInfo* ti = c11_vector__emplace(&self->types);
     pk_TypeInfo__ctor(ti, py_name(name), index, base, module, subclass_enabled);
     return index;
+}
+
+pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bool opcall) {
+    py_Ref p1 = self->stack.sp - KWARGC * 2;
+    py_Ref p0 = p1 - ARGC - 2;
+    // [callable, <self>, args..., kwargs...]
+    //      ^p0                    ^p1      ^_sp
+
+    // handle boundmethod, do a patch
+    if(p0->type == tp_bound_method) {
+        assert(false);
+        assert(py_isnull(p0+1));   // self must be NULL
+        // BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
+        // callable = bm.func;  // get unbound method
+        // callable_t = _tp(callable);
+        // p1[-(ARGC + 2)] = bm.func;
+        // p1[-(ARGC + 1)] = bm.self;
+        // [unbound, self, args..., kwargs...]
+    }
+
+    // PyVar* _base = args.begin();
+    py_Ref argv = py_isnull(p0+1) ? p0+2 : p0+1;
+
+#if 0
+    if(callable_t == tp_function) {
+        /*****************_py_call*****************/
+        // check stack overflow
+        if(self->stack.sp > self->stack.end){
+            StackOverflowError();
+            return RES_ERROR;
+        }
+
+        const Function& fn = PK_OBJ_GET(Function, callable);
+        const CodeObject* co = fn.decl->code;
+
+        switch(fn.decl->type) {
+            case FuncType_NORMAL:
+                __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
+                // copy buffer back to stack
+                s_data.reset(_base + co->nlocals);
+                for(int j = 0; j < co->nlocals; j++)
+                    _base[j] = __vectorcall_buffer[j];
+                break;
+            case FuncType_SIMPLE:
+                if(args.size() != fn.decl->args.count) {
+                    TypeError(pk_format("{} takes {} positional arguments but {} were given",
+                                        &co->name,
+                                        fn.decl->args.count,
+                                        args.size()));
+                }
+                if(!kwargs.empty()) {
+                    TypeError(pk_format("{} takes no keyword arguments", &co->name));
+                }
+                // [callable, <self>, args..., local_vars...]
+                //      ^p0                    ^p1      ^_sp
+                s_data.reset(_base + co->nlocals);
+                // initialize local variables to PY_NULL
+                std::memset(p1, 0, (char*)s_data._sp - (char*)p1);
+                break;
+            case FuncType_EMPTY:
+                if(args.size() != fn.decl->args.count) {
+                    TypeError(pk_format("{} takes {} positional arguments but {} were given",
+                                        &co->name,
+                                        fn.decl->args.count,
+                                        args.size()));
+                }
+                if(!kwargs.empty()) {
+                    TypeError(pk_format("{} takes no keyword arguments", &co->name));
+                }
+                s_data.reset(p0);
+                return None;
+            case FuncType_GENERATOR:
+                __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
+                s_data.reset(p0);
+                callstack.emplace(nullptr, co, fn._module, callable.get(), nullptr);
+                return __py_generator(
+                    callstack.popx(),
+                    ArgsView(__vectorcall_buffer, __vectorcall_buffer + co->nlocals));
+            default: PK_UNREACHABLE()
+        };
+
+        // simple or normal
+        callstack.emplace(p0, co, fn._module, callable.get(), args.begin());
+        if(op_call) return pkpy_OP_CALL;
+        return __run_top_frame();
+        /*****************_py_call*****************/
+    }
+#endif
+
+    if(p0->type == tp_nativefunc) {
+        // const auto& f = PK_OBJ_GET(NativeFunc, callable);
+        // PyVar ret;
+        // if(f.decl != nullptr) {
+        //     int co_nlocals = f.decl->code->nlocals;
+        //     __prepare_py_call(__vectorcall_buffer, args, kwargs, f.decl);
+        //     // copy buffer back to stack
+        //     s_data.reset(_base + co_nlocals);
+        //     for(int j = 0; j < co_nlocals; j++)
+        //         _base[j] = __vectorcall_buffer[j];
+        //     ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
+        // } else {
+        //     if(f.argc != -1) {
+        //         if(KWARGC != 0)
+        //             TypeError(
+        //                 "old-style native_func does not accept keyword arguments. If you want to skip this check, specify `argc` to -1");
+        //         if(args.size() != f.argc) {
+        //             vm->TypeError(_S("expected ", f.argc, " arguments, got ", args.size()));
+        //         }
+        //     }
+        //     ret = f.call(this, args);
+        // }
+
+        if(!p0->_cfunc(ARGC, argv)) return RES_ERROR;
+        self->stack.sp = p0;
+        return RES_RETURN;
+    }
+
+#if 0
+    if(p0->type == tp_type) {
+        // [type, NULL, args..., kwargs...]
+        PyVar new_f = *find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
+        PyVar obj;
+        assert(new_f && (!p0[1]));
+        if(PyVar__IS_OP(&new_f, &__cached_object_new)) {
+            // fast path for object.__new__
+            obj = vm->new_object<DummyInstance>(PK_OBJ_GET(Type, callable));
+        } else {
+            PUSH(new_f);
+            PUSH(PY_NULL);
+            PUSH(callable);  // cls
+            for(PyVar o: args)
+                PUSH(o);
+            for(PyVar o: kwargs)
+                PUSH(o);
+            // if obj is not an instance of `cls`, the behavior is undefined
+            obj = vectorcall(ARGC + 1, KWARGC);
+        }
+
+        // __init__
+        PyVar self;
+        callable = get_unbound_method(obj, __init__, &self, false);
+        if(callable) {
+            callable_t = _tp(callable);
+            // replace `NULL` with `self`
+            p1[-(ARGC + 2)] = callable;
+            p1[-(ARGC + 1)] = self;
+            // [init_f, self, args..., kwargs...]
+            vectorcall(ARGC, KWARGC);
+            // We just discard the return value of `__init__`
+            // in cpython it raises a TypeError if the return value is not None
+        } else {
+            // manually reset the stack
+            s_data.reset(p0);
+        }
+        return obj;
+    }
+
+    // handle `__call__` overload
+    PyVar self;
+    PyVar call_f = get_unbound_method(callable, __call__, &self, false);
+    if(self) {
+        p1[-(ARGC + 2)] = call_f;
+        p1[-(ARGC + 1)] = self;
+        // [call_f, self, args..., kwargs...]
+        return vectorcall(ARGC, KWARGC, op_call);
+    }
+    TypeError(_type_name(vm, callable_t).escape() + " object is not callable");
+#endif
+    
+    PK_UNREACHABLE();
 }
 
 /****************************************/
