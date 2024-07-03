@@ -44,7 +44,6 @@ pkpy_Dict pkpy_Dict__copy(const pkpy_Dict* self);
 /**
  * @brief Set a key-value pair into the `pkpy_Dict`
  * @param self `pkpy_Dict` instance
- * @param vm __eq__ and __hash__ context
  * @param key key to set
  * @param val value to set
  * @return `true` if the key is newly added, `false` if the key already exists
@@ -54,7 +53,6 @@ bool pkpy_Dict__set(pkpy_Dict* self, py_TValue key, py_TValue val);
 /**
  * @brief Check if a key exists in the `pkpy_Dict`
  * @param self `pkpy_Dict` instance
- * @param vm __eq__ and __hash__ context
  * @param key key to check
  * @return `true` if the key exists, `false` otherwise
  */
@@ -63,7 +61,6 @@ bool pkpy_Dict__contains(const pkpy_Dict* self, py_TValue key);
 /**
  * @brief Remove a key from the `pkpy_Dict`
  * @param self `pkpy_Dict` instance
- * @param vm __eq__ and __hash__ context
  * @param key key to remove
  * @return `true` if the key was found and removed, `false` if the key doesn't exist
  */
@@ -72,7 +69,6 @@ bool pkpy_Dict__del(pkpy_Dict* self, py_TValue key);
 /**
  * @brief Try to get a value from the `pkpy_Dict`
  * @param self `pkpy_Dict` instance
- * @param vm __eq__ and __hash__ context
  * @param key key to get
  * @return the value associated with the key, `NULL` if the key doesn't exist
  */
@@ -81,7 +77,6 @@ const py_TValue* pkpy_Dict__try_get(const pkpy_Dict* self, py_TValue key);
 /**
  * @brief Update the `pkpy_Dict` with another one
  * @param self `pkpy_Dict` instance
- * @param vm __eq__ and __hash__ context
  * @param other `pkpy_Dict` instance to update with
  */
 void pkpy_Dict__update(pkpy_Dict* self, const pkpy_Dict* other);
@@ -91,6 +86,15 @@ void pkpy_Dict__update(pkpy_Dict* self, const pkpy_Dict* other);
  * @param self `pkpy_Dict` instance
  */
 void pkpy_Dict__clear(pkpy_Dict* self);
+
+/**
+ * @brief Try to pop the latest inserted key-value pair from the `pkpy_Dict`
+ * @param self `pkpy_Dict` instance
+ * @param key key will be filled with the current key, can be `NULL` if not needed
+ * @param value value will be filled with the current value, can be `NULL` if not needed
+ * @return `true` if the operation was successful, `false` if the `pkpy_Dict` is empty
+ */
+bool pkpy_Dict__try_pop(pkpy_Dict* self, py_TValue *key, py_TValue *val);
 
 /**
  * @brief Iterate over the `pkpy_Dict`
