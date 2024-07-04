@@ -1,3 +1,4 @@
+#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/pocketpy.h"
 
@@ -25,13 +26,16 @@ void py_finalize() {
     pk_MemoryPools__finalize();
 }
 
-static void disassemble(CodeObject* co) {
+const char* pk_opname(Opcode op){
     const static char* OP_NAMES[] = {
 #define OPCODE(name) #name,
 #include "pocketpy/xmacros/opcodes.h"
 #undef OPCODE
     };
+    return OP_NAMES[op];
+}
 
+static void disassemble(CodeObject* co) {
     c11_vector /*T=int*/ jumpTargets;
     c11_vector__ctor(&jumpTargets, sizeof(int));
     for(int i = 0; i < co->codes.count; i++) {
@@ -71,9 +75,9 @@ static void disassemble(CodeObject* co) {
         snprintf(buf, sizeof(buf), "%-8s%-3s%-3d ", line, pointer, i);
         c11_sbuf__write_cstr(&ss, buf);
 
-        c11_sbuf__write_cstr(&ss, OP_NAMES[byte.op]);
+        c11_sbuf__write_cstr(&ss, pk_opname(byte.op));
         c11_sbuf__write_char(&ss, ex.is_virtual ? '*' : ' ');
-        int padding = 24 - strlen(OP_NAMES[byte.op]);
+        int padding = 24 - strlen(pk_opname(byte.op));
         for(int j = 0; j < padding; j++)
             c11_sbuf__write_char(&ss, ' ');
 
@@ -196,7 +200,7 @@ bool py_getunboundmethod(const py_Ref self,
                          bool fallback,
                          py_Ref out,
                          py_Ref out_self) {
-    return -1;
+    return false;
 }
 
 pk_TypeInfo* pk_tpinfo(const py_Ref self) {
@@ -205,6 +209,7 @@ pk_TypeInfo* pk_tpinfo(const py_Ref self) {
 }
 
 py_Ref py_tpfindmagic(py_Type t, py_Name name) {
+    assert(t);
     assert(py_ismagicname(name));
     pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
     do {

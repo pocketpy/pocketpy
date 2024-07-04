@@ -117,7 +117,7 @@ bool py_issubclass(py_Type derived, py_Type base);
 /************* References *************/
 #define py_offset(p, i) (py_Ref)((char*)p + ((i) << 4))
 
-#define TypeError(x) false
+#define TypeError(...) false
 #define py_arg(i) py_offset(argv, i)
 #define py_checkargc(n)                                                                            \
     if(argc != n) return TypeError()

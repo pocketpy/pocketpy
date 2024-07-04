@@ -342,7 +342,7 @@ static bool _py_float__new__(int argc, py_Ref argv) {
     return true;
 }
 
-void pk_VM__init_builtins(pk_VM* self) {
+void pk_number__register() {
     /****** tp_int & tp_float ******/
     py_bindmagic(tp_int, __add__, _py_int__add__);
     py_bindmagic(tp_float, __add__, _py_float__add__);

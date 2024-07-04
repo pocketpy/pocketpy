@@ -89,6 +89,9 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     __NEXT_STEP:
         byte = *frame->ip;
 
+        // log
+        printf("byte.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
+
         switch((Opcode)byte.op) {
             case OP_NO_OP: DISPATCH();
             /*****************************************/
@@ -614,6 +617,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             case OP_CALL: {
                 pk_ManagedHeap__collect_if_needed(&self->heap);
                 vectorcall_opcall(byte.arg & 0xFF, byte.arg >> 8);
+                DISPATCH();
             }
             case OP_CALL_VARGS: {
                 assert(false);
@@ -667,7 +671,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     __ERROR:
         // 1. Exception can be handled inside the current frame
         // 2. Exception need to be propagated to the upper frame
-        printf("byte.op: %d, line: %d\n", byte.op, Frame__lineno(frame));
+        printf("error.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
         assert(false);
         return RES_ERROR;
     }

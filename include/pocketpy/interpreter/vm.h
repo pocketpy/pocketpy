@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/gc.h"
 #include "pocketpy/interpreter/frame.h"
@@ -70,8 +71,6 @@ void pk_VM__dtor(pk_VM* self);
 void pk_VM__push_frame(pk_VM* self, Frame* frame);
 void pk_VM__pop_frame(pk_VM* self);
 
-void pk_VM__init_builtins(pk_VM* self);
-
 typedef enum pk_FrameResult {
     RES_RETURN,
     RES_CALL,
@@ -89,7 +88,10 @@ py_Type pk_VM__new_type(pk_VM* self,
 
 pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall);
 
+const char* pk_opname(Opcode op);
+
 // type registration
+void pk_number__register();
 py_Type pk_str__register();
 py_Type pk_bytes__register();
 py_Type pk_list__register();

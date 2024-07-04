@@ -41,6 +41,7 @@ void pk_TypeInfo__ctor(pk_TypeInfo* self,
     // create type object with __dict__
     pk_ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* typeobj = pk_ManagedHeap__new(heap, tp_type, -1, sizeof(py_Type));
+    *(py_Type*)PyObject__userdata(typeobj) = index;
     self->self = (py_TValue){
         .type = typeobj->type,
         .is_ptr = true,
@@ -54,6 +55,13 @@ void pk_TypeInfo__ctor(pk_TypeInfo* self,
 }
 
 void pk_TypeInfo__dtor(pk_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
+
+static bool _py_object__new__(int argc, py_Ref argv) {
+    assert(argc >= 1);
+    py_Type cls = argv[0].type;
+    py_newobject(py_retval(), cls, 0, 0);
+    return true;
+}
 
 void pk_VM__ctor(pk_VM* self) {
     self->top_frame = NULL;
@@ -158,7 +166,10 @@ void pk_VM__ctor(pk_VM* self) {
     py_setdict(&self->builtins, py_name("NotImplemented"), &tmp);
 
     /* Do Buildin Bindings*/
-    pk_VM__init_builtins(self);
+    pk_number__register();
+    // object.__new__
+    py_bindmagic(tp_object, __new__, _py_object__new__);
+
     self->main = *py_newmodule("__main__", NULL);
 }
 
@@ -208,7 +219,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
     // handle boundmethod, do a patch
     if(p0->type == tp_bound_method) {
         assert(false);
-        assert(py_isnull(p0+1));   // self must be NULL
+        assert(py_isnull(p0 + 1));  // self must be NULL
         // BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
         // callable = bm.func;  // get unbound method
         // callable_t = _tp(callable);
@@ -218,7 +229,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
     }
 
     // PyVar* _base = args.begin();
-    py_Ref argv = py_isnull(p0+1) ? p0+2 : p0+1;
+    py_Ref argv = py_isnull(p0 + 1) ? p0 + 2 : p0 + 1;
 
 #if 0
     if(callable_t == tp_function) {
@@ -301,7 +312,8 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
         //     if(f.argc != -1) {
         //         if(KWARGC != 0)
         //             TypeError(
-        //                 "old-style native_func does not accept keyword arguments. If you want to skip this check, specify `argc` to -1");
+        //                 "old-style native_func does not accept keyword arguments. If you want to
+        //                 skip this check, specify `argc` to -1");
         //         if(args.size() != f.argc) {
         //             vm->TypeError(_S("expected ", f.argc, " arguments, got ", args.size()));
         //         }
@@ -314,58 +326,52 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
         return RES_RETURN;
     }
 
-#if 0
     if(p0->type == tp_type) {
-        // [type, NULL, args..., kwargs...]
-        PyVar new_f = *find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
-        PyVar obj;
-        assert(new_f && (!p0[1]));
-        if(PyVar__IS_OP(&new_f, &__cached_object_new)) {
-            // fast path for object.__new__
-            obj = vm->new_object<DummyInstance>(PK_OBJ_GET(Type, callable));
-        } else {
-            PUSH(new_f);
-            PUSH(PY_NULL);
-            PUSH(callable);  // cls
-            for(PyVar o: args)
-                PUSH(o);
-            for(PyVar o: kwargs)
-                PUSH(o);
-            // if obj is not an instance of `cls`, the behavior is undefined
-            obj = vectorcall(ARGC + 1, KWARGC);
-        }
+        // [cls, NULL, args..., kwargs...]
+        py_Ref new_f = py_tpfindmagic(py_totype(p0), __new__);
+        assert(new_f && py_isnull(p0 + 1));
 
-        // __init__
-        PyVar self;
-        callable = get_unbound_method(obj, __init__, &self, false);
-        if(callable) {
-            callable_t = _tp(callable);
-            // replace `NULL` with `self`
-            p1[-(ARGC + 2)] = callable;
-            p1[-(ARGC + 1)] = self;
-            // [init_f, self, args..., kwargs...]
-            vectorcall(ARGC, KWARGC);
-            // We just discard the return value of `__init__`
-            // in cpython it raises a TypeError if the return value is not None
+        // prepare a copy of args and kwargs
+        int span = self->stack.sp - argv;
+        *self->stack.sp++ = *new_f;  // push __new__
+        *self->stack.sp++ = *p0;     // push cls
+        memcpy(self->stack.sp, argv, span * sizeof(py_TValue));
+        self->stack.sp += span;
+
+        // [new_f, cls, args..., kwargs...]
+        pk_FrameResult res = pk_VM__vectorcall(self, ARGC, KWARGC, false);
+        if(res == RES_ERROR) return RES_ERROR;
+        assert(res == RES_RETURN);
+        // by recursively using vectorcall, args and kwargs are consumed
+        // [cls, NULL, args..., kwargs...]
+
+        // try __init__
+        // NOTE: previous we use `get_unbound_method` but here we just use `tpfindmagic`
+        py_Ref init_f = py_tpfindmagic(py_totype(p0), __init__);
+        if(init_f) {
+            // do an inplace patch
+            *p0 = *init_f;              // __init__
+            p0[1] = self->last_retval;  // self
+            // [__init__, self, args..., kwargs...]
+            pk_FrameResult res = pk_VM__vectorcall(self, ARGC, KWARGC, false);
+            if(res == RES_ERROR) return RES_ERROR;
+            assert(res == RES_RETURN);
         } else {
             // manually reset the stack
-            s_data.reset(p0);
+            self->stack.sp = p0;
         }
-        return obj;
+        return RES_RETURN;
     }
 
     // handle `__call__` overload
-    PyVar self;
-    PyVar call_f = get_unbound_method(callable, __call__, &self, false);
-    if(self) {
-        p1[-(ARGC + 2)] = call_f;
-        p1[-(ARGC + 1)] = self;
-        // [call_f, self, args..., kwargs...]
-        return vectorcall(ARGC, KWARGC, op_call);
+    if(py_getunboundmethod(p0, __call__, false, p0, p0 + 1)) {
+        // [__call__, self, args..., kwargs...]
+        pk_FrameResult res = pk_VM__vectorcall(self, ARGC, KWARGC, false);
+        if(res == RES_ERROR) return RES_ERROR;
+        assert(res == RES_RETURN);
     }
-    TypeError(_type_name(vm, callable_t).escape() + " object is not callable");
-#endif
-    
+
+    TypeError("'%t' object is not callable", p0->type);
     PK_UNREACHABLE();
 }
 
