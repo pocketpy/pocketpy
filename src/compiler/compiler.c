@@ -70,29 +70,29 @@ typedef struct Ctx {
 
 typedef struct Expr Expr;
 
-void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level);
-void Ctx__dtor(Ctx* self);
-int Ctx__get_loop(Ctx* self);
-CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type);
-void Ctx__exit_block(Ctx* self);
-int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
-int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool virtual);
-void Ctx__revert_last_emit_(Ctx* self);
-int Ctx__emit_int(Ctx* self, int64_t value, int line);
-void Ctx__patch_jump(Ctx* self, int index);
-bool Ctx__add_label(Ctx* self, py_Name name);
-int Ctx__add_varname(Ctx* self, py_Name name);
-int Ctx__add_const(Ctx* self, py_Ref);
-int Ctx__add_const_string(Ctx* self, c11_sv);
-void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line);
-void Ctx__try_merge_for_iter_store(Ctx* self, int);
-void Ctx__s_emit_top(Ctx*);     // emit top -> pop -> delete
-void Ctx__s_push(Ctx*, Expr*);  // push
-Expr* Ctx__s_top(Ctx*);         // top
-int Ctx__s_size(Ctx*);          // size
-void Ctx__s_pop(Ctx*);          // pop -> delete
-Expr* Ctx__s_popx(Ctx*);        // pop move
-void Ctx__s_emit_decorators(Ctx*, int count);
+static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level);
+static void Ctx__dtor(Ctx* self);
+static int Ctx__get_loop(Ctx* self);
+static CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type);
+static void Ctx__exit_block(Ctx* self);
+static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
+static int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool virtual);
+static void Ctx__revert_last_emit_(Ctx* self);
+static int Ctx__emit_int(Ctx* self, int64_t value, int line);
+static void Ctx__patch_jump(Ctx* self, int index);
+static bool Ctx__add_label(Ctx* self, py_Name name);
+static int Ctx__add_varname(Ctx* self, py_Name name);
+static int Ctx__add_const(Ctx* self, py_Ref);
+static int Ctx__add_const_string(Ctx* self, c11_sv);
+static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line);
+static void Ctx__try_merge_for_iter_store(Ctx* self, int);
+static void Ctx__s_emit_top(Ctx*);     // emit top -> pop -> delete
+static void Ctx__s_push(Ctx*, Expr*);  // push
+static Expr* Ctx__s_top(Ctx*);         // top
+static int Ctx__s_size(Ctx*);          // size
+static void Ctx__s_pop(Ctx*);          // pop -> delete
+static Expr* Ctx__s_popx(Ctx*);        // pop move
+static void Ctx__s_emit_decorators(Ctx*, int count);
 
 /* expr.c */
 typedef struct NameExpr {
@@ -1208,7 +1208,7 @@ CallExpr* CallExpr__new(int line, Expr* callable) {
 }
 
 /* context.c */
-void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
+static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
     self->co = co;
     self->func = func;
     self->level = level;
@@ -1219,7 +1219,7 @@ void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
     c11_smallmap_s2n__ctor(&self->co_consts_string_dedup_map);
 }
 
-void Ctx__dtor(Ctx* self) {
+static void Ctx__dtor(Ctx* self) {
     // clean the expr stack
     for(int i = 0; i < self->s_expr.count; i++) {
         vtdelete(c11__getitem(Expr*, &self->s_expr, i));
@@ -1231,7 +1231,7 @@ void Ctx__dtor(Ctx* self) {
 
 static bool is_small_int(int64_t value) { return value >= INT16_MIN && value <= INT16_MAX; }
 
-int Ctx__get_loop(Ctx* self) {
+static int Ctx__get_loop(Ctx* self) {
     int index = self->curr_iblock;
     while(index >= 0) {
         CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, index);
@@ -1242,14 +1242,14 @@ int Ctx__get_loop(Ctx* self) {
     return index;
 }
 
-CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type) {
+static CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type) {
     CodeBlock block = {type, self->curr_iblock, self->co->codes.count, -1, -1};
     c11_vector__push(CodeBlock, &self->co->blocks, block);
     self->curr_iblock = self->co->blocks.count - 1;
     return c11__at(CodeBlock, &self->co->blocks, self->curr_iblock);
 }
 
-void Ctx__exit_block(Ctx* self) {
+static void Ctx__exit_block(Ctx* self) {
     CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, self->curr_iblock);
     CodeBlockType curr_type = block->type;
     block->end = self->co->codes.count;
@@ -1261,7 +1261,7 @@ void Ctx__exit_block(Ctx* self) {
     }
 }
 
-void Ctx__s_emit_decorators(Ctx* self, int count) {
+static void Ctx__s_emit_decorators(Ctx* self, int count) {
     assert(Ctx__s_size(self) >= count);
     // [obj]
     for(int i = 0; i < count; i++) {
@@ -1275,7 +1275,7 @@ void Ctx__s_emit_decorators(Ctx* self, int count) {
     }
 }
 
-int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool is_virtual) {
+static int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool is_virtual) {
     Bytecode bc = {(uint8_t)opcode, arg};
     BytecodeEx bcx = {line, is_virtual, self->curr_iblock};
     c11_vector__push(Bytecode, &self->co->codes, bc);
@@ -1286,16 +1286,16 @@ int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool is_
     return i;
 }
 
-int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line) {
+static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line) {
     return Ctx__emit_virtual(self, opcode, arg, line, false);
 }
 
-void Ctx__revert_last_emit_(Ctx* self) {
+static void Ctx__revert_last_emit_(Ctx* self) {
     c11_vector__pop(&self->co->codes);
     c11_vector__pop(&self->co->codes_ex);
 }
 
-void Ctx__try_merge_for_iter_store(Ctx* self, int i) {
+static void Ctx__try_merge_for_iter_store(Ctx* self, int i) {
     // [FOR_ITER, STORE_?, ]
     Bytecode* co_codes = (Bytecode*)self->co->codes.data;
     if(co_codes[i].op != OP_FOR_ITER) return;
@@ -1315,7 +1315,7 @@ void Ctx__try_merge_for_iter_store(Ctx* self, int i) {
     }
 }
 
-int Ctx__emit_int(Ctx* self, int64_t value, int line) {
+static int Ctx__emit_int(Ctx* self, int64_t value, int line) {
     if(is_small_int(value)) {
         return Ctx__emit_(self, OP_LOAD_SMALL_INT, (uint16_t)value, line);
     } else {
@@ -1325,20 +1325,20 @@ int Ctx__emit_int(Ctx* self, int64_t value, int line) {
     }
 }
 
-void Ctx__patch_jump(Ctx* self, int index) {
+static void Ctx__patch_jump(Ctx* self, int index) {
     Bytecode* co_codes = (Bytecode*)self->co->codes.data;
     int target = self->co->codes.count;
     Bytecode__set_signed_arg(&co_codes[index], target - index);
 }
 
-bool Ctx__add_label(Ctx* self, py_Name name) {
+static bool Ctx__add_label(Ctx* self, py_Name name) {
     bool ok = c11_smallmap_n2i__contains(&self->co->labels, name);
     if(ok) return false;
     c11_smallmap_n2i__set(&self->co->labels, name, self->co->codes.count);
     return true;
 }
 
-int Ctx__add_varname(Ctx* self, py_Name name) {
+static int Ctx__add_varname(Ctx* self, py_Name name) {
     // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
     int index = c11_smallmap_n2i__get(&self->co->varnames_inv, name, -1);
     if(index >= 0) return index;
@@ -1349,7 +1349,7 @@ int Ctx__add_varname(Ctx* self, py_Name name) {
     return index;
 }
 
-int Ctx__add_const_string(Ctx* self, c11_sv key) {
+static int Ctx__add_const_string(Ctx* self, c11_sv key) {
     uint16_t* val = c11_smallmap_s2n__try_get(&self->co_consts_string_dedup_map, key);
     if(val) {
         return *val;
@@ -1365,13 +1365,13 @@ int Ctx__add_const_string(Ctx* self, c11_sv key) {
     }
 }
 
-int Ctx__add_const(Ctx* self, py_Ref v) {
+static int Ctx__add_const(Ctx* self, py_Ref v) {
     assert(v->type != tp_str);
     c11_vector__push(py_TValue, &self->co->consts, *v);
     return self->co->consts.count - 1;
 }
 
-void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line) {
+static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line) {
     switch(scope) {
         case NAME_LOCAL: Ctx__emit_(self, OP_STORE_FAST, Ctx__add_varname(self, name), line); break;
         case NAME_GLOBAL: Ctx__emit_(self, OP_STORE_GLOBAL, name, line); break;
@@ -1381,7 +1381,7 @@ void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line) {
 }
 
 // emit top -> pop -> delete
-void Ctx__s_emit_top(Ctx* self) {
+static void Ctx__s_emit_top(Ctx* self) {
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     vtemit_(top, self);
     vtdelete(top);
@@ -1389,23 +1389,23 @@ void Ctx__s_emit_top(Ctx* self) {
 }
 
 // push
-void Ctx__s_push(Ctx* self, Expr* expr) { c11_vector__push(Expr*, &self->s_expr, expr); }
+static void Ctx__s_push(Ctx* self, Expr* expr) { c11_vector__push(Expr*, &self->s_expr, expr); }
 
 // top
-Expr* Ctx__s_top(Ctx* self) { return c11_vector__back(Expr*, &self->s_expr); }
+static Expr* Ctx__s_top(Ctx* self) { return c11_vector__back(Expr*, &self->s_expr); }
 
 // size
-int Ctx__s_size(Ctx* self) { return self->s_expr.count; }
+static int Ctx__s_size(Ctx* self) { return self->s_expr.count; }
 
 // pop -> delete
-void Ctx__s_pop(Ctx* self) {
+static void Ctx__s_pop(Ctx* self) {
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     vtdelete(top);
     c11_vector__pop(&self->s_expr);
 }
 
 // pop move
-Expr* Ctx__s_popx(Ctx* self) {
+static Expr* Ctx__s_popx(Ctx* self) {
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     c11_vector__pop(&self->s_expr);
     return top;
@@ -1478,7 +1478,6 @@ static NameScope name_scope(Compiler* self) {
 }
 
 #define SyntaxError(...) NULL
-
 static Error* NeedMoreLines() { return NULL; }
 
 /* Matchers */
