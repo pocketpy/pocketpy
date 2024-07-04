@@ -5,7 +5,6 @@
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
 
-
 static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 
 #define DISPATCH()                                                                                 \
@@ -45,7 +44,7 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 
 #define vectorcall_opcall(argc, kwargc)                                                            \
     do {                                                                                           \
-        pk_FrameResult res = pk_VM__vectorcall(self, (argc), (kwargc), true);                                \
+        pk_FrameResult res = pk_VM__vectorcall(self, (argc), (kwargc), true);                      \
         switch(res) {                                                                              \
             case RES_RETURN: PUSH(&self->last_retval); break;                                      \
             case RES_CALL:                                                                         \
@@ -86,7 +85,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
 #if 1
         c11_sbuf buf;
         c11_sbuf__ctor(&buf);
-        for(py_Ref p = self->stack.begin; p != SP(); p++){
+        for(py_Ref p = self->stack.begin; p != SP(); p++) {
             c11_sbuf__write_cstr(&buf, py_tpname(p->type));
             if(p != TOP()) c11_sbuf__write_cstr(&buf, ", ");
         }
@@ -260,16 +259,14 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             case OP_LOAD_METHOD: {
                 // [self]
                 bool ok = py_getunboundmethod(TOP(), byte.arg, TOP(), SP());
-                if(ok){
+                if(ok) {
                     // [unbound, self]
                     SP()++;
-                }else{
+                } else {
                     // fallback to getattr
                     int res = py_getattr(TOP(), byte.arg, TOP());
-                    if(res != 1){
-                        if(res == 0){
-                            AttributeError(TOP(), byte.arg);
-                        }
+                    if(res != 1) {
+                        if(res == 0) { AttributeError(TOP(), byte.arg); }
                         goto __ERROR;
                     }
                 }
@@ -436,7 +433,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 assert(f != NULL);
                 py_TValue tmp = *TOP();
                 *TOP() = *f;              // [complex]
-                py_newnil(SP()++);       // [complex, NULL]
+                py_newnil(SP()++);        // [complex, NULL]
                 py_newint(SP()++, 0);     // [complex, NULL, 0]
                 *SP()++ = tmp;            // [complex, NULL, 0, x]
                 vectorcall_opcall(2, 0);  // [complex(x)]
@@ -668,18 +665,12 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_newbool(TOP(), !res);
                 DISPATCH();
             }
-                // case OP_UNARY_STAR: TOP() = VAR(StarWrapper(byte.arg, TOP())); DISPATCH();
-                // case OP_UNARY_INVERT: {
-                //     PyVar _0;
-                //     auto _ti = _tp_info(TOP());
-                //     if(_ti->m__invert__)
-                //         _0 = _ti->m__invert__(this, TOP());
-                //     else
-                //         _0 = call_method(TOP(), __invert__);
-                //     TOP() = _0;
-                //     DISPATCH();
-                // }
-
+            // case OP_UNARY_STAR: TOP() = VAR(StarWrapper(byte.arg, TOP())); DISPATCH();
+            case OP_UNARY_INVERT: {
+                if(!py_callmagic(__invert__, 1, TOP())) goto __ERROR;
+                *TOP() = self->last_retval;
+                DISPATCH();
+            }
             default: PK_UNREACHABLE();
         }
 

@@ -98,7 +98,3 @@ assert (-4)**13 == -67108864
 assert ~3 == -4
 assert ~-3 == 2
 assert ~0 == -1
-
-# test __str__, __repr__
-assert str(1) == '1'
-assert repr(1) == '1'

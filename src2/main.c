@@ -59,6 +59,8 @@ int main(int argc, char** argv) {
     py_finalize();
     free(source);
 
+    return 0;
+    
 __HELP:
     printf("Usage: pocketpy [filename]\n");
     return 0;

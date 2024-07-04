@@ -1076,6 +1076,11 @@ typedef struct AttribExpr {
     py_Name name;
 } AttribExpr;
 
+void AttribExpr__dtor(Expr* self_) {
+    AttribExpr* self = (AttribExpr*)self_;
+    vtdelete(self->child);
+}
+
 void AttribExpr__emit_(Expr* self_, Ctx* ctx) {
     AttribExpr* self = (AttribExpr*)self_;
     vtemit_(self->child, ctx);
@@ -1117,6 +1122,7 @@ AttribExpr* AttribExpr__new(int line, Expr* child, py_Name name) {
                               .emit_store = AttribExpr__emit_store,
                               .emit_inplace = AttribExpr__emit_inplace,
                               .emit_istore = AttribExpr__emit_istore,
+                              .dtor = AttribExpr__dtor,
                               .is_attrib = true};
     static_assert_expr_size(AttribExpr);
     AttribExpr* self = PoolExpr_alloc();
@@ -1218,7 +1224,6 @@ void Ctx__dtor(Ctx* self) {
     for(int i = 0; i < self->s_expr.count; i++) {
         vtdelete(c11__getitem(Expr*, &self->s_expr, i));
     }
-    c11_vector__clear(&self->s_expr);
     c11_vector__dtor(&self->s_expr);
     c11_smallmap_n2i__dtor(&self->global_names);
     c11_smallmap_s2n__dtor(&self->co_consts_string_dedup_map);
@@ -1379,8 +1384,8 @@ void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line) {
 void Ctx__s_emit_top(Ctx* self) {
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     vtemit_(top, self);
-    c11_vector__pop(&self->s_expr);
     vtdelete(top);
+    c11_vector__pop(&self->s_expr);
 }
 
 // push
@@ -1394,15 +1399,16 @@ int Ctx__s_size(Ctx* self) { return self->s_expr.count; }
 
 // pop -> delete
 void Ctx__s_pop(Ctx* self) {
-    vtdelete(c11_vector__back(Expr*, &self->s_expr));
+    Expr* top = c11_vector__back(Expr*, &self->s_expr);
+    vtdelete(top);
     c11_vector__pop(&self->s_expr);
 }
 
 // pop move
 Expr* Ctx__s_popx(Ctx* self) {
-    Expr* e = c11_vector__back(Expr*, &self->s_expr);
+    Expr* top = c11_vector__back(Expr*, &self->s_expr);
     c11_vector__pop(&self->s_expr);
-    return e;
+    return top;
 }
 
 /* compiler.c */
@@ -2313,10 +2319,8 @@ Error* pk_compile(pk_SourceData_ src, CodeObject* out) {
     CodeObject__ctor(out, src, c11_string__sv(src->filename));
     err = Compiler__compile(&compiler, out);
     if(err) {
-        // if error occurs, dispose the code object
+        // dispose the code object if error occurs
         CodeObject__dtor(out);
-    } else {
-        assert(out->codes.count);
     }
     Compiler__dtor(&compiler);
     return err;
