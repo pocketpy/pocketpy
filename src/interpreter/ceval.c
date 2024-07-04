@@ -90,7 +90,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             if(p != TOP()) c11_sbuf__write_cstr(&buf, ", ");
         }
         c11_string* stack_str = c11_sbuf__submit(&buf);
-        printf("L%d: %s [%s]\n", Frame__lineno(frame), pk_opname(byte.op), stack_str->data);
+        printf("L%-3d: %-25s %-6d [%s]\n", Frame__lineno(frame), pk_opname(byte.op), byte.arg, stack_str->data);
         c11_string__delete(stack_str);
 #endif
 
