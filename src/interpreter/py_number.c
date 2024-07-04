@@ -44,8 +44,6 @@ DEF_NUM_BINARY_OP(__ge__, >=, py_newbool, py_newbool)
 
 #undef DEF_NUM_BINARY_OP
 
-static bool ValueError(const char* fmt, ...) { return false; }
-
 static bool _py_int__neg__(int argc, py_Ref argv) {
     py_checkargc(1);
     int64_t val = py_toint(&argv[0]);

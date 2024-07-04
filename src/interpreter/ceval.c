@@ -5,12 +5,6 @@
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
 
-int UnboundLocalError(py_Name name) { return -1; }
-
-int NameError(py_Name name) { return -1; }
-
-#define AttributeError(obj, name) false
-#define BinaryOptError(op) false
 
 static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 
@@ -255,9 +249,21 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 goto __ERROR;
             }
             case OP_LOAD_METHOD: {
-                // `py_getunboundmethod` never fails on `fallback=true`
-                py_getunboundmethod(TOP(), byte.arg, true, TOP(), SP());
-                SP()++;
+                // [self]
+                bool ok = py_getunboundmethod(TOP(), byte.arg, TOP(), SP());
+                if(ok){
+                    // [unbound, self]
+                    SP()++;
+                }else{
+                    // fallback to getattr
+                    int res = py_getattr(TOP(), byte.arg, TOP());
+                    if(res != 1){
+                        if(res == 0){
+                            AttributeError(TOP(), byte.arg);
+                        }
+                        goto __ERROR;
+                    }
+                }
                 DISPATCH();
             }
             case OP_LOAD_SUBSCR: {
@@ -276,7 +282,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     }
                     DISPATCH();
                 }
-                TypeError();
+                TypeError("'%t' object is not subscriptable", SECOND()->type);
                 goto __ERROR;
             }
             case OP_STORE_FAST: frame->locals[byte.arg] = POPX(); DISPATCH();
@@ -330,13 +336,14 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     }
                     DISPATCH();
                 }
-                TypeError();
+                TypeError("'%t' object does not support item assignment", SECOND()->type);
                 goto __ERROR;
             }
             case OP_DELETE_FAST: {
                 py_Ref tmp = &frame->locals[byte.arg];
                 if(py_isnull(tmp)) {
-                    UnboundLocalError(c11__getitem(uint16_t, &frame->co->varnames, byte.arg));
+                    py_Name name = c11__getitem(py_Name, &frame->co->varnames, byte.arg);
+                    UnboundLocalError(name);
                     goto __ERROR;
                 }
                 py_newnull(tmp);
@@ -400,7 +407,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     }
                     DISPATCH();
                 }
-                TypeError();
+                TypeError("'%t' object does not support item deletion", SECOND()->type);
                 goto __ERROR;
             }
                 /*****************************************/
@@ -536,7 +543,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     if(byte.arg) py_newbool(TOP(), !res);
                     DISPATCH();
                 }
-                TypeError();
+                // TODO: fallback to __iter__?
+                TypeError("argument of type '%t' is not iterable", SECOND()->type);
                 goto __ERROR;
             }
                 /*****************************************/
@@ -718,7 +726,7 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
         }
     }
     // eq/ne op never fails due to object.__eq__
-    return BinaryOptError(byte.arg);
+    return py_exception("TypeError", "unsupported operand type(s) for '%n'", op);
 }
 
 bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {

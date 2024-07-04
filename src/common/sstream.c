@@ -142,7 +142,7 @@ c11_string* c11_sbuf__submit(c11_sbuf* self) {
 }
 
 void pk_vsprintf(c11_sbuf* ss, const char* fmt, va_list args) {
-    while(fmt) {
+    while(*fmt) {
         char c = *fmt;
         if(c != '%') {
             c11_sbuf__write_char(ss, c);

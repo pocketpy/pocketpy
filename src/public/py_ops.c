@@ -21,11 +21,11 @@ int py_bool(const py_Ref val) { return 1; }
 
 bool py_hash(const py_Ref val, int64_t* out) { return 0; }
 
-bool py_getattr(const py_Ref self, py_Name name, py_Ref out) { return true; }
+int py_getattr(const py_Ref self, py_Name name, py_Ref out) { return -1; }
 
-bool py_setattr(py_Ref self, py_Name name, const py_Ref val) { return -1; }
+bool py_setattr(py_Ref self, py_Name name, const py_Ref val) { return false; }
 
-bool py_delattr(py_Ref self, py_Name name) { return -1; }
+bool py_delattr(py_Ref self, py_Name name) { return false; }
 
 bool py_getitem(const py_Ref self, const py_Ref key, py_Ref out) { return -1; }
 

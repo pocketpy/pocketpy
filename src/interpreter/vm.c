@@ -364,7 +364,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
     }
 
     // handle `__call__` overload
-    if(py_getunboundmethod(p0, __call__, false, p0, p0 + 1)) {
+    if(py_getunboundmethod(p0, __call__, p0, p0 + 1)) {
         // [__call__, self, args..., kwargs...]
         pk_FrameResult res = pk_VM__vectorcall(self, ARGC, KWARGC, false);
         if(res == RES_ERROR) return RES_ERROR;

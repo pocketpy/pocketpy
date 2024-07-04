@@ -116,11 +116,9 @@ bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
 #define py_offset(p, i) (py_Ref)((char*)p + ((i) << 4))
-
-#define TypeError(...) false
 #define py_arg(i) py_offset(argv, i)
 #define py_checkargc(n)                                                                            \
-    if(argc != n) return TypeError()
+    if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
 
 py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 #define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
@@ -157,17 +155,14 @@ py_TmpRef py_getupvalue(py_StackRef argv);
 void py_setupvalue(py_StackRef argv, const py_Ref val);
 
 /// Gets the attribute of the object.
-bool py_getattr(const py_Ref self, py_Name name, py_Ref out);
-/// Gets the unbound method of the object.
-bool py_getunboundmethod(const py_Ref self,
-                         py_Name name,
-                         bool fallback,
-                         py_Ref out,
-                         py_Ref out_self);
+/// 1: success, 0: not found, -1: error
+int py_getattr(const py_Ref self, py_Name name, py_Ref out);
 /// Sets the attribute of the object.
 bool py_setattr(py_Ref self, py_Name name, const py_Ref val);
 /// Deletes the attribute of the object.
 bool py_delattr(py_Ref self, py_Name name);
+/// Gets the unbound method of the object.
+bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self);
 
 bool py_getitem(const py_Ref self, const py_Ref key, py_Ref out);
 bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val);
@@ -226,10 +221,21 @@ py_TmpRef py_getmodule(const char* name);
 bool py_import(const char* name);
 
 /************* Errors *************/
+bool py_exception(const char* name, const char* fmt, ...);
 /// Print the last error to the console.
 void py_printexc();
 /// Format the last error to a string.
 void py_formatexc(char* out);
+
+#define KeyError(q) py_exception("KeyError", "'%q'", (q))
+#define NameError(n) py_exception("NameError", "name '%n' is not defined", (n))
+#define TypeError(...) py_exception("TypeError", __VA_ARGS__)
+#define ValueError(...) py_exception("ValueError", __VA_ARGS__)
+#define IndexError(...) py_exception("IndexError", __VA_ARGS__)
+#define AttributeError(self, n)                                                                    \
+    py_exception("AttributeError", "'%t' object has no attribute '%n'", (self)->type, (n))
+#define UnboundLocalError(n)                                                                       \
+    py_exception("UnboundLocalError", "local variable '%n' referenced before assignment", (n))
 
 /************* Operators *************/
 /// Equivalent to `bool(val)`.
@@ -301,6 +307,10 @@ pk_TypeInfo* pk_tpinfo(const py_Ref self);
 /// Return the reference or NULL if not found.
 py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
 
+/// Search the name from the given type to the base type.
+/// Return the reference or NULL if not found.
+py_GlobalRef py_tpfindname(py_Type, py_Name name);
+
 /// Get the type object of the given type.
 py_GlobalRef py_tpobject(py_Type type);
 
@@ -333,28 +343,28 @@ enum py_MagicNames {
 
 enum py_PredefinedTypes {
     tp_object = 1,
-    tp_type,
+    tp_type,  // py_Type
     tp_int,
     tp_float,
     tp_bool,
     tp_str,
-    tp_list,
-    tp_tuple,
-    tp_slice,
+    tp_list,   // c11_vector
+    tp_tuple,  // N slots
+    tp_slice,  // 3 slots (start, stop, step)
     tp_range,
     tp_module,
     tp_function,
     tp_nativefunc,
     tp_bound_method,
-    tp_super,
+    tp_super,  // 1 slot + py_Type
     tp_exception,
     tp_bytes,
     tp_mappingproxy,
     tp_dict,
-    tp_property,
+    tp_property,  // 2 slots (getter + setter)
     tp_star_wrapper,
-    tp_staticmethod,
-    tp_classmethod,
+    tp_staticmethod,  // 1 slot
+    tp_classmethod,   // 1 slot
     tp_none_type,
     tp_not_implemented_type,
     tp_ellipsis,

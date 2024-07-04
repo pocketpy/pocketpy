@@ -26,7 +26,7 @@ void py_finalize() {
     pk_MemoryPools__finalize();
 }
 
-const char* pk_opname(Opcode op){
+const char* pk_opname(Opcode op) {
     const static char* OP_NAMES[] = {
 #define OPCODE(name) #name,
 #include "pocketpy/xmacros/opcodes.h"
@@ -195,11 +195,34 @@ bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
 
 py_Ref py_retval() { return &pk_current_vm->last_retval; }
 
-bool py_getunboundmethod(const py_Ref self,
-                         py_Name name,
-                         bool fallback,
-                         py_Ref out,
-                         py_Ref out_self) {
+bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self) {
+    // NOTE: `out` and `out_self` may overlap with `self`
+    py_Type type;
+    // handle super() proxy
+    if(py_istype(self, tp_super)) {
+        self = py_getslot(self, 0);
+        type = *(py_Type*)py_touserdata(self);
+    } else {
+        type = self->type;
+    }
+
+    py_Ref cls_var = py_tpfindname(type, name);
+    if(cls_var != NULL) {
+        switch(cls_var->type) {
+            case tp_function: *out_self = *self; break;
+            case tp_nativefunc: *out_self = *self; break;
+            case tp_staticmethod:
+                py_newnull(self);
+                *out = *py_getslot(cls_var, 0);
+                break;
+            case tp_classmethod:
+                *out_self = c11__getitem(pk_TypeInfo, &pk_current_vm->types, type).self;
+                *out = *py_getslot(cls_var, 0);
+                break;
+        }
+        return true;
+    }
+    // TODO: __getattr__ fallback
     return false;
 }
 
@@ -209,12 +232,21 @@ pk_TypeInfo* pk_tpinfo(const py_Ref self) {
 }
 
 py_Ref py_tpfindmagic(py_Type t, py_Name name) {
-    assert(t);
     assert(py_ismagicname(name));
     pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
     do {
         py_Ref f = &types[t].magic[name];
         if(!py_isnull(f)) return f;
+        t = types[t].base;
+    } while(t);
+    return NULL;
+}
+
+py_Ref py_tpfindname(py_Type t, py_Name name) {
+    pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
+    do {
+        py_Ref res = py_getdict(&types[t].self, name);
+        if(res) return res;
         t = types[t].base;
     } while(t);
     return NULL;
@@ -241,7 +273,9 @@ bool py_callmagic(py_Name name, int argc, py_Ref argv) {
     assert(argc >= 1);
     assert(py_ismagicname(name));
     py_Ref tmp = py_tpfindmagic(argv->type, name);
-    if(!tmp) return TypeError(name);
+    if(!tmp){
+        return AttributeError(argv, name);
+    }
     if(tmp->type == tp_nativefunc) return tmp->_cfunc(argc, argv);
     return py_call(tmp, argc, argv);
 }
