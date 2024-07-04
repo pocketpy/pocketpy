@@ -209,16 +209,23 @@ bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self)
     py_Ref cls_var = py_tpfindname(type, name);
     if(cls_var != NULL) {
         switch(cls_var->type) {
-            case tp_function: *out_self = *self; break;
-            case tp_nativefunc: *out_self = *self; break;
+            case tp_function:
+            case tp_nativefunc: {
+                py_TValue self_bak = *self;
+                // `out` may overlap with `self`. If we assign `out`, `self` may be corrupted.
+                *out = *cls_var;
+                *out_self = self_bak;
+                break;
+            }
             case tp_staticmethod:
-                py_newnull(self);
                 *out = *py_getslot(cls_var, 0);
+                py_newnil(out_self);
                 break;
             case tp_classmethod:
-                *out_self = c11__getitem(pk_TypeInfo, &pk_current_vm->types, type).self;
                 *out = *py_getslot(cls_var, 0);
+                *out_self = c11__getitem(pk_TypeInfo, &pk_current_vm->types, type).self;
                 break;
+            default: PK_UNREACHABLE();
         }
         return true;
     }
@@ -236,7 +243,7 @@ py_Ref py_tpfindmagic(py_Type t, py_Name name) {
     pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
     do {
         py_Ref f = &types[t].magic[name];
-        if(!py_isnull(f)) return f;
+        if(!py_isnil(f)) return f;
         t = types[t].base;
     } while(t);
     return NULL;
@@ -264,6 +271,7 @@ py_Ref py_tpobject(py_Type type) {
 }
 
 const char* py_tpname(py_Type type) {
+    if(!type) return "nil";
     pk_VM* vm = pk_current_vm;
     py_Name name = c11__at(pk_TypeInfo, &vm->types, type)->name;
     return py_name2str(name);

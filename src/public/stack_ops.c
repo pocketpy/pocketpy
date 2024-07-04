@@ -13,7 +13,7 @@ py_Ref py_getdict(const py_Ref self, py_Name name){
     if(self->type == tp_type && py_ismagicname(name)){
         py_Type* ud = py_touserdata(self);
         py_Ref slot = py_tpmagic(*ud, name);
-        return py_isnull(slot) ? NULL : slot;
+        return py_isnil(slot) ? NULL : slot;
     }
     return pk_NameDict__try_get(PyObject__dict(self->_obj), name);
 }
@@ -66,6 +66,6 @@ void py_push(const py_Ref src){
 
 py_Ref py_pushtmp(){
     pk_VM* vm = pk_current_vm;
-    py_newnull(vm->stack.sp++);
+    py_newnil(vm->stack.sp++);
     return py_gettop();
 }

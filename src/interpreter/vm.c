@@ -48,7 +48,7 @@ void pk_TypeInfo__ctor(pk_TypeInfo* self,
         ._obj = typeobj,
     };
 
-    self->module = module ? *module : PY_NULL;
+    self->module = module ? *module : PY_NIL;
     self->subclass_enabled = subclass_enabled;
 
     c11_vector__ctor(&self->annotated_fields, sizeof(py_Name));
@@ -69,20 +69,20 @@ void pk_VM__ctor(pk_VM* self) {
     pk_NameDict__ctor(&self->modules);
     c11_vector__ctor(&self->types, sizeof(pk_TypeInfo));
 
-    self->StopIteration = PY_NULL;
-    self->builtins = PY_NULL;
-    self->main = PY_NULL;
+    self->StopIteration = PY_NIL;
+    self->builtins = PY_NIL;
+    self->main = PY_NIL;
 
     self->_ceval_on_step = NULL;
     self->_import_file = pk_default_import_file;
     self->_stdout = pk_default_stdout;
     self->_stderr = pk_default_stderr;
 
-    self->last_retval = PY_NULL;
+    self->last_retval = PY_NIL;
     self->has_error = false;
 
-    self->__curr_class = PY_NULL;
-    self->__cached_object_new = PY_NULL;
+    self->__curr_class = PY_NIL;
+    self->__cached_object_new = PY_NIL;
     self->__dynamic_func_decl = NULL;
 
     pk_ManagedHeap__ctor(&self->heap, self);
@@ -210,16 +210,16 @@ py_Type pk_VM__new_type(pk_VM* self,
     return index;
 }
 
-pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bool opcall) {
-    py_Ref p1 = self->stack.sp - KWARGC * 2;
-    py_Ref p0 = p1 - ARGC - 2;
+pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall) {
+    py_Ref p1 = self->stack.sp - kwargc * 2;
+    py_Ref p0 = p1 - argc - 2;
     // [callable, <self>, args..., kwargs...]
     //      ^p0                    ^p1      ^_sp
 
     // handle boundmethod, do a patch
     if(p0->type == tp_bound_method) {
         assert(false);
-        assert(py_isnull(p0 + 1));  // self must be NULL
+        assert(py_isnil(p0 + 1));  // self must be NULL
         // BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
         // callable = bm.func;  // get unbound method
         // callable_t = _tp(callable);
@@ -229,7 +229,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
     }
 
     // PyVar* _base = args.begin();
-    py_Ref argv = py_isnull(p0 + 1) ? p0 + 2 : p0 + 1;
+    py_Ref argv = py_isnil(p0 + 1) ? p0 + 2 : p0 + 1;
 
 #if 0
     if(callable_t == tp_function) {
@@ -264,7 +264,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
                 // [callable, <self>, args..., local_vars...]
                 //      ^p0                    ^p1      ^_sp
                 s_data.reset(_base + co->nlocals);
-                // initialize local variables to PY_NULL
+                // initialize local variables to PY_NIL
                 std::memset(p1, 0, (char*)s_data._sp - (char*)p1);
                 break;
             case FuncType_EMPTY:
@@ -321,7 +321,8 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
         //     ret = f.call(this, args);
         // }
 
-        if(!p0->_cfunc(ARGC, argv)) return RES_ERROR;
+        // `argc` passed to _cfunc must include self if exists
+        if(!p0->_cfunc(p1 - argv, argv)) return RES_ERROR;
         self->stack.sp = p0;
         return RES_RETURN;
     }
@@ -329,7 +330,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
     if(p0->type == tp_type) {
         // [cls, NULL, args..., kwargs...]
         py_Ref new_f = py_tpfindmagic(py_totype(p0), __new__);
-        assert(new_f && py_isnull(p0 + 1));
+        assert(new_f && py_isnil(p0 + 1));
 
         // prepare a copy of args and kwargs
         int span = self->stack.sp - argv;
@@ -339,7 +340,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
         self->stack.sp += span;
 
         // [new_f, cls, args..., kwargs...]
-        pk_FrameResult res = pk_VM__vectorcall(self, ARGC, KWARGC, false);
+        pk_FrameResult res = pk_VM__vectorcall(self, argc, kwargc, false);
         if(res == RES_ERROR) return RES_ERROR;
         assert(res == RES_RETURN);
         // by recursively using vectorcall, args and kwargs are consumed
@@ -353,7 +354,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
             *p0 = *init_f;              // __init__
             p0[1] = self->last_retval;  // self
             // [__init__, self, args..., kwargs...]
-            pk_FrameResult res = pk_VM__vectorcall(self, ARGC, KWARGC, false);
+            pk_FrameResult res = pk_VM__vectorcall(self, argc, kwargc, false);
             if(res == RES_ERROR) return RES_ERROR;
             assert(res == RES_RETURN);
         } else {
@@ -366,7 +367,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t ARGC, uint16_t KWARGC, bo
     // handle `__call__` overload
     if(py_getunboundmethod(p0, __call__, p0, p0 + 1)) {
         // [__call__, self, args..., kwargs...]
-        pk_FrameResult res = pk_VM__vectorcall(self, ARGC, KWARGC, false);
+        pk_FrameResult res = pk_VM__vectorcall(self, argc, kwargc, false);
         if(res == RES_ERROR) return RES_ERROR;
         assert(res == RES_RETURN);
     }

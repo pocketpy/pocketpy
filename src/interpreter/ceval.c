@@ -83,8 +83,17 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     __NEXT_STEP:
         byte = *frame->ip;
 
-        // log
-        printf("byte.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
+#if 1
+        c11_sbuf buf;
+        c11_sbuf__ctor(&buf);
+        for(py_Ref p = self->stack.begin; p != SP(); p++){
+            c11_sbuf__write_cstr(&buf, py_tpname(p->type));
+            if(p != TOP()) c11_sbuf__write_cstr(&buf, ", ");
+        }
+        c11_string* stack_str = c11_sbuf__submit(&buf);
+        printf("L%d: %s [%s]\n", Frame__lineno(frame), pk_opname(byte.op), stack_str->data);
+        c11_string__delete(stack_str);
+#endif
 
         switch((Opcode)byte.op) {
             case OP_NO_OP: DISPATCH();
@@ -124,7 +133,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             case OP_LOAD_TRUE: py_newbool(SP()++, true); DISPATCH();
             case OP_LOAD_FALSE: py_newbool(SP()++, false); DISPATCH();
             /*****************************************/
-            case OP_LOAD_SMALL_INT: py_newint(SP()++, (int64_t)(int16_t)byte.arg); DISPATCH();
+            case OP_LOAD_SMALL_INT: py_newint(SP()++, (int16_t)byte.arg); DISPATCH();
             /*****************************************/
             case OP_LOAD_ELLIPSIS: py_newellipsis(SP()++); DISPATCH();
             case OP_LOAD_FUNCTION: {
@@ -144,12 +153,12 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 // PUSH(obj);DISPATCH();
             }
             case OP_LOAD_NULL:
-                py_newnull(SP()++);
+                py_newnil(SP()++);
                 DISPATCH();
                 /*****************************************/
             case OP_LOAD_FAST: {
                 PUSH(&frame->locals[byte.arg]);
-                if(py_isnull(TOP())) {
+                if(py_isnil(TOP())) {
                     py_Name name = c11__getitem(uint16_t, &frame->co->varnames, byte.arg);
                     UnboundLocalError(name);
                     goto __ERROR;
@@ -160,7 +169,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Name name = byte.arg;
                 py_Ref tmp = Frame__f_locals_try_get(frame, name);
                 if(tmp != NULL) {
-                    if(py_isnull(tmp)) {
+                    if(py_isnil(tmp)) {
                         UnboundLocalError(name);
                         goto __ERROR;
                     }
@@ -341,12 +350,12 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_DELETE_FAST: {
                 py_Ref tmp = &frame->locals[byte.arg];
-                if(py_isnull(tmp)) {
+                if(py_isnil(tmp)) {
                     py_Name name = c11__getitem(py_Name, &frame->co->varnames, byte.arg);
                     UnboundLocalError(name);
                     goto __ERROR;
                 }
-                py_newnull(tmp);
+                py_newnil(tmp);
                 DISPATCH();
             }
             case OP_DELETE_NAME: {
@@ -354,7 +363,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 if(frame->function) {
                     py_TValue* slot = Frame__f_locals_try_get(frame, name);
                     if(slot) {
-                        py_newnull(slot);
+                        py_newnil(slot);
                     } else {
                         // Function& func = frame->_callable->as<Function>();
                         // if(func.decl == __dynamic_func_decl) {
@@ -427,7 +436,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 assert(f != NULL);
                 py_TValue tmp = *TOP();
                 *TOP() = *f;              // [complex]
-                py_newnull(SP()++);       // [complex, NULL]
+                py_newnil(SP()++);       // [complex, NULL]
                 py_newint(SP()++, 0);     // [complex, NULL, 0]
                 *SP()++ = tmp;            // [complex, NULL, 0, x]
                 vectorcall_opcall(2, 0);  // [complex(x)]

@@ -56,7 +56,7 @@ unsigned char* py_newbytes(py_Ref, int);
 void py_newnone(py_Ref);
 void py_newnotimplemented(py_Ref out);
 void py_newellipsis(py_Ref out);
-void py_newnull(py_Ref);
+void py_newnil(py_Ref);
 
 /// Create a tuple with n UNINITIALIZED elements.
 /// You should initialize all elements before using it.
@@ -281,7 +281,7 @@ bool py_callmagic(py_Name name, int argc, py_Ref argv);
 /// The return value of the most recent call.
 py_GlobalRef py_retval();
 
-#define py_isnull(self) ((self)->type == 0)
+#define py_isnil(self) ((self)->type == 0)
 
 /* tuple */
 

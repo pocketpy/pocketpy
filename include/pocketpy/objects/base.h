@@ -36,7 +36,7 @@ typedef struct py_TValue {
 static_assert(sizeof(py_CFunction) <= 8, "sizeof(py_CFunction) > 8");
 static_assert(sizeof(py_TValue) == 16, "sizeof(py_TValue) != 16");
 
-extern py_TValue PY_NULL;
+extern py_TValue PY_NIL;
 
 #ifdef __cplusplus
 }

@@ -39,7 +39,7 @@ void py_newellipsis(py_Ref out) {
     out->is_ptr = false;
 }
 
-void py_newnull(py_Ref out) { out->type = 0; }
+void py_newnil(py_Ref out) { out->type = 0; }
 
 
 void py_newfunction(py_Ref out, py_CFunction f, const char* sig) {

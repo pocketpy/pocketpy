@@ -20,7 +20,7 @@ pk_NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co) {
     pk_NameDict* dict = pk_NameDict__new();
     c11__foreach(c11_smallmap_n2i_KV, &co->varnames_inv, entry) {
         py_TValue value = locals[entry->value];
-        if(!py_isnull(&value)){
+        if(!py_isnil(&value)){
             pk_NameDict__set(dict, entry->key, value);
         }
     }
