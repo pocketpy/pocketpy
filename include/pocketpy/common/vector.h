@@ -87,7 +87,6 @@ c11_array c11_vector__submit(c11_vector* self);
         }                                                                                          \
     } while(0)
 
-
 // NOTE: here we do an extra NULL check for it to avoid UB
 #define c11__foreach(T, self, it)                                                                  \
     for(T* it = (self)->data; it && it != (T*)(self)->data + (self)->count; it++)

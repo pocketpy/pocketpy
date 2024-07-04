@@ -15,7 +15,8 @@ extern "C" {
 
 #define PK_REGION(name) 1
 
-#define PK_SLICE_LOOP(i, start, stop, step) for(int i = start; step > 0 ? i < stop : i > stop; i += step)
+#define PK_SLICE_LOOP(i, start, stop, step)                                                        \
+    for(int i = start; step > 0 ? i < stop : i > stop; i += step)
 
 // global constants
 #define PK_HEX_TABLE "0123456789abcdef"
@@ -23,17 +24,21 @@ extern "C" {
 extern const char* kPlatformStrings[];
 
 #ifdef _MSC_VER
-#define PK_UNREACHABLE() __assume(0);
+#define c11__unreachedable() __assume(0)
 #else
-#define PK_UNREACHABLE() __builtin_unreachable();
+#define c11__unreachedable() __builtin_unreachable()
 #endif
 
-#define PK_FATAL_ERROR(...) { fprintf(stderr, __VA_ARGS__); abort(); }
+#define PK_FATAL_ERROR(...)                                                                        \
+    do {                                                                                           \
+        fprintf(stderr, __VA_ARGS__);                                                              \
+        abort();                                                                                   \
+    } while(0)
 
-#define PK_MIN(a, b) ((a) < (b) ? (a) : (b))
-#define PK_MAX(a, b) ((a) > (b) ? (a) : (b))
+#define c11__min(a, b) ((a) < (b) ? (a) : (b))
+#define c11__max(a, b) ((a) > (b) ? (a) : (b))
 
-#define PK_ARRAY_COUNT(a)   (sizeof(a) / sizeof(a[0]))
+#define c11__count_array(a) (sizeof(a) / sizeof(a[0]))
 
 // NARGS
 #define PK_NARGS_SEQ(_1, _2, _3, _4, N, ...) N
@@ -47,12 +52,13 @@ typedef struct RefCounted {
 } RefCounted;
 
 #define PK_INCREF(obj) (obj)->rc.count++
-#define PK_DECREF(obj) do { \
-    if(--(obj)->rc.count == 0) { \
-        (obj)->rc.dtor(obj); \
-        free(obj); \
-    } \
-} while(0)
+#define PK_DECREF(obj)                                                                             \
+    do {                                                                                           \
+        if(--(obj)->rc.count == 0) {                                                               \
+            (obj)->rc.dtor(obj);                                                                   \
+            free(obj);                                                                             \
+        }                                                                                          \
+    } while(0)
 
 #ifdef __cplusplus
 }

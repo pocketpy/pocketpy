@@ -197,14 +197,14 @@ int c11__byte_index_to_unicode(const char* data, int n) {
 //////////////
 
 int c11_sv__cmp(c11_sv self, c11_sv other) {
-    int res = strncmp(self.data, other.data, PK_MIN(self.size, other.size));
+    int res = strncmp(self.data, other.data, c11__min(self.size, other.size));
     if(res != 0) return res;
     return self.size - other.size;
 }
 
 int c11_sv__cmp2(c11_sv self, const char* other) {
     int size = strlen(other);
-    int res = strncmp(self.data, other, PK_MIN(self.size, size));
+    int res = strncmp(self.data, other, c11__min(self.size, size));
     if(res != 0) return res;
     return self.size - size;
 }
@@ -241,14 +241,14 @@ int c11__u8_header(unsigned char c, bool suppress) {
     if((c & 0b11111000) == 0b11110000) return 4;
     if((c & 0b11111100) == 0b11111000) return 5;
     if((c & 0b11111110) == 0b11111100) return 6;
-    if(!suppress) PK_FATAL_ERROR("invalid utf8 char\n")
+    if(!suppress) PK_FATAL_ERROR("invalid utf8 char\n");
     return 0;
 }
 
 IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base) {
     *out = 0;
 
-    c11_sv prefix = {.data = text.data, .size = PK_MIN(2, text.size)};
+    c11_sv prefix = {.data = text.data, .size = c11__min(2, text.size)};
     if(base == -1) {
         if(c11__sveq(prefix, "0b"))
             base = 2;

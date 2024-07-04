@@ -89,7 +89,7 @@ static int pkpy_Dict__probe0(const pkpy_Dict* self, py_TValue key, int hash) {
         struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
         if(pkpy_Var__is_null(&entry->key)) return h;
     }
-    PK_UNREACHABLE();
+    c11__unreachedable();
 }
 
 static int pkpy_Dict__probe1(const pkpy_Dict* self, py_TValue key, int hash) {
@@ -103,7 +103,7 @@ static int pkpy_Dict__probe1(const pkpy_Dict* self, py_TValue key, int hash) {
         if(pkpy_Var__is_null(&entry->key)) continue;
         if(py_eq(&entry->key, &key)) return h;
     }
-    PK_UNREACHABLE();
+    c11__unreachedable();
 }
 
 static void pkpy_Dict__extendht(pkpy_Dict* self) {

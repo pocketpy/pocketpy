@@ -31,16 +31,14 @@ void py_Name__finalize() {
     c11_vector__dtor(&_r_interned);
 }
 
-py_Name py_name(const char* name) {
-    return py_name2((c11_sv){name, strlen(name)});
-}
+py_Name py_name(const char* name) { return py_name2((c11_sv){name, strlen(name)}); }
 
 py_Name py_name2(c11_sv name) {
     // TODO: PK_GLOBAL_SCOPE_LOCK()
     uint16_t index = c11_smallmap_s2n__get(&_interned, name, 0);
     if(index != 0) return index;
     // generate new index
-    if(_interned.count > 65530) { PK_FATAL_ERROR("py_Name index overflow\n"); }
+    if(_interned.count > 65530) PK_FATAL_ERROR("py_Name index overflow\n");
     // NOTE: we must allocate the string in the heap so iterators are not invalidated
     char* p = malloc(name.size + 1);
     memcpy(p, name.data, name.size);
@@ -64,8 +62,4 @@ c11_sv py_name2sv(py_Name index) {
     return (c11_sv){p, strlen(p)};
 }
 
-
-bool py_ismagicname(py_Name name){
-    return name <= __missing__;
-}
-
+bool py_ismagicname(py_Name name) { return name <= __missing__; }

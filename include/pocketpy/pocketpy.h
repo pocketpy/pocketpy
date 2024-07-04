@@ -115,10 +115,13 @@ bool py_isinstance(const py_Ref obj, py_Type type);
 bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
+#define PY_CHECK_ARGC(n)                                                                            \
+    if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
+
+#define PY_CHECK_ARG_TYPE(i, type)   if(!py_checktype(py_arg(i), type)) return false
+
 #define py_offset(p, i) (py_Ref)((char*)p + ((i) << 4))
 #define py_arg(i) py_offset(argv, i)
-#define py_checkargc(n)                                                                            \
-    if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
 
 py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 #define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
@@ -375,3 +378,13 @@ enum py_PredefinedTypes {
 #ifdef __cplusplus
 }
 #endif
+
+
+/*
+Some notes:
+
+## Macros
+1. Function macros are partial functions. They can be used as normal expressions. Use the same naming convention as functions.
+2. Snippet macros are `do {...} while(0)` blocks. They cannot be used as expressions. Use `UPPER_CASE` naming convention.
+3. Constant macros are used for global constants. Use `UPPER_CASE` or k-prefix naming convention.
+*/

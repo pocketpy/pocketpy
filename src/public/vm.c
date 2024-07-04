@@ -177,7 +177,7 @@ static bool
     PK_DECREF(src);
     if(res == RES_ERROR) return false;
     if(res == RES_RETURN) return true;
-    PK_UNREACHABLE();
+    c11__unreachedable();
 }
 
 bool py_exec(const char* source) { return pk_VM__exec(pk_current_vm, source, "<exec>", EXEC_MODE); }
@@ -225,7 +225,7 @@ bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self)
                 *out = *py_getslot(cls_var, 0);
                 *out_self = c11__getitem(pk_TypeInfo, &pk_current_vm->types, type).self;
                 break;
-            default: PK_UNREACHABLE();
+            default: c11__unreachedable();
         }
         return true;
     }

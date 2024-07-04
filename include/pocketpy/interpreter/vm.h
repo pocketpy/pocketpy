@@ -57,7 +57,6 @@ typedef struct pk_VM {
     py_TValue reg[8];  // users' registers
 
     py_TValue __curr_class;
-    py_TValue __cached_object_new;
     FuncDecl_ __dynamic_func_decl;
     py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 

@@ -52,7 +52,7 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
                 PUSH(&self->last_retval);                                                          \
                 goto __NEXT_FRAME;                                                                 \
             case RES_ERROR: goto __ERROR;                                                          \
-            default: PK_UNREACHABLE();                                                             \
+            default: c11__unreachedable();                                                             \
         }                                                                                          \
     } while(0)
 
@@ -671,7 +671,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 *TOP() = self->last_retval;
                 DISPATCH();
             }
-            default: PK_UNREACHABLE();
+            default: c11__unreachedable();
         }
 
         assert(false);  // should never reach here

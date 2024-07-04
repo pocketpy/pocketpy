@@ -6,13 +6,6 @@
 
 typedef c11_vector List;
 
-py_Type pk_list__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
-    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &vm->types, type);
-    ti->dtor = (void (*)(void*))c11_vector__dtor;
-    return type;
-}
 
 void py_newlist(py_Ref out) {
     pk_VM* vm = pk_current_vm;
@@ -67,9 +60,19 @@ void py_list__insert(py_Ref self, int i, const py_Ref val) {
 }
 
 ////////////////////////////////
-bool _py_list__len__(int argc, py_Ref argv){
-    py_checkargc(1);
+static bool _py_list__len__(int argc, py_Ref argv){
+    PY_CHECK_ARGC(1);
     py_i64 res = py_list__len(py_arg(0));
     py_newint(py_retval(), res);
     return true;
+}
+
+py_Type pk_list__register() {
+    pk_VM* vm = pk_current_vm;
+    py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
+    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &vm->types, type);
+    ti->dtor = (void (*)(void*))c11_vector__dtor;
+
+    py_bindmagic(type, __len__, _py_list__len__);
+    return type;
 }

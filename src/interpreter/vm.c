@@ -82,7 +82,6 @@ void pk_VM__ctor(pk_VM* self) {
     self->has_error = false;
 
     self->__curr_class = PY_NIL;
-    self->__cached_object_new = PY_NIL;
     self->__dynamic_func_decl = NULL;
 
     pk_ManagedHeap__ctor(&self->heap, self);
@@ -99,6 +98,7 @@ void pk_VM__ctor(pk_VM* self) {
 
     validate(tp_int, pk_VM__new_type(self, "int", tp_object, NULL, false));
     validate(tp_float, pk_VM__new_type(self, "float", tp_object, NULL, false));
+    pk_number__register();
     validate(tp_bool, pk_VM__new_type(self, "bool", tp_object, NULL, false));
     validate(tp_str, pk_str__register());
 
@@ -155,7 +155,7 @@ void pk_VM__ctor(pk_VM* self) {
                               tp_stop_iteration,
                               tp_syntax_error};
 
-    for(int i = 0; i < PK_ARRAY_COUNT(public_types); i++) {
+    for(int i = 0; i < c11__count_array(public_types); i++) {
         py_Type t = public_types[i];
         pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, t);
         py_setdict(&self->builtins, ti->name, py_tpobject(t));
@@ -166,7 +166,6 @@ void pk_VM__ctor(pk_VM* self) {
     py_setdict(&self->builtins, py_name("NotImplemented"), &tmp);
 
     /* Do Buildin Bindings*/
-    pk_number__register();
     // object.__new__
     py_bindmagic(tp_object, __new__, _py_object__new__);
 
@@ -286,7 +285,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
                 return __py_generator(
                     callstack.popx(),
                     ArgsView(__vectorcall_buffer, __vectorcall_buffer + co->nlocals));
-            default: PK_UNREACHABLE()
+            default: c11__unreachedable()
         };
 
         // simple or normal
@@ -373,7 +372,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
     }
 
     TypeError("'%t' object is not callable", p0->type);
-    PK_UNREACHABLE();
+    c11__unreachedable();
 }
 
 /****************************************/

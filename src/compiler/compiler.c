@@ -129,7 +129,7 @@ bool NameExpr__emit_del(Expr* self_, Ctx* ctx) {
             break;
         case NAME_GLOBAL: Ctx__emit_(ctx, OP_DELETE_GLOBAL, self->name, self->line); break;
         case NAME_GLOBAL_UNKNOWN: Ctx__emit_(ctx, OP_DELETE_NAME, self->name, self->line); break;
-        default: PK_UNREACHABLE();
+        default: c11__unreachedable();
     }
     return true;
 }
@@ -294,7 +294,7 @@ void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
             Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
             break;
         }
-        default: PK_UNREACHABLE();
+        default: c11__unreachedable();
     }
 }
 
@@ -1376,7 +1376,7 @@ static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int l
         case NAME_LOCAL: Ctx__emit_(self, OP_STORE_FAST, Ctx__add_varname(self, name), line); break;
         case NAME_GLOBAL: Ctx__emit_(self, OP_STORE_GLOBAL, name, line); break;
         case NAME_GLOBAL_UNKNOWN: Ctx__emit_(self, OP_STORE_NAME, name, line); break;
-        default: PK_UNREACHABLE();
+        default: c11__unreachedable();
     }
 }
 
@@ -1478,6 +1478,7 @@ static NameScope name_scope(Compiler* self) {
 }
 
 #define SyntaxError(...) NULL
+
 static Error* NeedMoreLines() { return NULL; }
 
 /* Matchers */

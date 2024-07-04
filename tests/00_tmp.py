@@ -98,3 +98,6 @@ assert (-4)**13 == -67108864
 assert ~3 == -4
 assert ~-3 == 2
 assert ~0 == -1
+
+# tmp code
+assert [1, 2].__len__() == 2
