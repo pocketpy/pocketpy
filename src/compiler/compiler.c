@@ -1,5 +1,6 @@
 #include "pocketpy/compiler/compiler.h"
 #include "pocketpy/compiler/lexer.h"
+#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/strname.h"
@@ -2016,6 +2017,105 @@ static Error* consume_type_hints(Compiler* self) {
     return NULL;
 }
 
+static Error* compile_stmt(Compiler* self);
+
+static Error* compile_block_body(Compiler* self, PrattCallback callback) {
+    Error* err;
+    assert(callback != NULL);
+    consume(TK_COLON);
+    if(curr()->type != TK_EOL && curr()->type != TK_EOF) {
+        while(true) {
+            check(compile_stmt(self));
+            bool possible = curr()->type != TK_EOL && curr()->type != TK_EOF;
+            if(prev()->type != TK_SEMICOLON || !possible) break;
+        }
+        return NULL;
+    }
+
+    bool need_more_lines;
+    bool consumed = match_newlines_repl(self, &need_more_lines);
+    if(need_more_lines) return NeedMoreLines();
+    if(!consumed) return SyntaxError("expected a new line after ':'");
+
+    consume(TK_INDENT);
+    while(curr()->type != TK_DEDENT) {
+        match_newlines();
+        check(callback(self));
+        match_newlines();
+    }
+    consume(TK_DEDENT);
+    return NULL;
+}
+
+static Error* compile_if_stmt(Compiler* self) {
+    Error* err;
+    check(EXPR(self));  // condition
+    Ctx__s_emit_top(ctx());
+    int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, prev()->line);
+    err = compile_block_body(self, compile_stmt);
+    if(err) return err;
+    if(match(TK_ELIF)) {
+        int exit_patch = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, prev()->line);
+        Ctx__patch_jump(ctx(), patch);
+        check(compile_if_stmt(self));
+        Ctx__patch_jump(ctx(), exit_patch);
+    } else if(match(TK_ELSE)) {
+        int exit_patch = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, prev()->line);
+        Ctx__patch_jump(ctx(), patch);
+        check(compile_block_body(self, compile_stmt));
+        Ctx__patch_jump(ctx(), exit_patch);
+    } else {
+        Ctx__patch_jump(ctx(), patch);
+    }
+    return NULL;
+}
+
+static Error* compile_while_loop(Compiler* self) {
+    Error* err;
+    CodeBlock* block = Ctx__enter_block(ctx(), CodeBlockType_WHILE_LOOP);
+    check(EXPR(self));  // condition
+    Ctx__s_emit_top(ctx());
+    int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, prev()->line);
+    check(compile_block_body(self, compile_stmt));
+    Ctx__emit_virtual(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), BC_KEEPLINE, true);
+    Ctx__patch_jump(ctx(), patch);
+    Ctx__exit_block(ctx());
+    // optional else clause
+    if(match(TK_ELSE)) {
+        check(compile_block_body(self, compile_stmt));
+        block->end2 = ctx()->co->codes.count;
+    }
+    return NULL;
+}
+
+static Error* compile_for_loop(Compiler* self) {
+    Error* err;
+    check(EXPR_VARS(self));     // [vars]
+    consume(TK_IN);
+    check(EXPR_TUPLE(self));    // [vars, iter]
+    Ctx__s_emit_top(ctx());     // [vars]
+    Ctx__emit_(ctx(), OP_GET_ITER_NEW, BC_NOARG, BC_KEEPLINE);
+    CodeBlock* block = Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
+    int for_codei = Ctx__emit_(ctx(), OP_FOR_ITER, ctx()->curr_iblock, BC_KEEPLINE);
+    Expr* vars = Ctx__s_popx(ctx());
+    bool ok = vtemit_store(vars, ctx());
+    vtdelete(vars);
+    if(!ok) return SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
+
+    // TODO: ??
+    // ctx()->try_merge_for_iter_store(for_codei);
+
+    check(compile_block_body(self, compile_stmt));
+    Ctx__emit_virtual(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), BC_KEEPLINE, true);
+    Ctx__exit_block(ctx());
+    // optional else clause
+    if(match(TK_ELSE)) {
+        check(compile_block_body(self, compile_stmt));
+        block->end2 = ctx()->co->codes.count;
+    }
+    return NULL;
+}
+
 Error* try_compile_assignment(Compiler* self, bool* is_assign) {
     Error* err;
     switch(curr()->type) {
@@ -2129,9 +2229,9 @@ static Error* compile_stmt(Compiler* self) {
             }
             break;
         /*************************************************/
-        // case TK_IF: check(compile_if_stmt()); break;
-        // case TK_WHILE: check(compile_while_loop()); break;
-        // case TK_FOR: check(compile_for_loop()); break;
+        case TK_IF: check(compile_if_stmt(self)); break;
+        case TK_WHILE: check(compile_while_loop(self)); break;
+        case TK_FOR: check(compile_for_loop(self)); break;
         // case TK_IMPORT: check(compile_normal_import()); break;
         // case TK_FROM: check(compile_from_import()); break;
         // case TK_DEF: check(compile_function()); break;
