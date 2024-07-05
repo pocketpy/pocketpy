@@ -82,10 +82,11 @@ void py_newslice(py_Ref out, const py_Ref start, const py_Ref stop, const py_Ref
     py_setslot(out, 2, step);
 }
 
-void py_newobject(py_Ref out, py_Type type, int slots, int udsize) {
+void* py_newobject(py_Ref out, py_Type type, int slots, int udsize) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* obj = pk_ManagedHeap__gcnew(heap, type, slots, udsize);
     out->type = type;
     out->is_ptr = true;
     out->_obj = obj;
+    return PyObject__userdata(obj);
 }

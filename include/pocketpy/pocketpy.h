@@ -92,7 +92,7 @@ void py_newnativefunc(py_Ref out, py_CFunction);
 /// @param type type of the object.
 /// @param slots number of slots. Use -1 to create a `__dict__`.
 /// @param udsize size of your userdata. You can use `py_touserdata()` to get the pointer to it.
-void py_newobject(py_Ref out, py_Type type, int slots, int udsize);
+void* py_newobject(py_Ref out, py_Type type, int slots, int udsize);
 /************* Type Cast *************/
 py_i64 py_toint(const py_Ref);
 py_f64 py_tofloat(const py_Ref);
@@ -120,7 +120,7 @@ bool py_issubclass(py_Type derived, py_Type base);
 
 #define PY_CHECK_ARG_TYPE(i, type)   if(!py_checktype(py_arg(i), type)) return false
 
-#define py_offset(p, i) (py_Ref)((char*)p + ((i) << 4))
+#define py_offset(p, i) ((py_Ref)((char*)p + ((i) << 4)))
 #define py_arg(i) py_offset(argv, i)
 
 py_GlobalRef py_tpmagic(py_Type type, py_Name name);

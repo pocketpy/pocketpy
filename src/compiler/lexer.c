@@ -246,11 +246,11 @@ static Error* eat_name(pk_Lexer* self){
     c11_sv name = {self->token_start, length};
 
     if(self->src->mode == JSON_MODE) {
-        if(c11__sveq(name, "true")) {
+        if(c11__sveq2(name, "true")) {
             add_token(self, TK_TRUE);
-        } else if(c11__sveq(name, "false")) {
+        } else if(c11__sveq2(name, "false")) {
             add_token(self, TK_FALSE);
-        } else if(c11__sveq(name, "null")) {
+        } else if(c11__sveq2(name, "null")) {
             add_token(self, TK_NONE);
         } else {
             return SyntaxError("invalid JSON token");
@@ -265,7 +265,7 @@ static Error* eat_name(pk_Lexer* self){
     c11__lower_bound(const char*, KW_BEGIN, KW_COUNT, name, less, &out);
     #undef less
 
-    if(out != KW_COUNT && c11__sveq(name, KW_BEGIN[out])) {
+    if(out != KW_COUNT && c11__sveq2(name, KW_BEGIN[out])) {
         add_token(self, (TokenIndex)(out + TK_FALSE));
     } else {
         add_token(self, TK_ID);

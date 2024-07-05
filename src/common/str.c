@@ -69,26 +69,12 @@ c11_string* c11_string__u8_slice(c11_string* self, int start, int stop, int step
 }
 
 /////////////////////////////////////////
-void c11_sv__lower(c11_sv sv, c11_vector* buf) {
-    for(int i = 0; i < sv.size; i++) {
-        char c = sv.data[i];
-        if('A' <= c && c <= 'Z') c += 32;
-        c11_vector__push(char, buf, c);
-    }
-}
-
-void c11_sv__upper(c11_sv sv, c11_vector* buf) {
-    for(int i = 0; i < sv.size; i++) {
-        char c = sv.data[i];
-        if('a' <= c && c <= 'z') c -= 32;
-        c11_vector__push(char, buf, c);
-    }
-}
-
 c11_sv c11_sv__slice(c11_sv sv, int start) { return c11_sv__slice2(sv, start, sv.size); }
 
 c11_sv c11_sv__slice2(c11_sv sv, int start, int stop) {
+    if(start < 0) start = 0;
     if(stop < start) stop = start;
+    if(stop > sv.size) stop = sv.size;
     return (c11_sv){sv.data + start, stop - start};
 }
 
@@ -211,7 +197,12 @@ int c11_sv__cmp2(c11_sv self, const char* other) {
 
 bool c11__streq(const char* a, const char* b) { return strcmp(a, b) == 0; }
 
-bool c11__sveq(c11_sv a, const char* b) {
+bool c11__sveq(c11_sv a, c11_sv b) {
+    if(a.size != b.size) return false;
+    return memcmp(a.data, b.data, a.size) == 0;
+}
+
+bool c11__sveq2(c11_sv a, const char* b) {
     int size = strlen(b);
     if(a.size != size) return false;
     return memcmp(a.data, b, size) == 0;
@@ -250,11 +241,11 @@ IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base) {
 
     c11_sv prefix = {.data = text.data, .size = c11__min(2, text.size)};
     if(base == -1) {
-        if(c11__sveq(prefix, "0b"))
+        if(c11__sveq2(prefix, "0b"))
             base = 2;
-        else if(c11__sveq(prefix, "0o"))
+        else if(c11__sveq2(prefix, "0o"))
             base = 8;
-        else if(c11__sveq(prefix, "0x"))
+        else if(c11__sveq2(prefix, "0x"))
             base = 16;
         else
             base = 10;
@@ -276,7 +267,7 @@ IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base) {
         return IntParsing_SUCCESS;
     } else if(base == 2) {
         // 2-base   0b101010
-        if(c11__sveq(prefix, "0b")) {
+        if(c11__sveq2(prefix, "0b")) {
             // text.remove_prefix(2);
             text = (c11_sv){text.data + 2, text.size - 2};
         }
@@ -294,7 +285,7 @@ IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base) {
         return IntParsing_SUCCESS;
     } else if(base == 8) {
         // 8-base   0o123
-        if(c11__sveq(prefix, "0o")) {
+        if(c11__sveq2(prefix, "0o")) {
             // text.remove_prefix(2);
             text = (c11_sv){text.data + 2, text.size - 2};
         }
@@ -312,7 +303,7 @@ IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base) {
         return IntParsing_SUCCESS;
     } else if(base == 16) {
         // 16-base  0x123
-        if(c11__sveq(prefix, "0x")) {
+        if(c11__sveq2(prefix, "0x")) {
             // text.remove_prefix(2);
             text = (c11_sv){text.data + 2, text.size - 2};
         }

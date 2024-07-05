@@ -32,7 +32,8 @@ int c11_sv__cmp(c11_sv self, c11_sv other);
 int c11_sv__cmp2(c11_sv self, const char* other);
 
 bool c11__streq(const char* a, const char* b);
-bool c11__sveq(c11_sv a, const char* b);
+bool c11__sveq(c11_sv a, c11_sv b);
+bool c11__sveq2(c11_sv a, const char* b);
 
 c11_string* c11_string__new(const char* data);
 c11_string* c11_string__new2(const char* data, int size);
@@ -48,8 +49,6 @@ c11_sv c11_string__u8_getitem(c11_string* self, int i);
 c11_string* c11_string__u8_slice(c11_string* self, int start, int stop, int step);
 
 // general string operations
-void c11_sv__lower(c11_sv sv, c11_vector* buf);
-void c11_sv__upper(c11_sv sv, c11_vector* buf);
 c11_sv c11_sv__slice(c11_sv sv, int start);
 c11_sv c11_sv__slice2(c11_sv sv, int start, int stop);
 c11_sv c11_sv__strip(c11_sv sv, bool left, bool right);
