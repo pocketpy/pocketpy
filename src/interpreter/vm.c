@@ -98,8 +98,9 @@ void pk_VM__ctor(pk_VM* self) {
 
     validate(tp_int, pk_VM__new_type(self, "int", tp_object, NULL, false));
     validate(tp_float, pk_VM__new_type(self, "float", tp_object, NULL, false));
-    pk_number__register();
     validate(tp_bool, pk_VM__new_type(self, "bool", tp_object, NULL, false));
+    pk_number__register();
+
     validate(tp_str, pk_str__register());
 
     validate(tp_list, pk_list__register());

@@ -339,6 +339,53 @@ static bool _py_float__new__(int argc, py_Ref argv) {
     return true;
 }
 
+// tp_bool
+static bool _py_bool__new__(int argc, py_Ref argv){
+    PY_CHECK_ARGC(1);
+    int res = py_bool(argv);
+    if(res == -1) return false;
+    py_newbool(py_retval(), res);
+    return true;
+}
+
+static bool _py_bool__hash__(int argc, py_Ref argv){
+    PY_CHECK_ARGC(1);
+    bool res = py_tobool(argv);
+    py_newint(py_retval(), res);
+    return true;
+}
+
+static bool _py_bool__repr__(int argc, py_Ref argv){
+    PY_CHECK_ARGC(1);
+    bool res = py_tobool(argv);
+    py_newstr(py_retval(), res ? "True" : "False");
+    return true;
+}
+
+static bool _py_bool__eq__(int argc, py_Ref argv){
+    PY_CHECK_ARGC(2);
+    bool lhs = py_tobool(&argv[0]);
+    if(argv[1].type == tp_bool){
+        bool rhs = py_tobool(&argv[1]);
+        py_newbool(py_retval(), lhs == rhs);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
+static bool _py_bool__ne__(int argc, py_Ref argv){
+    PY_CHECK_ARGC(2);
+    bool lhs = py_tobool(&argv[0]);
+    if(argv[1].type == tp_bool){
+        bool rhs = py_tobool(&argv[1]);
+        py_newbool(py_retval(), lhs != rhs);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
 void pk_number__register() {
     /****** tp_int & tp_float ******/
     py_bindmagic(tp_int, __add__, _py_int__add__);
@@ -400,4 +447,11 @@ void pk_number__register() {
 
     // int.bit_length
     py_bindmethod(tp_int, "bit_length", _py_int__bit_length);
+
+    /* tp_bool */
+    py_bindmagic(tp_bool, __new__, _py_bool__new__);
+    py_bindmagic(tp_bool, __hash__, _py_bool__hash__);
+    py_bindmagic(tp_bool, __repr__, _py_bool__repr__);
+    py_bindmagic(tp_bool, __eq__, _py_bool__eq__);
+    py_bindmagic(tp_bool, __ne__, _py_bool__ne__);
 }
