@@ -230,7 +230,7 @@ void py_printexc();
 /// Format the last error to a string.
 void py_formatexc(char* out);
 
-#define KeyError(q) py_exception("KeyError", "'%q'", (q))
+#define KeyError(q) py_exception("KeyError", "%q", (q))
 #define NameError(n) py_exception("NameError", "name '%n' is not defined", (n))
 #define TypeError(...) py_exception("TypeError", __VA_ARGS__)
 #define ValueError(...) py_exception("ValueError", __VA_ARGS__)
