@@ -11,7 +11,6 @@ typedef struct pk_ManagedHeap{
 
     int gc_threshold;
     int gc_counter;
-    int gc_lock_counter;
     pk_VM* vm;
 
     void (*_gc_on_delete)(pk_VM*, PyObject*);
@@ -20,9 +19,6 @@ typedef struct pk_ManagedHeap{
 
 void pk_ManagedHeap__ctor(pk_ManagedHeap* self, pk_VM* vm);
 void pk_ManagedHeap__dtor(pk_ManagedHeap* self);
-
-void pk_ManagedHeap__push_lock(pk_ManagedHeap* self);
-void pk_ManagedHeap__pop_lock(pk_ManagedHeap* self);
 
 void pk_ManagedHeap__collect_if_needed(pk_ManagedHeap* self);
 int pk_ManagedHeap__collect(pk_ManagedHeap* self);

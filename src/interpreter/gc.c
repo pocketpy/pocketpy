@@ -8,7 +8,6 @@ void pk_ManagedHeap__ctor(pk_ManagedHeap *self, pk_VM *vm){
 
     self->gc_threshold = PK_GC_MIN_THRESHOLD;
     self->gc_counter = 0;
-    self->gc_lock_counter = 0;
     self->vm = vm;
 
     self->_gc_on_delete = NULL;
@@ -28,17 +27,8 @@ void pk_ManagedHeap__dtor(pk_ManagedHeap *self){
     c11_vector__dtor(&self->gen);
 }
 
-void pk_ManagedHeap__push_lock(pk_ManagedHeap *self){
-    self->gc_lock_counter++;
-}
-
-void pk_ManagedHeap__pop_lock(pk_ManagedHeap *self){
-    self->gc_lock_counter--;
-}
-
 void pk_ManagedHeap__collect_if_needed(pk_ManagedHeap *self){
     if(self->gc_counter < self->gc_threshold) return;
-    if(self->gc_lock_counter > 0) return;
     self->gc_counter = 0;
     pk_ManagedHeap__collect(self);
     self->gc_threshold = self->gen.count * 2;
@@ -48,7 +38,6 @@ void pk_ManagedHeap__collect_if_needed(pk_ManagedHeap *self){
 }
 
 int pk_ManagedHeap__collect(pk_ManagedHeap *self){
-    assert(self->gc_lock_counter == 0);
     pk_ManagedHeap__mark(self);
     int freed = pk_ManagedHeap__sweep(self);
     return freed;
