@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
+#include "pocketpy/common/config.h"
+#include "pocketpy/common/export.h"
+
 /************* Public Types *************/
 typedef struct py_TValue py_TValue;
 typedef uint16_t py_Name;
@@ -29,11 +32,19 @@ typedef py_TValue* py_TmpRef;
 /// @return true if the function is successful.
 typedef bool (*py_CFunction)(int argc, py_StackRef argv);
 
-typedef enum BindType {
+enum BindType {
     BindType_FUNCTION,
     BindType_STATICMETHOD,
     BindType_CLASSMETHOD,
-} BindType;
+};
+
+enum CompileMode {
+    EXEC_MODE,
+    EVAL_MODE,
+    REPL_MODE,
+    JSON_MODE,
+    CELL_MODE
+};
 
 /************* Global VMs *************/
 void py_initialize();
@@ -44,6 +55,7 @@ bool py_exec(const char* source);
 /// Eval a simple expression.
 /// The result will be set to `py_retval()`.
 bool py_eval(const char* source);
+bool py_exec2(const char* source, const char* filename, enum CompileMode mode);
 
 /************* Values Creation *************/
 void py_newint(py_Ref, py_i64);
@@ -81,7 +93,7 @@ void py_newfunction(py_Ref out, py_CFunction, const char* sig);
 void py_newfunction2(py_Ref out,
                      py_CFunction,
                      const char* sig,
-                     BindType bt,
+                     enum BindType bt,
                      const char* docstring,
                      const py_Ref upvalue);
 // old style argc-based function
@@ -115,10 +127,11 @@ bool py_isinstance(const py_Ref obj, py_Type type);
 bool py_issubclass(py_Type derived, py_Type base);
 
 /************* References *************/
-#define PY_CHECK_ARGC(n)                                                                            \
+#define PY_CHECK_ARGC(n)                                                                           \
     if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
 
-#define PY_CHECK_ARG_TYPE(i, type)   if(!py_checktype(py_arg(i), type)) return false
+#define PY_CHECK_ARG_TYPE(i, type)                                                                 \
+    if(!py_checktype(py_arg(i), type)) return false
 
 #define py_offset(p, i) ((py_Ref)((char*)p + ((i) << 4)))
 #define py_arg(i) py_offset(argv, i)
@@ -131,12 +144,12 @@ py_TmpRef py_bind(py_Ref obj, const char* sig, py_CFunction f);
 py_TmpRef py_bind2(py_Ref obj,
                    const char* sig,
                    py_CFunction f,
-                   BindType bt,
+                   enum BindType bt,
                    const char* docstring,
                    const py_Ref upvalue);
 // old style argc-based bindings
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
-void py_bindmethod2(py_Type type, const char* name, py_CFunction f, BindType bt);
+void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum BindType bt);
 void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f);
 
 /// Get the reference to the i-th register.
@@ -321,8 +334,9 @@ py_GlobalRef py_tpobject(py_Type type);
 const char* py_tpname(py_Type type);
 
 /// Check if the object is an instance of the given type.
-/// Re
 bool py_checktype(const py_Ref self, py_Type type);
+
+int py_replinput(char* buf);
 
 /// Python favored string formatting.
 /// %d: int
@@ -379,12 +393,13 @@ enum py_PredefinedTypes {
 }
 #endif
 
-
 /*
 Some notes:
 
 ## Macros
-1. Function macros are partial functions. They can be used as normal expressions. Use the same naming convention as functions.
-2. Snippet macros are `do {...} while(0)` blocks. They cannot be used as expressions. Use `UPPER_CASE` naming convention.
+1. Function macros are partial functions. They can be used as normal expressions. Use the same
+naming convention as functions.
+2. Snippet macros are `do {...} while(0)` blocks. They cannot be used as expressions. Use
+`UPPER_CASE` naming convention.
 3. Constant macros are used for global constants. Use `UPPER_CASE` or k-prefix naming convention.
 */

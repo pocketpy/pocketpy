@@ -168,7 +168,7 @@ static bool
         return false;
     }
 
-    disassemble(&co);
+    // disassemble(&co);
 
     Frame* frame = Frame__new(&co, &vm->main, NULL, vm->stack.sp, vm->stack.sp, &co);
     pk_VM__push_frame(vm, frame);
@@ -183,6 +183,10 @@ static bool
 bool py_exec(const char* source) { return pk_VM__exec(pk_current_vm, source, "<exec>", EXEC_MODE); }
 
 bool py_eval(const char* source) { return pk_VM__exec(pk_current_vm, source, "<eval>", EVAL_MODE); }
+
+bool py_exec2(const char* source, const char* filename, enum CompileMode mode){
+    return pk_VM__exec(pk_current_vm, source, filename, mode);
+}
 
 bool py_call(py_Ref f, int argc, py_Ref argv) { return -1; }
 

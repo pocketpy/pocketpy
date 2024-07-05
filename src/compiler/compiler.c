@@ -1454,7 +1454,7 @@ static void Compiler__dtor(Compiler* self) {
 #define mode() self->src->mode
 #define ctx() (&c11_vector__back(Ctx, &self->contexts))
 
-#define match_newlines() match_newlines_repl(self, NULL)
+#define match_newlines() match_newlines_impl(self)
 
 #define consume(expected)                                                                          \
     if(!match(expected))                                                                           \
@@ -1463,12 +1463,7 @@ static void Compiler__dtor(Compiler* self) {
                            pk_TokenSymbols[curr()->type]);
 #define consume_end_stmt()                                                                         \
     if(!match_end_stmt(self)) return SyntaxError("expected statement end")
-#define check_newlines_repl()                                                                      \
-    do {                                                                                           \
-        bool __nml;                                                                                \
-        match_newlines_repl(self, &__nml);                                                         \
-        if(__nml) return NeedMoreLines();                                                          \
-    } while(0)
+
 #define check(B)                                                                                   \
     if((err = B)) return err
 
@@ -1480,8 +1475,6 @@ static NameScope name_scope(Compiler* self) {
 
 #define SyntaxError(...) NULL
 
-static Error* NeedMoreLines() { return NULL; }
-
 /* Matchers */
 static bool is_expression(Compiler* self, bool allow_slice) {
     PrattCallback prefix = rules[curr()->type].prefix;
@@ -1490,14 +1483,13 @@ static bool is_expression(Compiler* self, bool allow_slice) {
 
 #define match(expected) (curr()->type == expected ? (++self->i) : 0)
 
-static bool match_newlines_repl(Compiler* self, bool* need_more_lines) {
+static bool match_newlines_impl(Compiler* self) {
     bool consumed = false;
     if(curr()->type == TK_EOL) {
         while(curr()->type == TK_EOL)
             advance();
         consumed = true;
     }
-    if(need_more_lines) { *need_more_lines = (mode() == REPL_MODE && curr()->type == TK_EOF); }
     return consumed;
 }
 
@@ -1540,11 +1532,11 @@ static Error* EXPR_TUPLE_ALLOW_SLICE(Compiler* self, bool allow_slice) {
     // tuple expression     // (a, )
     int count = 1;
     do {
-        if(curr()->brackets_level) check_newlines_repl();
+        if(curr()->brackets_level) match_newlines();
         if(!is_expression(self, allow_slice)) break;
         check(parse_expression(self, PREC_LOWEST + 1, allow_slice));
         count += 1;
-        if(curr()->brackets_level) check_newlines_repl();
+        if(curr()->brackets_level) match_newlines();
     } while(match(TK_COMMA));
     // pop `count` expressions from the stack and merge them into a TupleExpr
     SequenceExpr* e = TupleExpr__new(prev()->line, count);
@@ -1791,9 +1783,9 @@ static Error* exprUnaryOp(Compiler* self) {
 static Error* exprGroup(Compiler* self) {
     Error* err;
     int line = prev()->line;
-    check_newlines_repl();
+    match_newlines();
     check(EXPR_TUPLE(self));  // () is just for change precedence
-    check_newlines_repl();
+    match_newlines();
     consume(TK_RPAREN);
     if(Ctx__s_top(ctx())->vt->is_tuple) return NULL;
     GroupedExpr* g = GroupedExpr__new(line, Ctx__s_popx(ctx()));
@@ -1833,7 +1825,7 @@ static Error* consume_comp(Compiler* self, Opcode op0, Opcode op1) {
     check(EXPR_VARS(self));  // [expr, vars]
     consume(TK_IN);
     check(parse_expression(self, PREC_TERNARY + 1, false));  // [expr, vars, iter]
-    check_newlines_repl();
+    match_newlines();
     if(match(TK_IF)) {
         check(parse_expression(self, PREC_TERNARY + 1, false));  // [expr, vars, iter, cond]
         has_cond = true;
@@ -1844,7 +1836,7 @@ static Error* consume_comp(Compiler* self, Opcode op0, Opcode op1) {
     ce->vars = Ctx__s_popx(ctx());
     ce->expr = Ctx__s_popx(ctx());
     Ctx__s_push(ctx(), (Expr*)ce);
-    check_newlines_repl();
+    match_newlines();
     return NULL;
 }
 
@@ -1853,17 +1845,17 @@ static Error* exprList(Compiler* self) {
     int line = prev()->line;
     int count = 0;
     do {
-        check_newlines_repl();
+        match_newlines();
         if(curr()->type == TK_RBRACKET) break;
         check(EXPR(self));
         count += 1;
-        check_newlines_repl();
+        match_newlines();
         if(count == 1 && match(TK_FOR)) {
             check(consume_comp(self, OP_BUILD_LIST, OP_LIST_APPEND));
             consume(TK_RBRACKET);
             return NULL;
         }
-        check_newlines_repl();
+        match_newlines();
     } while(match(TK_COMMA));
     consume(TK_RBRACKET);
     SequenceExpr* e = ListExpr__new(line, count);
@@ -1880,7 +1872,7 @@ static Error* exprMap(Compiler* self) {
     bool parsing_dict = false;  // {...} may be dict or set
     int count = 0;
     do {
-        check_newlines_repl();
+        match_newlines();
         if(curr()->type == TK_RBRACE) break;
         check(EXPR(self));  // [key]
         if(curr()->type == TK_COLON) { parsing_dict = true; }
@@ -1889,7 +1881,7 @@ static Error* exprMap(Compiler* self) {
             check(EXPR(self));  // [key, value]
         }
         count += 1;  // key-value pair count
-        check_newlines_repl();
+        match_newlines();
         if(count == 1 && match(TK_FOR)) {
             if(parsing_dict) {
                 check(consume_comp(self, OP_BUILD_DICT, OP_DICT_ADD));
@@ -1899,7 +1891,7 @@ static Error* exprMap(Compiler* self) {
             consume(TK_RBRACE);
             return NULL;
         }
-        check_newlines_repl();
+        match_newlines();
     } while(match(TK_COMMA));
     consume(TK_RBRACE);
 
@@ -1922,7 +1914,7 @@ static Error* exprCall(Compiler* self) {
     CallExpr* e = CallExpr__new(prev()->line, Ctx__s_popx(ctx()));
     Ctx__s_push(ctx(), (Expr*)e);  // push onto the stack in advance
     do {
-        check_newlines_repl();
+        match_newlines();
         if(curr()->type == TK_RPAREN) break;
         if(curr()->type == TK_ID && next()->type == TK_ASSIGN) {
             consume(TK_ID);
@@ -1948,7 +1940,7 @@ static Error* exprCall(Compiler* self) {
                 c11_vector__push(Expr*, &e->args, Ctx__s_popx(ctx()));
             }
         }
-        check_newlines_repl();
+        match_newlines();
     } while(match(TK_COMMA));
     consume(TK_RPAREN);
     return NULL;
@@ -1998,9 +1990,9 @@ static Error* exprSlice1(Compiler* self) {
 static Error* exprSubscr(Compiler* self) {
     Error* err;
     int line = prev()->line;
-    check_newlines_repl();
+    match_newlines();
     check(EXPR_TUPLE_ALLOW_SLICE(self, true));
-    check_newlines_repl();
+    match_newlines();
     consume(TK_RBRACKET);  // [lhs, rhs]
     SubscrExpr* e = SubscrExpr__new(line);
     e->rhs = Ctx__s_popx(ctx());  // [lhs]
@@ -2032,9 +2024,7 @@ static Error* compile_block_body(Compiler* self, PrattCallback callback) {
         return NULL;
     }
 
-    bool need_more_lines;
-    bool consumed = match_newlines_repl(self, &need_more_lines);
-    if(need_more_lines) return NeedMoreLines();
+    bool consumed = match_newlines();
     if(!consumed) return SyntaxError("expected a new line after ':'");
 
     consume(TK_INDENT);
@@ -2090,17 +2080,18 @@ static Error* compile_while_loop(Compiler* self) {
 
 static Error* compile_for_loop(Compiler* self) {
     Error* err;
-    check(EXPR_VARS(self));     // [vars]
+    check(EXPR_VARS(self));  // [vars]
     consume(TK_IN);
-    check(EXPR_TUPLE(self));    // [vars, iter]
-    Ctx__s_emit_top(ctx());     // [vars]
+    check(EXPR_TUPLE(self));  // [vars, iter]
+    Ctx__s_emit_top(ctx());   // [vars]
     Ctx__emit_(ctx(), OP_GET_ITER_NEW, BC_NOARG, BC_KEEPLINE);
     CodeBlock* block = Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
     int for_codei = Ctx__emit_(ctx(), OP_FOR_ITER, ctx()->curr_iblock, BC_KEEPLINE);
     Expr* vars = Ctx__s_popx(ctx());
     bool ok = vtemit_store(vars, ctx());
     vtdelete(vars);
-    if(!ok) return SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
+    if(!ok)
+        return SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
 
     // TODO: ??
     // ctx()->try_merge_for_iter_store(for_codei);
@@ -2405,14 +2396,14 @@ Error* pk_compile(pk_SourceData_ src, CodeObject* out) {
     Error* err = pk_Lexer__process(src, &tokens);
     if(err) return err;
 
-    Token* data = (Token*)tokens.data;
-    printf("%s\n", src->filename->data);
-    for(int i = 0; i < tokens.count; i++) {
-        Token* t = data + i;
-        c11_string* tmp = c11_string__new2(t->start, t->length);
-        printf("[%d] %s: %s\n", t->line, pk_TokenSymbols[t->type], tmp->data);
-        c11_string__delete(tmp);
-    }
+    // Token* data = (Token*)tokens.data;
+    // printf("%s\n", src->filename->data);
+    // for(int i = 0; i < tokens.count; i++) {
+    //     Token* t = data + i;
+    //     c11_string* tmp = c11_string__new2(t->start, t->length);
+    //     printf("[%d] %s: %s\n", t->line, pk_TokenSymbols[t->type], tmp->data);
+    //     c11_string__delete(tmp);
+    // }
 
     Compiler compiler;
     Compiler__ctor(&compiler, src, tokens);

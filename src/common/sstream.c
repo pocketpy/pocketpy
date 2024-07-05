@@ -220,3 +220,38 @@ void pk_sprintf(c11_sbuf* ss, const char* fmt, ...) {
     pk_vsprintf(ss, fmt, args);
     va_end(args);
 }
+
+int py_replinput(char* buf) {
+    int size = 0;
+    bool multiline = false;
+    printf(">>> ");
+
+    while(true) {
+        char c = getchar();
+        if(c == EOF) break;
+
+        if(c == '\n') {
+            char last = '\0';
+            if(size > 0) last = buf[size - 1];
+            if(multiline) {
+                if(last == '\n'){
+                    break;  // 2 consecutive newlines to end multiline input
+                }else{
+                    printf("... ");
+                }
+            } else {
+                if(last == ':' || last == '(' || last == '[' || last == '{') {
+                    printf("... ");
+                    multiline = true;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        buf[size++] = c;
+    }
+
+    buf[size] = '\0';
+    return size;
+}

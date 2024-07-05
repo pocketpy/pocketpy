@@ -201,10 +201,6 @@ static Error* SyntaxError(const char* fmt, ...){
     return NULL;
 }
 
-static Error* NeedMoreLines(){
-    return NULL;
-}
-
 static Error* eat_name(pk_Lexer* self){
     self->curr_char--;
     while(true) {
@@ -288,9 +284,6 @@ static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, c11_string*
             break;
         }
         if(c == '\0') {
-            if(quote3 && self->src->mode == REPL_MODE){
-                return NeedMoreLines();
-            }
             return SyntaxError("EOL while scanning string literal");
         }
         if(c == '\n') {
@@ -431,7 +424,6 @@ static Error* lex_one_token(pk_Lexer* self, bool* eof){
                 // line continuation character
                 char c = eatchar_include_newline(self);
                 if(c != '\n') {
-                    if(self->src->mode == REPL_MODE && c == '\0') return NeedMoreLines();
                     return SyntaxError("expected newline after line continuation character");
                 }
                 eat_spaces(self);

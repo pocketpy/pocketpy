@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include "pocketpy/pocketpy.h"
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/vector.h"
 
@@ -8,7 +9,6 @@
 extern "C" {
 #endif
 
-enum CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, JSON_MODE, CELL_MODE };
 
 struct pk_SourceData {
     RefCounted rc;

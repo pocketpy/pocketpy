@@ -21,8 +21,6 @@ extern "C" {
 // global constants
 #define PK_HEX_TABLE "0123456789abcdef"
 
-extern const char* kPlatformStrings[];
-
 #ifdef _MSC_VER
 #define c11__unreachedable() __assume(0)
 #else

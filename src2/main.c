@@ -19,49 +19,40 @@ char* read_file(const char* path) {
     return buffer;
 }
 
+static char buf[2048];
+
 int main(int argc, char** argv) {
 #if _WIN32
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-#if 0
-    py_initialize();
-    const char* source = "1 < 2";
-
-    if(py_eval(source)) {
-        // handle the result
-        bool _L0 = py_tobool(py_retval());
-        printf("%d\n", _L0);
+    if(argc > 2){
+        printf("Usage: pocketpy [filename]\n");
+        return 0;
     }
 
-    py_Ref r0 = py_reg(0);
-    py_Ref r1 = py_reg(1);
-
-    py_newint(r0, 1);
-    py_newfloat(r1, 2.5);
-
-    bool ok = py_binaryadd(r0, r1);
-    assert(ok);
-    double res = py_tofloat(py_retval());
-    printf("%f\n", res);
-
-    py_finalize();
-    return 0;
-#endif
-
-    if(argc != 2) goto __HELP;
-    char* source = read_file(argv[1]);
     py_initialize();
 
-    if(!py_exec(source)) py_printexc();
+    if(argc == 1){
+        printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
+        printf("[%d bit] on %s" "\n", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
+        printf("https://github.com/pocketpy/pocketpy" "\n");
+        printf("Type \"exit()\" to exit." "\n");
 
-    py_finalize();
-    free(source);
-
-    return 0;
+        while(true){
+            int size = py_replinput(buf);
+            assert(size < sizeof(buf));
+            if(size >= 0){
+                if(!py_exec2(buf, "<stdin>", REPL_MODE)) py_printexc();
+            }
+        }
+    }else{
+        char* source = read_file(argv[1]);
+        if(!py_exec(source)) py_printexc();
+        free(source);
+    }
     
-__HELP:
-    printf("Usage: pocketpy [filename]\n");
+    py_finalize();
     return 0;
 }

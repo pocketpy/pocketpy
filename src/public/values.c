@@ -49,7 +49,7 @@ void py_newfunction(py_Ref out, py_CFunction f, const char* sig) {
 void py_newfunction2(py_Ref out,
                      py_CFunction f,
                      const char* sig,
-                     BindType bt,
+                     enum BindType bt,
                      const char* docstring,
                      const py_Ref upvalue) {}
 
@@ -63,7 +63,7 @@ void py_bindmethod(py_Type type, const char *name, py_CFunction f){
     py_bindmethod2(type, name, f, BindType_FUNCTION);
 }
 
-void py_bindmethod2(py_Type type, const char *name, py_CFunction f, BindType bt){
+void py_bindmethod2(py_Type type, const char *name, py_CFunction f, enum BindType bt){
     py_TValue tmp;
     py_newnativefunc(&tmp, f);
     py_setdict(py_tpobject(type), py_name(name), &tmp);
