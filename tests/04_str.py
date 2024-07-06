@@ -108,6 +108,23 @@ assert str(num) == '6'
 测试 = "test"
 assert 测试 == "test"
 
+a = 'abcd'
+assert list(a) == ['a', 'b', 'c', 'd']
+a = '测试'
+assert list(a) == ['测', '试']
+a = 'a测b试c'
+assert list(a) == ['a', '测', 'b', '试', 'c']
+a = 'a测b试'
+assert list(a) == ['a', '测', 'b', '试']
+a = '测b试c'
+assert list(a) == ['测', 'b', '试', 'c']
+a = '测b'
+assert list(a) == ['测', 'b']
+a = 'b'
+assert list(a) == ['b']
+a = '测'
+assert list(a) == ['测']
+
 # 3rd slice
 a = "Hello, World!"
 assert a[::-1] == "!dlroW ,olleH"
@@ -125,6 +142,18 @@ assert a.ljust(5, '0') == '12300'
 assert '\x30\x31\x32' == '012'
 assert '\b\b\b' == '\x08\x08\x08'
 assert repr('\x1f\x1e\x1f') == '\'\\x1f\\x1e\\x1f\''
+
+a = '123'
+assert a.index('2') == 1
+assert a.index('1') == 0
+assert a.index('3') == 2
+assert a.index('23') == 1
+
+assert a.index('2', 1) == 1
+assert a.index('1', 0) == 0
+
+assert a.find('1') == 0
+assert a.find('1', 1) == -1
 
 b = list("Hello, World!")
 assert b == ['H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!']
@@ -145,34 +174,6 @@ assert hex(255) == '0xff'
 assert hex(256) == '0x100'
 assert hex(257) == '0x101'
 assert hex(17) == '0x11'
-
-a = '123'
-assert a.index('2') == 1
-assert a.index('1') == 0
-assert a.index('3') == 2
-
-assert a.index('2', 1) == 1
-assert a.index('1', 0) == 0
-
-assert a.find('1') == 0
-assert a.find('1', 1) == -1
-
-a = 'abcd'
-assert list(a) == ['a', 'b', 'c', 'd']
-a = '测试'
-assert list(a) == ['测', '试']
-a = 'a测b试c'
-assert list(a) == ['a', '测', 'b', '试', 'c']
-a = 'a测b试'
-assert list(a) == ['a', '测', 'b', '试']
-a = '测b试c'
-assert list(a) == ['测', 'b', '试', 'c']
-a = '测b'
-assert list(a) == ['测', 'b']
-a = 'b'
-assert list(a) == ['b']
-a = '测'
-assert list(a) == ['测']
 
 def test(*seq):
     return s1.join(seq)

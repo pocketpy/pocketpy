@@ -436,6 +436,28 @@ static bool _py_str__rjust(int argc, py_Ref argv) {
     return _py_str__widthjust_impl(false, argc, argv);
 }
 
+static bool _py_str__find(int argc, py_Ref argv) {
+    if(argc > 3) return TypeError("find() takes at most 3 arguments");
+    int start = 0;
+    if(argc == 3) {
+        PY_CHECK_ARG_TYPE(2, tp_int);
+        start = py_toint(py_arg(2));
+    }
+    c11_string* self = py_touserdata(&argv[0]);
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    c11_string* sub = py_touserdata(&argv[1]);
+    int res = c11_sv__index2(c11_string__sv(self), c11_string__sv(sub), start);
+    py_newint(py_retval(), res);
+    return true;
+}
+
+static bool _py_str__index(int argc, py_Ref argv) {
+    bool ok = _py_str__find(argc, argv);
+    if(!ok) return false;
+    if(py_toint(py_retval()) == -1) return ValueError("substring not found");
+    return true;
+}
+
 py_Type pk_str__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "str", tp_object, NULL, false);
@@ -474,6 +496,8 @@ py_Type pk_str__register() {
     py_bindmethod(tp_str, "zfill", _py_str__zfill);
     py_bindmethod(tp_str, "ljust", _py_str__ljust);
     py_bindmethod(tp_str, "rjust", _py_str__rjust);
+    py_bindmethod(tp_str, "find", _py_str__find);
+    py_bindmethod(tp_str, "index", _py_str__index);
     return type;
 }
 
