@@ -64,6 +64,11 @@ void py_push(const py_Ref src){
     *vm->stack.sp++ = *src;
 }
 
+void py_pushnil(){
+    pk_VM* vm = pk_current_vm;
+    py_newnil(vm->stack.sp++);
+}
+
 py_Ref py_pushtmp(){
     pk_VM* vm = pk_current_vm;
     py_newnil(vm->stack.sp++);

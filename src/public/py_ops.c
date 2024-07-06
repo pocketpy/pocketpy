@@ -4,7 +4,7 @@
 
 bool py_isidentical(const py_Ref lhs, const py_Ref rhs) {
     if(lhs->type != rhs->type) return false;
-    switch(lhs->type){
+    switch(lhs->type) {
         case tp_int: return lhs->_i64 == rhs->_i64;
         case tp_float: return lhs->_f64 == rhs->_f64;
         case tp_bool: return lhs->_bool == rhs->_bool;
@@ -14,10 +14,34 @@ bool py_isidentical(const py_Ref lhs, const py_Ref rhs) {
         case tp_ellipsis: return true;
         // fallback to pointer comparison
         default: return lhs->is_ptr && rhs->is_ptr && lhs->_obj == rhs->_obj;
-    }    
+    }
 }
 
-int py_bool(const py_Ref val) { return 1; }
+int py_bool(const py_Ref val) {
+    switch(val->type) {
+        case tp_bool: return val->_bool;
+        case tp_int: return val->_i64 != 0;
+        case tp_float: return val->_f64 != 0;
+        case tp_none_type: return 0;
+        default: {
+            py_Ref tmp = py_tpfindmagic(val->type, __bool__);
+            if(tmp) {
+                bool ok = py_call(tmp, 1, val);
+                if(!ok) return -1;
+                return py_tobool(py_retval());
+            } else {
+                tmp = py_tpfindmagic(val->type, __len__);
+                if(tmp) {
+                    bool ok = py_call(tmp, 1, val);
+                    if(!ok) return -1;
+                    return py_toint(py_retval());
+                } else {
+                    return 1;  // True
+                }
+            }
+        }
+    }
+}
 
 bool py_hash(const py_Ref val, int64_t* out) { return 0; }
 
@@ -37,7 +61,7 @@ bool py_delitem(py_Ref self, const py_Ref key) { return -1; }
     int py_##name(const py_Ref lhs, const py_Ref rhs) {                                            \
         bool ok = py_binaryop(lhs, rhs, op, rop);                                                  \
         if(!ok) return -1;                                                                         \
-        return py_tobool(py_retval());                                                         \
+        return py_tobool(py_retval());                                                             \
     }
 
 COMPARE_OP_IMPL(eq, __eq__, __eq__)

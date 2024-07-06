@@ -184,11 +184,22 @@ bool py_exec(const char* source) { return pk_VM__exec(pk_current_vm, source, "<e
 
 bool py_eval(const char* source) { return pk_VM__exec(pk_current_vm, source, "<eval>", EVAL_MODE); }
 
-bool py_exec2(const char* source, const char* filename, enum CompileMode mode){
+bool py_exec2(const char* source, const char* filename, enum CompileMode mode) {
     return pk_VM__exec(pk_current_vm, source, filename, mode);
 }
 
-bool py_call(py_Ref f, int argc, py_Ref argv) { return -1; }
+bool py_call(py_Ref f, int argc, py_Ref argv) {
+    if(f->type == tp_nativefunc) {
+        return f->_cfunc(argc, argv);
+    } else {
+        pk_VM* vm = pk_current_vm;
+        py_push(f);
+        py_pushnil();
+        for(int i = 0; i < argc; i++)
+            py_push(py_offset(argv, i));
+        return pk_VM__vectorcall(vm, argc, 0, false) == RES_ERROR;
+    }
+}
 
 bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv) { return -1; }
 
@@ -285,9 +296,6 @@ bool py_callmagic(py_Name name, int argc, py_Ref argv) {
     assert(argc >= 1);
     assert(py_ismagicname(name));
     py_Ref tmp = py_tpfindmagic(argv->type, name);
-    if(!tmp){
-        return AttributeError(argv, name);
-    }
-    if(tmp->type == tp_nativefunc) return tmp->_cfunc(argc, argv);
+    if(!tmp) return AttributeError(argv, name);
     return py_call(tmp, argc, argv);
 }

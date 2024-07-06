@@ -9,6 +9,7 @@ MAGIC_METHOD(__iter__)
 MAGIC_METHOD(__next__)
 MAGIC_METHOD(__neg__)
 MAGIC_METHOD(__invert__)
+MAGIC_METHOD(__bool__)
 // logical operators
 MAGIC_METHOD(__contains__)
 /////////////////////////////

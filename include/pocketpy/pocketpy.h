@@ -208,12 +208,14 @@ bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop);
 void py_assign(py_Ref dst, const py_Ref src);
 
 /************* Stack Operations *************/
-/// Returns a reference to the i-th object from the top of the stack.
+/// Return a reference to the i-th object from the top of the stack.
 /// i should be negative, e.g. (-1) means TOS.
 py_StackRef py_peek(int i);
-/// Pushes the object to the stack.
+/// Push the object to the stack.
 void py_push(const py_Ref src);
-/// Pops an object from the stack.
+/// Push a nil object to the stack.
+void py_pushnil();
+/// Pop an object from the stack.
 void py_pop();
 /// Shrink the stack by n.
 void py_shrink(int n);
