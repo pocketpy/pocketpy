@@ -145,8 +145,15 @@ static bool _py_str__str__(int argc, py_Ref argv) {
 
 static bool _py_str__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    assert(false);
-    return false;
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    int size;
+    const char* data = py_tostrn(&argv[0], &size);
+    c11_sbuf__write_quoted(&buf, (c11_sv){data, size}, '\'');
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
+    return true;
 }
 
 static bool _py_str__iter__(int argc, py_Ref argv) {
@@ -294,5 +301,3 @@ bool py_str(py_Ref val) {
     if(!tmp) return py_repr(val);
     return py_call(tmp, 1, val);
 }
-
-bool py_repr(py_Ref val) { return py_callmagic(__repr__, 1, val); }

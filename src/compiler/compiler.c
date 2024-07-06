@@ -4,6 +4,7 @@
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/strname.h"
+#include "pocketpy/common/sstream.h"
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/memorypool.h"
 #include <ctype.h>
@@ -2348,6 +2349,124 @@ static Error* compile_function(Compiler* self, int decorators) {
     return NULL;
 }
 
+static Error* compile_decorated(Compiler* self) {
+    Error* err;
+    int count = 0;
+    do {
+        check(EXPR(self));
+        count += 1;
+        if(!match_newlines()) return SyntaxError("expected a newline after '@'");
+    } while(match(TK_DECORATOR));
+
+    if(match(TK_CLASS)) {
+        // check(compile_class(count));
+    } else {
+        consume(TK_DEF);
+        check(compile_function(self, count));
+    }
+    return NULL;
+}
+
+// import a [as b]
+// import a [as b], c [as d]
+static Error* compile_normal_import(Compiler* self) {
+    do {
+        consume(TK_ID);
+        c11_sv name = Token__sv(prev());
+        int index = Ctx__add_const_string(ctx(), name);
+        Ctx__emit_(ctx(), OP_IMPORT_PATH, index, prev()->line);
+        if(match(TK_AS)) {
+            consume(TK_ID);
+            name = Token__sv(prev());
+        }
+        Ctx__emit_store_name(ctx(), name_scope(self), py_name2(name), prev()->line);
+    } while(match(TK_COMMA));
+    consume_end_stmt();
+    return NULL;
+}
+
+// from a import b [as c], d [as e]
+// from a.b import c [as d]
+// from . import a [as b]
+// from .a import b [as c]
+// from ..a import b [as c]
+// from .a.b import c [as d]
+// from xxx import *
+static Error* compile_from_import(c11_sbuf* buf, Compiler* self) {
+    int dots = 0;
+
+    while(true) {
+        switch(curr()->type) {
+            case TK_DOT: dots += 1; break;
+            case TK_DOTDOT: dots += 2; break;
+            case TK_DOTDOTDOT: dots += 3; break;
+            default: goto __EAT_DOTS_END;
+        }
+        advance();
+    }
+__EAT_DOTS_END:
+    for(int i = 0; i < dots; i++) {
+        c11_sbuf__write_char(buf, '.');
+    }
+
+    if(dots > 0) {
+        // @id is optional if dots > 0
+        if(match(TK_ID)) {
+            c11_sbuf__write_sv(buf, Token__sv(prev()));
+            while(match(TK_DOT)) {
+                consume(TK_ID);
+                c11_sbuf__write_char(buf, '.');
+                c11_sbuf__write_sv(buf, Token__sv(prev()));
+            }
+        }
+    } else {
+        // @id is required if dots == 0
+        consume(TK_ID);
+        c11_sbuf__write_sv(buf, Token__sv(prev()));
+        while(match(TK_DOT)) {
+            consume(TK_ID);
+            c11_sbuf__write_char(buf, '.');
+            c11_sbuf__write_sv(buf, Token__sv(prev()));
+        }
+    }
+
+    c11_string* path = c11_sbuf__submit(buf);
+    Ctx__emit_(ctx(),
+               OP_IMPORT_PATH,
+               Ctx__add_const_string(ctx(), c11_string__sv(path)),
+               prev()->line);
+    consume(TK_IMPORT);
+
+    if(match(TK_MUL)) {
+        if(name_scope(self) != NAME_GLOBAL)
+            return SyntaxError("from <module> import * can only be used in global scope");
+        // pop the module and import __all__
+        Ctx__emit_(ctx(), OP_POP_IMPORT_STAR, BC_NOARG, prev()->line);
+        consume_end_stmt();
+        return NULL;
+    }
+
+    do {
+        Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
+        consume(TK_ID);
+        c11_sv name = Token__sv(prev());
+        Ctx__emit_(ctx(), OP_LOAD_ATTR, py_name2(name), prev()->line);
+        if(match(TK_AS)) {
+            consume(TK_ID);
+            name = Token__sv(prev());
+        }
+        Ctx__emit_store_name(ctx(), name_scope(self), py_name2(name), prev()->line);
+    } while(match(TK_COMMA));
+    Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+    consume_end_stmt();
+    return NULL;
+}
+
+static Error* compile_try_except(Compiler* self) {
+    assert(false);
+    return NULL;
+}
+
 static Error* compile_stmt(Compiler* self) {
     Error* err;
     if(match(TK_CLASS)) {
@@ -2402,11 +2521,18 @@ static Error* compile_stmt(Compiler* self) {
         case TK_IF: check(compile_if_stmt(self)); break;
         case TK_WHILE: check(compile_while_loop(self)); break;
         case TK_FOR: check(compile_for_loop(self)); break;
-        // case TK_IMPORT: check(compile_normal_import()); break;
-        // case TK_FROM: check(compile_from_import()); break;
+        case TK_IMPORT: check(compile_normal_import(self)); break;
+        case TK_FROM: {
+            c11_sbuf buf;
+            c11_sbuf__ctor(&buf);
+            err = compile_from_import(&buf, self);
+            c11_sbuf__dtor(&buf);
+            if(err) return err;
+            break;
+        }
         case TK_DEF: check(compile_function(self, 0)); break;
-        // case TK_DECORATOR: check(compile_decorated()); break;
-        // case TK_TRY: check(compile_try_except()); break;
+        case TK_DECORATOR: check(compile_decorated(self)); break;
+        case TK_TRY: check(compile_try_except(self)); break;
         case TK_PASS: consume_end_stmt(); break;
         /*************************************************/
         case TK_ASSERT: {

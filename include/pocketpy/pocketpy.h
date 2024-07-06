@@ -38,13 +38,7 @@ enum BindType {
     BindType_CLASSMETHOD,
 };
 
-enum CompileMode {
-    EXEC_MODE,
-    EVAL_MODE,
-    REPL_MODE,
-    JSON_MODE,
-    CELL_MODE
-};
+enum CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, JSON_MODE, CELL_MODE };
 
 /************* Global VMs *************/
 void py_initialize();
@@ -294,7 +288,9 @@ bool py_callmethod(py_Ref self, py_Name, int argc, py_Ref argv);
 bool py_callmagic(py_Name name, int argc, py_Ref argv);
 
 bool py_str(py_Ref val);
-bool py_repr(py_Ref val);
+
+#define py_repr(val) py_callmagic(__repr__, 1, val)
+#define py_len(val) py_callmagic(__len__, 1, val)
 
 /// The return value of the most recent call.
 py_GlobalRef py_retval();

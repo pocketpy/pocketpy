@@ -70,10 +70,16 @@ static bool _py_builtins__exit(int argc, py_Ref argv) {
     return false;
 }
 
+static bool _py_builtins__len(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    return py_len(argv);
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins", NULL);
     py_bindnativefunc(builtins, "repr", _py_builtins__repr);
     py_bindnativefunc(builtins, "exit", _py_builtins__exit);
+    py_bindnativefunc(builtins, "len", _py_builtins__len);
     return *builtins;
 }
 
