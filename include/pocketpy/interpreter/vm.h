@@ -95,6 +95,7 @@ void pk_number__register();
 py_Type pk_str__register();
 py_Type pk_bytes__register();
 py_Type pk_list__register();
+py_Type pk_function__register();
 
 py_TValue pk_builtins__register();
 

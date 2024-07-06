@@ -56,8 +56,6 @@ void pk_TypeInfo__ctor(pk_TypeInfo* self,
 
 void pk_TypeInfo__dtor(pk_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
 
-
-
 void pk_VM__ctor(pk_VM* self) {
     self->top_frame = NULL;
 
@@ -106,7 +104,7 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_range, pk_VM__new_type(self, "range", tp_object, NULL, false));
     validate(tp_module, pk_VM__new_type(self, "module", tp_object, NULL, false));
 
-    validate(tp_function, pk_VM__new_type(self, "function", tp_object, NULL, false));
+    validate(tp_function, pk_function__register());
     validate(tp_nativefunc, pk_VM__new_type(self, "nativefunc", tp_object, NULL, false));
     validate(tp_bound_method, pk_VM__new_type(self, "bound_method", tp_object, NULL, false));
 
@@ -220,74 +218,64 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
         // [unbound, self, args..., kwargs...]
     }
 
-    // PyVar* _base = args.begin();
     py_Ref argv = py_isnil(p0 + 1) ? p0 + 2 : p0 + 1;
+    int argc2 = argv - p0;
 
-#if 0
-    if(callable_t == tp_function) {
+    if(p0->type == tp_function) {
         /*****************_py_call*****************/
         // check stack overflow
-        if(self->stack.sp > self->stack.end){
-            StackOverflowError();
+        if(self->stack.sp > self->stack.end) {
+            py_exception("StackOverflowError", "");
             return RES_ERROR;
         }
 
-        const Function& fn = PK_OBJ_GET(Function, callable);
-        const CodeObject* co = fn.decl->code;
+        Function* fn = py_touserdata(p0);
+        const CodeObject* co = &fn->decl->code;
 
-        switch(fn.decl->type) {
+        switch(fn->decl->type) {
             case FuncType_NORMAL:
-                __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
-                // copy buffer back to stack
-                s_data.reset(_base + co->nlocals);
-                for(int j = 0; j < co->nlocals; j++)
-                    _base[j] = __vectorcall_buffer[j];
+                assert(false);
+                // __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
+                // // copy buffer back to stack
+                // self->stack.sp = argv + co->nlocals;
+                // for(int j = 0; j < co->nlocals; j++)
+                //     argv[j] = self->__vectorcall_buffer[j];
                 break;
             case FuncType_SIMPLE:
-                if(args.size() != fn.decl->args.count) {
-                    TypeError(pk_format("{} takes {} positional arguments but {} were given",
-                                        &co->name,
-                                        fn.decl->args.count,
-                                        args.size()));
+                if(argc2 != fn->decl->args.count) {
+                    const char* fmt = "%s() takes %d positional arguments but %d were given";
+                    TypeError(fmt, co->name, fn->decl->args.count, argc2);
+                    return RES_ERROR;
                 }
-                if(!kwargs.empty()) {
-                    TypeError(pk_format("{} takes no keyword arguments", &co->name));
+                if(kwargc) {
+                    TypeError("%s() takes no keyword arguments", co->name->data);
+                    return RES_ERROR;
                 }
                 // [callable, <self>, args..., local_vars...]
                 //      ^p0                    ^p1      ^_sp
-                s_data.reset(_base + co->nlocals);
+                self->stack.sp = argv + co->nlocals;
                 // initialize local variables to PY_NIL
-                std::memset(p1, 0, (char*)s_data._sp - (char*)p1);
+                memset(p1, 0, (char*)self->stack.sp - (char*)p1);
                 break;
-            case FuncType_EMPTY:
-                if(args.size() != fn.decl->args.count) {
-                    TypeError(pk_format("{} takes {} positional arguments but {} were given",
-                                        &co->name,
-                                        fn.decl->args.count,
-                                        args.size()));
-                }
-                if(!kwargs.empty()) {
-                    TypeError(pk_format("{} takes no keyword arguments", &co->name));
-                }
-                s_data.reset(p0);
-                return None;
             case FuncType_GENERATOR:
-                __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
-                s_data.reset(p0);
-                callstack.emplace(nullptr, co, fn._module, callable.get(), nullptr);
-                return __py_generator(
-                    callstack.popx(),
-                    ArgsView(__vectorcall_buffer, __vectorcall_buffer + co->nlocals));
-            default: c11__unreachedable()
+                assert(false);
+                break;
+                // __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
+                // s_data.reset(p0);
+                // callstack.emplace(nullptr, co, fn._module, callable.get(), nullptr);
+                // return __py_generator(
+                //     callstack.popx(),
+                //     ArgsView(__vectorcall_buffer, __vectorcall_buffer + co->nlocals));
+            default: c11__unreachedable();
         };
 
         // simple or normal
-        callstack.emplace(p0, co, fn._module, callable.get(), args.begin());
-        if(op_call) return pkpy_OP_CALL;
-        return __run_top_frame();
+        Frame* frame = Frame__new(co, fn->module, p0, p0, argv, co);
+        pk_VM__push_frame(self, frame);
+        if(opcall) return RES_CALL;
+        return pk_VM__run_top_frame(self);
         /*****************_py_call*****************/
     }
-#endif
 
     if(p0->type == tp_nativefunc) {
         // const auto& f = PK_OBJ_GET(NativeFunc, callable);

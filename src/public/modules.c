@@ -53,15 +53,15 @@ py_Ref py_newmodule(const char* name, const char* package) {
 
 //////////////////////////
 
-static bool _py_builtins__repr(int argc, py_Ref argv){
+static bool _py_builtins__repr(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     return py_repr(argv);
 }
 
-static bool _py_builtins__exit(int argc, py_Ref argv){
+static bool _py_builtins__exit(int argc, py_Ref argv) {
     int code = 0;
     if(argc > 1) return TypeError("exit() takes at most 1 argument");
-    if(argc == 1){
+    if(argc == 1) {
         PY_CHECK_ARG_TYPE(0, tp_int);
         code = py_toint(argv);
     }
@@ -70,9 +70,17 @@ static bool _py_builtins__exit(int argc, py_Ref argv){
     return false;
 }
 
-py_TValue pk_builtins__register(){
+py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins", NULL);
     py_bindnativefunc(builtins, "repr", _py_builtins__repr);
     py_bindnativefunc(builtins, "exit", _py_builtins__exit);
     return *builtins;
+}
+
+py_Type pk_function__register() {
+    pk_VM* vm = pk_current_vm;
+    py_Type type = pk_VM__new_type(vm, "function", tp_object, NULL, false);
+    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &vm->types, type);
+    ti->dtor = (void (*)(void*))Function__dtor;
+    return type;
 }

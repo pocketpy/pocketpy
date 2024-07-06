@@ -1638,15 +1638,9 @@ static Error* pop_context(Compiler* self) {
 
             if(is_simple) {
                 func->type = FuncType_SIMPLE;
-
-                bool is_empty = false;
-                if(func->code.codes.count == 1) {
-                    Bytecode bc = c11__getitem(Bytecode, &func->code.codes, 0);
-                    if(bc.op == OP_RETURN_VALUE && bc.arg == 1) { is_empty = true; }
-                }
-                if(is_empty) func->type = FuncType_EMPTY;
-            } else
+            } else {
                 func->type = FuncType_NORMAL;
+            }
         }
 
         assert(func->type != FuncType_UNSET);
@@ -2197,7 +2191,6 @@ static FuncDecl_ push_f_context(Compiler* self, c11_sv name, int* out_index) {
     *out_index = top_ctx->co->func_decls.count - 1;
     // push new context
     top_ctx = c11_vector__emplace(&self->contexts);
-    // contexts.push_back(CodeEmitContext(vm, decl->code, contexts.size()));
     Ctx__ctor(top_ctx, &decl->code, decl, self->contexts.count);
     return decl;
 }

@@ -170,7 +170,7 @@ static bool
 
     // disassemble(&co);
 
-    Frame* frame = Frame__new(&co, &vm->main, NULL, vm->stack.sp, vm->stack.sp, &co);
+    Frame* frame = Frame__new(&co, vm->main._obj, NULL, vm->stack.sp, vm->stack.sp, &co);
     pk_VM__push_frame(vm, frame);
     pk_FrameResult res = pk_VM__run_top_frame(vm);
     CodeObject__dtor(&co);

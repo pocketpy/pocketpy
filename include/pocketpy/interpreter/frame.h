@@ -47,7 +47,7 @@ typedef struct Frame {
 } Frame;
 
 Frame* Frame__new(const CodeObject* co,
-                  const py_TValue* module,
+                  PyObject* module,
                   const py_TValue* function,
                   py_TValue* p0,
                   py_TValue* locals,

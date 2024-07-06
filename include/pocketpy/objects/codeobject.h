@@ -21,7 +21,6 @@ typedef enum FuncType {
     FuncType_UNSET,
     FuncType_NORMAL,
     FuncType_SIMPLE,
-    FuncType_EMPTY,
     FuncType_GENERATOR,
 } FuncType;
 

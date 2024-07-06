@@ -51,10 +51,7 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
         pk_FrameResult res = pk_VM__vectorcall(self, (argc), (kwargc), true);                      \
         switch(res) {                                                                              \
             case RES_RETURN: PUSH(&self->last_retval); break;                                      \
-            case RES_CALL:                                                                         \
-                frame = self->top_frame;                                                           \
-                PUSH(&self->last_retval);                                                          \
-                goto __NEXT_FRAME;                                                                 \
+            case RES_CALL: frame = self->top_frame; goto __NEXT_FRAME;                             \
             case RES_ERROR: goto __ERROR;                                                          \
             default: c11__unreachedable();                                                         \
         }                                                                                          \
