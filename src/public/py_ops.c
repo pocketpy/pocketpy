@@ -43,7 +43,22 @@ int py_bool(const py_Ref val) {
     }
 }
 
-bool py_hash(const py_Ref val, int64_t* out) { return 0; }
+bool py_hash(const py_Ref val, int64_t* out) {
+    py_Type t = val->type;
+    pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
+    do {
+        py_Ref _hash = &types[t].magic[__hash__];
+        py_Ref _eq = &types[t].magic[__eq__];
+        if(!py_isnil(_hash) && !py_isnil(_eq)) {
+            bool ok = py_call(_hash, 1, val);
+            if(!ok) return false;
+            *out = py_toint(py_retval());
+            return true;
+        }
+        t = types[t].base;
+    } while(t);
+    return TypeError("unhashable type: '%t'", val->type);
+}
 
 int py_getattr(const py_Ref self, py_Name name, py_Ref out) { return -1; }
 

@@ -272,24 +272,29 @@ ImagExpr* ImagExpr__new(int line, double value) {
 typedef struct LiteralExpr {
     EXPR_COMMON_HEADER
     const TokenValue* value;
+    bool negated;
 } LiteralExpr;
 
 void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
     LiteralExpr* self = (LiteralExpr*)self_;
     switch(self->value->index) {
         case TokenValue_I64: {
-            int64_t val = self->value->_i64;
+            py_i64 val = self->value->_i64;
+            if(self->negated) val = -val;
             Ctx__emit_int(ctx, val, self->line);
             break;
         }
         case TokenValue_F64: {
             py_TValue value;
-            py_newfloat(&value, self->value->_f64);
+            py_f64 val = self->value->_f64;
+            if(self->negated) val = -val;
+            py_newfloat(&value, val);
             int index = Ctx__add_const(ctx, &value);
             Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
             break;
         }
         case TokenValue_STR: {
+            assert(!self->negated);
             c11_sv sv = c11_string__sv(self->value->_str);
             int index = Ctx__add_const_string(ctx, sv);
             Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
@@ -308,6 +313,7 @@ LiteralExpr* LiteralExpr__new(int line, const TokenValue* value) {
     self->vt = &Vt;
     self->line = line;
     self->value = value;
+    self->negated = false;
     return self;
 }
 
@@ -330,9 +336,7 @@ void Literal0Expr__emit_(Expr* self_, Ctx* ctx) {
 }
 
 Literal0Expr* Literal0Expr__new(int line, TokenIndex token) {
-    const static ExprVt Vt = {.emit_ = Literal0Expr__emit_,
-                              .is_literal = true,
-                              .is_json_object = true};
+    const static ExprVt Vt = {.emit_ = Literal0Expr__emit_, .is_json_object = true};
     static_assert_expr_size(Literal0Expr);
     Literal0Expr* self = PoolExpr_alloc();
     self->vt = &Vt;
@@ -1771,7 +1775,19 @@ static Error* exprUnaryOp(Compiler* self) {
     check(parse_expression(self, PREC_UNARY + 1, false));
     Expr* e = Ctx__s_popx(ctx());
     switch(op) {
-        case TK_SUB: Ctx__s_push(ctx(), (Expr*)UnaryExpr__new(line, e, OP_UNARY_NEGATIVE)); break;
+        case TK_SUB: {
+            // constant fold
+            if(e->vt->is_literal) {
+                LiteralExpr* le = (LiteralExpr*)e;
+                if(le->value->index == TokenValue_I64 || le->value->index == TokenValue_F64) {
+                    le->negated = true;
+                }
+                Ctx__s_push(ctx(), e);
+            } else {
+                Ctx__s_push(ctx(), (Expr*)UnaryExpr__new(line, e, OP_UNARY_NEGATIVE));
+            }
+            break;
+        }
         case TK_INVERT: Ctx__s_push(ctx(), (Expr*)UnaryExpr__new(line, e, OP_UNARY_INVERT)); break;
         case TK_MUL: Ctx__s_push(ctx(), (Expr*)StarredExpr__new(line, e, 1)); break;
         case TK_POW: Ctx__s_push(ctx(), (Expr*)StarredExpr__new(line, e, 2)); break;

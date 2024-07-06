@@ -56,12 +56,7 @@ void pk_TypeInfo__ctor(pk_TypeInfo* self,
 
 void pk_TypeInfo__dtor(pk_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
 
-static bool _py_object__new__(int argc, py_Ref argv) {
-    assert(argc >= 1);
-    py_Type cls = argv[0].type;
-    py_newobject(py_retval(), cls, 0, 0);
-    return true;
-}
+
 
 void pk_VM__ctor(pk_VM* self) {
     self->top_frame = NULL;
@@ -95,6 +90,7 @@ void pk_VM__ctor(pk_VM* self) {
 
     validate(tp_object, pk_VM__new_type(self, "object", 0, NULL, true));
     validate(tp_type, pk_VM__new_type(self, "type", 1, NULL, false));
+    pk_object__register();
 
     validate(tp_int, pk_VM__new_type(self, "int", tp_object, NULL, false));
     validate(tp_float, pk_VM__new_type(self, "float", tp_object, NULL, false));
@@ -165,10 +161,6 @@ void pk_VM__ctor(pk_VM* self) {
     py_TValue tmp;
     py_newnotimplemented(&tmp);
     py_setdict(&self->builtins, py_name("NotImplemented"), &tmp);
-
-    /* Do Buildin Bindings*/
-    // object.__new__
-    py_bindmagic(tp_object, __new__, _py_object__new__);
 
     self->main = *py_newmodule("__main__", NULL);
 }

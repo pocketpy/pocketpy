@@ -86,7 +86,27 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
         c11_sbuf buf;
         c11_sbuf__ctor(&buf);
         for(py_Ref p = self->stack.begin; p != SP(); p++) {
-            c11_sbuf__write_cstr(&buf, py_tpname(p->type));
+            switch(p->type){
+                case 0: c11_sbuf__write_cstr(&buf, "nil"); break;
+                case tp_int: c11_sbuf__write_i64(&buf, p->_i64); break;
+                case tp_float: c11_sbuf__write_f64(&buf, p->_f64, -1); break;
+                case tp_bool: c11_sbuf__write_cstr(&buf, p->_bool ? "True" : "False"); break;
+                case tp_none_type: c11_sbuf__write_cstr(&buf, "None"); break;
+                case tp_type: {
+                    pk_sprintf(&buf, "<class '%t'>", py_totype(p));
+                    break;
+                }
+                case tp_str: {
+                    int size;
+                    const char* data = py_tostrn(p, &size);
+                    pk_sprintf(&buf, "%q", (c11_sv){data, size});
+                    break;
+                }
+                default:{
+                    pk_sprintf(&buf, "(%t)", p->type);
+                    break;
+                }
+            }
             if(p != TOP()) c11_sbuf__write_cstr(&buf, ", ");
         }
         c11_string* stack_str = c11_sbuf__submit(&buf);
@@ -694,16 +714,9 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
     // [a, b]
     py_Ref magic = py_tpfindmagic(SECOND()->type, op);
     if(magic) {
-        if(magic->type == tp_nativefunc) {
-            bool ok = magic->_cfunc(2, SECOND());
-            if(!ok) return false;
-            if(self->last_retval.type != tp_not_implemented_type) return true;
-        } else {
-            // standard call
-            bool ok = py_call(magic, 2, SECOND());
-            if(!ok) return false;
-            if(self->last_retval.type != tp_not_implemented_type) return true;
-        }
+        bool ok = py_call(magic, 2, SECOND());
+        if(!ok) return false;
+        if(self->last_retval.type != tp_not_implemented_type) return true;
     }
     // try reverse operation
     if(rop) {
@@ -713,16 +726,9 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
         *SECOND() = tmp;
         magic = py_tpfindmagic(SECOND()->type, rop);
         if(magic) {
-            if(magic->type == tp_nativefunc) {
-                bool ok = magic->_cfunc(2, SECOND());
-                if(!ok) return false;
-                if(self->last_retval.type != tp_not_implemented_type) return true;
-            } else {
-                // standard call
-                bool ok = py_call(magic, 2, SECOND());
-                if(!ok) return false;
-                if(self->last_retval.type != tp_not_implemented_type) return true;
-            }
+            bool ok = py_call(magic, 2, SECOND());
+            if(!ok) return false;
+            if(self->last_retval.type != tp_not_implemented_type) return true;
         }
     }
     // eq/ne op never fails due to object.__eq__

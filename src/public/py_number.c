@@ -7,12 +7,12 @@
     static bool _py_int##name(int argc, py_Ref argv) {                                             \
         PY_CHECK_ARGC(2);                                                                          \
         if(py_isint(&argv[1])) {                                                                   \
-            int64_t lhs = py_toint(&argv[0]);                                                      \
-            int64_t rhs = py_toint(&argv[1]);                                                      \
+            py_i64 lhs = py_toint(&argv[0]);                                                       \
+            py_i64 rhs = py_toint(&argv[1]);                                                       \
             rint(py_retval(), lhs op rhs);                                                         \
         } else if(py_isfloat(&argv[1])) {                                                          \
-            int64_t lhs = py_toint(&argv[0]);                                                      \
-            double rhs = py_tofloat(&argv[1]);                                                     \
+            py_i64 lhs = py_toint(&argv[0]);                                                       \
+            py_f64 rhs = py_tofloat(&argv[1]);                                                     \
             rfloat(py_retval(), lhs op rhs);                                                       \
         } else {                                                                                   \
             py_newnotimplemented(py_retval());                                                     \
@@ -21,8 +21,8 @@
     }                                                                                              \
     static bool _py_float##name(int argc, py_Ref argv) {                                           \
         PY_CHECK_ARGC(2);                                                                          \
-        double lhs = py_tofloat(&argv[0]);                                                         \
-        double rhs;                                                                                \
+        py_f64 lhs = py_tofloat(&argv[0]);                                                         \
+        py_f64 rhs;                                                                                \
         if(py_castfloat(&argv[1], &rhs)) {                                                         \
             rfloat(py_retval(), lhs op rhs);                                                       \
         } else {                                                                                   \
@@ -36,7 +36,7 @@ DEF_NUM_BINARY_OP(__sub__, -, py_newint, py_newfloat)
 DEF_NUM_BINARY_OP(__mul__, *, py_newint, py_newfloat)
 
 DEF_NUM_BINARY_OP(__eq__, ==, py_newbool, py_newbool)
-DEF_NUM_BINARY_OP(__ne__, ==, py_newbool, py_newbool)
+DEF_NUM_BINARY_OP(__ne__, !=, py_newbool, py_newbool)
 DEF_NUM_BINARY_OP(__lt__, <, py_newbool, py_newbool)
 DEF_NUM_BINARY_OP(__le__, <=, py_newbool, py_newbool)
 DEF_NUM_BINARY_OP(__gt__, >, py_newbool, py_newbool)
@@ -46,22 +46,22 @@ DEF_NUM_BINARY_OP(__ge__, >=, py_newbool, py_newbool)
 
 static bool _py_int__neg__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    int64_t val = py_toint(&argv[0]);
+    py_i64 val = py_toint(&argv[0]);
     py_newint(py_retval(), -val);
     return true;
 }
 
 static bool _py_float__neg__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    double val = py_tofloat(&argv[0]);
+    py_f64 val = py_tofloat(&argv[0]);
     py_newfloat(py_retval(), -val);
     return true;
 }
 
 static bool _py_int__truediv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    int64_t lhs = py_toint(&argv[0]);
-    double rhs;
+    py_i64 lhs = py_toint(&argv[0]);
+    py_f64 rhs;
     if(py_castfloat(&argv[1], &rhs)) {
         py_newfloat(py_retval(), lhs / rhs);
     } else {
@@ -72,8 +72,8 @@ static bool _py_int__truediv__(int argc, py_Ref argv) {
 
 static bool _py_float__truediv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    double lhs = py_tofloat(&argv[0]);
-    double rhs;
+    py_f64 lhs = py_tofloat(&argv[0]);
+    py_f64 rhs;
     if(py_castfloat(&argv[1], &rhs)) {
         py_newfloat(py_retval(), lhs / rhs);
     } else {
@@ -87,8 +87,8 @@ static bool _py_float__truediv__(int argc, py_Ref argv) {
 static bool _py_number__pow__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     if(py_isint(&argv[0]) && py_isint(&argv[1])) {
-        int64_t lhs = py_toint(&argv[0]);
-        int64_t rhs = py_toint(&argv[1]);
+        py_i64 lhs = py_toint(&argv[0]);
+        py_i64 rhs = py_toint(&argv[1]);
         if(rhs < 0) {
             if(lhs == 0) {
                 return ZeroDivisionError("0.0 cannot be raised to a negative power");
@@ -97,7 +97,7 @@ static bool _py_number__pow__(int argc, py_Ref argv) {
             }
         } else {
             // rhs >= 0
-            int64_t ret = 1;
+            py_i64 ret = 1;
             while(true) {
                 if(rhs & 1) ret *= lhs;
                 rhs >>= 1;
@@ -107,7 +107,7 @@ static bool _py_number__pow__(int argc, py_Ref argv) {
             py_newint(py_retval(), ret);
         }
     } else {
-        double lhs, rhs;
+        py_f64 lhs, rhs;
         py_castfloat(&argv[0], &lhs);
         if(py_castfloat(&argv[1], &rhs)) {
             py_newfloat(py_retval(), pow(lhs, rhs));
@@ -120,9 +120,9 @@ static bool _py_number__pow__(int argc, py_Ref argv) {
 
 static bool _py_int__floordiv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    int64_t lhs = py_toint(&argv[0]);
+    py_i64 lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
-        int64_t rhs = py_toint(&argv[1]);
+        py_i64 rhs = py_toint(&argv[1]);
         if(rhs == 0) return -1;
         py_newint(py_retval(), lhs / rhs);
     } else {
@@ -133,9 +133,9 @@ static bool _py_int__floordiv__(int argc, py_Ref argv) {
 
 static bool _py_int__mod__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    int64_t lhs = py_toint(&argv[0]);
+    py_i64 lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
-        int64_t rhs = py_toint(&argv[1]);
+        py_i64 rhs = py_toint(&argv[1]);
         if(rhs == 0) return ZeroDivisionError("integer division or modulo by zero");
         py_newint(py_retval(), lhs % rhs);
     } else {
@@ -146,14 +146,14 @@ static bool _py_int__mod__(int argc, py_Ref argv) {
 
 static bool _py_int__invert__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    int64_t val = py_toint(&argv[0]);
+    py_i64 val = py_toint(&argv[0]);
     py_newint(py_retval(), ~val);
     return true;
 }
 
 static bool _py_int__bit_length(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    int64_t x = py_toint(py_arg(0));
+    py_i64 x = py_toint(py_arg(0));
     if(x < 0) x = -x;
     int bits = 0;
     while(x) {
@@ -167,9 +167,9 @@ static bool _py_int__bit_length(int argc, py_Ref argv) {
 #define DEF_INT_BITWISE_OP(name, op)                                                               \
     static bool _py_int##name(int argc, py_Ref argv) {                                             \
         PY_CHECK_ARGC(2);                                                                          \
-        int64_t lhs = py_toint(&argv[0]);                                                          \
+        py_i64 lhs = py_toint(&argv[0]);                                                           \
         if(py_isint(&argv[1])) {                                                                   \
-            int64_t rhs = py_toint(&argv[1]);                                                      \
+            py_i64 rhs = py_toint(&argv[1]);                                                       \
             py_newint(py_retval(), lhs op rhs);                                                    \
         } else {                                                                                   \
             py_newnotimplemented(py_retval());                                                     \
@@ -187,7 +187,7 @@ DEF_INT_BITWISE_OP(__rshift__, >>)
 
 static bool _py_int__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    int64_t val = py_toint(&argv[0]);
+    py_i64 val = py_toint(&argv[0]);
     char buf[32];
     int size = snprintf(buf, sizeof(buf), "%lld", (long long)val);
     py_newstrn(py_retval(), buf, size);
@@ -196,7 +196,7 @@ static bool _py_int__repr__(int argc, py_Ref argv) {
 
 static bool _py_float__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    double val = py_tofloat(&argv[0]);
+    py_f64 val = py_tofloat(&argv[0]);
     char buf[32];
     int size = snprintf(buf, sizeof(buf), "%f", val);
     py_newstrn(py_retval(), buf, size);
@@ -223,7 +223,7 @@ static py_i64 c11_8bytes__hash(union c11_8bytes u) {
 
 static bool _py_int__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    int64_t val = py_toint(&argv[0]);
+    py_i64 val = py_toint(&argv[0]);
     union c11_8bytes u = {._i64 = val};
     py_newint(py_retval(), c11_8bytes__hash(u));
     return true;
@@ -231,7 +231,7 @@ static bool _py_int__hash__(int argc, py_Ref argv) {
 
 static bool _py_float__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    double val = py_tofloat(&argv[0]);
+    py_f64 val = py_tofloat(&argv[0]);
     union c11_8bytes u = {._f64 = val};
     py_newint(py_retval(), c11_8bytes__hash(u));
     return true;
@@ -248,7 +248,7 @@ static bool _py_int__new__(int argc, py_Ref argv) {
         switch(argv[1].type) {
             case tp_float: {
                 // int(1.1) == 1
-                py_newint(py_retval(), (int64_t)py_tofloat(&argv[1]));
+                py_newint(py_retval(), (py_i64)py_tofloat(&argv[1]));
                 return true;
             }
             case tp_int: {
@@ -258,7 +258,7 @@ static bool _py_int__new__(int argc, py_Ref argv) {
             }
             case tp_bool: {
                 // int(True) == 1
-                py_newint(py_retval(), (int64_t)py_tobool(&argv[1]));
+                py_newint(py_retval(), (py_i64)py_tobool(&argv[1]));
                 return true;
             }
             case tp_str: break;  // leave to the next block
@@ -340,7 +340,7 @@ static bool _py_float__new__(int argc, py_Ref argv) {
 }
 
 // tp_bool
-static bool _py_bool__new__(int argc, py_Ref argv){
+static bool _py_bool__new__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int res = py_bool(argv);
     if(res == -1) return false;
@@ -348,24 +348,24 @@ static bool _py_bool__new__(int argc, py_Ref argv){
     return true;
 }
 
-static bool _py_bool__hash__(int argc, py_Ref argv){
+static bool _py_bool__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     bool res = py_tobool(argv);
     py_newint(py_retval(), res);
     return true;
 }
 
-static bool _py_bool__repr__(int argc, py_Ref argv){
+static bool _py_bool__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     bool res = py_tobool(argv);
     py_newstr(py_retval(), res ? "True" : "False");
     return true;
 }
 
-static bool _py_bool__eq__(int argc, py_Ref argv){
+static bool _py_bool__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     bool lhs = py_tobool(&argv[0]);
-    if(argv[1].type == tp_bool){
+    if(argv[1].type == tp_bool) {
         bool rhs = py_tobool(&argv[1]);
         py_newbool(py_retval(), lhs == rhs);
     } else {
@@ -374,10 +374,10 @@ static bool _py_bool__eq__(int argc, py_Ref argv){
     return true;
 }
 
-static bool _py_bool__ne__(int argc, py_Ref argv){
+static bool _py_bool__ne__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     bool lhs = py_tobool(&argv[0]);
-    if(argv[1].type == tp_bool){
+    if(argv[1].type == tp_bool) {
         bool rhs = py_tobool(&argv[1]);
         py_newbool(py_retval(), lhs != rhs);
     } else {

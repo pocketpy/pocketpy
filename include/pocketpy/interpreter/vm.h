@@ -90,6 +90,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
 const char* pk_opname(Opcode op);
 
 // type registration
+void pk_object__register();
 void pk_number__register();
 py_Type pk_str__register();
 py_Type pk_bytes__register();
