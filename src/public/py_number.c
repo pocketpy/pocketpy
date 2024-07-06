@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/common/sstream.h"
 #include "pocketpy/pocketpy.h"
 
 #include <math.h>
@@ -197,9 +198,12 @@ static bool _py_int__repr__(int argc, py_Ref argv) {
 static bool _py_float__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 val = py_tofloat(&argv[0]);
-    char buf[32];
-    int size = snprintf(buf, sizeof(buf), "%f", val);
-    py_newstrn(py_retval(), buf, size);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    c11_sbuf__write_f64(&buf, val, -1);
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
     return true;
 }
 
@@ -341,11 +345,18 @@ static bool _py_float__new__(int argc, py_Ref argv) {
 
 // tp_bool
 static bool _py_bool__new__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    int res = py_bool(argv);
-    if(res == -1) return false;
-    py_newbool(py_retval(), res);
-    return true;
+    assert(argc > 0);
+    if(argc == 1){
+        py_newbool(py_retval(), false);
+        return true;
+    }
+    if(argc == 2){
+        int res = py_bool(py_arg(1));
+        if(res == -1) return false;
+        py_newbool(py_retval(), res);
+        return true;
+    }
+    return TypeError("bool() takes at most 1 argument");
 }
 
 static bool _py_bool__hash__(int argc, py_Ref argv) {

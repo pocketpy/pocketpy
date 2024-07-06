@@ -693,6 +693,18 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 *TOP() = self->last_retval;
                 DISPATCH();
             }
+
+            ///////////
+            case OP_RAISE_ASSERT: {
+                if(byte.arg) {
+                    if(!py_str(TOP())) goto __ERROR;
+                    POP();
+                    py_exception("AssertionError", "%s", py_tostr(py_retval()));
+                } else {
+                    py_exception("AssertionError", "");
+                }
+                goto __ERROR;
+            }
             default: c11__unreachedable();
         }
 

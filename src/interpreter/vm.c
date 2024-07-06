@@ -105,7 +105,7 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_module, pk_VM__new_type(self, "module", tp_object, NULL, false));
 
     validate(tp_function, pk_function__register());
-    validate(tp_nativefunc, pk_VM__new_type(self, "nativefunc", tp_object, NULL, false));
+    validate(tp_nativefunc, pk_nativefunc__register());
     validate(tp_bound_method, pk_VM__new_type(self, "bound_method", tp_object, NULL, false));
 
     validate(tp_super, pk_VM__new_type(self, "super", tp_object, NULL, false));

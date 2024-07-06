@@ -84,3 +84,16 @@ py_Type pk_function__register() {
     ti->dtor = (void (*)(void*))Function__dtor;
     return type;
 }
+
+static bool _py_nativefunc__repr(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_newstr(py_retval(), "<nativefunc object>");
+    return true;
+}
+
+py_Type pk_nativefunc__register() {
+    pk_VM* vm = pk_current_vm;
+    py_Type type = pk_VM__new_type(vm, "nativefunc", tp_object, NULL, false);
+    py_bindmagic(type, __repr__, _py_nativefunc__repr);
+    return type;
+}
