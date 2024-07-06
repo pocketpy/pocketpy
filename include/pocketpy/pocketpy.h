@@ -244,6 +244,8 @@ void py_formatexc(char* out);
 #define TypeError(...) py_exception("TypeError", __VA_ARGS__)
 #define ValueError(...) py_exception("ValueError", __VA_ARGS__)
 #define IndexError(...) py_exception("IndexError", __VA_ARGS__)
+#define StopIteration() py_exception("StopIteration", "")
+#define NotImplementedError() py_exception("NotImplementedError", "")
 #define AttributeError(self, n)                                                                    \
     py_exception("AttributeError", "'%t' object has no attribute '%n'", (self)->type, (n))
 #define UnboundLocalError(n)                                                                       \
@@ -263,6 +265,12 @@ int py_ge(const py_Ref, const py_Ref);
 int py_gt(const py_Ref, const py_Ref);
 
 bool py_hash(const py_Ref, py_i64* out);
+
+/// Get the iterator of the object.
+bool py_iter(const py_Ref);
+/// Get the next element from the iterator.
+/// 1: success, 0: StopIteration, -1: error
+int py_next(const py_Ref);
 
 /// Python equivalent to `lhs is rhs`.
 bool py_isidentical(const py_Ref, const py_Ref);
@@ -332,6 +340,9 @@ py_GlobalRef py_tpobject(py_Type type);
 /// Get the type name.
 const char* py_tpname(py_Type type);
 
+/// Call a type to create a new instance.
+bool py_tpcall(py_Type type, int argc, py_Ref argv);
+
 /// Check if the object is an instance of the given type.
 bool py_checktype(const py_Ref self, py_Type type);
 
@@ -369,6 +380,7 @@ enum py_PredefinedTypes {
     tp_float,
     tp_bool,
     tp_str,
+    tp_str_iterator,
     tp_list,   // c11_vector
     tp_tuple,  // N slots
     tp_slice,  // 3 slots (start, stop, step)
@@ -390,7 +402,7 @@ enum py_PredefinedTypes {
     tp_not_implemented_type,
     tp_ellipsis,
     tp_syntax_error,
-    tp_stop_iteration
+    tp_stop_iteration,
 };
 
 #ifdef __cplusplus

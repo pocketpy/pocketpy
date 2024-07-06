@@ -197,7 +197,9 @@ bool py_call(py_Ref f, int argc, py_Ref argv) {
         py_pushnil();
         for(int i = 0; i < argc; i++)
             py_push(py_offset(argv, i));
-        return pk_VM__vectorcall(vm, argc, 0, false) == RES_ERROR;
+        pk_FrameResult res = pk_VM__vectorcall(vm, argc, 0, false);
+        assert(res == RES_ERROR || res == RES_RETURN);
+        return res == RES_RETURN;
     }
 }
 
@@ -290,6 +292,10 @@ const char* py_tpname(py_Type type) {
     pk_VM* vm = pk_current_vm;
     py_Name name = c11__at(pk_TypeInfo, &vm->types, type)->name;
     return py_name2str(name);
+}
+
+bool py_tpcall(py_Type type, int argc, py_Ref argv){
+    return py_call(py_tpobject(type), argc, argv);
 }
 
 bool py_callmagic(py_Name name, int argc, py_Ref argv) {

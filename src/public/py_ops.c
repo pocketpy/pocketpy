@@ -60,6 +60,24 @@ bool py_hash(const py_Ref val, int64_t* out) {
     return TypeError("unhashable type: '%t'", val->type);
 }
 
+bool py_iter(const py_Ref val) {
+    py_Ref tmp = py_tpfindmagic(val->type, __iter__);
+    if(!tmp) return TypeError("'%t' object is not iterable", val->type);
+    return py_call(tmp, 1, val);
+}
+
+int py_next(const py_Ref val) {
+    py_Ref tmp = py_tpfindmagic(val->type, __next__);
+    if(!tmp) return TypeError("'%t' object is not an iterator", val->type);
+    bool ok = py_call(tmp, 1, val);
+    if(ok) {
+        py_Ref retval = py_retval();
+        bool is_end = retval->type == tp_type && py_totype(retval) == tp_stop_iteration;
+        return !is_end;
+    }
+    return -1;
+}
+
 int py_getattr(const py_Ref self, py_Name name, py_Ref out) { return -1; }
 
 bool py_setattr(py_Ref self, py_Name name, const py_Ref val) { return false; }

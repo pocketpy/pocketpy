@@ -101,6 +101,32 @@ static bool _py_list__ne__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_list__new__(int argc, py_Ref argv) {
+    if(argc == 1) {
+        py_newlist(py_retval());
+        return true;
+    }
+    if(argc == 2) {
+        py_Ref iter = py_pushtmp();
+        py_Ref list = py_pushtmp();
+        if(!py_iter(py_arg(1))) return false;
+        *iter = *py_retval();
+        py_newlist(list);
+        while(true) {
+            int res = py_next(iter);
+            if(res == -1) return false;
+            if(res) {
+                py_list__append(list, py_retval());
+            } else {
+                break;
+            }
+        }
+        *py_retval() = *list;
+        return true;
+    }
+    return TypeError("list() takes at most 1 argument");
+}
+
 py_Type pk_list__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
@@ -110,5 +136,6 @@ py_Type pk_list__register() {
     py_bindmagic(type, __len__, _py_list__len__);
     py_bindmagic(type, __eq__, _py_list__eq__);
     py_bindmagic(type, __ne__, _py_list__ne__);
+    py_bindmagic(type, __new__, _py_list__new__);
     return type;
 }

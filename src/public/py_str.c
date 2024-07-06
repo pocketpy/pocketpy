@@ -158,8 +158,7 @@ static bool _py_str__repr__(int argc, py_Ref argv) {
 
 static bool _py_str__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    assert(false);
-    return false;
+    return py_tpcall(tp_str_iterator, 1, argv);
 }
 
 static bool _py_str__getitem__(int argc, py_Ref argv) {
@@ -391,6 +390,52 @@ static bool _py_str__zfill(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_str__widthjust_impl(bool left, int argc, py_Ref argv) {
+    if(argc > 1 + 2) return TypeError("expected at most 2 arguments");
+    char pad;
+    if(argc == 1 + 1) {
+        pad = ' ';
+    } else {
+        if(!py_checkstr(&argv[2])) return false;
+        c11_string* padstr = py_touserdata(&argv[2]);
+        if(padstr->size != 1)
+            return TypeError("The fill character must be exactly one character long");
+        pad = padstr->data[0];
+    }
+    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    int width = py_toint(py_arg(1));
+    if(width <= self.size) {
+        *py_retval() = argv[0];
+        return true;
+    }
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    if(left) {
+        c11_sbuf__write_sv(&buf, self);
+        for(int i = 0; i < width - self.size; i++) {
+            c11_sbuf__write_char(&buf, pad);
+        }
+    } else {
+        for(int i = 0; i < width - self.size; i++) {
+            c11_sbuf__write_char(&buf, pad);
+        }
+        c11_sbuf__write_sv(&buf, self);
+    }
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
+    return true;
+}
+
+static bool _py_str__ljust(int argc, py_Ref argv) {
+    return _py_str__widthjust_impl(true, argc, argv);
+}
+
+static bool _py_str__rjust(int argc, py_Ref argv) {
+    return _py_str__widthjust_impl(false, argc, argv);
+}
+
 py_Type pk_str__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "str", tp_object, NULL, false);
@@ -427,6 +472,48 @@ py_Type pk_str__register() {
     py_bindmethod(tp_str, "lstrip", _py_str__lstrip);
     py_bindmethod(tp_str, "rstrip", _py_str__rstrip);
     py_bindmethod(tp_str, "zfill", _py_str__zfill);
+    py_bindmethod(tp_str, "ljust", _py_str__ljust);
+    py_bindmethod(tp_str, "rjust", _py_str__rjust);
+    return type;
+}
+
+static bool _py_str_iterator__new__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    int* ud = py_newobject(py_retval(), tp_str_iterator, 1, sizeof(int));
+    *ud = 0;
+    py_setslot(py_retval(), 0, &argv[1]);
+    return true;
+}
+
+static bool _py_str_iterator__iter__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    *py_retval() = argv[0];
+    return true;
+}
+
+static bool _py_str_iterator__next__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    int* ud = py_touserdata(&argv[0]);
+    int size;
+    const char* data = py_tostrn(py_getslot(argv, 0), &size);
+    if(*ud == size) {
+        *py_retval() = pk_current_vm->StopIteration;
+        return true;
+    }
+    int start = *ud;
+    int len = c11__u8_header(data[*ud], false);
+    *ud += len;
+    py_newstrn(py_retval(), data + start, len);
+    return true;
+}
+
+py_Type pk_str_iterator__register() {
+    pk_VM* vm = pk_current_vm;
+    py_Type type = pk_VM__new_type(vm, "str_iterator", tp_object, NULL, false);
+    py_bindmagic(type, __new__, _py_str_iterator__new__);
+    py_bindmagic(type, __iter__, _py_str_iterator__iter__);
+    py_bindmagic(type, __next__, _py_str_iterator__next__);
     return type;
 }
 

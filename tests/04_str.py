@@ -116,14 +116,6 @@ assert a[2:5:2] == "lo"
 assert a[5:2:-1] == ",ol"
 assert a[5:2:-2] == ",l"
 
-b = list(a)
-assert b == ['H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!']
-assert b[::-1] == ['!', 'd', 'l', 'r', 'o', 'W', ' ', ',', 'o', 'l', 'l', 'e', 'H']
-assert b[::2] == ['H', 'l', 'o', ' ', 'o', 'l', '!']
-assert b[2:5:2] == ['l', 'o']
-assert b[5:2:-1] == [',', 'o', 'l']
-assert b[5:2:-2] == [',', 'l']
-
 a = '123'
 assert a.rjust(5) == '  123'
 assert a.rjust(5, '0') == '00123'
@@ -133,6 +125,14 @@ assert a.ljust(5, '0') == '12300'
 assert '\x30\x31\x32' == '012'
 assert '\b\b\b' == '\x08\x08\x08'
 assert repr('\x1f\x1e\x1f') == '\'\\x1f\\x1e\\x1f\''
+
+b = list("Hello, World!")
+assert b == ['H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!']
+assert b[::-1] == ['!', 'd', 'l', 'r', 'o', 'W', ' ', ',', 'o', 'l', 'l', 'e', 'H']
+assert b[::2] == ['H', 'l', 'o', ' ', 'o', 'l', '!']
+assert b[2:5:2] == ['l', 'o']
+assert b[5:2:-1] == [',', 'o', 'l']
+assert b[5:2:-2] == [',', 'l']
 
 assert hex(-42) == '-0x2a'
 assert hex(42) == '0x2a'
