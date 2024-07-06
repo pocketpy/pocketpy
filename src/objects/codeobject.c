@@ -92,3 +92,16 @@ void CodeObject__dtor(CodeObject* self) {
     }
     c11_vector__dtor(&self->func_decls);
 }
+
+void Function__ctor(Function* self, FuncDecl_ decl, PyObject* module) {
+    PK_INCREF(decl);
+    self->decl = decl;
+    self->module = module;
+    self->clazz = NULL;
+    self->closure = NULL;
+}
+
+void Function__dtor(Function* self) {
+    PK_DECREF(self->decl);
+    if(self->closure) pk_NameDict__delete(self->closure);
+}

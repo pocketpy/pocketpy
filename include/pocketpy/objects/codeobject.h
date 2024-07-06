@@ -7,14 +7,15 @@
 #include "pocketpy/common/smallmap.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/objects/sourcedata.h"
+#include "pocketpy/objects/namedict.h"
 #include "pocketpy/pocketpy.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define BC_NOARG        0
-#define BC_KEEPLINE     -1
+#define BC_NOARG 0
+#define BC_KEEPLINE -1
 
 typedef enum FuncType {
     FuncType_UNSET,
@@ -39,9 +40,10 @@ typedef enum CodeBlockType {
 } CodeBlockType;
 
 typedef enum Opcode {
-    #define OPCODE(name) OP_##name,
-    #include "pocketpy/xmacros/opcodes.h"
-    #undef OPCODE
+
+#define OPCODE(name) OP_##name,
+#include "pocketpy/xmacros/opcodes.h"
+#undef OPCODE
 } Opcode;
 
 typedef struct Bytecode {
@@ -70,18 +72,18 @@ typedef struct CodeObject {
     pk_SourceData_ src;
     c11_string* name;
 
-    c11_vector/*T=Bytecode*/                codes;
-    c11_vector/*T=CodeObjectByteCodeEx*/    codes_ex;
+    c11_vector /*T=Bytecode*/ codes;
+    c11_vector /*T=CodeObjectByteCodeEx*/ codes_ex;
 
-    c11_vector/*T=py_TValue*/   consts;     // constants
-    c11_vector/*T=py_Name*/ varnames;   // local variables
+    c11_vector /*T=py_TValue*/ consts;  // constants
+    c11_vector /*T=py_Name*/ varnames;  // local variables
     int nlocals;                        // cached varnames.size()
 
     c11_smallmap_n2i varnames_inv;
     c11_smallmap_n2i labels;
 
-    c11_vector/*T=CodeBlock*/ blocks;
-    c11_vector/*T=FuncDecl_*/ func_decls;
+    c11_vector /*T=CodeBlock*/ blocks;
+    c11_vector /*T=FuncDecl_*/ func_decls;
 
     int start_line;
     int end_line;
@@ -91,18 +93,18 @@ void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_sv name);
 void CodeObject__dtor(CodeObject* self);
 void CodeObject__gc_mark(const CodeObject* self);
 
-typedef struct FuncDeclKwArg{
-    int index;    // index in co->varnames
-    uint16_t key;  // name of this argument
+typedef struct FuncDeclKwArg {
+    int index;        // index in co->varnames
+    uint16_t key;     // name of this argument
     py_TValue value;  // default value
 } FuncDeclKwArg;
 
 typedef struct FuncDecl {
     RefCounted rc;
-    CodeObject code;    // strong ref
+    CodeObject code;  // strong ref
 
-    c11_vector/*T=int*/     args;   // indices in co->varnames
-    c11_vector/*T=KwArg*/ kwargs;   // indices in co->varnames
+    c11_vector /*T=int*/ args;      // indices in co->varnames
+    c11_vector /*T=KwArg*/ kwargs;  // indices in co->varnames
 
     int starred_arg;    // index in co->varnames, -1 if no *arg
     int starred_kwarg;  // index in co->varnames, -1 if no **kwarg
@@ -120,6 +122,17 @@ FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name);
 void FuncDecl__dtor(FuncDecl* self);
 void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const py_TValue* value);
 void FuncDecl__gc_mark(const FuncDecl* self);
+
+// runtime function
+typedef struct Function {
+    FuncDecl_ decl;
+    PyObject* module;     // weak ref
+    PyObject* clazz;      // weak ref
+    pk_NameDict* closure;  // strong ref
+} Function;
+
+void Function__ctor(Function* self, FuncDecl_ decl, PyObject* module);
+void Function__dtor(Function* self);
 
 #ifdef __cplusplus
 }

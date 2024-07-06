@@ -164,20 +164,17 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             /*****************************************/
             case OP_LOAD_ELLIPSIS: py_newellipsis(SP()++); DISPATCH();
             case OP_LOAD_FUNCTION: {
-                // FuncDecl_ decl = c11__getitem(FuncDecl_, &frame->co->func_decls, byte.arg);
-                // py_TValue obj;
-                // if(decl->nested) {
-                //     NameDict* captured = frame->_locals.to_namedict();
-                //     obj =
-                //         new_object<Function>(tp_function, decl, frame->_module, nullptr,
-                //         captured);
-                //     uint16_t name = py_Name__map2(py_Str__sv(&decl->code->name));
-                //     captured->set(name, obj);
-                // } else {
-                //     obj = new_object<Function>(tp_function, decl, frame->_module, nullptr,
-                //     nullptr);
-                // }
-                // PUSH(obj);DISPATCH();
+                FuncDecl_ decl = c11__getitem(FuncDecl_, &frame->co->func_decls, byte.arg);
+                Function* ud = py_newobject(SP(), tp_function, 0, sizeof(Function));
+                Function__ctor(ud, decl, frame->module);
+                if(decl->nested) {
+                    ud->closure = FastLocals__to_namedict(frame->locals, frame->locals_co);
+                    py_Name name = py_name2(c11_string__sv(decl->code.name));
+                    // capture itself to allow recursion
+                    pk_NameDict__set(ud->closure, name, *SP());
+                }
+                SP()++;
+                DISPATCH();
             }
             case OP_LOAD_NULL:
                 py_newnil(SP()++);

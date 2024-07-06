@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/common/sstream.h"
 #include "pocketpy/pocketpy.h"
 
 static bool _py_object__new__(int argc, py_Ref argv) {
@@ -29,9 +30,22 @@ static bool _py_object__ne__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_object__repr__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    assert(argv->is_ptr);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    pk_sprintf(&buf, "<%t object at %p>", argv->type, argv->_obj);
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
+    return true;
+}
+
 void pk_object__register() {
     py_bindmagic(tp_object, __new__, _py_object__new__);
     py_bindmagic(tp_object, __hash__, _py_object__hash__);
     py_bindmagic(tp_object, __eq__, _py_object__eq__);
     py_bindmagic(tp_object, __ne__, _py_object__ne__);
+    py_bindmagic(tp_object, __repr__, _py_object__repr__);
 }

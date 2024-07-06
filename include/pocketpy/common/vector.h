@@ -34,6 +34,7 @@ c11_vector c11_vector__copy(const c11_vector* self);
 void c11_vector__reserve(c11_vector* self, int capacity);
 void c11_vector__clear(c11_vector* self);
 void* c11_vector__emplace(c11_vector* self);
+bool c11_vector__contains(const c11_vector* self, void* elem);
 c11_array c11_vector__submit(c11_vector* self);
 
 #define c11__getitem(T, self, index) (((T*)(self)->data)[index])

@@ -27,32 +27,42 @@ int main(int argc, char** argv) {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    if(argc > 2){
+    if(argc > 2) {
         printf("Usage: pocketpy [filename]\n");
         return 0;
     }
 
     py_initialize();
 
-    if(argc == 1){
+    if(argc == 1) {
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
-        printf("[%d bit] on %s" "\n", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
-        printf("https://github.com/pocketpy/pocketpy" "\n");
-        printf("Type \"exit()\" to exit." "\n");
+        printf(
+            "[%d bit] on %s"
+            "\n",
+            (int)(sizeof(void*) * 8),
+            PY_SYS_PLATFORM_STRING);
+        printf(
+            "https://github.com/pocketpy/pocketpy"
+            "\n");
+        printf(
+            "Type \"exit()\" to exit."
+            "\n");
 
-        while(true){
+        while(true) {
             int size = py_replinput(buf);
             assert(size < sizeof(buf));
-            if(size >= 0){
+            if(size >= 0) {
                 if(!py_exec2(buf, "<stdin>", REPL_MODE)) py_printexc();
             }
         }
-    }else{
+    } else {
         char* source = read_file(argv[1]);
-        if(!py_exec(source)) py_printexc();
-        free(source);
+        if(source) {
+            if(!py_exec(source)) py_printexc();
+            free(source);
+        }
     }
-    
+
     py_finalize();
     return 0;
 }

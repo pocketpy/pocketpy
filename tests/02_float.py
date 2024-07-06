@@ -1,7 +1,3 @@
-def eq(a, b):
-    dt = a - b
-    return dt > -0.001 and dt < 0.001
-
 # test == != >= <= < >
 assert 1.0 == 1.0
 assert 1.0 != 1.1
@@ -9,6 +5,10 @@ assert 1.0 >= 1.0
 assert 1.0 <= 1.0
 assert 1.0 < 1.1
 assert 1.1 > 1.0
+
+def eq(a, b):
+    dt = a - b
+    return dt > -0.001 and dt < 0.001
 
 # test + - * ** /
 assert eq(1.5 + 3, 4.5)

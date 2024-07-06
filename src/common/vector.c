@@ -63,6 +63,14 @@ void* c11_vector__emplace(c11_vector* self){
     return p;
 }
 
+bool c11_vector__contains(const c11_vector *self, void *elem){
+    for(int i = 0; i < self->count; i++){
+        void* p = (char*)self->data + self->elem_size * i;
+        if(memcmp(p, elem, self->elem_size) == 0) return true;
+    }
+    return false;
+}
+
 c11_array c11_vector__submit(c11_vector* self){
     c11_array retval = {
         .data = self->data,

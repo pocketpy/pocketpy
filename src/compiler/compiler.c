@@ -635,7 +635,6 @@ static void _load_simple_expr(Ctx* ctx, c11_sv expr, int line) {
     // name or name.name
     bool is_fastpath = false;
     if(is_identifier(expr)) {
-        // ctx->emit_(OP_LOAD_NAME, py_Name(expr.sv()).index, line);
         Ctx__emit_(ctx, OP_LOAD_NAME, py_name2(expr), line);
         is_fastpath = true;
     } else {
@@ -2188,6 +2187,174 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
     return NULL;
 }
 
+static FuncDecl_ push_f_context(Compiler* self, c11_sv name, int* out_index) {
+    FuncDecl_ decl = FuncDecl__rcnew(self->src, name);
+    decl->code.start_line = self->i == 0 ? 1 : prev()->line;
+    decl->nested = name_scope(self) == NAME_LOCAL;
+    // add_func_decl
+    Ctx* top_ctx = ctx();
+    c11_vector__push(FuncDecl_, &top_ctx->co->func_decls, decl);
+    *out_index = top_ctx->co->func_decls.count - 1;
+    // push new context
+    top_ctx = c11_vector__emplace(&self->contexts);
+    // contexts.push_back(CodeEmitContext(vm, decl->code, contexts.size()));
+    Ctx__ctor(top_ctx, &decl->code, decl, self->contexts.count);
+    return decl;
+}
+
+static Error* read_literal(Compiler* self, py_Ref out) {
+    Error* err;
+    advance();
+    const TokenValue* value = &prev()->value;
+    bool negated = false;
+    switch(prev()->type) {
+        case TK_SUB:
+            consume(TK_NUM);
+            value = &prev()->value;
+            negated = true;
+        case TK_NUM: {
+            if(value->index == TokenValue_I64) {
+                py_newint(out, negated ? -value->_i64 : value->_i64);
+            } else if(value->index == TokenValue_F64) {
+                py_newfloat(out, negated ? -value->_f64 : value->_f64);
+            } else {
+                return SyntaxError();
+            }
+            return NULL;
+        }
+        case TK_STR: py_newstr(out, value->_str->data); return NULL;
+        case TK_TRUE: py_newbool(out, true); return NULL;
+        case TK_FALSE: py_newbool(out, false); return NULL;
+        case TK_NONE: py_newnone(out); return NULL;
+        case TK_DOTDOTDOT: py_newellipsis(out); return NULL;
+        case TK_LPAREN: {
+            py_TValue cpnts[4];
+            int count = 0;
+            while(true) {
+                if(count == 4) return SyntaxError("default argument tuple exceeds 4 elements");
+                check(read_literal(self, &cpnts[count]));
+                count += 1;
+                if(curr()->type == TK_RPAREN) break;
+                consume(TK_COMMA);
+                if(curr()->type == TK_RPAREN) break;
+            }
+            consume(TK_RPAREN);
+            py_newtuple(out, count);
+            for(int i = 0; i < count; i++) {
+                py_tuple__setitem(out, i, &cpnts[i]);
+            }
+            return NULL;
+        }
+        default: *out = PY_NIL; return NULL;
+    }
+}
+
+static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_hints) {
+    int state = 0;  // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
+    Error* err;
+    do {
+        if(state > 3) return SyntaxError();
+        if(state == 3) return SyntaxError("**kwargs should be the last argument");
+        match_newlines();
+        if(match(TK_MUL)) {
+            if(state < 1)
+                state = 1;
+            else
+                return SyntaxError("*args should be placed before **kwargs");
+        } else if(match(TK_POW)) {
+            state = 3;
+        }
+        consume(TK_ID);
+        py_Name name = py_name2(Token__sv(prev()));
+
+        // check duplicate argument name
+        py_Name tmp_name;
+        c11__foreach(int, &decl->args, j) {
+            tmp_name = c11__getitem(py_Name, &decl->args, *j);
+            if(tmp_name == name) return SyntaxError("duplicate argument name");
+        }
+        c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
+            tmp_name = c11__getitem(py_Name, &decl->code.varnames, kv->index);
+            if(tmp_name == name) return SyntaxError("duplicate argument name");
+        }
+        if(decl->starred_arg != -1) {
+            tmp_name = c11__getitem(py_Name, &decl->code.varnames, decl->starred_arg);
+            if(tmp_name == name) return SyntaxError("duplicate argument name");
+        }
+        if(decl->starred_kwarg != -1) {
+            tmp_name = c11__getitem(py_Name, &decl->code.varnames, decl->starred_kwarg);
+            if(tmp_name == name) return SyntaxError("duplicate argument name");
+        }
+
+        // eat type hints
+        if(enable_type_hints && match(TK_COLON)) check(consume_type_hints(self));
+        if(state == 0 && curr()->type == TK_ASSIGN) state = 2;
+        int index = Ctx__add_varname(ctx(), name);
+        switch(state) {
+            case 0: c11_vector__push(int, &decl->args, index); break;
+            case 1:
+                decl->starred_arg = index;
+                state += 1;
+                break;
+            case 2: {
+                consume(TK_ASSIGN);
+                py_TValue value;
+                check(read_literal(self, &value));
+                if(py_isnil(&value)) return SyntaxError("default argument must be a literal");
+                FuncDecl__add_kwarg(decl, index, name, &value);
+            } break;
+            case 3:
+                decl->starred_kwarg = index;
+                state += 1;
+                break;
+        }
+    } while(match(TK_COMMA));
+    return NULL;
+}
+
+static Error* compile_function(Compiler* self, int decorators) {
+    Error* err;
+    consume(TK_ID);
+    c11_sv decl_name = Token__sv(prev());
+    int decl_index;
+    FuncDecl_ decl = push_f_context(self, decl_name, &decl_index);
+    consume(TK_LPAREN);
+    if(!match(TK_RPAREN)) {
+        check(_compile_f_args(self, decl, true));
+        consume(TK_RPAREN);
+    }
+    if(match(TK_ARROW)) check(consume_type_hints(self));
+    check(compile_block_body(self, compile_stmt));
+    check(pop_context(self));
+
+    if(decl->code.codes.count >= 2) {
+        Bytecode* codes = (Bytecode*)decl->code.codes.data;
+
+        if(codes[0].op == OP_LOAD_CONST && codes[1].op == OP_POP_TOP) {
+            // handle optional docstring
+            py_TValue* consts = decl->code.consts.data;
+            py_TValue* c = &consts[codes[0].arg];
+            if(py_isstr(c)) {
+                decl->docstring = py_tostr(c);
+                codes[0].op = OP_NO_OP;
+                codes[1].op = OP_NO_OP;
+            }
+        }
+    }
+
+    Ctx__emit_(ctx(), OP_LOAD_FUNCTION, decl_index, prev()->line);
+    Ctx__s_emit_decorators(ctx(), decorators);
+
+    if(ctx()->is_compiling_class) {
+        Ctx__emit_(ctx(), OP_STORE_CLASS_ATTR, py_name2(decl_name), prev()->line);
+    } else {
+        NameExpr* e = NameExpr__new(prev()->line, py_name2(decl_name), name_scope(self));
+        vtemit_store((Expr*)e, ctx());
+        vtdelete((Expr*)e);
+    }
+    return NULL;
+}
+
 static Error* compile_stmt(Compiler* self) {
     Error* err;
     if(match(TK_CLASS)) {
@@ -2244,7 +2411,7 @@ static Error* compile_stmt(Compiler* self) {
         case TK_FOR: check(compile_for_loop(self)); break;
         // case TK_IMPORT: check(compile_normal_import()); break;
         // case TK_FROM: check(compile_from_import()); break;
-        // case TK_DEF: check(compile_function()); break;
+        case TK_DEF: check(compile_function(self, 0)); break;
         // case TK_DECORATOR: check(compile_decorated()); break;
         // case TK_TRY: check(compile_try_except()); break;
         case TK_PASS: consume_end_stmt(); break;
