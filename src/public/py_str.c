@@ -167,9 +167,10 @@ static bool _py_str__getitem__(int argc, py_Ref argv) {
     py_Ref _1 = py_arg(1);
     if(_1->type == tp_int) {
         int index = py_toint(py_arg(1));
-        pk__normalize_index(&index, self.size);
+        if(!pk__normalize_index(&index, self.size)) return false;
         c11_sv res = c11_sv__u8_getitem(self, index);
         py_newstrn(py_retval(), res.data, res.size);
+        return true;
     } else if(_1->type == tp_slice) {
         int start, stop, step;
         bool ok = pk__parse_int_slice(_1, c11_sv__u8_length(self), &start, &stop, &step);
@@ -179,9 +180,8 @@ static bool _py_str__getitem__(int argc, py_Ref argv) {
         c11_string__delete(res);
         return true;
     } else {
-        return TypeError("str indices must be integers");
+        return TypeError("string indices must be integers");
     }
-    return true;
 }
 
 #define DEF_STR_CMP_OP(op, __f, __cond)                                                            \

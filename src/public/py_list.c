@@ -127,6 +127,30 @@ static bool _py_list__new__(int argc, py_Ref argv) {
     return TypeError("list() takes at most 1 argument");
 }
 
+static bool _py_list__getitem__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    List* self = py_touserdata(py_arg(0));
+    py_Ref _1 = py_arg(1);
+    if(_1->type == tp_int) {
+        int index = py_toint(py_arg(1));
+        if(!pk__normalize_index(&index, self->count)) return false;
+        *py_retval() = c11__getitem(py_TValue, self, index);
+        return true;
+    } else if(_1->type == tp_slice) {
+        int start, stop, step;
+        bool ok = pk__parse_int_slice(_1, self->count, &start, &stop, &step);
+        if(!ok) return false;
+        py_newlist(py_retval());
+        List* list = py_touserdata(py_retval());
+        PK_SLICE_LOOP(i, start, stop, step) {
+            c11_vector__push(py_TValue, list, c11__getitem(py_TValue, self, i));
+        }
+        return true;
+    } else {
+        return TypeError("list indices must be integers");
+    }
+}
+
 py_Type pk_list__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
@@ -137,5 +161,6 @@ py_Type pk_list__register() {
     py_bindmagic(type, __eq__, _py_list__eq__);
     py_bindmagic(type, __ne__, _py_list__ne__);
     py_bindmagic(type, __new__, _py_list__new__);
+    py_bindmagic(type, __getitem__, _py_list__getitem__);
     return type;
 }
