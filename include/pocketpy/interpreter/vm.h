@@ -70,6 +70,9 @@ void pk_VM__dtor(pk_VM* self);
 void pk_VM__push_frame(pk_VM* self, Frame* frame);
 void pk_VM__pop_frame(pk_VM* self);
 
+bool pk__parse_int_slice(const py_Ref slice, int length, int* start, int* stop, int* step);
+bool pk__normalize_index(int* index, int length);
+
 typedef enum pk_FrameResult {
     RES_RETURN,
     RES_CALL,

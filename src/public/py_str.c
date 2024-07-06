@@ -165,9 +165,23 @@ static bool _py_str__iter__(int argc, py_Ref argv) {
 static bool _py_str__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    c11_sv res = c11_string__u8_getitem(self, py_toint(py_arg(1)));
-    py_newstrn(py_retval(), res.data, res.size);
+    py_Ref _1 = py_arg(1);
+    if(_1->type == tp_int) {
+        int index = py_toint(py_arg(1));
+        pk__normalize_index(&index, self->size);
+        c11_sv res = c11_string__u8_getitem(self, index);
+        py_newstrn(py_retval(), res.data, res.size);
+    } else if(_1->type == tp_slice) {
+        int start, stop, step;
+        bool ok = pk__parse_int_slice(_1, c11_string__u8_length(self), &start, &stop, &step);
+        if(!ok) return false;
+        c11_string* res = c11_string__u8_slice(self, start, stop, step);
+        py_newstrn(py_retval(), res->data, res->size);
+        c11_string__delete(res);
+        return true;
+    } else {
+        return TypeError("str indices must be integers");
+    }
     return true;
 }
 
@@ -257,6 +271,77 @@ static bool _py_str__join(int argc, py_Ref argv) {
     return false;
 }
 
+static bool _py_str__replace(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    c11_string* self = py_touserdata(&argv[0]);
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    PY_CHECK_ARG_TYPE(2, tp_str);
+    c11_string* old = py_touserdata(&argv[1]);
+    c11_string* new_ = py_touserdata(&argv[2]);
+    c11_string* res =
+        c11_sv__replace2(c11_string__sv(self), c11_string__sv(old), c11_string__sv(new_));
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
+    return true;
+}
+
+static bool _py_str__split(int argc, py_Ref argv) {
+    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    c11_vector res;
+    if(argc > 2) return TypeError("split() takes at most 2 arguments");
+    if(argc == 1) {
+        // sep = ' '
+        res = c11_sv__split(self, ' ');
+    }
+    if(argc == 2) {
+        // sep = argv[1]
+        if(!py_checkstr(&argv[1])) return false;
+        c11_sv sep = c11_string__sv(py_touserdata(&argv[1]));
+        res = c11_sv__split2(self, sep);
+    }
+    py_newlistn(py_retval(), res.count);
+    for(int i = 0; i < res.count; i++) {
+        c11_sv item = c11__getitem(c11_sv, &res, i);
+        py_newstrn(py_list__getitem(py_retval(), i), item.data, item.size);
+    }
+    c11_vector__dtor(&res);
+    return true;
+}
+
+static bool _py_str__count(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_string* self = py_touserdata(&argv[0]);
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    c11_string* sub = py_touserdata(&argv[1]);
+    int res = c11_sv__count(c11_string__sv(self), c11_string__sv(sub));
+    py_newint(py_retval(), res);
+    return true;
+}
+
+static bool _py_str__strip(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_string* self = py_touserdata(&argv[0]);
+    c11_sv res = c11_sv__strip(c11_string__sv(self), true, true);
+    py_newstrn(py_retval(), res.data, res.size);
+    return true;
+}
+
+static bool _py_str__lstrip(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_string* self = py_touserdata(&argv[0]);
+    c11_sv res = c11_sv__strip(c11_string__sv(self), true, false);
+    py_newstrn(py_retval(), res.data, res.size);
+    return true;
+}
+
+static bool _py_str__rstrip(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_string* self = py_touserdata(&argv[0]);
+    c11_sv res = c11_sv__strip(c11_string__sv(self), false, true);
+    py_newstrn(py_retval(), res.data, res.size);
+    return true;
+}
+
 py_Type pk_str__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "str", tp_object, NULL, false);
@@ -286,6 +371,12 @@ py_Type pk_str__register() {
     py_bindmethod(tp_str, "startswith", _py_str__startswith);
     py_bindmethod(tp_str, "endswith", _py_str__endswith);
     py_bindmethod(tp_str, "join", _py_str__join);
+    py_bindmethod(tp_str, "replace", _py_str__replace);
+    py_bindmethod(tp_str, "split", _py_str__split);
+    py_bindmethod(tp_str, "count", _py_str__count);
+    py_bindmethod(tp_str, "strip", _py_str__strip);
+    py_bindmethod(tp_str, "lstrip", _py_str__lstrip);
+    py_bindmethod(tp_str, "rstrip", _py_str__rstrip);
     return type;
 }
 

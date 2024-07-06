@@ -189,6 +189,70 @@ void pk_VM__pop_frame(pk_VM* self) {
     Frame__delete(frame);
 }
 
+static void _clip_int(int* value, int min, int max) {
+    if(*value < min) *value = min;
+    if(*value > max) *value = max;
+}
+
+bool pk__parse_int_slice(const py_Ref slice, int length, int* start, int* stop, int* step) {
+    py_Ref s_start = py_getslot(slice, 0);
+    py_Ref s_stop = py_getslot(slice, 1);
+    py_Ref s_step = py_getslot(slice, 2);
+
+    if(py_isnone(s_step))
+        *step = 1;
+    else {
+        if(!py_checkint(s_step)) return false;
+        *step = py_toint(s_step);
+    }
+    if(*step == 0) return ValueError("slice step cannot be zero");
+
+    if(*step > 0) {
+        if(py_isnone(s_start))
+            *start = 0;
+        else {
+            if(!py_checkint(s_start)) return false;
+            *start = py_toint(s_start);
+            if(*start < 0) *start += length;
+            _clip_int(start, 0, length);
+        }
+        if(py_isnone(s_stop))
+            *stop = length;
+        else {
+            if(!py_checkint(s_stop)) return false;
+            *stop = py_toint(s_stop);
+            if(*stop < 0) *stop += length;
+            _clip_int(stop, 0, length);
+        }
+    } else {
+        if(py_isnone(s_start))
+            *start = length - 1;
+        else {
+            if(!py_checkint(s_start)) return false;
+            *start = py_toint(s_start);
+            if(*start < 0) *start += length;
+            _clip_int(start, -1, length - 1);
+        }
+        if(py_isnone(s_stop))
+            *stop = -1;
+        else {
+            if(!py_checkint(s_stop)) return false;
+            *stop = py_toint(s_stop);
+            if(*stop < 0) *stop += length;
+            _clip_int(stop, -1, length - 1);
+        }
+    }
+    return true;
+}
+
+bool pk__normalize_index(int *index, int length){
+    if(*index < 0) *index += length;
+    if(*index < 0 || *index >= length){
+        return IndexError("index out of range");
+    }
+    return true;
+}
+
 py_Type pk_VM__new_type(pk_VM* self,
                         const char* name,
                         py_Type base,

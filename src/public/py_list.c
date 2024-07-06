@@ -6,7 +6,6 @@
 
 typedef c11_vector List;
 
-
 void py_newlist(py_Ref out) {
     pk_VM* vm = pk_current_vm;
     PyObject* obj = pk_ManagedHeap__gcnew(&vm->heap, tp_list, 0, sizeof(List));
@@ -60,10 +59,45 @@ void py_list__insert(py_Ref self, int i, const py_Ref val) {
 }
 
 ////////////////////////////////
-static bool _py_list__len__(int argc, py_Ref argv){
+static bool _py_list__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 res = py_list__len(py_arg(0));
     py_newint(py_retval(), res);
+    return true;
+}
+
+static bool _py_list__eq__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_Ref _0 = py_arg(0);
+    py_Ref _1 = py_arg(1);
+    if(py_istype(_1, tp_list)) {
+        int length = py_list__len(_0);
+        if(length != py_list__len(_1)) {
+            py_newbool(py_retval(), false);
+            return true;
+        }
+        for(int i = 0; i < length; i++) {
+            py_Ref a = py_list__getitem(_0, i);
+            py_Ref b = py_list__getitem(_1, i);
+            int res = py_eq(a, b);
+            if(res == -1) return false;
+            if(res == 0) {
+                py_newbool(py_retval(), false);
+                return true;
+            }
+        }
+        py_newbool(py_retval(), true);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
+static bool _py_list__ne__(int argc, py_Ref argv) {
+    bool ok = _py_list__eq__(argc, argv);
+    if(!ok) return false;
+    py_Ref retval = py_retval();
+    py_newbool(retval, !py_tobool(retval));
     return true;
 }
 
@@ -74,5 +108,7 @@ py_Type pk_list__register() {
     ti->dtor = (void (*)(void*))c11_vector__dtor;
 
     py_bindmagic(type, __len__, _py_list__len__);
+    py_bindmagic(type, __eq__, _py_list__eq__);
+    py_bindmagic(type, __ne__, _py_list__ne__);
     return type;
 }

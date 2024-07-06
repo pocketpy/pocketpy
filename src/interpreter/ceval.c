@@ -753,5 +753,7 @@ bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {
     pk_VM* self = pk_current_vm;
     PUSH(lhs);
     PUSH(rhs);
-    return stack_binaryop(self, op, rop);
+    bool ok = stack_binaryop(self, op, rop);
+    STACK_SHRINK(2);
+    return ok;
 }

@@ -42,7 +42,6 @@ void c11_string__ctor2(c11_string* self, const char* data, int size);
 c11_string* c11_string__copy(c11_string* self);
 void c11_string__delete(c11_string* self);
 c11_sv c11_string__sv(c11_string* self);
-c11_string* c11_string__replace(c11_string* self, char old, char new_);
 
 int c11_string__u8_length(c11_string* self);
 c11_sv c11_string__u8_getitem(c11_string* self, int i);
@@ -55,6 +54,9 @@ c11_sv c11_sv__strip(c11_sv sv, bool left, bool right);
 int c11_sv__index(c11_sv self, char c);
 int c11_sv__index2(c11_sv self, c11_sv sub, int start);
 int c11_sv__count(c11_sv self, c11_sv sub);
+
+c11_string* c11_sv__replace(c11_sv self, char old, char new_);
+c11_string* c11_sv__replace2(c11_sv self, c11_sv old, c11_sv new_);
 
 c11_vector/* T=c11_sv */ c11_sv__split(c11_sv self, char sep);
 c11_vector/* T=c11_sv */ c11_sv__split2(c11_sv self, c11_sv sep);

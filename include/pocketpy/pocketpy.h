@@ -296,6 +296,7 @@ bool py_str(py_Ref val);
 py_GlobalRef py_retval();
 
 #define py_isnil(self) ((self)->type == 0)
+#define py_isnone(self) ((self)->type == tp_none_type)
 
 /* tuple */
 
@@ -333,6 +334,11 @@ const char* py_tpname(py_Type type);
 
 /// Check if the object is an instance of the given type.
 bool py_checktype(const py_Ref self, py_Type type);
+
+#define py_checkint(self) py_checktype(self, tp_int)
+#define py_checkfloat(self) py_checktype(self, tp_float)
+#define py_checkbool(self) py_checktype(self, tp_bool)
+#define py_checkstr(self) py_checktype(self, tp_str)
 
 int py_replinput(char* buf);
 

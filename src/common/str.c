@@ -38,13 +38,30 @@ void c11_string__delete(c11_string* self) { free(self); }
 
 c11_sv c11_string__sv(c11_string* self) { return (c11_sv){self->data, self->size}; }
 
-c11_string* c11_string__replace(c11_string* self, char old, char new_) {
-    c11_string* retval = c11_string__copy(self);
+c11_string* c11_sv__replace(c11_sv self, char old, char new_) {
+    c11_string* retval = c11_string__new2(self.data, self.size);
     char* p = (char*)retval->data;
     for(int i = 0; i < retval->size; i++) {
         if(p[i] == old) p[i] = new_;
     }
     return retval;
+}
+
+c11_string* c11_sv__replace2(c11_sv self, c11_sv old, c11_sv new_){
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    int start = 0;
+    while(true) {
+        int i = c11_sv__index2(self, old, start);
+        if(i == -1) break;
+        c11_sv tmp = c11_sv__slice2(self, start, i);
+        c11_sbuf__write_sv(&buf, tmp);
+        c11_sbuf__write_sv(&buf, new_);
+        start = i + old.size;
+    }
+    c11_sv tmp = c11_sv__slice2(self, start, self.size);
+    c11_sbuf__write_sv(&buf, tmp);
+    return c11_sbuf__submit(&buf);
 }
 
 int c11_string__u8_length(c11_string* self) {
