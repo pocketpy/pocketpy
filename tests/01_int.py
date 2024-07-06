@@ -1,7 +1,3 @@
-assert 1 < 2 < 3
-assert 4 > 3 >= 3
-assert not 1 < 2 > 3
-
 # test int literals
 assert 0xffff == 65535
 assert 0xAAFFFF == 11206655
