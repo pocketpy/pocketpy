@@ -30,7 +30,11 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 #define THIRD() (self->stack.sp - 3)
 #define FOURTH() (self->stack.sp - 4)
 #define STACK_SHRINK(n) (self->stack.sp -= n)
-#define PUSH(v) (*self->stack.sp++ = *v)
+#define PUSH(v)                                                                                    \
+    do {                                                                                           \
+        *self->stack.sp = *v;                                                                      \
+        self->stack.sp++;                                                                          \
+    } while(0)
 #define POP() (--self->stack.sp)
 #define POPX() (*--self->stack.sp)
 #define SP() (self->stack.sp)
@@ -52,7 +56,7 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
                 PUSH(&self->last_retval);                                                          \
                 goto __NEXT_FRAME;                                                                 \
             case RES_ERROR: goto __ERROR;                                                          \
-            default: c11__unreachedable();                                                             \
+            default: c11__unreachedable();                                                         \
         }                                                                                          \
     } while(0)
 
@@ -86,7 +90,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
         c11_sbuf buf;
         c11_sbuf__ctor(&buf);
         for(py_Ref p = self->stack.begin; p != SP(); p++) {
-            switch(p->type){
+            switch(p->type) {
                 case 0: c11_sbuf__write_cstr(&buf, "nil"); break;
                 case tp_int: c11_sbuf__write_i64(&buf, p->_i64); break;
                 case tp_float: c11_sbuf__write_f64(&buf, p->_f64, -1); break;
@@ -102,7 +106,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     pk_sprintf(&buf, "%q", (c11_sv){data, size});
                     break;
                 }
-                default:{
+                default: {
                     pk_sprintf(&buf, "(%t)", p->type);
                     break;
                 }
@@ -110,7 +114,11 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             if(p != TOP()) c11_sbuf__write_cstr(&buf, ", ");
         }
         c11_string* stack_str = c11_sbuf__submit(&buf);
-        printf("L%-3d: %-25s %-6d [%s]\n", Frame__lineno(frame), pk_opname(byte.op), byte.arg, stack_str->data);
+        printf("L%-3d: %-25s %-6d [%s]\n",
+               Frame__lineno(frame),
+               pk_opname(byte.op),
+               byte.arg,
+               stack_str->data);
         c11_string__delete(stack_str);
 #endif
 

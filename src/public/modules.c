@@ -58,8 +58,21 @@ static bool _py_builtins__repr(int argc, py_Ref argv){
     return py_repr(argv);
 }
 
+static bool _py_builtins__exit(int argc, py_Ref argv){
+    int code = 0;
+    if(argc > 1) return TypeError("exit() takes at most 1 argument");
+    if(argc == 1){
+        PY_CHECK_ARG_TYPE(0, tp_int);
+        code = py_toint(argv);
+    }
+    // return py_exception("SystemExit", "%d", code);
+    exit(code);
+    return false;
+}
+
 py_TValue pk_builtins__register(){
     py_Ref builtins = py_newmodule("builtins", NULL);
     py_bindnativefunc(builtins, "repr", _py_builtins__repr);
+    py_bindnativefunc(builtins, "exit", _py_builtins__exit);
     return *builtins;
 }

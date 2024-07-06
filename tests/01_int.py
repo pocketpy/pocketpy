@@ -1,3 +1,7 @@
+assert 1 < 2 < 3
+assert 4 > 3 >= 3
+assert not 1 < 2 > 3
+
 # test int literals
 assert 0xffff == 65535
 assert 0xAAFFFF == 11206655
@@ -103,11 +107,9 @@ assert ~0 == -1
 assert str(1) == '1'
 assert repr(1) == '1'
 
-assert not 1 < 2 > 3
 assert 1 < 2 < 3
 assert 4 > 3 >= 3
-
-exit()
+assert not 1 < 2 > 3
 
 # try:
 #     1 // 0

@@ -879,7 +879,7 @@ static void _emit_compare(BinaryExpr* self, Ctx* ctx, c11_vector* jmps) {
     Ctx__emit_(ctx, OP_ROT_THREE, BC_NOARG, self->line);  // [b, a, b]
     Ctx__emit_(ctx, OP_BINARY_OP, cmp_token2name(self->op), self->line);
     // [b, RES]
-    int index = Ctx__emit_(ctx, OP_JUMP_IF_FALSE_OR_POP, BC_NOARG, self->line);
+    int index = Ctx__emit_(ctx, OP_SHORTCUT_IF_FALSE_OR_POP, BC_NOARG, self->line);
     c11_vector__push(int, jmps, index);
 }
 
@@ -953,10 +953,13 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
     for(int i = 0; i < jmps.count; i++) {
         Ctx__patch_jump(ctx, c11__getitem(int, &jmps, i));
     }
+    c11_vector__dtor(&jmps);
 }
 
 BinaryExpr* BinaryExpr__new(int line, TokenIndex op, bool inplace) {
-    const static ExprVt Vt = {.emit_ = BinaryExpr__emit_, .dtor = BinaryExpr__dtor};
+    const static ExprVt Vt = {.emit_ = BinaryExpr__emit_,
+                              .dtor = BinaryExpr__dtor,
+                              .is_binary = true};
     static_assert_expr_size(BinaryExpr);
     BinaryExpr* self = PoolExpr_alloc();
     self->vt = &Vt;
