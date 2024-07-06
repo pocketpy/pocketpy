@@ -52,8 +52,15 @@ unsigned char* py_tobytes(const py_Ref self, int* size) {
 }
 
 ////////////////////////////////
-
-static bool _py_str__new__(int argc, py_Ref argv) { return true; }
+static bool _py_str__new__(int argc, py_Ref argv) {
+    assert(argc >= 1);
+    if(argc == 1) {
+        py_newstr(py_retval(), "");
+        return true;
+    }
+    if(argc > 2) return TypeError("str() takes at most 1 argument");
+    return py_str(py_arg(1));
+}
 
 static bool _py_str__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -157,7 +164,7 @@ static bool _py_str__getitem__(int argc, py_Ref argv) {
     return true;
 }
 
-#define DEF_STR_CMP_OP(op, f, condition)                                                           \
+#define DEF_STR_CMP_OP(op, __f, __cond)                                                            \
     static bool _py_str##op(int argc, py_Ref argv) {                                               \
         PY_CHECK_ARGC(2);                                                                          \
         c11_string* self = py_touserdata(&argv[0]);                                                \
@@ -165,8 +172,8 @@ static bool _py_str__getitem__(int argc, py_Ref argv) {
             py_newnotimplemented(py_retval());                                                     \
         } else {                                                                                   \
             c11_string* other = py_touserdata(&argv[1]);                                           \
-            int res = c11_sv__cmp(c11_string__sv(self), c11_string__sv(other));                    \
-            py_newbool(py_retval(), condition);                                                    \
+            int res = __f(c11_string__sv(self), c11_string__sv(other));                            \
+            py_newbool(py_retval(), __cond);                                                       \
         }                                                                                          \
         return true;                                                                               \
     }
@@ -281,3 +288,11 @@ py_Type pk_bytes__register() {
     // no need to dtor because the memory is controlled by the object
     return type;
 }
+
+bool py_str(py_Ref val) {
+    py_Ref tmp = py_tpfindmagic(val->type, __str__);
+    if(!tmp) return py_repr(val);
+    return py_call(tmp, 1, val);
+}
+
+bool py_repr(py_Ref val) { return py_callmagic(__repr__, 1, val); }

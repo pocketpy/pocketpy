@@ -132,7 +132,7 @@ void pk_VM__ctor(pk_VM* self) {
 #undef validate
 
     self->StopIteration = *py_tpobject(tp_stop_iteration);
-    self->builtins = *py_newmodule("builtins", NULL);
+    self->builtins = pk_builtins__register();
 
     /* Setup Public Builtin Types */
     py_Type public_types[] = {tp_object,

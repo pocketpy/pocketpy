@@ -50,3 +50,16 @@ py_Ref py_newmodule(const char* name, const char* package) {
     py_poptmp(2);
     return py_getmodule(name);
 }
+
+//////////////////////////
+
+static bool _py_builtins__repr(int argc, py_Ref argv){
+    PY_CHECK_ARGC(1);
+    return py_repr(argv);
+}
+
+py_TValue pk_builtins__register(){
+    py_Ref builtins = py_newmodule("builtins", NULL);
+    py_bindnativefunc(builtins, "repr", _py_builtins__repr);
+    return *builtins;
+}
