@@ -151,6 +151,26 @@ static bool _py_list__getitem__(int argc, py_Ref argv) {
     }
 }
 
+static bool _py_list__setitem__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    List* self = py_touserdata(py_arg(0));
+    int index = py_toint(py_arg(1));
+    if(!pk__normalize_index(&index, self->count)) return false;
+    c11__setitem(py_TValue, self, index, *py_arg(2));
+    return true;
+}
+
+static bool _py_list__delitem__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    List* self = py_touserdata(py_arg(0));
+    int index = py_toint(py_arg(1));
+    if(!pk__normalize_index(&index, self->count)) return false;
+    c11_vector__erase(py_TValue, self, index);
+    return true;
+}
+
 py_Type pk_list__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
@@ -162,5 +182,7 @@ py_Type pk_list__register() {
     py_bindmagic(type, __ne__, _py_list__ne__);
     py_bindmagic(type, __new__, _py_list__new__);
     py_bindmagic(type, __getitem__, _py_list__getitem__);
+    py_bindmagic(type, __setitem__, _py_list__setitem__);
+    py_bindmagic(type, __delitem__, _py_list__delitem__);
     return type;
 }
