@@ -43,14 +43,14 @@ c11_string* c11_string__copy(c11_string* self);
 void c11_string__delete(c11_string* self);
 c11_sv c11_string__sv(c11_string* self);
 
-int c11_string__u8_length(c11_string* self);
-c11_sv c11_string__u8_getitem(c11_string* self, int i);
-c11_string* c11_string__u8_slice(c11_string* self, int start, int stop, int step);
+int c11_sv__u8_length(c11_sv self);
+c11_sv c11_sv__u8_getitem(c11_sv self, int i);
+c11_string* c11_sv__u8_slice(c11_sv self, int start, int stop, int step);
 
 // general string operations
 c11_sv c11_sv__slice(c11_sv sv, int start);
 c11_sv c11_sv__slice2(c11_sv sv, int start, int stop);
-c11_sv c11_sv__strip(c11_sv sv, bool left, bool right);
+c11_sv c11_sv__strip(c11_sv sv, c11_sv chars, bool left, bool right);
 int c11_sv__index(c11_sv self, char c);
 int c11_sv__index2(c11_sv self, c11_sv sub, int start);
 int c11_sv__count(c11_sv self, c11_sv sub);

@@ -164,18 +164,18 @@ static bool _py_str__iter__(int argc, py_Ref argv) {
 
 static bool _py_str__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     py_Ref _1 = py_arg(1);
     if(_1->type == tp_int) {
         int index = py_toint(py_arg(1));
-        pk__normalize_index(&index, self->size);
-        c11_sv res = c11_string__u8_getitem(self, index);
+        pk__normalize_index(&index, self.size);
+        c11_sv res = c11_sv__u8_getitem(self, index);
         py_newstrn(py_retval(), res.data, res.size);
     } else if(_1->type == tp_slice) {
         int start, stop, step;
-        bool ok = pk__parse_int_slice(_1, c11_string__u8_length(self), &start, &stop, &step);
+        bool ok = pk__parse_int_slice(_1, c11_sv__u8_length(self), &start, &stop, &step);
         if(!ok) return false;
-        c11_string* res = c11_string__u8_slice(self, start, stop, step);
+        c11_string* res = c11_sv__u8_slice(self, start, stop, step);
         py_newstrn(py_retval(), res->data, res->size);
         c11_string__delete(res);
         return true;
@@ -261,14 +261,37 @@ static bool _py_str__endswith(int argc, py_Ref argv) {
 }
 
 static bool _py_str__join(int argc, py_Ref argv) {
-    assert(false);
-    // PY_CHECK_ARGC(2);
-    // c11_sbuf buf;
-    // c11_sbuf__ctor(&buf);
-    // c11_string* sep = py_touserdata(&argv[0]);
-    // py_Ref iter = py_pushtmp();
-    // py_iter(iter, &argv[1]);
-    return false;
+    PY_CHECK_ARGC(2);
+    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    py_Ref _1 = py_arg(1);
+    // join a list or tuple
+    py_TValue* p;
+    int length;
+    if(py_istype(_1, tp_list)) {
+        p = py_list__getitem(_1, 0);
+        length = py_list__len(_1);
+    } else if(py_istype(_1, tp_tuple)) {
+        p = py_tuple__getitem(_1, 0);
+        length = py_tuple__len(_1);
+    } else {
+        return TypeError("join() argument must be a list or tuple");
+    }
+
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    for(int i = 0; i < length; i++) {
+        if(i > 0) c11_sbuf__write_sv(&buf, self);
+        if(!py_checkstr(&p[i])) {
+            c11_sbuf__dtor(&buf);
+            return false;
+        }
+        c11_string* item = py_touserdata(&p[i]);
+        c11_sbuf__write_cstrn(&buf, item->data, item->size);
+    }
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
+    return true;
 }
 
 static bool _py_str__replace(int argc, py_Ref argv) {
@@ -318,27 +341,53 @@ static bool _py_str__count(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__strip(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_string* self = py_touserdata(&argv[0]);
-    c11_sv res = c11_sv__strip(c11_string__sv(self), true, true);
+static bool _py_str__strip_impl(bool left, bool right, int argc, py_Ref argv) {
+    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    c11_sv chars;
+    if(argc == 1) {
+        chars = (c11_sv){" \t\n\r", 4};
+    } else if(argc == 2) {
+        if(!py_checkstr(&argv[1])) return false;
+        chars = c11_string__sv(py_touserdata(&argv[1]));
+    } else {
+        return TypeError("strip() takes at most 2 arguments");
+    }
+    c11_sv res = c11_sv__strip(self, chars, left, right);
     py_newstrn(py_retval(), res.data, res.size);
     return true;
+}
+
+static bool _py_str__strip(int argc, py_Ref argv) {
+    return _py_str__strip_impl(true, true, argc, argv);
 }
 
 static bool _py_str__lstrip(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_string* self = py_touserdata(&argv[0]);
-    c11_sv res = c11_sv__strip(c11_string__sv(self), true, false);
-    py_newstrn(py_retval(), res.data, res.size);
-    return true;
+    return _py_str__strip_impl(true, false, argc, argv);
 }
 
 static bool _py_str__rstrip(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_string* self = py_touserdata(&argv[0]);
-    c11_sv res = c11_sv__strip(c11_string__sv(self), false, true);
-    py_newstrn(py_retval(), res.data, res.size);
+    return _py_str__strip_impl(false, true, argc, argv);
+}
+
+static bool _py_str__zfill(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    int width = py_toint(py_arg(1));
+    int delta = width - c11_sv__u8_length(self);
+    if(delta <= 0) {
+        *py_retval() = argv[0];
+        return true;
+    }
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    for(int i = 0; i < delta; i++) {
+        c11_sbuf__write_char(&buf, '0');
+    }
+    c11_sbuf__write_sv(&buf, self);
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
     return true;
 }
 
@@ -377,6 +426,7 @@ py_Type pk_str__register() {
     py_bindmethod(tp_str, "strip", _py_str__strip);
     py_bindmethod(tp_str, "lstrip", _py_str__lstrip);
     py_bindmethod(tp_str, "rstrip", _py_str__rstrip);
+    py_bindmethod(tp_str, "zfill", _py_str__zfill);
     return type;
 }
 

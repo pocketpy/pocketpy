@@ -101,10 +101,6 @@ assert s2.join( seq ) == "runoob"
 assert 'x'.zfill(5) == '0000x'
 assert '568'.zfill(1) == '568'
 
-def test(*seq):
-    return s1.join(seq)
-assert test("r", "u", "n", "o", "o", "b") == "r-u-n-o-o-b"
-
 num = 6
 assert str(num) == '6'
 
@@ -177,6 +173,10 @@ a = 'b'
 assert list(a) == ['b']
 a = '测'
 assert list(a) == ['测']
+
+def test(*seq):
+    return s1.join(seq)
+assert test("r", "u", "n", "o", "o", "b") == "r-u-n-o-o-b"
 
 # test format()
 assert "Hello, {}!".format("World") == "Hello, World!"

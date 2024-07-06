@@ -47,7 +47,7 @@ c11_string* c11_sv__replace(c11_sv self, char old, char new_) {
     return retval;
 }
 
-c11_string* c11_sv__replace2(c11_sv self, c11_sv old, c11_sv new_){
+c11_string* c11_sv__replace2(c11_sv self, c11_sv old, c11_sv new_) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     int start = 0;
@@ -64,22 +64,20 @@ c11_string* c11_sv__replace2(c11_sv self, c11_sv old, c11_sv new_){
     return c11_sbuf__submit(&buf);
 }
 
-int c11_string__u8_length(c11_string* self) {
-    return c11__byte_index_to_unicode(self->data, self->size);
+int c11_sv__u8_length(c11_sv sv) { return c11__byte_index_to_unicode(sv.data, sv.size); }
+
+c11_sv c11_sv__u8_getitem(c11_sv sv, int i) {
+    i = c11__unicode_index_to_byte(sv.data, i);
+    int size = c11__u8_header(sv.data[i], false);
+    return c11_sv__slice2(sv, i, i + size);
 }
 
-c11_sv c11_string__u8_getitem(c11_string* self, int i) {
-    i = c11__unicode_index_to_byte(self->data, i);
-    int size = c11__u8_header(self->data[i], false);
-    return c11_sv__slice2(c11_string__sv(self), i, i + size);
-}
-
-c11_string* c11_string__u8_slice(c11_string* self, int start, int stop, int step) {
+c11_string* c11_sv__u8_slice(c11_sv sv, int start, int stop, int step) {
     c11_sbuf ss;
     c11_sbuf__ctor(&ss);
     assert(step != 0);
     for(int i = start; step > 0 ? i < stop : i > stop; i += step) {
-        c11_sv unicode = c11_string__u8_getitem(self, i);
+        c11_sv unicode = c11_sv__u8_getitem(sv, i);
         c11_sbuf__write_sv(&ss, unicode);
     }
     return c11_sbuf__submit(&ss);
@@ -95,20 +93,28 @@ c11_sv c11_sv__slice2(c11_sv sv, int start, int stop) {
     return (c11_sv){sv.data + start, stop - start};
 }
 
-c11_sv c11_sv__strip(c11_sv sv, bool left, bool right) {
+c11_sv c11_sv__strip(c11_sv sv, c11_sv chars, bool left, bool right) {
     int L = 0;
-    int R = sv.size;
-    const char* data = sv.data;
+    int R = c11_sv__u8_length(sv);
     if(left) {
-        while(L < R && (data[L] == ' ' || data[L] == '\t' || data[L] == '\n' || data[L] == '\r'))
+        while(L < R) {
+            c11_sv tmp = c11_sv__u8_getitem(sv, L);
+            bool found = c11_sv__index2(chars, tmp, 0) != -1;
+            if(!found) break;
             L++;
+        }
     }
     if(right) {
-        while(L < R && (data[R - 1] == ' ' || data[R - 1] == '\t' || data[R - 1] == '\n' ||
-                        data[R - 1] == '\r'))
+        while(L < R) {
+            c11_sv tmp = c11_sv__u8_getitem(sv, R - 1);
+            bool found = c11_sv__index2(chars, tmp, 0) != -1;
+            if(!found) break;
             R--;
+        }
     }
-    return c11_sv__slice2(sv, L, R);
+    int start = c11__unicode_index_to_byte(sv.data, L);
+    int stop = c11__unicode_index_to_byte(sv.data, R);
+    return c11_sv__slice2(sv, start, stop);
 }
 
 int c11_sv__index(c11_sv self, char c) {
