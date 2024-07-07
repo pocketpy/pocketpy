@@ -87,7 +87,6 @@ static int Ctx__add_varname(Ctx* self, py_Name name);
 static int Ctx__add_const(Ctx* self, py_Ref);
 static int Ctx__add_const_string(Ctx* self, c11_sv);
 static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line);
-static void Ctx__try_merge_for_iter_store(Ctx* self, int);
 static void Ctx__s_emit_top(Ctx*);     // emit top -> pop -> delete
 static void Ctx__s_push(Ctx*, Expr*);  // push
 static Expr* Ctx__s_top(Ctx*);         // top
@@ -440,12 +439,7 @@ bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
             // build tuple and unpack it is meaningless
             Ctx__revert_last_emit_(ctx);
         } else {
-            if(prev->op == OP_FOR_ITER) {
-                prev->op = OP_FOR_ITER_UNPACK;
-                prev->arg = self->items.count;
-            } else {
-                Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->items.count, self->line);
-            }
+            Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->items.count, self->line);
         }
     } else {
         // starred assignment target must be in a tuple
@@ -541,11 +535,10 @@ void CompExpr__emit_(Expr* self_, Ctx* ctx) {
     Ctx__emit_(ctx, OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
     Ctx__enter_block(ctx, CodeBlockType_FOR_LOOP);
     int curr_iblock = ctx->curr_iblock;
-    int for_codei = Ctx__emit_(ctx, OP_FOR_ITER, curr_iblock, BC_KEEPLINE);
+    Ctx__emit_(ctx, OP_FOR_ITER, curr_iblock, BC_KEEPLINE);
     bool ok = vtemit_store(self->vars, ctx);
     // this error occurs in `vars` instead of this line, but...nevermind
     assert(ok);  // this should raise a SyntaxError, but we just assert it
-    Ctx__try_merge_for_iter_store(ctx, for_codei);
     if(self->cond) {
         vtemit_(self->cond, ctx);
         int patch = Ctx__emit_(ctx, OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
@@ -1309,26 +1302,6 @@ static void Ctx__revert_last_emit_(Ctx* self) {
     c11_vector__pop(&self->co->codes_ex);
 }
 
-static void Ctx__try_merge_for_iter_store(Ctx* self, int i) {
-    // [FOR_ITER, STORE_?, ]
-    Bytecode* co_codes = (Bytecode*)self->co->codes.data;
-    if(co_codes[i].op != OP_FOR_ITER) return;
-    if(self->co->codes.count - i != 2) return;
-    uint16_t arg = co_codes[i + 1].arg;
-    if(co_codes[i + 1].op == OP_STORE_FAST) {
-        Ctx__revert_last_emit_(self);
-        co_codes[i].op = OP_FOR_ITER_STORE_FAST;
-        co_codes[i].arg = arg;
-        return;
-    }
-    if(co_codes[i + 1].op == OP_STORE_GLOBAL) {
-        Ctx__revert_last_emit_(self);
-        co_codes[i].op = OP_FOR_ITER_STORE_GLOBAL;
-        co_codes[i].arg = arg;
-        return;
-    }
-}
-
 static int Ctx__emit_int(Ctx* self, int64_t value, int line) {
     if(is_small_int(value)) {
         return Ctx__emit_(self, OP_LOAD_SMALL_INT, (uint16_t)value, line);
@@ -1569,18 +1542,22 @@ static Error* EXPR_TUPLE(Compiler* self) { return EXPR_TUPLE_ALLOW_SLICE(self, f
 
 // special case for `for loop` and `comp`
 static Error* EXPR_VARS(Compiler* self) {
-    // int count = 0;
-    // do {
-    //     consume(TK_ID);
-    //     ctx()->s_push(make_expr<NameExpr>(prev().str(), name_scope()));
-    //     count += 1;
-    // } while(match(TK_COMMA));
-    // if(count > 1){
-    //     TupleExpr* e = make_expr<TupleExpr>(count);
-    //     for(int i=count-1; i>=0; i--)
-    //         e->items[i] = Ctx__s_popx(ctx());
-    //     ctx()->s_push(e);
-    // }
+    int count = 0;
+    do {
+        consume(TK_ID);
+        py_Name name = py_name2(Token__sv(prev()));
+        NameExpr* e = NameExpr__new(prev()->line, name, name_scope(self));
+        Ctx__s_push(ctx(), (Expr*)e);
+        count += 1;
+    } while(match(TK_COMMA));
+    if(count > 1) {
+        SequenceExpr* e = TupleExpr__new(prev()->line, count);
+        for(int i = count - 1; i >= 0; i--) {
+            Expr* item = Ctx__s_popx(ctx());
+            c11__setitem(Expr*, &e->items, i, item);
+        }
+        Ctx__s_push(ctx(), (Expr*)e);
+    }
     return NULL;
 }
 
@@ -1627,7 +1604,7 @@ static Error* pop_context(Compiler* self) {
     if(func) {
         // check generator
         c11__foreach(Bytecode, &func->code.codes, bc) {
-            if(bc->op == OP_YIELD_VALUE || bc->op == OP_FOR_ITER_YIELD_VALUE) {
+            if(bc->op == OP_YIELD_VALUE) {
                 func->type = FuncType_GENERATOR;
                 c11__foreach(Bytecode, &func->code.codes, bc) {
                     if(bc->op == OP_RETURN_VALUE && bc->arg == BC_NOARG) {
@@ -2104,18 +2081,16 @@ static Error* compile_for_loop(Compiler* self) {
     consume(TK_IN);
     check(EXPR_TUPLE(self));  // [vars, iter]
     Ctx__s_emit_top(ctx());   // [vars]
-    Ctx__emit_(ctx(), OP_GET_ITER_NEW, BC_NOARG, BC_KEEPLINE);
+    Ctx__emit_(ctx(), OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
     CodeBlock* block = Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
-    int for_codei = Ctx__emit_(ctx(), OP_FOR_ITER, ctx()->curr_iblock, BC_KEEPLINE);
+    Ctx__emit_(ctx(), OP_FOR_ITER, ctx()->curr_iblock, BC_KEEPLINE);
     Expr* vars = Ctx__s_popx(ctx());
     bool ok = vtemit_store(vars, ctx());
     vtdelete(vars);
-    if(!ok)
-        return SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
-
-    // TODO: ??
-    // ctx()->try_merge_for_iter_store(for_codei);
-
+    if(!ok) {
+        // this error occurs in `vars` instead of this line, but...nevermind
+        return SyntaxError();
+    }
     check(compile_block_body(self, compile_stmt));
     Ctx__emit_virtual(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), BC_KEEPLINE, true);
     Ctx__exit_block(ctx());
@@ -2506,9 +2481,10 @@ static Error* compile_stmt(Compiler* self) {
             if(self->contexts.count <= 1) return SyntaxError("'yield from' outside function");
             check(EXPR_TUPLE(self));
             Ctx__s_emit_top(ctx());
-            Ctx__emit_(ctx(), OP_GET_ITER_NEW, BC_NOARG, kw_line);
+            Ctx__emit_(ctx(), OP_GET_ITER, BC_NOARG, kw_line);
             Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
-            Ctx__emit_(ctx(), OP_FOR_ITER_YIELD_VALUE, BC_NOARG, kw_line);
+            Ctx__emit_(ctx(), OP_FOR_ITER, ctx()->curr_iblock, kw_line);
+            Ctx__emit_(ctx(), OP_YIELD_VALUE, BC_NOARG, kw_line);
             Ctx__emit_(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), kw_line);
             Ctx__exit_block(ctx());
             consume_end_stmt();
@@ -2687,7 +2663,7 @@ Error* Compiler__compile(Compiler* self, CodeObject* out) {
     } else if(mode() == JSON_MODE) {
         check(EXPR(self));
         Expr* e = Ctx__s_popx(ctx());
-        if(!e->vt->is_json_object) { return SyntaxError("expect a JSON object, literal or array"); }
+        if(!e->vt->is_json_object) return SyntaxError("expect a JSON object, literal or array");
         consume(TK_EOF);
         vtemit_(e, ctx());
         Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);

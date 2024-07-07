@@ -38,7 +38,7 @@ const char* pk_opname(Opcode op) {
 py_TValue* pk_arrayview(py_Ref self, int* length) {
     if(self->type == tp_list) {
         *length = py_list__len(self);
-        return py_list__getitem(self, 0);
+        return py_list__data(self);
     }
     if(self->type == tp_tuple) {
         *length = py_tuple__len(self);
@@ -137,8 +137,7 @@ static void disassemble(CodeObject* co) {
                 case OP_BEGIN_CLASS:
                 case OP_GOTO:
                 case OP_DELETE_GLOBAL:
-                case OP_STORE_CLASS_ATTR:
-                case OP_FOR_ITER_STORE_GLOBAL: {
+                case OP_STORE_CLASS_ATTR: {
                     c11_sbuf__write_cstr(&ss, " (");
                     c11_sbuf__write_cstr(&ss, py_name2str(byte.arg));
                     c11_sbuf__write_char(&ss, ')');
@@ -146,8 +145,7 @@ static void disassemble(CodeObject* co) {
                 }
                 case OP_LOAD_FAST:
                 case OP_STORE_FAST:
-                case OP_DELETE_FAST:
-                case OP_FOR_ITER_STORE_FAST: {
+                case OP_DELETE_FAST: {
                     py_Name name = c11__getitem(py_Name, &co->varnames, byte.arg);
                     c11_sbuf__write_cstr(&ss, " (");
                     c11_sbuf__write_cstr(&ss, py_name2str(name));

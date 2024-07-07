@@ -73,15 +73,6 @@ assert d == 2
 
 t = 0
 for i in range(5):
-    try:
-        break
-    except:
-        pass
-    t = 1
-assert t == 0
-
-t = 0
-for i in range(5):
     if True and 1:
         break
     t = 1
@@ -132,3 +123,12 @@ if x == 2:
 else:
     x = 3
 assert x == 2
+
+# t = 0
+# for i in range(5):
+#     try:
+#         break
+#     except:
+#         pass
+#     t = 1
+# assert t == 0

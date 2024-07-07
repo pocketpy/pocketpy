@@ -24,6 +24,11 @@ void py_newlistn(py_Ref out, int n) {
     userdata->count = n;
 }
 
+py_Ref py_list__data(const py_Ref self) {
+    List* userdata = py_touserdata(self);
+    return userdata->data;
+}
+
 py_Ref py_list__getitem(const py_Ref self, int i) {
     List* userdata = py_touserdata(self);
     return c11__at(py_TValue, userdata, i);

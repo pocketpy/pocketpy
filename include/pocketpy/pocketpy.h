@@ -316,6 +316,7 @@ int py_tuple__len(const py_Ref self);
 
 // unchecked functions, if self is not a list, the behavior is undefined
 py_ObjectRef py_list__getitem(const py_Ref self, int i);
+py_ObjectRef py_list__data(const py_Ref self);
 void py_list__setitem(py_Ref self, int i, const py_Ref val);
 void py_list__delitem(py_Ref self, int i);
 int py_list__len(const py_Ref self);

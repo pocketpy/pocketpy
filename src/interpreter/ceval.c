@@ -709,9 +709,24 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 *TOP() = self->last_retval;
                 DISPATCH();
             }
-
-                //
-
+            ////////////////
+            case OP_GET_ITER: {
+                if(!py_iter(TOP())) goto __ERROR;
+                *TOP() = *py_retval();
+                DISPATCH();
+            }
+            case OP_FOR_ITER: {
+                int res = py_next(TOP());
+                if(res == -1) goto __ERROR;
+                if(res) {
+                    PUSH(py_retval());
+                    DISPATCH();
+                } else {
+                    int target = Frame__prepare_loop_break(frame, &self->stack);
+                    DISPATCH_JUMP_ABSOLUTE(target);
+                }
+            }
+            ////////
             case OP_UNPACK_SEQUENCE: {
                 if(!stack_unpack_sequence(self, byte.arg)) goto __ERROR;
                 DISPATCH();
