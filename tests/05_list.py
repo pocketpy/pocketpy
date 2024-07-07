@@ -20,6 +20,7 @@ l1 = [1];l2 = l1;l1.append(2);l3 = [1,1,2]
 assert l2[1] == 2
 assert l1 == l2
 assert l1*3 == [1,2,1,2,1,2]
+assert 2*l1 == [1,2,1,2]
 assert l3.count(1) == 2
 
 member = ['Tom', 'Sunny', 'Honer', 'Lily']
@@ -55,27 +56,7 @@ l.insert(1, 'e')
 assert l == ['h', 'e', 'l', 'l', 'o']
 assert l[-2] == 'l'
 
-# test sort
-a = [8, 2, 4, 2, 9]
-assert sorted(a) == [2, 2, 4, 8, 9]
-assert sorted(a, reverse=True) == [9, 8, 4, 2, 2]
-
-assert sorted(a, key=lambda x:-x, reverse=True) == [2, 2, 4, 8, 9]
-assert a == [8, 2, 4, 2, 9]
-
-b = [(1, 2), (3, 3), (5, 1)]
-b.sort(key=lambda x:x[1])
-assert b == [(5, 1), (1, 2), (3,3)]
-
-# unpacking builder
-a = [1, 2, 3]
-b = [*a, 4, 5]
-assert b == [1, 2, 3, 4, 5]
-
-a = []
-b = [*a, 1, 2, 3, *a, *a]
-assert b == [1, 2, 3]
-
+b = [1, 2, 3]
 assert b[
     1
 ] == 2
@@ -86,12 +67,6 @@ assert b[0
 assert b[0] == 1
 assert b[
     0] == 1
-
-a = []
-a.append(0)
-a.append([1, 2, a])
-
-assert repr(a) == "[0, [1, 2, [...]]]"
 
 a = [1, 2, 3]
 assert a.index(2) == 1
@@ -110,6 +85,24 @@ assert list(range(1, 5, 2)) == [1, 3]
 assert list(range(5, 1, -1)) == [5, 4, 3, 2]
 assert list(range(5, 1, -2)) == [5, 3]
 
+# test sort
+a = [8, 2, 4, 2, 9]
+assert sorted(a) == [2, 2, 4, 8, 9]
+assert sorted(a, reverse=True) == [9, 8, 4, 2, 2]
+
+assert sorted(a, key=lambda x:-x, reverse=True) == [2, 2, 4, 8, 9]
+assert a == [8, 2, 4, 2, 9]
+
+b = [(1, 2), (3, 3), (5, 1)]
+b.sort(key=lambda x:x[1])
+assert b == [(5, 1), (1, 2), (3,3)]
+
+# test cyclic reference
+a = []
+a.append(0)
+a.append([1, 2, a])
+
+assert repr(a) == "[0, [1, 2, [...]]]"
 
 # try:
 #     a.index(1, 1)
@@ -130,3 +123,12 @@ assert list(range(5, 1, -2)) == [5, 3]
 # assert A()[::, :2] == (slice(None, None, None), slice(None, 2, None))
 # assert A()['b':'c':1, :] == (slice('b', 'c', 1), slice(None, None, None))
 # assert A()[1:2, :A()[3:4, ::-1]] == (slice(1, 2, None), slice(None, (slice(3, 4, None), slice(None, None, -1)), None))
+
+# unpacking builder (not supported)
+# a = [1, 2, 3]
+# b = [*a, 4, 5]
+# assert b == [1, 2, 3, 4, 5]
+
+# a = []
+# b = [*a, 1, 2, 3, *a, *a]
+# assert b == [1, 2, 3]

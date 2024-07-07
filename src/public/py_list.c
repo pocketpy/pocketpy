@@ -237,7 +237,6 @@ static bool _py_list__count(int argc, py_Ref argv) {
     return true;
 }
 
-
 static bool _py_list__clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_list__clear(py_arg(0));
@@ -255,8 +254,13 @@ static bool _py_list__copy(int argc, py_Ref argv) {
 }
 
 static bool _py_list__index(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    for(int i = 0; i < py_list__len(py_arg(0)); i++) {
+    if(argc > 3) return TypeError("index() takes at most 3 arguments");
+    int start = 0;
+    if(argc == 3) {
+        PY_CHECK_ARG_TYPE(2, tp_int);
+        start = py_toint(py_arg(2));
+    }
+    for(int i = start; i < py_list__len(py_arg(0)); i++) {
         int res = py_eq(py_list__getitem(py_arg(0), i), py_arg(1));
         if(res == -1) return false;
         if(res) {
@@ -301,6 +305,7 @@ static bool _py_list__pop(int argc, py_Ref argv) {
     c11_vector__pop(self);
     return true;
 }
+
 static bool _py_list__insert(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_int);
