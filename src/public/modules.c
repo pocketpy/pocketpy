@@ -2,6 +2,7 @@
 
 #include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.h"
+#include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 
 py_Ref py_getmodule(const char* name) {
@@ -75,11 +76,62 @@ static bool _py_builtins__len(int argc, py_Ref argv) {
     return py_len(argv);
 }
 
+static bool _py_builtins__hex(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_int);
+
+    py_i64 val = py_toint(argv);
+
+    if(val == 0) {
+        py_newstr(py_retval(), "0x0");
+        return true;
+    }
+
+    c11_sbuf ss;
+    c11_sbuf__ctor(&ss);
+
+    if(val < 0) {
+        c11_sbuf__write_char(&ss, '-');
+        val = -val;
+    }
+    c11_sbuf__write_cstr(&ss, "0x");
+    bool non_zero = true;
+    for(int i = 56; i >= 0; i -= 8) {
+        unsigned char cpnt = (val >> i) & 0xff;
+        c11_sbuf__write_hex(&ss, cpnt, non_zero);
+        if(cpnt != 0) non_zero = false;
+    }
+    // return VAR(ss.str());
+    c11_string* res = c11_sbuf__submit(&ss);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
+    return true;
+}
+
+static bool _py_builtins__iter(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    return py_iter(argv);
+}
+
+static bool _py_builtins__next(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    int res = py_next(argv);
+    if(res == -1) return false;
+    if(res) {
+        return true;
+    } else {
+        return StopIteration();
+    }
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins", NULL);
     py_bindnativefunc(builtins, "repr", _py_builtins__repr);
     py_bindnativefunc(builtins, "exit", _py_builtins__exit);
     py_bindnativefunc(builtins, "len", _py_builtins__len);
+    py_bindnativefunc(builtins, "hex", _py_builtins__hex);
+    py_bindnativefunc(builtins, "iter", _py_builtins__iter);
+    py_bindnativefunc(builtins, "next", _py_builtins__next);
     return *builtins;
 }
 

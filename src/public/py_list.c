@@ -171,6 +171,149 @@ static bool _py_list__delitem__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_list__add__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_Ref _0 = py_arg(0);
+    py_Ref _1 = py_arg(1);
+    if(py_istype(_1, tp_list)) {
+        List* list_0 = py_touserdata(_0);
+        List* list_1 = py_touserdata(_1);
+        py_newlist(py_retval());
+        List* list = py_touserdata(py_retval());
+        c11_vector__extend(py_TValue, list, list_0->data, list_0->count);
+        c11_vector__extend(py_TValue, list, list_1->data, list_1->count);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
+static bool _py_list__mul__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_Ref _0 = py_arg(0);
+    py_Ref _1 = py_arg(1);
+    if(py_istype(_1, tp_int)) {
+        int n = py_toint(_1);
+        py_newlist(py_retval());
+        List* list = py_touserdata(py_retval());
+        List* list_0 = py_touserdata(_0);
+        for(int i = 0; i < n; i++) {
+            c11_vector__extend(py_TValue, list, list_0->data, list_0->count);
+        }
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
+static bool _py_list__rmul__(int argc, py_Ref argv) { return _py_list__mul__(argc, argv); }
+
+static bool _py_list__append(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_list__append(py_arg(0), py_arg(1));
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool _py_list__extend(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    List* self = py_touserdata(py_arg(0));
+    PY_CHECK_ARG_TYPE(1, tp_list);
+    List* other = py_touserdata(py_arg(1));
+    c11_vector__extend(py_TValue, self, other->data, other->count);
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool _py_list__count(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    int count = 0;
+    for(int i = 0; i < py_list__len(py_arg(0)); i++) {
+        int res = py_eq(py_list__getitem(py_arg(0), i), py_arg(1));
+        if(res == -1) return false;
+        if(res) count++;
+    }
+    py_newint(py_retval(), count);
+    return true;
+}
+
+
+static bool _py_list__clear(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_list__clear(py_arg(0));
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool _py_list__copy(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_newlist(py_retval());
+    List* self = py_touserdata(py_arg(0));
+    List* list = py_touserdata(py_retval());
+    c11_vector__extend(py_TValue, list, self->data, self->count);
+    return true;
+}
+
+static bool _py_list__index(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    for(int i = 0; i < py_list__len(py_arg(0)); i++) {
+        int res = py_eq(py_list__getitem(py_arg(0), i), py_arg(1));
+        if(res == -1) return false;
+        if(res) {
+            py_newint(py_retval(), i);
+            return true;
+        }
+    }
+    return ValueError("list.index(x): x not in list");
+}
+
+static bool _py_list__reverse(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    List* self = py_touserdata(py_arg(0));
+    for(int i = 0; i < self->count / 2; i++) {
+        py_TValue tmp = c11__getitem(py_TValue, self, i);
+        c11__setitem(py_TValue, self, i, c11__getitem(py_TValue, self, self->count - i - 1));
+        c11__setitem(py_TValue, self, self->count - i - 1, tmp);
+    }
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool _py_list__remove(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    for(int i = 0; i < py_list__len(py_arg(0)); i++) {
+        int res = py_eq(py_list__getitem(py_arg(0), i), py_arg(1));
+        if(res == -1) return false;
+        if(res) {
+            py_list__delitem(py_arg(0), i);
+            py_newnone(py_retval());
+            return true;
+        }
+    }
+    return ValueError("list.remove(x): x not in list");
+}
+
+static bool _py_list__pop(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    List* self = py_touserdata(py_arg(0));
+    if(self->count == 0) return IndexError("pop from empty list");
+    *py_retval() = c11_vector__back(py_TValue, self);
+    c11_vector__pop(self);
+    return true;
+}
+static bool _py_list__insert(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    List* self = py_touserdata(py_arg(0));
+    int index = py_toint(py_arg(1));
+    if(index < 0) index += self->count;
+    if(index < 0) index = 0;
+    if(index > self->count) index = self->count;
+    c11_vector__insert(py_TValue, self, index, *py_arg(2));
+    py_newnone(py_retval());
+    return true;
+}
+
 py_Type pk_list__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
@@ -184,5 +327,19 @@ py_Type pk_list__register() {
     py_bindmagic(type, __getitem__, _py_list__getitem__);
     py_bindmagic(type, __setitem__, _py_list__setitem__);
     py_bindmagic(type, __delitem__, _py_list__delitem__);
+    py_bindmagic(type, __add__, _py_list__add__);
+    py_bindmagic(type, __mul__, _py_list__mul__);
+    py_bindmagic(type, __rmul__, _py_list__rmul__);
+
+    py_bindmethod(type, "append", _py_list__append);
+    py_bindmethod(type, "extend", _py_list__extend);
+    py_bindmethod(type, "count", _py_list__count);
+    py_bindmethod(type, "clear", _py_list__clear);
+    py_bindmethod(type, "copy", _py_list__copy);
+    py_bindmethod(type, "index", _py_list__index);
+    py_bindmethod(type, "reverse", _py_list__reverse);
+    py_bindmethod(type, "remove", _py_list__remove);
+    py_bindmethod(type, "pop", _py_list__pop);
+    py_bindmethod(type, "insert", _py_list__insert);
     return type;
 }

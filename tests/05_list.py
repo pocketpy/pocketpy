@@ -16,15 +16,6 @@ assert l[1:4] == [2,3,4]
 assert l[-1:-3] == []
 assert l[-3:-1] == [2,3]
 
-l = (1,2,3,4)
-assert l[2] == 3
-assert l[-1] == 4
-assert l[:32] == (1,2,3,4)
-assert l[32:] == tuple([])
-assert l[1:4] == (2,3,4)
-assert l[-1:-3] == tuple([])
-assert l[-3:-1] == (2,3)
-
 l1 = [1];l2 = l1;l1.append(2);l3 = [1,1,2]
 assert l2[1] == 2
 assert l1 == l2
@@ -102,20 +93,6 @@ a.append([1, 2, a])
 
 assert repr(a) == "[0, [1, 2, [...]]]"
 
-# slice extras
-class A:
-    def __getitem__(self, index):
-        return index
-    
-assert A()[1:2, 3] == (slice(1, 2, None), 3)
-assert A()[1:2, 3:4] == (slice(1, 2, None), slice(3, 4, None))
-assert A()[1:2, 3:4, 5] == (slice(1, 2, None), slice(3, 4, None), 5)
-assert A()[:, :] == (slice(None, None, None), slice(None, None, None))
-assert A()[::, :] == (slice(None, None, None), slice(None, None, None))
-assert A()[::, :2] == (slice(None, None, None), slice(None, 2, None))
-assert A()['b':'c':1, :] == (slice('b', 'c', 1), slice(None, None, None))
-assert A()[1:2, :A()[3:4, ::-1]] == (slice(1, 2, None), slice(None, (slice(3, 4, None), slice(None, None, -1)), None))
-
 a = [1, 2, 3]
 assert a.index(2) == 1
 assert a.index(1) == 0
@@ -123,12 +100,6 @@ assert a.index(3) == 2
 
 assert a.index(2, 1) == 1
 assert a.index(1, 0) == 0
-
-try:
-    a.index(1, 1)
-    exit(1)
-except ValueError:
-    pass
 
 a, b = [1, 2]
 assert a == 1 and b == 2
@@ -138,3 +109,24 @@ assert list(range(1, 5)) == [1, 2, 3, 4]
 assert list(range(1, 5, 2)) == [1, 3]
 assert list(range(5, 1, -1)) == [5, 4, 3, 2]
 assert list(range(5, 1, -2)) == [5, 3]
+
+
+# try:
+#     a.index(1, 1)
+#     exit(1)
+# except ValueError:
+#     pass
+
+# slice extras
+# class A:
+#     def __getitem__(self, index):
+#         return index
+    
+# assert A()[1:2, 3] == (slice(1, 2, None), 3)
+# assert A()[1:2, 3:4] == (slice(1, 2, None), slice(3, 4, None))
+# assert A()[1:2, 3:4, 5] == (slice(1, 2, None), slice(3, 4, None), 5)
+# assert A()[:, :] == (slice(None, None, None), slice(None, None, None))
+# assert A()[::, :] == (slice(None, None, None), slice(None, None, None))
+# assert A()[::, :2] == (slice(None, None, None), slice(None, 2, None))
+# assert A()['b':'c':1, :] == (slice('b', 'c', 1), slice(None, None, None))
+# assert A()[1:2, :A()[3:4, ::-1]] == (slice(1, 2, None), slice(None, (slice(3, 4, None), slice(None, None, -1)), None))

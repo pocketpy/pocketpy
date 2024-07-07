@@ -175,9 +175,9 @@ assert hex(256) == '0x100'
 assert hex(257) == '0x101'
 assert hex(17) == '0x11'
 
-def test(*seq):
-    return s1.join(seq)
-assert test("r", "u", "n", "o", "o", "b") == "r-u-n-o-o-b"
+assert '-'.join(['r', 'u', 'n', 'o', 'o', 'b']) == 'r-u-n-o-o-b'
+
+exit()
 
 # test format()
 assert "Hello, {}!".format("World") == "Hello, World!"

@@ -1681,25 +1681,26 @@ static Error* exprImag(Compiler* self) {
     return NULL;
 }
 
+static FuncDecl_ push_f_context(Compiler* self, c11_sv name, int* out_index);
+static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_hints);
+
 static Error* exprLambda(Compiler* self) {
-    assert(false);
+    Error* err;
+    int line = prev()->line;
+    int decl_index;
+    FuncDecl_ decl = push_f_context(self, (c11_sv){"<lambda>", 8}, &decl_index);
+    if(!match(TK_COLON)) {
+        check(_compile_f_args(self, decl, false));
+        consume(TK_COLON);
+    }
+    // https://github.com/pocketpy/pocketpy/issues/37
+    check(parse_expression(self, PREC_LAMBDA + 1, false));
+    Ctx__s_emit_top(ctx());
+    Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
+    check(pop_context(self));
+    LambdaExpr* e = LambdaExpr__new(line, decl_index);
+    Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
-    // Error* err;
-    // int line = prev()->line;
-    // int decl_index;
-    // FuncDecl_ decl = push_f_context({"<lambda>", 8}, &decl_index);
-    // if(!match(TK_COLON)) {
-    //     check(_compile_f_args(decl, false));
-    //     consume(TK_COLON);
-    // }
-    // // https://github.com/pocketpy/pocketpy/issues/37
-    // check(parse_expression(self, PREC_LAMBDA + 1, false));
-    // Ctx__s_emit_top(ctx());
-    // Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
-    // check(pop_context(self));
-    // LambdaExpr* e = LambdaExpr__new(line, decl_index);
-    // Ctx__s_push(ctx(), (Expr*)e);
-    // return NULL;
 }
 
 static Error* exprOr(Compiler* self) {

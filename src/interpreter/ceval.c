@@ -425,8 +425,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     if(magic->type == tp_nativefunc) {
                         bool ok = magic->_cfunc(2, SECOND());
                         if(!ok) goto __ERROR;
-                        POP();
-                        *TOP() = self->last_retval;
+                        STACK_SHRINK(2);
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__delitem__, a, b]

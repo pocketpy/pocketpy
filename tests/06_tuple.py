@@ -22,3 +22,12 @@ assert (1,2,) == tuple([1,2])
 
 a = 1,
 assert a == (1,)
+
+l = (1,2,3,4)
+assert l[2] == 3
+assert l[-1] == 4
+assert l[:32] == (1,2,3,4)
+assert l[32:] == tuple([])
+assert l[1:4] == (2,3,4)
+assert l[-1:-3] == tuple([])
+assert l[-3:-1] == (2,3)
