@@ -89,7 +89,7 @@ void py_newfunction2(py_Ref out,
                      const char* sig,
                      enum BindType bt,
                      const char* docstring,
-                     const py_Ref upvalue);
+                     int slots);
 // old style argc-based function
 void py_newnativefunc(py_Ref out, py_CFunction);
 
@@ -134,13 +134,13 @@ py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 #define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
 
 // new style decl-based bindings
-py_TmpRef py_bind(py_Ref obj, const char* sig, py_CFunction f);
-py_TmpRef py_bind2(py_Ref obj,
-                   const char* sig,
-                   py_CFunction f,
-                   enum BindType bt,
-                   const char* docstring,
-                   const py_Ref upvalue);
+void py_bind(py_Ref obj, const char* sig, py_CFunction f);
+void py_bind2(py_Ref obj,
+              const char* sig,
+              py_CFunction f,
+              enum BindType bt,
+              const char* docstring,
+              int slots);
 // old style argc-based bindings
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
 void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum BindType bt);

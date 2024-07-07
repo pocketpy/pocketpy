@@ -118,16 +118,15 @@ typedef struct FuncDecl {
 typedef FuncDecl* FuncDecl_;
 
 FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name);
-void FuncDecl__dtor(FuncDecl* self);
 void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const py_TValue* value);
-void FuncDecl__gc_mark(const FuncDecl* self);
 
 // runtime function
 typedef struct Function {
     FuncDecl_ decl;
-    PyObject* module;     // weak ref
-    PyObject* clazz;      // weak ref
+    PyObject* module;      // weak ref
+    PyObject* clazz;       // weak ref
     pk_NameDict* closure;  // strong ref
+    py_CFunction cfunc;    // wrapped C function
 } Function;
 
 void Function__ctor(Function* self, FuncDecl_ decl, PyObject* module);

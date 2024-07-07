@@ -5,7 +5,6 @@
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
 
-static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 static bool stack_unpack_sequence(pk_VM* self, uint16_t arg);
 
 #define DISPATCH()                                                                                 \
@@ -94,6 +93,20 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 case tp_float: c11_sbuf__write_f64(&buf, p->_f64, -1); break;
                 case tp_bool: c11_sbuf__write_cstr(&buf, p->_bool ? "True" : "False"); break;
                 case tp_none_type: c11_sbuf__write_cstr(&buf, "None"); break;
+                case tp_list: {
+                    pk_sprintf(&buf, "list(%d)", py_list__len(p));
+                    break;
+                }
+                case tp_tuple: {
+                    pk_sprintf(&buf, "tuple(%d)", py_list__len(p));
+                    break;
+                }
+                case tp_function: {
+                    Function* ud = py_touserdata(p);
+                    c11_sbuf__write_cstr(&buf, ud->decl->code.name->data);
+                    c11_sbuf__write_cstr(&buf, "()");
+                    break;
+                }
                 case tp_type: {
                     pk_sprintf(&buf, "<class '%t'>", py_totype(p));
                     break;
@@ -541,7 +554,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             case OP_BINARY_OP: {
                 py_Name op = byte.arg & 0xFF;
                 py_Name rop = byte.arg >> 8;
-                if(!stack_binaryop(self, op, rop)) goto __ERROR;
+                if(!pk_stack_binaryop(self, op, rop)) goto __ERROR;
                 POP();
                 *TOP() = self->last_retval;
                 DISPATCH();
@@ -728,10 +741,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     return RES_RETURN;
 }
 
-/// Assumes [a, b] are on the stack, performs a binary op.
-/// The result is stored in `self->last_retval`.
-/// The stack remains unchanged.
-static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
+bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
     // [a, b]
     py_Ref magic = py_tpfindmagic(SECOND()->type, op);
     if(magic) {
@@ -760,7 +770,7 @@ bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {
     pk_VM* self = pk_current_vm;
     PUSH(lhs);
     PUSH(rhs);
-    bool ok = stack_binaryop(self, op, rop);
+    bool ok = pk_stack_binaryop(self, op, rop);
     STACK_SHRINK(2);
     return ok;
 }

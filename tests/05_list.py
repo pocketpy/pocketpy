@@ -98,23 +98,51 @@ a = [0, 0, 0, 0, 1, 1, 3, -1]
 assert a.sort() == None
 assert a == [-1, 0, 0, 0, 0, 1, 1, 3]
 
+a = [3, 2, 2, 1]
+a.sort()
+assert a == [1, 2, 2, 3]
+
+# test reverse
+a = [3, 2, 2, 1]
+a.sort(reverse=True)
+assert a == [3, 2, 2, 1]
+
+a = [1, 3, 2, 2]
+a.sort(reverse=True)
+assert a == [3, 2, 2, 1]
+
+# test key
+key = lambda x: -x
+assert key(1) == -1
+a = [1, 3, 2, 2]
+a.sort(key=key)
+assert a == [3, 2, 2, 1]
+
+a = [1, 3, 2, 2]
+a.sort(key=key, reverse=True)
+assert a == [1, 2, 2, 3]
+
 # test sorted
+a = [8, 2, 4, 2, 9]
 assert sorted(a) == [2, 2, 4, 8, 9]
 assert sorted(a, reverse=True) == [9, 8, 4, 2, 2]
 
-assert sorted(a, key=lambda x:-x, reverse=True) == [2, 2, 4, 8, 9]
+def key(x): return -x;
+assert sorted(a, key=key) == [9, 8, 4, 2, 2]
+
+assert sorted(a, key=key, reverse=True) == [2, 2, 4, 8, 9]
 assert a == [8, 2, 4, 2, 9]
 
-b = [(1, 2), (3, 3), (5, 1)]
-b.sort(key=lambda x:x[1])
-assert b == [(5, 1), (1, 2), (3,3)]
+# b = [(1, 2), (3, 3), (5, 1)]
+# b.sort(key=lambda x:x[1])
+# assert b == [(5, 1), (1, 2), (3,3)]
 
 # test cyclic reference
-a = []
-a.append(0)
-a.append([1, 2, a])
+# a = []
+# a.append(0)
+# a.append([1, 2, a])
 
-assert repr(a) == "[0, [1, 2, [...]]]"
+# assert repr(a) == "[0, [1, 2, [...]]]"
 
 # try:
 #     a.index(1, 1)

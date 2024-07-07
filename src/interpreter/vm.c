@@ -307,12 +307,12 @@ bool __prepare_py_call(py_TValue* buffer,
 
     if(decl->starred_kwarg != -1) py_newdict(&buffer[decl->starred_kwarg]);
 
-    for(int j = 0; j < kwargc; j += 2) {
-        py_Name key = py_toint(&p1[j]);
+    for(int j = 0; j < kwargc; j++) {
+        py_Name key = py_toint(&p1[2 * j]);
         int index = c11_smallmap_n2i__get(&decl->kw_to_index, key, -1);
         // if key is an explicit key, set as local variable
         if(index >= 0) {
-            buffer[index] = p1[j + 1];
+            buffer[index] = p1[2 * j + 1];
         } else {
             // otherwise, set as **kwargs if possible
             if(decl->starred_kwarg == -1) {
@@ -336,6 +336,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
     // [callable, <self>, args..., kwargs...]
     //      ^p0                    ^p1      ^_sp
 
+#if 0
     // handle boundmethod, do a patch
     if(p0->type == tp_bound_method) {
         assert(false);
@@ -347,9 +348,9 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
         // p1[-(ARGC + 1)] = bm.self;
         // [unbound, self, args..., kwargs...]
     }
+#endif
 
     py_Ref argv = py_isnil(p0 + 1) ? p0 + 2 : p0 + 1;
-    int argc2 = argv - p0;
 
     if(p0->type == tp_function) {
         /*****************_py_call*****************/
@@ -368,14 +369,21 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
                 if(!ok) return RES_ERROR;
                 // copy buffer back to stack
                 self->stack.sp = argv + co->nlocals;
-                for(int j = 0; j < co->nlocals; j++)
-                    argv[j] = self->__vectorcall_buffer[j];
-                break;
+                memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
+                // submit the call
+                if(!fn->cfunc) {
+                    pk_VM__push_frame(self, Frame__new(co, fn->module, p0, p0, argv, co));
+                    return opcall ? RES_CALL : pk_VM__run_top_frame(self);
+                } else {
+                    bool ok = fn->cfunc(co->nlocals, argv);
+                    self->stack.sp = p0;
+                    return ok ? RES_RETURN : RES_ERROR;
+                }
             }
             case FuncType_SIMPLE:
-                if(argc2 != fn->decl->args.count) {
+                if(p1 - argv != fn->decl->args.count) {
                     const char* fmt = "%s() takes %d positional arguments but %d were given";
-                    TypeError(fmt, co->name, fn->decl->args.count, argc2);
+                    TypeError(fmt, co->name->data, fn->decl->args.count, p1 - argv);
                     return RES_ERROR;
                 }
                 if(kwargc) {
@@ -387,7 +395,9 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
                 self->stack.sp = argv + co->nlocals;
                 // initialize local variables to PY_NIL
                 memset(p1, 0, (char*)self->stack.sp - (char*)p1);
-                break;
+                // submit the call
+                pk_VM__push_frame(self, Frame__new(co, fn->module, p0, p0, argv, co));
+                return opcall ? RES_CALL : pk_VM__run_top_frame(self);
             case FuncType_GENERATOR:
                 assert(false);
                 break;
@@ -400,11 +410,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
             default: c11__unreachedable();
         };
 
-        // simple or normal
-        Frame* frame = Frame__new(co, fn->module, p0, p0, argv, co);
-        pk_VM__push_frame(self, frame);
-        if(opcall) return RES_CALL;
-        return pk_VM__run_top_frame(self);
+        c11__unreachedable();
         /*****************_py_call*****************/
     }
 

@@ -219,7 +219,7 @@ bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv) { return -1
 
 bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
     pk_VM* vm = pk_current_vm;
-    return pk_VM__vectorcall(vm, argc, kwargc, false) == RES_ERROR;
+    return pk_VM__vectorcall(vm, argc, kwargc, false) != RES_ERROR;
 }
 
 py_Ref py_retval() { return &pk_current_vm->last_retval; }

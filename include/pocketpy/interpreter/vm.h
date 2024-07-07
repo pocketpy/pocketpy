@@ -91,7 +91,13 @@ py_Type pk_VM__new_type(pk_VM* self,
 pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall);
 
 const char* pk_opname(Opcode op);
-py_TValue* pk_arrayview(py_Ref self, int* size);
+
+py_TValue* pk_arrayview(py_Ref self, int* length);
+
+/// Assumes [a, b] are on the stack, performs a binary op.
+/// The result is stored in `self->last_retval`.
+/// The stack remains unchanged.
+bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 
 // type registration
 void pk_object__register();

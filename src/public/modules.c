@@ -121,6 +121,25 @@ static bool _py_builtins__next(int argc, py_Ref argv) {
     return py_exception("StopIteration", "");
 }
 
+static bool _py_builtins__sorted(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    // convert _0 to list object
+    if(!py_tpcall(tp_list, 1, argv)) return false;
+    py_Ref retval = py_pushtmp();
+    py_Ref sort = py_pushtmp();
+    py_Ref self = py_pushtmp();
+    py_Ref key = py_pushtmp();
+    py_Ref reverse = py_pushtmp();
+    *self = *retval = *py_retval();
+    bool ok = py_getunboundmethod(self, py_name("sort"), sort, self);
+    if(!ok) return false;
+    *key = argv[1];
+    *reverse = argv[2];
+    if(!py_vectorcall(2, 0)) return false;
+    *py_retval() = *retval;
+    return true;
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins", NULL);
     py_bindnativefunc(builtins, "repr", _py_builtins__repr);
@@ -129,6 +148,8 @@ py_TValue pk_builtins__register() {
     py_bindnativefunc(builtins, "hex", _py_builtins__hex);
     py_bindnativefunc(builtins, "iter", _py_builtins__iter);
     py_bindnativefunc(builtins, "next", _py_builtins__next);
+
+    py_bind(builtins, "sorted(iterable, key=None, reverse=False)", _py_builtins__sorted);
     return *builtins;
 }
 

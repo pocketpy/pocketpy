@@ -13,6 +13,13 @@ bool Bytecode__is_forward_jump(const Bytecode* self) {
     return self->op >= OP_JUMP_FORWARD && self->op <= OP_LOOP_BREAK;
 }
 
+static void FuncDecl__dtor(FuncDecl* self) {
+    CodeObject__dtor(&self->code);
+    c11_vector__dtor(&self->args);
+    c11_vector__dtor(&self->kwargs);
+    c11_smallmap_n2i__dtor(&self->kw_to_index);
+}
+
 FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name) {
     FuncDecl* self = malloc(sizeof(FuncDecl));
     self->rc.count = 1;
@@ -31,13 +38,6 @@ FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name) {
 
     c11_smallmap_n2i__ctor(&self->kw_to_index);
     return self;
-}
-
-void FuncDecl__dtor(FuncDecl* self) {
-    CodeObject__dtor(&self->code);
-    c11_vector__dtor(&self->args);
-    c11_vector__dtor(&self->kwargs);
-    c11_smallmap_n2i__dtor(&self->kw_to_index);
 }
 
 void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const py_TValue* value) {
@@ -99,6 +99,7 @@ void Function__ctor(Function* self, FuncDecl_ decl, PyObject* module) {
     self->module = module;
     self->clazz = NULL;
     self->closure = NULL;
+    self->cfunc = NULL;
 }
 
 void Function__dtor(Function* self) {

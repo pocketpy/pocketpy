@@ -40,7 +40,8 @@ extern "C" {
 bool c11__stable_sort(void* ptr,
                       int count,
                       int elem_size,
-                      int (*f_le)(const void* a, const void* b));
+                      int (*f_lt)(const void* a, const void* b, void* extra),
+                      void* extra);
 
 #ifdef __cplusplus
 }

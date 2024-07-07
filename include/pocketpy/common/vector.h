@@ -75,10 +75,10 @@ c11_array c11_vector__submit(c11_vector* self);
         (self)->count--;                                                                           \
     } while(0)
 
-#define c11_vector__reverse(T, self, start, end)                                                   \
+#define c11__reverse(T, self)                                                                      \
     do {                                                                                           \
-        T* p = (T*)(self)->data + (start);                                                         \
-        T* q = (T*)(self)->data + (end);                                                           \
+        T* p = (T*)(self)->data;                                                                   \
+        T* q = (T*)(self)->data + (self)->count - 1;                                               \
         while(p < q) {                                                                             \
             T tmp = *p;                                                                            \
             *p = *q;                                                                               \

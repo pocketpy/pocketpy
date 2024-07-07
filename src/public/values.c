@@ -5,6 +5,7 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/compiler/compiler.h"
 
 void py_newint(py_Ref out, int64_t val) {
     out->type = tp_int;
@@ -41,9 +42,8 @@ void py_newellipsis(py_Ref out) {
 
 void py_newnil(py_Ref out) { out->type = 0; }
 
-
 void py_newfunction(py_Ref out, py_CFunction f, const char* sig) {
-    py_newfunction2(out, f, sig, BindType_FUNCTION, NULL, NULL);
+    py_newfunction2(out, f, sig, BindType_FUNCTION, NULL, 0);
 }
 
 void py_newfunction2(py_Ref out,
@@ -51,7 +51,23 @@ void py_newfunction2(py_Ref out,
                      const char* sig,
                      enum BindType bt,
                      const char* docstring,
-                     const py_Ref upvalue) {}
+                     int slots) {
+    char buffer[256];
+    snprintf(buffer, sizeof(buffer), "def %s: pass", sig);
+    // fn(a, b, *c, d=1) -> None
+    CodeObject code;
+    pk_SourceData_ source = pk_SourceData__rcnew(buffer, "<bind>", EXEC_MODE, false);
+    Error* err = pk_compile(source, &code);
+    if(err) abort();
+    if(code.func_decls.count != 1) abort();
+    FuncDecl_ decl = c11__getitem(FuncDecl_, &code.func_decls, 0);
+    // construct the function
+    Function* ud = py_newobject(out, tp_function, slots, sizeof(Function));
+    Function__ctor(ud, decl, NULL);
+    ud->cfunc = f;
+    CodeObject__dtor(&code);
+    PK_DECREF(source);
+}
 
 void py_newnativefunc(py_Ref out, py_CFunction f) {
     out->type = tp_nativefunc;
@@ -59,20 +75,28 @@ void py_newnativefunc(py_Ref out, py_CFunction f) {
     out->_cfunc = f;
 }
 
-void py_bindmethod(py_Type type, const char *name, py_CFunction f){
+void py_bindmethod(py_Type type, const char* name, py_CFunction f) {
     py_bindmethod2(type, name, f, BindType_FUNCTION);
 }
 
-void py_bindmethod2(py_Type type, const char *name, py_CFunction f, enum BindType bt){
+void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum BindType bt) {
     py_TValue tmp;
     py_newnativefunc(&tmp, f);
     py_setdict(py_tpobject(type), py_name(name), &tmp);
 }
 
-void py_bindnativefunc(py_Ref obj, const char *name, py_CFunction f){
+void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f) {
     py_TValue tmp;
     py_newnativefunc(&tmp, f);
     py_setdict(obj, py_name(name), &tmp);
+}
+
+void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
+    py_TValue tmp;
+    py_newfunction(&tmp, f, sig);
+    Function* ud = py_touserdata(&tmp);
+    py_Name name = py_name(ud->decl->code.name->data);
+    py_setdict(obj, name, &tmp);
 }
 
 void py_newslice(py_Ref out, const py_Ref start, const py_Ref stop, const py_Ref step) {

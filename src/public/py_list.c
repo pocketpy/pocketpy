@@ -107,6 +107,16 @@ static bool _py_list__new__(int argc, py_Ref argv) {
         return true;
     }
     if(argc == 2) {
+        int length;
+        py_TValue* p = pk_arrayview(py_arg(1), &length);
+        if(p) {
+            py_newlistn(py_retval(), length);
+            for(int i = 0; i < length; i++) {
+                py_list__setitem(py_retval(), i, p + i);
+            }
+            return true;
+        }
+
         py_Ref iter = py_pushtmp();
         py_Ref list = py_pushtmp();
         if(!py_iter(py_arg(1))) return false;
@@ -274,11 +284,7 @@ static bool _py_list__index(int argc, py_Ref argv) {
 static bool _py_list__reverse(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     List* self = py_touserdata(py_arg(0));
-    for(int i = 0; i < self->count / 2; i++) {
-        py_TValue tmp = c11__getitem(py_TValue, self, i);
-        c11__setitem(py_TValue, self, i, c11__getitem(py_TValue, self, self->count - i - 1));
-        c11__setitem(py_TValue, self, self->count - i - 1, tmp);
-    }
+    c11__reverse(py_TValue, self);
     py_newnone(py_retval());
     return true;
 }
@@ -319,10 +325,44 @@ static bool _py_list__insert(int argc, py_Ref argv) {
     return true;
 }
 
+static int _py_lt_with_key(py_TValue* a, py_TValue* b, py_TValue* key) {
+    if(!key) return py_lt(a, b);
+    pk_VM* vm = pk_current_vm;
+    // project a
+    py_push(key);
+    py_pushnil();
+    py_push(a);
+    if(!py_vectorcall(1, 0)) return -1;
+    py_push(py_retval());
+    // project b
+    py_push(key);
+    py_pushnil();
+    py_push(b);
+    if(!py_vectorcall(1, 0)) return -1;
+    py_push(py_retval());
+    // binary op
+    bool ok = pk_stack_binaryop(vm, __lt__, __gt__);
+    if(!ok) return -1;
+    py_shrink(2);
+    return py_tobool(py_retval());
+}
+
+// sort(self, key=None, reverse=False)
 static bool _py_list__sort(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
     List* self = py_touserdata(py_arg(0));
-    c11__stable_sort(self->data, self->count, sizeof(py_TValue), (int (*)(const void*, const void*))py_lt);
+
+    py_Ref key = py_arg(1);
+    if(py_isnone(key)) key = NULL;
+
+    c11__stable_sort(self->data,
+                     self->count,
+                     sizeof(py_TValue),
+                     (int (*)(const void*, const void*, void*))_py_lt_with_key,
+                     key);
+
+    PY_CHECK_ARG_TYPE(2, tp_bool);
+    bool reverse = py_tobool(py_arg(2));
+    if(reverse) c11__reverse(py_TValue, self);
     py_newnone(py_retval());
     return true;
 }
@@ -355,5 +395,7 @@ py_Type pk_list__register() {
     py_bindmethod(type, "pop", _py_list__pop);
     py_bindmethod(type, "insert", _py_list__insert);
     py_bindmethod(type, "sort", _py_list__sort);
+
+    py_bind(py_tpobject(type), "sort(self, key=None, reverse=False)", _py_list__sort);
     return type;
 }
