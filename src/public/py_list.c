@@ -354,11 +354,12 @@ static bool _py_list__sort(int argc, py_Ref argv) {
     py_Ref key = py_arg(1);
     if(py_isnone(key)) key = NULL;
 
-    c11__stable_sort(self->data,
+    bool ok = c11__stable_sort(self->data,
                      self->count,
                      sizeof(py_TValue),
                      (int (*)(const void*, const void*, void*))_py_lt_with_key,
                      key);
+    if(!ok) return false;
 
     PY_CHECK_ARG_TYPE(2, tp_bool);
     bool reverse = py_tobool(py_arg(2));
