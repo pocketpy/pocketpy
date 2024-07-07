@@ -37,10 +37,10 @@ extern "C" {
  * @param cmp Comparison function that takes two elements and returns an integer similar to
  * `strcmp`.
  */
-void c11__stable_sort(void* ptr,
+bool c11__stable_sort(void* ptr,
                       int count,
                       int elem_size,
-                      int (*cmp)(const void* a, const void* b));
+                      int (*f_le)(const void* a, const void* b));
 
 #ifdef __cplusplus
 }

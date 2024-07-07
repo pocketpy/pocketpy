@@ -87,6 +87,18 @@ assert list(range(5, 1, -2)) == [5, 3]
 
 # test sort
 a = [8, 2, 4, 2, 9]
+assert a.sort() == None
+assert a == [2, 2, 4, 8, 9]
+
+a = []
+assert a.sort() == None
+assert a == []
+
+a = [0, 0, 0, 0, 1, 1, 3, -1]
+assert a.sort() == None
+assert a == [-1, 0, 0, 0, 0, 1, 1, 3]
+
+# test sorted
 assert sorted(a) == [2, 2, 4, 8, 9]
 assert sorted(a, reverse=True) == [9, 8, 4, 2, 2]
 

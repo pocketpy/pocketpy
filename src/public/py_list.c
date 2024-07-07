@@ -319,6 +319,14 @@ static bool _py_list__insert(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_list__sort(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    List* self = py_touserdata(py_arg(0));
+    c11__stable_sort(self->data, self->count, sizeof(py_TValue), (int (*)(const void*, const void*))py_le);
+    py_newnone(py_retval());
+    return true;
+}
+
 py_Type pk_list__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
@@ -346,5 +354,6 @@ py_Type pk_list__register() {
     py_bindmethod(type, "remove", _py_list__remove);
     py_bindmethod(type, "pop", _py_list__pop);
     py_bindmethod(type, "insert", _py_list__insert);
+    py_bindmethod(type, "sort", _py_list__sort);
     return type;
 }
