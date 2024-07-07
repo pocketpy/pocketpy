@@ -42,9 +42,19 @@ py_TValue* pk_arrayview(py_Ref self, int* length) {
     }
     if(self->type == tp_tuple) {
         *length = py_tuple__len(self);
-        return py_tuple__getitem(self, 0);
+        return PyObject__slots(self->_obj);
     }
     return NULL;
+}
+
+int pk_arrayeq(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length) {
+    if(lhs_length != rhs_length) return false;
+    for(int i = 0; i < lhs_length; i++) {
+        int res = py_eq(lhs + i, rhs + i);
+        if(res == -1) return -1;
+        if(!res) return false;
+    }
+    return true;
 }
 
 static void disassemble(CodeObject* co) {

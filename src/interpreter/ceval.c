@@ -98,7 +98,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     break;
                 }
                 case tp_tuple: {
-                    pk_sprintf(&buf, "tuple(%d)", py_list__len(p));
+                    pk_sprintf(&buf, "tuple(%d)", py_tuple__len(p));
                     break;
                 }
                 case tp_function: {
@@ -313,14 +313,15 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __getitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
+                        py_TValue* next_sp = TOP();
                         bool ok = magic->_cfunc(2, SECOND());
                         if(!ok) goto __ERROR;
-                        POP();
+                        SP() = next_sp;
                         *TOP() = self->last_retval;
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__getitem__, a, b]
-                        vectorcall_opcall(2, 0);
+                        vectorcall_opcall(1, 0);
                     }
                     DISPATCH();
                 }
@@ -366,14 +367,14 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __setitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
+                        py_TValue* next_sp = THIRD();
                         bool ok = magic->_cfunc(3, THIRD());
                         if(!ok) goto __ERROR;
-                        STACK_SHRINK(3);
+                        SP() = next_sp;
                         *TOP() = self->last_retval;
                     } else {
-                        INSERT_THIRD();      // [?, a, b]
                         *FOURTH() = *magic;  // [__selitem__, a, b, val]
-                        vectorcall_opcall(3, 0);
+                        vectorcall_opcall(2, 0);
                         POP();  // discard retval
                     }
                     DISPATCH();
@@ -437,13 +438,14 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __delitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
+                        py_TValue* next_sp = SECOND();
                         bool ok = magic->_cfunc(2, SECOND());
                         if(!ok) goto __ERROR;
-                        STACK_SHRINK(2);
+                        SP() = next_sp;
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__delitem__, a, b]
-                        vectorcall_opcall(2, 0);
+                        vectorcall_opcall(1, 0);
                         POP();  // discard retval
                     }
                     DISPATCH();
@@ -567,18 +569,19 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_CONTAINS_OP: {
-                // [b, a] -> b __contains__ a (a in b)
+                // [b, a] -> b __contains__ a (a in b) -> [retval]
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __contains__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
+                        py_TValue* next_sp = TOP();
                         bool ok = magic->_cfunc(2, SECOND());
                         if(!ok) goto __ERROR;
-                        POP();
+                        SP() = next_sp;
                         *TOP() = self->last_retval;
                     } else {
                         INSERT_THIRD();     // [?, b, a]
                         *THIRD() = *magic;  // [__contains__, a, b]
-                        vectorcall_opcall(2, 0);
+                        vectorcall_opcall(1, 0);
                     }
                     bool res = py_tobool(TOP());
                     if(byte.arg) py_newbool(TOP(), !res);
@@ -713,6 +716,28 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 if(!stack_unpack_sequence(self, byte.arg)) goto __ERROR;
                 DISPATCH();
             }
+            case OP_UNPACK_EX: {
+                int length;
+                py_TValue* p = pk_arrayview(TOP(), &length);
+                if(!p) {
+                    TypeError("expected list or tuple to unpack, got '%t'", TOP()->type);
+                    goto __ERROR;
+                }
+                int exceed = length - byte.arg;
+                if(exceed < 0) {
+                    ValueError("not enough values to unpack");
+                    goto __ERROR;
+                }
+                POP();
+                for(int i = 0; i < byte.arg; i++) {
+                    PUSH(p + i);
+                }
+                py_newlistn(SP()++, exceed);
+                for(int i = 0; i < exceed; i++) {
+                    py_list__setitem(TOP(), i, p + byte.arg + i);
+                }
+                DISPATCH();
+            }
 
             ///////////
             case OP_RAISE_ASSERT: {
@@ -781,7 +806,8 @@ static bool stack_unpack_sequence(pk_VM* self, uint16_t arg) {
     if(!p) return TypeError("expected list or tuple to unpack, got '%t'", TOP()->type);
     if(length != arg) return ValueError("expected %d values to unpack, got %d", arg, length);
     POP();
-    for(int i = 0; i < length; i++)
+    for(int i = 0; i < length; i++) {
         PUSH(p + i);
+    }
     return true;
 }

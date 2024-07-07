@@ -42,8 +42,8 @@ typedef struct pk_VM {
     pk_NameDict modules;
     c11_vector /*T=pk_TypeInfo*/ types;
 
-    py_TValue builtins;       // builtins module
-    py_TValue main;           // __main__ module
+    py_TValue builtins;  // builtins module
+    py_TValue main;      // __main__ module
 
     void (*_ceval_on_step)(Frame*, Bytecode);
     unsigned char* (*_import_file)(const char*);
@@ -53,7 +53,7 @@ typedef struct pk_VM {
     py_TValue last_retval;
     bool has_error;
     bool is_stopiteration;
-    
+
     py_TValue reg[8];  // users' registers
 
     py_TValue __curr_class;
@@ -93,6 +93,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
 const char* pk_opname(Opcode op);
 
 py_TValue* pk_arrayview(py_Ref self, int* length);
+int pk_arrayeq(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length);
 
 /// Assumes [a, b] are on the stack, performs a binary op.
 /// The result is stored in `self->last_retval`.
@@ -106,6 +107,7 @@ py_Type pk_str__register();
 py_Type pk_str_iterator__register();
 py_Type pk_bytes__register();
 py_Type pk_list__register();
+py_Type pk_tuple__register();
 py_Type pk_function__register();
 py_Type pk_nativefunc__register();
 py_Type pk_range__register();

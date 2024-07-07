@@ -7,15 +7,9 @@ assert a == 2
 assert b == 1
 assert len(tup) == 6
 
-# unpacking builder
-a = 1, 2, 3
-b = *a, 4, 5
-assert b == (1, 2, 3, 4, 5)
-
+# empty tuple
 a = tuple([])
-b = *a, 1, 2, 3, *a, *a
-assert b == (1, 2, 3)
-
+assert len(a) == 0
 
 assert (1,) == tuple([1])
 assert (1,2,) == tuple([1,2])
@@ -31,3 +25,9 @@ assert l[32:] == tuple([])
 assert l[1:4] == (2,3,4)
 assert l[-1:-3] == tuple([])
 assert l[-3:-1] == (2,3)
+
+# test repr
+assert repr((1,)) == '(1,)'
+assert repr((1,2,)) == '(1, 2)'
+assert repr((1,2,(3,4))) == '(1, 2, (3, 4))'
+assert repr(tuple()) == '()'

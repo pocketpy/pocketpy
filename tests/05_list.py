@@ -133,6 +133,25 @@ assert sorted(a, key=key) == [9, 8, 4, 2, 2]
 assert sorted(a, key=key, reverse=True) == [2, 2, 4, 8, 9]
 assert a == [8, 2, 4, 2, 9]
 
+# test unpack ex
+a, *b = [1,2,3,4]
+assert a == 1
+assert b == [2,3,4]
+
+a, b, *c = [1, 2]
+assert a == 1
+assert b == 2
+assert c == []
+
+a, b, c, *d = [1, 2, 3, 4, 5]
+assert d == [4, 5]
+
+# test repr
+assert repr([1, 2, 3]) == "[1, 2, 3]"
+assert repr([1, [2, 3], 4]) == "[1, [2, 3], 4]"
+assert repr([1, [2, [3, 4]], 5]) == "[1, [2, [3, 4]], 5]"
+assert repr([]) == "[]"
+
 # b = [(1, 2), (3, 3), (5, 1)]
 # b.sort(key=lambda x:x[1])
 # assert b == [(5, 1), (1, 2), (3,3)]

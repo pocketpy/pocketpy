@@ -99,7 +99,7 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_str_iterator, pk_str_iterator__register());
 
     validate(tp_list, pk_list__register());
-    validate(tp_tuple, pk_VM__new_type(self, "tuple", tp_object, NULL, false));
+    validate(tp_tuple, pk_tuple__register());
 
     validate(tp_slice, pk_VM__new_type(self, "slice", tp_object, NULL, false));
     validate(tp_range, pk_range__register());

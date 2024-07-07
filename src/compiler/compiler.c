@@ -179,10 +179,16 @@ bool StarredExpr__emit_store(Expr* self_, Ctx* ctx) {
     return vtemit_store(self->child, ctx);
 }
 
+void StarredExpr__dtor(Expr* self_) {
+    StarredExpr* self = (StarredExpr*)self_;
+    vtdelete(self->child);
+}
+
 StarredExpr* StarredExpr__new(int line, Expr* child, int level) {
     const static ExprVt Vt = {.emit_ = StarredExpr__emit_,
                               .emit_store = StarredExpr__emit_store,
-                              .is_starred = true};
+                              .is_starred = true,
+                              .dtor = StarredExpr__dtor};
     static_assert_expr_size(StarredExpr);
     StarredExpr* self = PoolExpr_alloc();
     self->vt = &Vt;

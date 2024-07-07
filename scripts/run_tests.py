@@ -33,8 +33,10 @@ def test_dir(path):
         else:
             if not test_file(filepath):
                 print('-' * 50)
-                print("TEST FAILED! Press any key to continue...")
-                input()
+                print("TEST FAILED!")
+                exit(1)
+                # print("TEST FAILED! Press any key to continue...")
+                # input()
 
 print('CPython:', str(sys.version).replace('\n', ''))
 print('System:', '64-bit' if sys.maxsize > 2**32 else '32-bit')

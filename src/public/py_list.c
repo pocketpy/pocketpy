@@ -3,6 +3,7 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/common/sstream.h"
 
 typedef c11_vector List;
 
@@ -68,25 +69,13 @@ static bool _py_list__len__(int argc, py_Ref argv) {
 
 static bool _py_list__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    py_Ref _0 = py_arg(0);
-    py_Ref _1 = py_arg(1);
-    if(py_istype(_1, tp_list)) {
-        int length = py_list__len(_0);
-        if(length != py_list__len(_1)) {
-            py_newbool(py_retval(), false);
-            return true;
-        }
-        for(int i = 0; i < length; i++) {
-            py_Ref a = py_list__getitem(_0, i);
-            py_Ref b = py_list__getitem(_1, i);
-            int res = py_eq(a, b);
-            if(res == -1) return false;
-            if(res == 0) {
-                py_newbool(py_retval(), false);
-                return true;
-            }
-        }
-        py_newbool(py_retval(), true);
+    if(py_istype(py_arg(1), tp_list)) {
+        int length0, length1;
+        py_TValue* a0 = pk_arrayview(py_arg(0), &length0);
+        py_TValue* a1 = pk_arrayview(py_arg(1), &length1);
+        int res = pk_arrayeq(a0, length0, a1, length1);
+        if(res == -1) return false;
+        py_newbool(py_retval(), res);
     } else {
         py_newnotimplemented(py_retval());
     }
@@ -225,6 +214,30 @@ static bool _py_list__append(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_list__repr__(int argc, py_Ref argv) {
+    List* self = py_touserdata(py_arg(0));
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    c11_sbuf__write_char(&buf, '[');
+    for(int i = 0; i < self->count; i++) {
+        py_TValue* val = c11__at(py_TValue, self, i);
+        bool ok = py_repr(val);
+        if(!ok) {
+            c11_sbuf__dtor(&buf);
+            return false;
+        }
+        int size;
+        const char* data = py_tostrn(py_retval(), &size);
+        c11_sbuf__write_cstrn(&buf, data, size);
+        if(i != self->count - 1) c11_sbuf__write_cstr(&buf, ", ");
+    }
+    c11_sbuf__write_char(&buf, ']');
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
+    return true;
+}
+
 static bool _py_list__extend(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     List* self = py_touserdata(py_arg(0));
@@ -355,10 +368,10 @@ static bool _py_list__sort(int argc, py_Ref argv) {
     if(py_isnone(key)) key = NULL;
 
     bool ok = c11__stable_sort(self->data,
-                     self->count,
-                     sizeof(py_TValue),
-                     (int (*)(const void*, const void*, void*))_py_lt_with_key,
-                     key);
+                               self->count,
+                               sizeof(py_TValue),
+                               (int (*)(const void*, const void*, void*))_py_lt_with_key,
+                               key);
     if(!ok) return false;
 
     PY_CHECK_ARG_TYPE(2, tp_bool);
@@ -384,6 +397,7 @@ py_Type pk_list__register() {
     py_bindmagic(type, __add__, _py_list__add__);
     py_bindmagic(type, __mul__, _py_list__mul__);
     py_bindmagic(type, __rmul__, _py_list__rmul__);
+    py_bindmagic(type, __repr__, _py_list__repr__);
 
     py_bindmethod(type, "append", _py_list__append);
     py_bindmethod(type, "extend", _py_list__extend);
