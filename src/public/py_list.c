@@ -322,7 +322,7 @@ static bool _py_list__insert(int argc, py_Ref argv) {
 static bool _py_list__sort(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     List* self = py_touserdata(py_arg(0));
-    c11__stable_sort(self->data, self->count, sizeof(py_TValue), (int (*)(const void*, const void*))py_le);
+    c11__stable_sort(self->data, self->count, sizeof(py_TValue), (int (*)(const void*, const void*))py_lt);
     py_newnone(py_retval());
     return true;
 }
