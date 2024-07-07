@@ -521,10 +521,7 @@ static bool _py_str_iterator__next__(int argc, py_Ref argv) {
     int* ud = py_touserdata(&argv[0]);
     int size;
     const char* data = py_tostrn(py_getslot(argv, 0), &size);
-    if(*ud == size) {
-        *py_retval() = pk_current_vm->StopIteration;
-        return true;
-    }
+    if(*ud == size) return StopIteration();
     int start = *ud;
     int len = c11__u8_header(data[*ud], false);
     *ud += len;

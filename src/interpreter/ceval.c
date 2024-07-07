@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
+static bool stack_unpack_sequence(pk_VM* self, uint16_t arg);
 
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
@@ -32,7 +33,7 @@ static bool stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
 #define STACK_SHRINK(n) (self->stack.sp -= n)
 #define PUSH(v)                                                                                    \
     do {                                                                                           \
-        *self->stack.sp = *v;                                                                      \
+        *self->stack.sp = *(v);                                                                    \
         self->stack.sp++;                                                                          \
     } while(0)
 #define POP() (--self->stack.sp)
@@ -693,6 +694,13 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
 
+                //
+
+            case OP_UNPACK_SEQUENCE: {
+                if(!stack_unpack_sequence(self, byte.arg)) goto __ERROR;
+                DISPATCH();
+            }
+
             ///////////
             case OP_RAISE_ASSERT: {
                 if(byte.arg) {
@@ -755,4 +763,15 @@ bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {
     bool ok = stack_binaryop(self, op, rop);
     STACK_SHRINK(2);
     return ok;
+}
+
+static bool stack_unpack_sequence(pk_VM* self, uint16_t arg) {
+    int length;
+    py_TValue* p = pk_arrayview(TOP(), &length);
+    if(!p) return TypeError("expected list or tuple to unpack, got '%t'", TOP()->type);
+    if(length != arg) return ValueError("expected %d values to unpack, got %d", arg, length);
+    POP();
+    for(int i = 0; i < length; i++)
+        PUSH(p + i);
+    return true;
 }

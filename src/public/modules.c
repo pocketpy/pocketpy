@@ -117,11 +117,8 @@ static bool _py_builtins__next(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int res = py_next(argv);
     if(res == -1) return false;
-    if(res) {
-        return true;
-    } else {
-        return StopIteration();
-    }
+    if(res) return true;
+    return py_exception("StopIteration", "");
 }
 
 py_TValue pk_builtins__register() {

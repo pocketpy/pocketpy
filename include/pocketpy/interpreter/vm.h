@@ -42,7 +42,6 @@ typedef struct pk_VM {
     pk_NameDict modules;
     c11_vector /*T=pk_TypeInfo*/ types;
 
-    py_TValue StopIteration;  // a special Exception class
     py_TValue builtins;       // builtins module
     py_TValue main;           // __main__ module
 
@@ -53,6 +52,7 @@ typedef struct pk_VM {
 
     py_TValue last_retval;
     bool has_error;
+    bool is_stopiteration;
     
     py_TValue reg[8];  // users' registers
 
@@ -91,6 +91,7 @@ py_Type pk_VM__new_type(pk_VM* self,
 pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall);
 
 const char* pk_opname(Opcode op);
+py_TValue* pk_arrayview(py_Ref self, int* size);
 
 // type registration
 void pk_object__register();
@@ -101,6 +102,8 @@ py_Type pk_bytes__register();
 py_Type pk_list__register();
 py_Type pk_function__register();
 py_Type pk_nativefunc__register();
+py_Type pk_range__register();
+py_Type pk_range_iterator__register();
 
 py_TValue pk_builtins__register();
 

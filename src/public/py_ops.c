@@ -67,15 +67,13 @@ bool py_iter(const py_Ref val) {
 }
 
 int py_next(const py_Ref val) {
+    pk_VM* vm = pk_current_vm;
+    vm->is_stopiteration = false;
     py_Ref tmp = py_tpfindmagic(val->type, __next__);
     if(!tmp) return TypeError("'%t' object is not an iterator", val->type);
     bool ok = py_call(tmp, 1, val);
-    if(ok) {
-        py_Ref retval = py_retval();
-        bool is_end = retval->type == tp_type && py_totype(retval) == tp_stop_iteration;
-        return !is_end;
-    }
-    return -1;
+    if(ok) return true;
+    return vm->is_stopiteration ? 0 : -1;
 }
 
 int py_getattr(const py_Ref self, py_Name name, py_Ref out) { return -1; }

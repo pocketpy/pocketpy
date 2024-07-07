@@ -62,7 +62,6 @@ void pk_VM__ctor(pk_VM* self) {
     pk_NameDict__ctor(&self->modules);
     c11_vector__ctor(&self->types, sizeof(pk_TypeInfo));
 
-    self->StopIteration = PY_NIL;
     self->builtins = PY_NIL;
     self->main = PY_NIL;
 
@@ -73,6 +72,7 @@ void pk_VM__ctor(pk_VM* self) {
 
     self->last_retval = PY_NIL;
     self->has_error = false;
+    self->is_stopiteration = false;
 
     self->__curr_class = PY_NIL;
     self->__dynamic_func_decl = NULL;
@@ -102,7 +102,8 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_tuple, pk_VM__new_type(self, "tuple", tp_object, NULL, false));
 
     validate(tp_slice, pk_VM__new_type(self, "slice", tp_object, NULL, false));
-    validate(tp_range, pk_VM__new_type(self, "range", tp_object, NULL, false));
+    validate(tp_range, pk_range__register());
+    validate(tp_range_iterator, pk_range_iterator__register());
     validate(tp_module, pk_VM__new_type(self, "module", tp_object, NULL, false));
 
     validate(tp_function, pk_function__register());
@@ -130,7 +131,6 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_stop_iteration, pk_VM__new_type(self, "StopIteration", tp_exception, NULL, false));
 #undef validate
 
-    self->StopIteration = *py_tpobject(tp_stop_iteration);
     self->builtins = pk_builtins__register();
 
     /* Setup Public Builtin Types */

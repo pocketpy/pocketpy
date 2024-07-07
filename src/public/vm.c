@@ -35,6 +35,18 @@ const char* pk_opname(Opcode op) {
     return OP_NAMES[op];
 }
 
+py_TValue* pk_arrayview(py_Ref self, int* length) {
+    if(self->type == tp_list) {
+        *length = py_list__len(self);
+        return py_list__getitem(self, 0);
+    }
+    if(self->type == tp_tuple) {
+        *length = py_tuple__len(self);
+        return py_tuple__getitem(self, 0);
+    }
+    return NULL;
+}
+
 static void disassemble(CodeObject* co) {
     c11_vector /*T=int*/ jumpTargets;
     c11_vector__ctor(&jumpTargets, sizeof(int));
@@ -294,7 +306,7 @@ const char* py_tpname(py_Type type) {
     return py_name2str(name);
 }
 
-bool py_tpcall(py_Type type, int argc, py_Ref argv){
+bool py_tpcall(py_Type type, int argc, py_Ref argv) {
     return py_call(py_tpobject(type), argc, argv);
 }
 
@@ -304,4 +316,11 @@ bool py_callmagic(py_Name name, int argc, py_Ref argv) {
     py_Ref tmp = py_tpfindmagic(argv->type, name);
     if(!tmp) return AttributeError(argv, name);
     return py_call(tmp, argc, argv);
+}
+
+bool StopIteration() {
+    pk_VM* vm = pk_current_vm;
+    assert(!vm->is_stopiteration);  // flag is already set
+    vm->is_stopiteration = true;
+    return false;
 }

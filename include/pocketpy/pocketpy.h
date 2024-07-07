@@ -244,12 +244,13 @@ void py_formatexc(char* out);
 #define TypeError(...) py_exception("TypeError", __VA_ARGS__)
 #define ValueError(...) py_exception("ValueError", __VA_ARGS__)
 #define IndexError(...) py_exception("IndexError", __VA_ARGS__)
-#define StopIteration() py_exception("StopIteration", "")
 #define NotImplementedError() py_exception("NotImplementedError", "")
 #define AttributeError(self, n)                                                                    \
     py_exception("AttributeError", "'%t' object has no attribute '%n'", (self)->type, (n))
 #define UnboundLocalError(n)                                                                       \
     py_exception("UnboundLocalError", "local variable '%n' referenced before assignment", (n))
+
+bool StopIteration();
 
 /************* Operators *************/
 /// Equivalent to `bool(val)`.
@@ -385,6 +386,7 @@ enum py_PredefinedTypes {
     tp_tuple,  // N slots
     tp_slice,  // 3 slots (start, stop, step)
     tp_range,
+    tp_range_iterator,
     tp_module,
     tp_function,
     tp_nativefunc,
