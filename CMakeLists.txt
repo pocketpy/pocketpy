@@ -44,11 +44,6 @@ if(PK_ENABLE_PROFILER)
     add_definitions(-DPK_ENABLE_PROFILER=1)
 endif()
 
-option(PK_NO_EXPORT_C_API "" OFF)
-if(PK_NO_EXPORT_C_API)
-    add_definitions(-DPK_NO_EXPORT_C_API)
-endif()
-
 # PK_IS_MAIN determines whether the project is being used from root
 # or if it is added as a dependency (through add_subdirectory for example).
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
