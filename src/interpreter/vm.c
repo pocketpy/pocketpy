@@ -246,11 +246,9 @@ bool pk__parse_int_slice(const py_Ref slice, int length, int* start, int* stop, 
     return true;
 }
 
-bool pk__normalize_index(int *index, int length){
+bool pk__normalize_index(int* index, int length) {
     if(*index < 0) *index += length;
-    if(*index < 0 || *index >= length){
-        return IndexError("index out of range");
-    }
+    if(*index < 0 || *index >= length) { return IndexError("index out of range"); }
     return true;
 }
 
@@ -263,6 +261,73 @@ py_Type pk_VM__new_type(pk_VM* self,
     pk_TypeInfo* ti = c11_vector__emplace(&self->types);
     pk_TypeInfo__ctor(ti, py_name(name), index, base, module, subclass_enabled);
     return index;
+}
+
+bool __prepare_py_call(py_TValue* buffer,
+                       py_Ref argv,
+                       py_Ref p1,
+                       int kwargc,
+                       const FuncDecl* decl) {
+    const CodeObject* co = &decl->code;
+    int decl_argc = decl->args.count;
+
+    if(p1 - argv < decl_argc) {
+        return TypeError("%s() takes %d positional arguments but %d were given",
+                         co->name->data,
+                         decl_argc,
+                         p1 - argv);
+    }
+
+    py_TValue* t = argv;
+    // prepare args
+    memset(buffer, 0, co->nlocals * sizeof(py_TValue));
+    c11__foreach(int, &decl->args, index) buffer[*index] = *t++;
+    // prepare kwdefaults
+    c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) buffer[kv->index] = kv->value;
+
+    // handle *args
+    if(decl->starred_arg != -1) {
+        int exceed_argc = p1 - t;
+        py_Ref vargs = &buffer[decl->starred_arg];
+        py_newtuple(vargs, exceed_argc);
+        for(int j = 0; j < exceed_argc; j++) {
+            py_tuple__setitem(vargs, j, t++);
+        }
+    } else {
+        // kwdefaults override
+        // def f(a, b, c=None)
+        // f(1, 2, 3) -> c=3
+        c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
+            if(t >= p1) break;
+            buffer[kv->index] = *t++;
+        }
+        // not able to consume all args
+        if(t < p1) return TypeError("too many arguments (%s)", co->name->data);
+    }
+
+    if(decl->starred_kwarg != -1) py_newdict(&buffer[decl->starred_kwarg]);
+
+    for(int j = 0; j < kwargc; j += 2) {
+        py_Name key = py_toint(&p1[j]);
+        int index = c11_smallmap_n2i__get(&decl->kw_to_index, key, -1);
+        // if key is an explicit key, set as local variable
+        if(index >= 0) {
+            buffer[index] = p1[j + 1];
+        } else {
+            // otherwise, set as **kwargs if possible
+            if(decl->starred_kwarg == -1) {
+                return TypeError("'%n' is an invalid keyword argument for %s()",
+                                 key,
+                                 co->name->data);
+            } else {
+                // add to **kwargs
+                // Dict& dict = _CAST(Dict&, vkwargs);
+                // dict.set(this, VAR(key.sv()), kwargs[j + 1]);
+                assert(false);
+            }
+        }
+    }
+    return true;
 }
 
 pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall) {
@@ -298,14 +363,15 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
         const CodeObject* co = &fn->decl->code;
 
         switch(fn->decl->type) {
-            case FuncType_NORMAL:
-                assert(false);
-                // __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
-                // // copy buffer back to stack
-                // self->stack.sp = argv + co->nlocals;
-                // for(int j = 0; j < co->nlocals; j++)
-                //     argv[j] = self->__vectorcall_buffer[j];
+            case FuncType_NORMAL: {
+                bool ok = __prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
+                if(!ok) return RES_ERROR;
+                // copy buffer back to stack
+                self->stack.sp = argv + co->nlocals;
+                for(int j = 0; j < co->nlocals; j++)
+                    argv[j] = self->__vectorcall_buffer[j];
                 break;
+            }
             case FuncType_SIMPLE:
                 if(argc2 != fn->decl->args.count) {
                     const char* fmt = "%s() takes %d positional arguments but %d were given";
