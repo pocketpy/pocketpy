@@ -6,7 +6,7 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 
-void py_newstr(py_Ref out, const char* data) { return py_newstrn(out, data, strlen(data)); }
+void py_newstr(py_Ref out, const char* data) { py_newstrn(out, data, strlen(data)); }
 
 void py_newstrn(py_Ref out, const char* data, int size) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;

@@ -23,7 +23,7 @@ void c11_sbuf__write_char(c11_sbuf* self, char c) { c11_vector__push(char, &self
 void c11_sbuf__write_int(c11_sbuf* self, int i) {
     // len('-2147483648') == 11
     c11_vector__reserve(&self->data, self->data.count + 11 + 1);
-    char* p = self->data.data + self->data.count;
+    char* p = (char*)self->data.data + self->data.count;
     int n = snprintf(p, 11 + 1, "%d", i);
     self->data.count += n;
 }
@@ -31,7 +31,7 @@ void c11_sbuf__write_int(c11_sbuf* self, int i) {
 void c11_sbuf__write_i64(c11_sbuf* self, int64_t val) {
     // len('-9223372036854775808') == 20
     c11_vector__reserve(&self->data, self->data.count + 20 + 1);
-    char* p = self->data.data + self->data.count;
+    char* p = (char*)self->data.data + self->data.count;
     int n = snprintf(p, 20 + 1, "%lld", (long long)val);
     self->data.count += n;
 }
@@ -234,9 +234,9 @@ int py_replinput(char* buf) {
             char last = '\0';
             if(size > 0) last = buf[size - 1];
             if(multiline) {
-                if(last == '\n'){
+                if(last == '\n') {
                     break;  // 2 consecutive newlines to end multiline input
-                }else{
+                } else {
                     printf("... ");
                 }
             } else {
