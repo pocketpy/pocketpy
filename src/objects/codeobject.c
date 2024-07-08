@@ -40,10 +40,75 @@ FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name) {
     return self;
 }
 
-void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const py_TValue* value) {
-    c11_smallmap_n2i__set(&self->kw_to_index, key, index);
-    FuncDeclKwArg item = {index, key, *value};
-    c11_vector__push(FuncDeclKwArg, &self->kwargs, item);
+bool FuncDecl__is_duplicated_arg(const FuncDecl* decl, py_Name name) {
+    py_Name tmp_name;
+    c11__foreach(int, &decl->args, j) {
+        tmp_name = c11__getitem(py_Name, &decl->args, *j);
+        if(tmp_name == name) return true;
+    }
+    c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
+        tmp_name = c11__getitem(py_Name, &decl->code.varnames, kv->index);
+        if(tmp_name == name) return true;
+    }
+    if(decl->starred_arg != -1) {
+        tmp_name = c11__getitem(py_Name, &decl->code.varnames, decl->starred_arg);
+        if(tmp_name == name) return true;
+    }
+    if(decl->starred_kwarg != -1) {
+        tmp_name = c11__getitem(py_Name, &decl->code.varnames, decl->starred_kwarg);
+        if(tmp_name == name) return true;
+    }
+    return false;
+}
+
+void FuncDecl__add_arg(FuncDecl* self, py_Name name) {
+    int index = CodeObject__add_varname(&self->code, name);
+    c11_vector__push(int, &self->args, index);
+}
+
+void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value) {
+    int index = CodeObject__add_varname(&self->code, name);
+    c11_smallmap_n2i__set(&self->kw_to_index, name, index);
+    FuncDeclKwArg* item = c11_vector__emplace(&self->kwargs);
+    item->index = index;
+    item->key = name;
+    item->value = *value;
+}
+
+void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name) {
+    int index = CodeObject__add_varname(&self->code, name);
+    self->starred_arg = index;
+}
+
+void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name) {
+    int index = CodeObject__add_varname(&self->code, name);
+    self->starred_kwarg = index;
+}
+
+FuncDecl_ FuncDecl__build(const char* name,
+                          const char** args,
+                          int argc,
+                          const char* starred_arg,
+                          const char** kwargs,
+                          int kwargc,
+                          py_Ref kwdefaults,  // a tuple contains default values
+                          const char* starred_kwarg,
+                          const char* docstring) {
+    pk_SourceData_ source = pk_SourceData__rcnew("pass", "<bind>", EXEC_MODE, false);
+    FuncDecl_ decl = FuncDecl__rcnew(source, (c11_sv){name, strlen(name)});
+    for(int i = 0; i < argc; i++) {
+        FuncDecl__add_arg(decl, py_name(args[i]));
+    }
+    if(starred_arg) { FuncDecl__add_starred_arg(decl, py_name(starred_arg)); }
+    assert(py_istype(kwdefaults, tp_tuple));
+    assert(py_tuple__len(kwdefaults) == kwargc);
+    for(int i = 0; i < kwargc; i++) {
+        FuncDecl__add_kwarg(decl, py_name(kwargs[i]), py_tuple__getitem(kwdefaults, i));
+    }
+    if(starred_kwarg) FuncDecl__add_starred_kwarg(decl, py_name(starred_kwarg));
+    decl->docstring = docstring;
+    PK_DECREF(source);
+    return decl;
 }
 
 void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_sv name) {
@@ -100,6 +165,16 @@ void Function__ctor(Function* self, FuncDecl_ decl, PyObject* module) {
     self->clazz = NULL;
     self->closure = NULL;
     self->cfunc = NULL;
+}
+
+int CodeObject__add_varname(CodeObject* self, py_Name name) {
+    int index = c11_smallmap_n2i__get(&self->varnames_inv, name, -1);
+    if(index >= 0) return index;
+    c11_vector__push(uint16_t, &self->varnames, name);
+    self->nlocals++;
+    index = self->varnames.count - 1;
+    c11_smallmap_n2i__set(&self->varnames_inv, name, index);
+    return index;
 }
 
 void Function__dtor(Function* self) {

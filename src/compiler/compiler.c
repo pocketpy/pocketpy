@@ -1327,13 +1327,7 @@ static bool Ctx__add_label(Ctx* self, py_Name name) {
 
 static int Ctx__add_varname(Ctx* self, py_Name name) {
     // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
-    int index = c11_smallmap_n2i__get(&self->co->varnames_inv, name, -1);
-    if(index >= 0) return index;
-    c11_vector__push(uint16_t, &self->co->varnames, name);
-    self->co->nlocals++;
-    index = self->co->varnames.count - 1;
-    c11_smallmap_n2i__set(&self->co->varnames_inv, name, index);
-    return index;
+    return CodeObject__add_varname(self->co, name);
 }
 
 static int Ctx__add_const_string(Ctx* self, c11_sv key) {
@@ -2244,32 +2238,17 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
         py_Name name = py_name2(Token__sv(prev()));
 
         // check duplicate argument name
-        py_Name tmp_name;
-        c11__foreach(int, &decl->args, j) {
-            tmp_name = c11__getitem(py_Name, &decl->args, *j);
-            if(tmp_name == name) return SyntaxError("duplicate argument name");
-        }
-        c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
-            tmp_name = c11__getitem(py_Name, &decl->code.varnames, kv->index);
-            if(tmp_name == name) return SyntaxError("duplicate argument name");
-        }
-        if(decl->starred_arg != -1) {
-            tmp_name = c11__getitem(py_Name, &decl->code.varnames, decl->starred_arg);
-            if(tmp_name == name) return SyntaxError("duplicate argument name");
-        }
-        if(decl->starred_kwarg != -1) {
-            tmp_name = c11__getitem(py_Name, &decl->code.varnames, decl->starred_kwarg);
-            if(tmp_name == name) return SyntaxError("duplicate argument name");
+        if(FuncDecl__is_duplicated_arg(decl, name)) {
+            return SyntaxError("duplicate argument name");
         }
 
         // eat type hints
         if(enable_type_hints && match(TK_COLON)) check(consume_type_hints(self));
         if(state == 0 && curr()->type == TK_ASSIGN) state = 2;
-        int index = Ctx__add_varname(ctx(), name);
         switch(state) {
-            case 0: c11_vector__push(int, &decl->args, index); break;
+            case 0: FuncDecl__add_arg(decl, name); break;
             case 1:
-                decl->starred_arg = index;
+                FuncDecl__add_starred_arg(decl, name);
                 state += 1;
                 break;
             case 2: {
@@ -2277,10 +2256,10 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
                 py_TValue value;
                 check(read_literal(self, &value));
                 if(py_isnil(&value)) return SyntaxError("default argument must be a literal");
-                FuncDecl__add_kwarg(decl, index, name, &value);
+                FuncDecl__add_kwarg(decl, name, &value);
             } break;
             case 3:
-                decl->starred_kwarg = index;
+                FuncDecl__add_starred_kwarg(decl, name);
                 state += 1;
                 break;
         }

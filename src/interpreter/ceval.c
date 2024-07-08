@@ -83,7 +83,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     __NEXT_STEP:
         byte = *frame->ip;
 
-#if 1
+#if 0
         c11_sbuf buf;
         c11_sbuf__ctor(&buf);
         for(py_Ref p = self->stack.begin; p != SP(); p++) {

@@ -81,15 +81,6 @@ bool py_ismagicname(py_Name);
 void py_newdict(py_Ref);
 void py_newset(py_Ref);
 void py_newslice(py_Ref, const py_Ref start, const py_Ref stop, const py_Ref step);
-
-// new style decl-based function
-void py_newfunction(py_Ref out, py_CFunction, const char* sig);
-void py_newfunction2(py_Ref out,
-                     py_CFunction,
-                     const char* sig,
-                     enum BindType bt,
-                     const char* docstring,
-                     int slots);
 // old style argc-based function
 void py_newnativefunc(py_Ref out, py_CFunction);
 
@@ -135,12 +126,27 @@ py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 
 // new style decl-based bindings
 void py_bind(py_Ref obj, const char* sig, py_CFunction f);
-void py_bind2(py_Ref obj,
+py_ObjectRef py_bind2(py_Ref obj,
               const char* sig,
               py_CFunction f,
               enum BindType bt,
               const char* docstring,
               int slots);
+
+py_ObjectRef py_bind3(py_Ref obj,
+              py_CFunction f,
+              const char* name,
+              const char** args,
+              int argc,
+              const char* starred_arg,
+              const char** kwargs,
+              int kwargc,
+              py_Ref kwdefaults,  // a tuple contains default values
+              const char* starred_kwarg,
+              enum BindType bt,
+              const char* docstring,
+              int slots);
+
 // old style argc-based bindings
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
 void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum BindType bt);

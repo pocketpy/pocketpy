@@ -90,6 +90,7 @@ typedef struct CodeObject {
 
 void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_sv name);
 void CodeObject__dtor(CodeObject* self);
+int CodeObject__add_varname(CodeObject* self, py_Name name);
 void CodeObject__gc_mark(const CodeObject* self);
 
 typedef struct FuncDeclKwArg {
@@ -118,7 +119,20 @@ typedef struct FuncDecl {
 typedef FuncDecl* FuncDecl_;
 
 FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name);
-void FuncDecl__add_kwarg(FuncDecl* self, int index, uint16_t key, const py_TValue* value);
+bool FuncDecl__is_duplicated_arg(const FuncDecl* self, py_Name name);
+void FuncDecl__add_arg(FuncDecl* self, py_Name name);
+void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value);
+void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name);
+void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name);
+FuncDecl_ FuncDecl__build(const char* name,
+                          const char** args,
+                          int argc,
+                          const char* starred_arg,
+                          const char** kwargs,
+                          int kwargc,
+                          py_Ref kwdefaults,  // a tuple contains default values
+                          const char* starred_kwarg,
+                          const char* docstring);
 
 // runtime function
 typedef struct Function {
