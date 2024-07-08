@@ -88,13 +88,6 @@ void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
     py_setdict(obj, name, &tmp);
 }
 
-void py_newslice(py_Ref out, const py_Ref start, const py_Ref stop, const py_Ref step) {
-    py_newobject(out, tp_slice, 3, 0);
-    py_setslot(out, 0, start);
-    py_setslot(out, 1, stop);
-    py_setslot(out, 2, step);
-}
-
 void* py_newobject(py_Ref out, py_Type type, int slots, int udsize) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* obj = pk_ManagedHeap__gcnew(heap, type, slots, udsize);

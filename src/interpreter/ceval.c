@@ -531,7 +531,10 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             case OP_BUILD_SLICE: {
                 // [start, stop, step]
                 py_TValue tmp;
-                py_newslice(&tmp, THIRD(), SECOND(), TOP());
+                py_newslice(&tmp);
+                py_setslot(&tmp, 0, THIRD());
+                py_setslot(&tmp, 1, SECOND());
+                py_setslot(&tmp, 2, TOP());
                 STACK_SHRINK(3);
                 PUSH(&tmp);
                 DISPATCH();

@@ -108,6 +108,8 @@ py_Type pk_str_iterator__register();
 py_Type pk_bytes__register();
 py_Type pk_list__register();
 py_Type pk_tuple__register();
+py_Type pk_array_iterator__register();
+py_Type pk_slice__register();
 py_Type pk_function__register();
 py_Type pk_nativefunc__register();
 py_Type pk_range__register();

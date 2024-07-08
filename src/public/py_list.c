@@ -386,6 +386,11 @@ static bool _py_list__sort(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_list__iter__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    return py_tpcall(tp_array_iterator, 1, argv);
+}
+
 py_Type pk_list__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
@@ -403,6 +408,7 @@ py_Type pk_list__register() {
     py_bindmagic(type, __mul__, _py_list__mul__);
     py_bindmagic(type, __rmul__, _py_list__rmul__);
     py_bindmagic(type, __repr__, _py_list__repr__);
+    py_bindmagic(type, __iter__, _py_list__iter__);
 
     py_bindmethod(type, "append", _py_list__append);
     py_bindmethod(type, "extend", _py_list__extend);

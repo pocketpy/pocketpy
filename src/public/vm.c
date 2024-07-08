@@ -35,28 +35,6 @@ const char* pk_opname(Opcode op) {
     return OP_NAMES[op];
 }
 
-py_TValue* pk_arrayview(py_Ref self, int* length) {
-    if(self->type == tp_list) {
-        *length = py_list__len(self);
-        return py_list__data(self);
-    }
-    if(self->type == tp_tuple) {
-        *length = py_tuple__len(self);
-        return PyObject__slots(self->_obj);
-    }
-    return NULL;
-}
-
-int pk_arrayeq(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length) {
-    if(lhs_length != rhs_length) return false;
-    for(int i = 0; i < lhs_length; i++) {
-        int res = py_eq(lhs + i, rhs + i);
-        if(res == -1) return -1;
-        if(!res) return false;
-    }
-    return true;
-}
-
 static void disassemble(CodeObject* co) {
     c11_vector /*T=int*/ jumpTargets;
     c11_vector__ctor(&jumpTargets, sizeof(int));

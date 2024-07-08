@@ -44,6 +44,12 @@ const char* py_tostrn(const py_Ref self, int* size) {
     return ud->data;
 }
 
+c11_sv py_tosv(const py_Ref self) {
+    assert(self->type == tp_str);
+    c11_string* ud = PyObject__userdata(self->_obj);
+    return c11_string__sv(ud);
+}
+
 unsigned char* py_tobytes(const py_Ref self, int* size) {
     assert(self->type == tp_bytes);
     c11_bytes* ud = PyObject__userdata(self->_obj);

@@ -88,7 +88,7 @@ bool py_ismagicname(py_Name);
 // opaque types
 void py_newdict(py_Ref);
 void py_newset(py_Ref);
-void py_newslice(py_Ref, const py_Ref start, const py_Ref stop, const py_Ref step);
+void py_newslice(py_Ref);
 // old style argc-based function
 void py_newnativefunc(py_Ref out, py_CFunction);
 
@@ -400,6 +400,7 @@ enum py_PredefinedTypes {
     tp_str_iterator,
     tp_list,   // c11_vector
     tp_tuple,  // N slots
+    tp_array_iterator,
     tp_slice,  // 3 slots (start, stop, step)
     tp_range,
     tp_range_iterator,

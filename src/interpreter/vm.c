@@ -100,8 +100,9 @@ void pk_VM__ctor(pk_VM* self) {
 
     validate(tp_list, pk_list__register());
     validate(tp_tuple, pk_tuple__register());
+    validate(tp_array_iterator, pk_array_iterator__register());
 
-    validate(tp_slice, pk_VM__new_type(self, "slice", tp_object, NULL, false));
+    validate(tp_slice, pk_slice__register());
     validate(tp_range, pk_range__register());
     validate(tp_range_iterator, pk_range_iterator__register());
     validate(tp_module, pk_VM__new_type(self, "module", tp_object, NULL, false));

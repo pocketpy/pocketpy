@@ -120,6 +120,11 @@ static bool _py_tuple__ne__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_tuple__iter__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    return py_tpcall(tp_array_iterator, 1, argv);
+}
+
 py_Type pk_tuple__register() {
     pk_VM* vm = pk_current_vm;
     py_Type type = pk_VM__new_type(vm, "tuple", tp_object, NULL, false);
@@ -130,5 +135,6 @@ py_Type pk_tuple__register() {
     py_bindmagic(type, __getitem__, _py_tuple__getitem__);
     py_bindmagic(type, __eq__, _py_tuple__eq__);
     py_bindmagic(type, __ne__, _py_tuple__ne__);
+    py_bindmagic(type, __iter__, _py_tuple__iter__);
     return type;
 }
