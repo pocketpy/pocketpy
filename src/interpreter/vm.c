@@ -71,7 +71,7 @@ void pk_VM__ctor(pk_VM* self) {
     self->_stderr = pk_default_stderr;
 
     self->last_retval = PY_NIL;
-    self->has_error = false;
+    self->last_exception = PY_NIL;
     self->is_stopiteration = false;
 
     self->__curr_class = PY_NIL;
@@ -112,7 +112,8 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_bound_method, pk_VM__new_type(self, "bound_method", tp_object, NULL, false));
 
     validate(tp_super, pk_VM__new_type(self, "super", tp_object, NULL, false));
-    validate(tp_exception, pk_VM__new_type(self, "Exception", tp_object, NULL, true));
+    validate(tp_base_exception, pk_BaseException__register());
+    validate(tp_exception, pk_Exception__register());
     validate(tp_bytes, pk_bytes__register());
     validate(tp_mappingproxy, pk_VM__new_type(self, "mappingproxy", tp_object, NULL, false));
 
@@ -148,6 +149,7 @@ void pk_VM__ctor(pk_VM* self) {
                               tp_bytes,
                               tp_dict,
                               tp_property,
+                              tp_base_exception,
                               tp_exception,
                               tp_stop_iteration,
                               tp_syntax_error};

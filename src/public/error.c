@@ -4,24 +4,25 @@
 
 #include <stdarg.h>
 
-void py_printexc(){
+void py_printexc() {
     pk_VM* vm = pk_current_vm;
-    if(vm->has_error){
-        assert(vm->last_retval.type == tp_exception);
-    }else{
+    if(py_isnil(&vm->last_exception)) {
         vm->_stdout("NoneType: None\n");
+    } else {
+        const char* name = py_tpname(vm->last_exception.type);
+        bool ok = py_str(&vm->last_exception);
+        if(!ok) abort();
+        const char* message = py_tostr(py_retval());
+        vm->_stdout("%s: %s\n", name, message);
     }
 }
 
+void py_formatexc(char* out) {}
 
-void py_formatexc(char *out){
-
-}
-
-bool py_exception(const char* name, const char* fmt, ...){
+bool py_exception(const char* name, const char* fmt, ...) {
     pk_VM* vm = pk_current_vm;
-    assert(!vm->has_error);     // an error is already set
-    vm->has_error = true;
+    // an error is already set
+    assert(py_isnil(&vm->last_exception));
 
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
@@ -31,8 +32,14 @@ bool py_exception(const char* name, const char* fmt, ...){
     va_end(args);
 
     c11_string* res = c11_sbuf__submit(&buf);
-    // vm->last_retval = py_newexception(name, res->data);
-    vm->_stderr("%s: %s\n", name, res->data);
+    py_Ref message = py_pushtmp();
+    py_newstrn(message, res->data, res->size);
     c11_string__delete(res);
+    py_pop();
+
+    bool ok = py_tpcall(tp_exception, 1, message);
+    if(!ok) abort();
+    vm->last_exception = *py_retval();
+
     return false;
 }

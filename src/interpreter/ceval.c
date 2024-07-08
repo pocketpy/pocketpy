@@ -83,7 +83,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     __NEXT_STEP:
         byte = *frame->ip;
 
-#if 0
+#if 1
         c11_sbuf buf;
         c11_sbuf__ctor(&buf);
         for(py_Ref p = self->stack.begin; p != SP(); p++) {
@@ -777,7 +777,6 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
         // 1. Exception can be handled inside the current frame
         // 2. Exception need to be propagated to the upper frame
         printf("error.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
-        assert(false);
         return RES_ERROR;
     }
 

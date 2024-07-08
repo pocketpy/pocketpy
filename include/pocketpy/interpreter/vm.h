@@ -51,7 +51,7 @@ typedef struct pk_VM {
     void (*_stderr)(const char*, ...);
 
     py_TValue last_retval;
-    bool has_error;
+    py_TValue last_exception;
     bool is_stopiteration;
 
     py_TValue reg[8];  // users' registers
@@ -114,6 +114,8 @@ py_Type pk_function__register();
 py_Type pk_nativefunc__register();
 py_Type pk_range__register();
 py_Type pk_range_iterator__register();
+py_Type pk_BaseException__register();
+py_Type pk_Exception__register();
 
 py_TValue pk_builtins__register();
 

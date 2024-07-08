@@ -409,6 +409,7 @@ enum py_PredefinedTypes {
     tp_nativefunc,
     tp_bound_method,
     tp_super,  // 1 slot + py_Type
+    tp_base_exception,
     tp_exception,
     tp_bytes,
     tp_mappingproxy,

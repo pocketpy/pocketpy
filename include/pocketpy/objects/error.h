@@ -13,12 +13,12 @@ extern "C" {
 //     pk_SourceData_ src;
 //     int lineno;
 //     const char* cursor;
-//     py_Str name;
+//     c11_string* name;
 // } pkpy_ExceptionFrame;
 
 // typedef struct pkpy_Exception {
 //     py_Name type;
-//     py_Str msg;
+//     c11_string* msg;
 //     bool is_re;
 
 //     int _ip_on_error;
