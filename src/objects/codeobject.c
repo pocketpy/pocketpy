@@ -85,27 +85,27 @@ void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name) {
     self->starred_kwarg = index;
 }
 
-FuncDecl_ FuncDecl__build(const char* name,
-                          const char** args,
+FuncDecl_ FuncDecl__build(c11_sv name,
+                          c11_sv* args,
                           int argc,
-                          const char* starred_arg,
-                          const char** kwargs,
+                          c11_sv starred_arg,
+                          c11_sv* kwargs,
                           int kwargc,
                           py_Ref kwdefaults,  // a tuple contains default values
-                          const char* starred_kwarg,
+                          c11_sv starred_kwarg,
                           const char* docstring) {
     pk_SourceData_ source = pk_SourceData__rcnew("pass", "<bind>", EXEC_MODE, false);
-    FuncDecl_ decl = FuncDecl__rcnew(source, (c11_sv){name, strlen(name)});
+    FuncDecl_ decl = FuncDecl__rcnew(source, name);
     for(int i = 0; i < argc; i++) {
-        FuncDecl__add_arg(decl, py_name(args[i]));
+        FuncDecl__add_arg(decl, py_namev(args[i]));
     }
-    if(starred_arg) { FuncDecl__add_starred_arg(decl, py_name(starred_arg)); }
+    if(starred_arg.size) { FuncDecl__add_starred_arg(decl, py_namev(starred_arg)); }
     assert(py_istype(kwdefaults, tp_tuple));
     assert(py_tuple__len(kwdefaults) == kwargc);
     for(int i = 0; i < kwargc; i++) {
-        FuncDecl__add_kwarg(decl, py_name(kwargs[i]), py_tuple__getitem(kwdefaults, i));
+        FuncDecl__add_kwarg(decl, py_namev(kwargs[i]), py_tuple__getitem(kwdefaults, i));
     }
-    if(starred_kwarg) FuncDecl__add_starred_kwarg(decl, py_name(starred_kwarg));
+    if(starred_kwarg.size) FuncDecl__add_starred_kwarg(decl, py_namev(starred_kwarg));
     decl->docstring = docstring;
     PK_DECREF(source);
     return decl;

@@ -31,9 +31,9 @@ void py_Name__finalize() {
     c11_vector__dtor(&_r_interned);
 }
 
-py_Name py_name(const char* name) { return py_name2((c11_sv){name, strlen(name)}); }
+py_Name py_name(const char* name) { return py_namev((c11_sv){name, strlen(name)}); }
 
-py_Name py_name2(c11_sv name) {
+py_Name py_namev(c11_sv name) {
     // TODO: PK_GLOBAL_SCOPE_LOCK()
     uint16_t index = c11_smallmap_s2n__get(&_interned, name, 0);
     if(index != 0) return index;

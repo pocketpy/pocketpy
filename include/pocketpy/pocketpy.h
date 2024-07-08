@@ -15,6 +15,12 @@ typedef int16_t py_Type;
 typedef int64_t py_i64;
 typedef double py_f64;
 
+/* string_view */
+typedef struct c11_sv{
+    const char* data;
+    int size;
+} c11_sv;
+
 /// Generic reference.
 typedef py_TValue* py_Ref;
 /// An object reference which has the same lifespan as the object.
@@ -57,7 +63,6 @@ void py_newfloat(py_Ref, py_f64);
 void py_newbool(py_Ref, bool);
 void py_newstr(py_Ref, const char*);
 void py_newstrn(py_Ref, const char*, int);
-// void py_newfstr(py_Ref, const char*, ...);
 unsigned char* py_newbytes(py_Ref, int);
 void py_newnone(py_Ref);
 void py_newnotimplemented(py_Ref out);
@@ -75,6 +80,9 @@ void py_newlistn(py_Ref, int n);
 
 py_Name py_name(const char*);
 const char* py_name2str(py_Name);
+py_Name py_namev(c11_sv name);
+c11_sv py_name2sv(py_Name);
+
 bool py_ismagicname(py_Name);
 
 // opaque types
@@ -98,6 +106,7 @@ bool py_tobool(const py_Ref);
 py_Type py_totype(const py_Ref);
 const char* py_tostr(const py_Ref);
 const char* py_tostrn(const py_Ref, int* size);
+c11_sv py_tosv(const py_Ref);
 unsigned char* py_tobytes(const py_Ref, int* size);
 
 void* py_touserdata(const py_Ref);
@@ -135,14 +144,14 @@ py_ObjectRef py_bind2(py_Ref obj,
 
 py_ObjectRef py_bind3(py_Ref obj,
               py_CFunction f,
-              const char* name,
-              const char** args,
+              c11_sv name,
+              c11_sv* args,
               int argc,
-              const char* starred_arg,
-              const char** kwargs,
+              c11_sv starred_arg,
+              c11_sv* kwargs,
               int kwargc,
               py_Ref kwdefaults,  // a tuple contains default values
-              const char* starred_kwarg,
+              c11_sv starred_kwarg,
               enum BindType bt,
               const char* docstring,
               int slots);

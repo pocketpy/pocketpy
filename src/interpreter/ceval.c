@@ -180,7 +180,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 Function__ctor(ud, decl, frame->module);
                 if(decl->nested) {
                     ud->closure = FastLocals__to_namedict(frame->locals, frame->locals_co);
-                    py_Name name = py_name2(c11_string__sv(decl->code.name));
+                    py_Name name = py_namev(c11_string__sv(decl->code.name));
                     // capture itself to allow recursion
                     pk_NameDict__set(ud->closure, name, *SP());
                 }

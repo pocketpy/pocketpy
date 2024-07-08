@@ -1,19 +1,12 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
 #include "pocketpy/common/vector.h"
 #include "pocketpy/common/utils.h"
+#include "pocketpy/pocketpy.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* string_view */
-typedef struct c11_sv{
-    const char* data;
-    int size;
-} c11_sv;
 
 /* string */
 typedef struct c11_string{

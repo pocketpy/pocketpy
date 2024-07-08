@@ -635,7 +635,7 @@ static void _load_simple_expr(Ctx* ctx, c11_sv expr, int line) {
     // name or name.name
     bool is_fastpath = false;
     if(is_identifier(expr)) {
-        Ctx__emit_(ctx, OP_LOAD_NAME, py_name2(expr), line);
+        Ctx__emit_(ctx, OP_LOAD_NAME, py_namev(expr), line);
         is_fastpath = true;
     } else {
         int dot = c11_sv__index(expr, '.');
@@ -643,8 +643,8 @@ static void _load_simple_expr(Ctx* ctx, c11_sv expr, int line) {
             c11_sv a = {expr.data, dot};                                // expr[:dot]
             c11_sv b = {expr.data + (dot + 1), expr.size - (dot + 1)};  // expr[dot+1:]
             if(is_identifier(a) && is_identifier(b)) {
-                Ctx__emit_(ctx, OP_LOAD_NAME, py_name2(a), line);
-                Ctx__emit_(ctx, OP_LOAD_ATTR, py_name2(b), line);
+                Ctx__emit_(ctx, OP_LOAD_NAME, py_namev(a), line);
+                Ctx__emit_(ctx, OP_LOAD_ATTR, py_namev(b), line);
                 is_fastpath = true;
             }
         }
@@ -1539,7 +1539,7 @@ static Error* EXPR_VARS(Compiler* self) {
     int count = 0;
     do {
         consume(TK_ID);
-        py_Name name = py_name2(Token__sv(prev()));
+        py_Name name = py_namev(Token__sv(prev()));
         NameExpr* e = NameExpr__new(prev()->line, name, name_scope(self));
         Ctx__s_push(ctx(), (Expr*)e);
         count += 1;
@@ -1785,7 +1785,7 @@ static Error* exprGroup(Compiler* self) {
 }
 
 static Error* exprName(Compiler* self) {
-    py_Name name = py_name2(Token__sv(prev()));
+    py_Name name = py_namev(Token__sv(prev()));
     NameScope scope = name_scope(self);
     // promote this name to global scope if needed
     if(c11_smallmap_n2i__contains(&ctx()->global_names, name)) { scope = NAME_GLOBAL; }
@@ -1796,7 +1796,7 @@ static Error* exprName(Compiler* self) {
 
 static Error* exprAttrib(Compiler* self) {
     consume(TK_ID);
-    py_Name name = py_name2(Token__sv(prev()));
+    py_Name name = py_namev(Token__sv(prev()));
     AttribExpr* e = AttribExpr__new(prev()->line, Ctx__s_popx(ctx()), name);
     Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
@@ -1909,7 +1909,7 @@ static Error* exprCall(Compiler* self) {
         if(curr()->type == TK_RPAREN) break;
         if(curr()->type == TK_ID && next()->type == TK_ASSIGN) {
             consume(TK_ID);
-            py_Name key = py_name2(Token__sv(prev()));
+            py_Name key = py_namev(Token__sv(prev()));
             consume(TK_ASSIGN);
             check(EXPR(self));
             CallExprKwArg kw = {key, Ctx__s_popx(ctx())};
@@ -2235,7 +2235,7 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
             state = 3;
         }
         consume(TK_ID);
-        py_Name name = py_name2(Token__sv(prev()));
+        py_Name name = py_namev(Token__sv(prev()));
 
         // check duplicate argument name
         if(FuncDecl__is_duplicated_arg(decl, name)) {
@@ -2301,9 +2301,9 @@ static Error* compile_function(Compiler* self, int decorators) {
     Ctx__s_emit_decorators(ctx(), decorators);
 
     if(ctx()->is_compiling_class) {
-        Ctx__emit_(ctx(), OP_STORE_CLASS_ATTR, py_name2(decl_name), prev()->line);
+        Ctx__emit_(ctx(), OP_STORE_CLASS_ATTR, py_namev(decl_name), prev()->line);
     } else {
-        NameExpr* e = NameExpr__new(prev()->line, py_name2(decl_name), name_scope(self));
+        NameExpr* e = NameExpr__new(prev()->line, py_namev(decl_name), name_scope(self));
         vtemit_store((Expr*)e, ctx());
         vtdelete((Expr*)e);
     }
@@ -2340,7 +2340,7 @@ static Error* compile_normal_import(Compiler* self) {
             consume(TK_ID);
             name = Token__sv(prev());
         }
-        Ctx__emit_store_name(ctx(), name_scope(self), py_name2(name), prev()->line);
+        Ctx__emit_store_name(ctx(), name_scope(self), py_namev(name), prev()->line);
     } while(match(TK_COMMA));
     consume_end_stmt();
     return NULL;
@@ -2411,12 +2411,12 @@ __EAT_DOTS_END:
         Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
         consume(TK_ID);
         c11_sv name = Token__sv(prev());
-        Ctx__emit_(ctx(), OP_LOAD_ATTR, py_name2(name), prev()->line);
+        Ctx__emit_(ctx(), OP_LOAD_ATTR, py_namev(name), prev()->line);
         if(match(TK_AS)) {
             consume(TK_ID);
             name = Token__sv(prev());
         }
-        Ctx__emit_store_name(ctx(), name_scope(self), py_name2(name), prev()->line);
+        Ctx__emit_store_name(ctx(), name_scope(self), py_namev(name), prev()->line);
     } while(match(TK_COMMA));
     Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
     consume_end_stmt();
@@ -2515,7 +2515,7 @@ static Error* compile_stmt(Compiler* self) {
         case TK_GLOBAL:
             do {
                 consume(TK_ID);
-                py_Name name = py_name2(Token__sv(prev()));
+                py_Name name = py_namev(Token__sv(prev()));
                 c11_smallmap_n2i__set(&ctx()->global_names, name, 0);
             } while(match(TK_COMMA));
             consume_end_stmt();
@@ -2560,7 +2560,7 @@ static Error* compile_stmt(Compiler* self) {
             consume(TK_ID);
             if(mode() != EXEC_MODE) return SyntaxError("'label' is only available in EXEC_MODE");
             c11_sv name = Token__sv(prev());
-            bool ok = Ctx__add_label(ctx(), py_name2(name));
+            bool ok = Ctx__add_label(ctx(), py_namev(name));
             if(!ok) return SyntaxError("label %q already exists", name);
             consume(TK_EQ);
             consume_end_stmt();
@@ -2568,7 +2568,7 @@ static Error* compile_stmt(Compiler* self) {
         case TK_ARROW:
             consume(TK_ID);
             if(mode() != EXEC_MODE) return SyntaxError("'goto' is only available in EXEC_MODE");
-            py_Name name = py_name2(Token__sv(prev()));
+            py_Name name = py_namev(Token__sv(prev()));
             Ctx__emit_(ctx(), OP_GOTO, name, prev()->line);
             consume_end_stmt();
             break;
