@@ -509,19 +509,60 @@ void PyObject__delete(PyObject* self) {
     }
 }
 
+static void mark_object(PyObject* obj);
+
+static void mark_value(py_TValue* val) {
+    if(val->is_ptr) mark_object(val->_obj);
+}
+
+static void mark_object(PyObject* obj) {
+    if(obj->gc_marked) return;
+    obj->gc_marked = true;
+
+    // list is a special case
+    if(obj->type == tp_list) {
+        c11_vector* vec = PyObject__userdata(obj);
+        c11__foreach(py_TValue, vec, p) mark_value(p);
+        return;
+    }
+
+    if(obj->slots > 0) {
+        py_TValue* p = PyObject__slots(obj);
+        for(int i = 0; i < obj->slots; i++)
+            mark_value(p + i);
+        return;
+    }
+
+    if(obj->slots == -1) {
+        pk_NameDict* dict = PyObject__dict(obj);
+        for(int j = 0; j < dict->count; j++) {
+            pk_NameDict_KV* kv = c11__at(pk_NameDict_KV, dict, j);
+            mark_value(&kv->value);
+        }
+        return;
+    }
+}
+
 void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
-    // for(int i=0; i<self->no_gc.count; i++){
-    //     PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
-    //     vm->__obj_gc_mark(obj);
-    // }
-    // vm->callstack.apply([vm](Frame& frame) {
-    //     frame._gc_mark(vm);
-    // });
-    // vm->obj_gc_mark(vm->__last_exception);
-    // vm->obj_gc_mark(vm->__curr_class);
-    // vm->obj_gc_mark(vm->__c.error);
-    // vm->__stack_gc_mark(vm->s_data.begin(), vm->s_data.end());
-    // if(self->_gc_marker_ex) self->_gc_marker_ex((pkpy_VM*)vm);
+    pk_VM* vm = self->vm;
+    // mark heap objects
+    for(int i = 0; i < self->no_gc.count; i++) {
+        PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
+        mark_object(obj);
+    }
+    // mark value stack
+    for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
+        mark_value(p);
+    }
+
+    // mark vm's registers
+    mark_value(&vm->last_retval);
+    mark_value(&vm->last_exception);
+    for(int i = 0; i < c11__count_array(vm->reg); i++) {
+        mark_value(&vm->reg[i]);
+    }
+
+    mark_value(&vm->__curr_class);
 }
 
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {

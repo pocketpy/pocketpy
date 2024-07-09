@@ -13,8 +13,7 @@ typedef struct pk_ManagedHeap{
     int gc_counter;
     pk_VM* vm;
 
-    void (*_gc_on_delete)(pk_VM*, PyObject*);
-    void (*_gc_marker_ex)(pk_VM*);
+    void (*gc_on_delete)(pk_VM*, PyObject*);
 } pk_ManagedHeap;
 
 void pk_ManagedHeap__ctor(pk_ManagedHeap* self, pk_VM* vm);

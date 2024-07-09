@@ -10,8 +10,7 @@ void pk_ManagedHeap__ctor(pk_ManagedHeap *self, pk_VM *vm){
     self->gc_counter = 0;
     self->vm = vm;
 
-    self->_gc_on_delete = NULL;
-    self->_gc_marker_ex = NULL;
+    self->gc_on_delete = NULL;
 }
 
 void pk_ManagedHeap__dtor(pk_ManagedHeap *self){
@@ -54,8 +53,8 @@ int pk_ManagedHeap__sweep(pk_ManagedHeap *self){
             obj->gc_marked = false;
             c11_vector__push(PyObject*, &alive, obj);
         } else {
-            if(self->_gc_on_delete){
-                self->_gc_on_delete(self->vm, obj);
+            if(self->gc_on_delete){
+                self->gc_on_delete(self->vm, obj);
             }
             PyObject__delete(obj);
         }
