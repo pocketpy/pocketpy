@@ -110,7 +110,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_PRINT_EXPR:
-                if(TOP()->type != tp_none_type) {
+                if(TOP()->type != tp_NoneType) {
                     bool ok = py_repr(TOP());
                     if(!ok) goto __ERROR;
                     self->_stdout("%s\n", py_tostr(&self->last_retval));
@@ -756,7 +756,7 @@ bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
     if(magic) {
         bool ok = py_call(magic, 2, SECOND());
         if(!ok) return false;
-        if(self->last_retval.type != tp_not_implemented_type) return true;
+        if(self->last_retval.type != tp_NotImplementedType) return true;
     }
     // try reverse operation
     if(rop) {
@@ -768,7 +768,7 @@ bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
         if(magic) {
             bool ok = py_call(magic, 2, SECOND());
             if(!ok) return false;
-            if(self->last_retval.type != tp_not_implemented_type) return true;
+            if(self->last_retval.type != tp_NotImplementedType) return true;
         }
     }
     // eq/ne op never fails due to object.__eq__

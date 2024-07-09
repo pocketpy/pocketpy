@@ -322,7 +322,7 @@ bool py_str(py_Ref val);
 py_GlobalRef py_retval();
 
 #define py_isnil(self) py_istype(self, 0)
-#define py_isnone(self) py_istype(self, tp_none_type)
+#define py_isnone(self) py_istype(self, tp_NoneType)
 
 /* tuple */
 
@@ -410,10 +410,10 @@ enum py_PredefinedTypes {
     tp_module,
     tp_function,
     tp_nativefunc,
-    tp_bound_method,
+    tp_boundmethod,
     tp_super,  // 1 slot + py_Type
-    tp_base_exception,
-    tp_exception,
+    tp_BaseException,
+    tp_Exception,
     tp_bytes,
     tp_mappingproxy,
     tp_dict,
@@ -421,11 +421,11 @@ enum py_PredefinedTypes {
     tp_star_wrapper,
     tp_staticmethod,  // 1 slot
     tp_classmethod,   // 1 slot
-    tp_none_type,
-    tp_not_implemented_type,
+    tp_NoneType,
+    tp_NotImplementedType,
     tp_ellipsis,
-    tp_syntax_error,
-    tp_stop_iteration,
+    tp_SyntaxError,
+    tp_StopIteration,
 };
 
 #ifdef __cplusplus

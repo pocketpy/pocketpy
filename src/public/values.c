@@ -26,12 +26,12 @@ void py_newbool(py_Ref out, bool val) {
 }
 
 void py_newnone(py_Ref out) {
-    out->type = tp_none_type;
+    out->type = tp_NoneType;
     out->is_ptr = false;
 }
 
 void py_newnotimplemented(py_Ref out) {
-    out->type = tp_not_implemented_type;
+    out->type = tp_NotImplementedType;
     out->is_ptr = false;
 }
 

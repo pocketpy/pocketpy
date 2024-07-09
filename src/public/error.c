@@ -40,7 +40,7 @@ bool py_exception(const char* name, const char* fmt, ...) {
     py_Ref message = py_pushtmp();
     py_newstrn(message, res->data, res->size);
     c11_string__delete(res);
-    bool ok = py_tpcall(tp_exception, 1, message);
+    bool ok = py_tpcall(tp_Exception, 1, message);
     py_pop();
 
     if(!ok) abort();

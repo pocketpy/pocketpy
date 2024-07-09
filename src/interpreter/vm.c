@@ -109,11 +109,11 @@ void pk_VM__ctor(pk_VM* self) {
 
     validate(tp_function, pk_function__register());
     validate(tp_nativefunc, pk_nativefunc__register());
-    validate(tp_bound_method, pk_VM__new_type(self, "bound_method", tp_object, NULL, false));
+    validate(tp_boundmethod, pk_VM__new_type(self, "boundmethod", tp_object, NULL, false));
 
     validate(tp_super, pk_VM__new_type(self, "super", tp_object, NULL, false));
-    validate(tp_base_exception, pk_BaseException__register());
-    validate(tp_exception, pk_Exception__register());
+    validate(tp_BaseException, pk_BaseException__register());
+    validate(tp_Exception, pk_Exception__register());
     validate(tp_bytes, pk_bytes__register());
     validate(tp_mappingproxy, pk_VM__new_type(self, "mappingproxy", tp_object, NULL, false));
 
@@ -124,13 +124,13 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_staticmethod, pk_VM__new_type(self, "staticmethod", tp_object, NULL, false));
     validate(tp_classmethod, pk_VM__new_type(self, "classmethod", tp_object, NULL, false));
 
-    validate(tp_none_type, pk_VM__new_type(self, "NoneType", tp_object, NULL, false));
-    validate(tp_not_implemented_type,
+    validate(tp_NoneType, pk_VM__new_type(self, "NoneType", tp_object, NULL, false));
+    validate(tp_NotImplementedType,
              pk_VM__new_type(self, "NotImplementedType", tp_object, NULL, false));
     validate(tp_ellipsis, pk_VM__new_type(self, "ellipsis", tp_object, NULL, false));
 
-    validate(tp_syntax_error, pk_VM__new_type(self, "SyntaxError", tp_exception, NULL, false));
-    validate(tp_stop_iteration, pk_VM__new_type(self, "StopIteration", tp_exception, NULL, false));
+    validate(tp_SyntaxError, pk_VM__new_type(self, "SyntaxError", tp_Exception, NULL, false));
+    validate(tp_StopIteration, pk_VM__new_type(self, "StopIteration", tp_Exception, NULL, false));
 #undef validate
 
     self->builtins = pk_builtins__register();
@@ -149,10 +149,10 @@ void pk_VM__ctor(pk_VM* self) {
                               tp_bytes,
                               tp_dict,
                               tp_property,
-                              tp_base_exception,
-                              tp_exception,
-                              tp_stop_iteration,
-                              tp_syntax_error};
+                              tp_BaseException,
+                              tp_Exception,
+                              tp_StopIteration,
+                              tp_SyntaxError};
 
     for(int i = 0; i < c11__count_array(public_types); i++) {
         py_Type t = public_types[i];
@@ -343,7 +343,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
 
 #if 0
     // handle boundmethod, do a patch
-    if(p0->type == tp_bound_method) {
+    if(p0->type == tp_boundmethod) {
         assert(false);
         assert(py_isnil(p0 + 1));  // self must be NULL
         // BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
@@ -576,7 +576,7 @@ void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
             case tp_int: c11_sbuf__write_i64(&buf, p->_i64); break;
             case tp_float: c11_sbuf__write_f64(&buf, p->_f64, -1); break;
             case tp_bool: c11_sbuf__write_cstr(&buf, p->_bool ? "True" : "False"); break;
-            case tp_none_type: c11_sbuf__write_cstr(&buf, "None"); break;
+            case tp_NoneType: c11_sbuf__write_cstr(&buf, "None"); break;
             case tp_list: {
                 pk_sprintf(&buf, "list(%d)", py_list__len(p));
                 break;

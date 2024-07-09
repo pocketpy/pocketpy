@@ -76,6 +76,6 @@ py_Type pk_BaseException__register() {
 
 py_Type pk_Exception__register() {
     pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "Exception", tp_base_exception, NULL, true);
+    py_Type type = pk_VM__new_type(vm, "Exception", tp_BaseException, NULL, true);
     return type;
 }
