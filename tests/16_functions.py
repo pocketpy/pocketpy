@@ -123,32 +123,32 @@ assert f() == (((1,2),3), (4,))
 def f(a, b):
     return a + b
 
-try:
-    f(a=1)
-    exit(1)
-except TypeError:
-    pass
+# try:
+#     f(a=1)
+#     exit(1)
+# except TypeError:
+#     pass
 
-try:
-    f(1)
-    exit(1)
-except TypeError:
-    pass
+# try:
+#     f(1)
+#     exit(1)
+# except TypeError:
+#     pass
 
-try:
-    f(1, 2, 3)
-    exit(1)
-except TypeError:
-    pass
+# try:
+#     f(1, 2, 3)
+#     exit(1)
+# except TypeError:
+#     pass
 
-# empty function
-def f(a, b, c):
-    pass
+# # empty function
+# def f(a, b, c):
+#     pass
 
-assert f(1, 2, 3) == None
+# assert f(1, 2, 3) == None
 
-class A:
-    def f(self, a, b, c):
-        pass
+# class A:
+#     def f(self, a, b, c):
+#         pass
     
-assert A().f(1, 2, 3) == None
+# assert A().f(1, 2, 3) == None

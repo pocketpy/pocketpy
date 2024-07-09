@@ -64,6 +64,11 @@ void py_list__insert(py_Ref self, int i, const py_Ref val) {
     c11_vector__insert(py_TValue, userdata, i, *val);
 }
 
+void py_list__reverse(py_Ref self){
+    List* userdata = py_touserdata(self);
+    c11__reverse(py_TValue, userdata);
+}
+
 ////////////////////////////////
 static bool _py_list__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -110,7 +115,7 @@ static bool _py_list__new__(int argc, py_Ref argv) {
             }
             return true;
         }
-        
+
         if(!py_iter(py_arg(1))) return false;
 
         py_Ref iter = py_pushtmp();
@@ -323,11 +328,20 @@ static bool _py_list__remove(int argc, py_Ref argv) {
 }
 
 static bool _py_list__pop(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
+    int index;
+    if(argc == 1) {
+        index = -1;
+    } else if(argc == 2) {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        index = py_toint(py_arg(1));
+    } else {
+        return TypeError("pop() takes at most 2 arguments");
+    }
     List* self = py_touserdata(py_arg(0));
     if(self->count == 0) return IndexError("pop from empty list");
-    *py_retval() = c11_vector__back(py_TValue, self);
-    c11_vector__pop(self);
+    if(!pk__normalize_index(&index, self->count)) return false;
+    *py_retval() = c11__getitem(py_TValue, self, index);
+    c11_vector__erase(py_TValue, self, index);
     return true;
 }
 

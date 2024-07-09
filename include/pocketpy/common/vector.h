@@ -77,6 +77,7 @@ c11_array c11_vector__submit(c11_vector* self);
 
 #define c11__reverse(T, self)                                                                      \
     do {                                                                                           \
+        if(!self->data) break;                                                                     \
         T* p = (T*)(self)->data;                                                                   \
         T* q = (T*)(self)->data + (self)->count - 1;                                               \
         while(p < q) {                                                                             \

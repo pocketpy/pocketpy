@@ -253,6 +253,8 @@ bool py_exception(const char* name, const char* fmt, ...);
 void py_printexc();
 /// Format the last error to a string.
 void py_formatexc(char* out);
+/// Check if an error is set.
+bool py_checkexc();
 
 #define KeyError(q) py_exception("KeyError", "%q", (q))
 #define NameError(n) py_exception("NameError", "name '%n' is not defined", (n))
@@ -338,6 +340,7 @@ int py_list__len(const py_Ref self);
 void py_list__append(py_Ref self, const py_Ref val);
 void py_list__clear(py_Ref self);
 void py_list__insert(py_Ref self, int i, const py_Ref val);
+void py_list__reverse(py_Ref self);
 
 // internal functions
 typedef struct pk_TypeInfo pk_TypeInfo;

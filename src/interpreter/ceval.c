@@ -645,8 +645,23 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 }
                 DISPATCH();
             }
-
-                /////////
+            case OP_YIELD_VALUE: {
+                assert(false);
+            }
+            /////////
+            case OP_LIST_APPEND: {
+                // [list, iter, value]
+                py_list__append(THIRD(), TOP());
+                POP();
+                DISPATCH();
+            }
+            case OP_DICT_ADD: {
+                DISPATCH();
+            }
+            case OP_SET_ADD: {
+                DISPATCH();
+            }
+            /////////
             case OP_UNARY_NEGATIVE: {
                 if(!py_callmagic(__neg__, 1, TOP())) goto __ERROR;
                 *TOP() = self->last_retval;

@@ -4,6 +4,11 @@
 
 #include <stdarg.h>
 
+bool py_checkexc() {
+    pk_VM* vm = pk_current_vm;
+    return !py_isnil(&vm->last_exception);
+}
+
 void py_printexc() {
     pk_VM* vm = pk_current_vm;
     if(py_isnil(&vm->last_exception)) {

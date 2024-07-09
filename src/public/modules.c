@@ -76,6 +76,14 @@ static bool _py_builtins__len(int argc, py_Ref argv) {
     return py_len(argv);
 }
 
+static bool _py_builtins__reversed(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    // convert _0 to list object
+    if(!py_tpcall(tp_list, 1, argv)) return false;
+    py_list__reverse(py_retval());
+    return true;
+}
+
 static bool _py_builtins__hex(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -145,6 +153,7 @@ py_TValue pk_builtins__register() {
     py_bindnativefunc(builtins, "repr", _py_builtins__repr);
     py_bindnativefunc(builtins, "exit", _py_builtins__exit);
     py_bindnativefunc(builtins, "len", _py_builtins__len);
+    py_bindnativefunc(builtins, "reversed", _py_builtins__reversed);
     py_bindnativefunc(builtins, "hex", _py_builtins__hex);
     py_bindnativefunc(builtins, "iter", _py_builtins__iter);
     py_bindnativefunc(builtins, "next", _py_builtins__next);

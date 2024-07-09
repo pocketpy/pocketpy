@@ -41,17 +41,9 @@ int main(int argc, char** argv) {
 
     if(argc == 1) {
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
-        printf(
-            "[%d bit] on %s"
-            "\n",
-            (int)(sizeof(void*) * 8),
-            PY_SYS_PLATFORM_STRING);
-        printf(
-            "https://github.com/pocketpy/pocketpy"
-            "\n");
-        printf(
-            "Type \"exit()\" to exit."
-            "\n");
+        printf("[%d bit] on %s\n", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
+        printf("https://github.com/pocketpy/pocketpy\n");
+        printf("Type \"exit()\" to exit.\n");
 
         while(true) {
             int size = py_replinput(buf);
@@ -68,6 +60,7 @@ int main(int argc, char** argv) {
         }
     }
 
+    int code = py_checkexc() ? 1 : 0;
     py_finalize();
-    return 0;
+    return code;
 }
