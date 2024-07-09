@@ -44,7 +44,7 @@ enum BindType {
     BindType_CLASSMETHOD,
 };
 
-enum CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, JSON_MODE, CELL_MODE };
+enum py_CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, CELL_MODE };
 
 /************* Global VMs *************/
 void py_initialize();
@@ -55,7 +55,7 @@ bool py_exec(const char* source);
 /// Eval a simple expression.
 /// The result will be set to `py_retval()`.
 bool py_eval(const char* source);
-bool py_exec2(const char* source, const char* filename, enum CompileMode mode);
+bool py_exec2(const char* source, const char* filename, enum py_CompileMode mode);
 
 /************* Values Creation *************/
 void py_newint(py_Ref, py_i64);

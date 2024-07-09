@@ -157,7 +157,7 @@ static void disassemble(CodeObject* co) {
 }
 
 static bool
-    pk_VM__exec(pk_VM* vm, const char* source, const char* filename, enum CompileMode mode) {
+    pk_VM__exec(pk_VM* vm, const char* source, const char* filename, enum py_CompileMode mode) {
     CodeObject co;
     pk_SourceData_ src = pk_SourceData__rcnew(source, filename, mode, false);
     Error* err = pk_compile(src, &co);
@@ -182,7 +182,7 @@ bool py_exec(const char* source) { return pk_VM__exec(pk_current_vm, source, "<e
 
 bool py_eval(const char* source) { return pk_VM__exec(pk_current_vm, source, "<eval>", EVAL_MODE); }
 
-bool py_exec2(const char* source, const char* filename, enum CompileMode mode) {
+bool py_exec2(const char* source, const char* filename, enum py_CompileMode mode) {
     return pk_VM__exec(pk_current_vm, source, filename, mode);
 }
 

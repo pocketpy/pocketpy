@@ -22,7 +22,6 @@ typedef struct ExprVt {
     bool (*emit_istore)(Expr*, Ctx*);
     /* reflections */
     bool is_literal;
-    bool is_json_object;
     bool is_name;     // NameExpr
     bool is_tuple;    // TupleExpr
     bool is_attrib;   // AttribExpr
@@ -312,8 +311,7 @@ void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
 
 LiteralExpr* LiteralExpr__new(int line, const TokenValue* value) {
     const static ExprVt Vt = {.emit_ = LiteralExpr__emit_,
-                              .is_literal = true,
-                              .is_json_object = true};
+                              .is_literal = true};
     static_assert_expr_size(LiteralExpr);
     LiteralExpr* self = PoolExpr_alloc();
     self->vt = &Vt;
@@ -342,7 +340,7 @@ void Literal0Expr__emit_(Expr* self_, Ctx* ctx) {
 }
 
 Literal0Expr* Literal0Expr__new(int line, TokenIndex token) {
-    const static ExprVt Vt = {.emit_ = Literal0Expr__emit_, .is_json_object = true};
+    const static ExprVt Vt = {.emit_ = Literal0Expr__emit_};
     static_assert_expr_size(Literal0Expr);
     Literal0Expr* self = PoolExpr_alloc();
     self->vt = &Vt;
@@ -480,15 +478,13 @@ static SequenceExpr* SequenceExpr__new(int line, const ExprVt* vt, int count, Op
 
 SequenceExpr* ListExpr__new(int line, int count) {
     const static ExprVt ListExprVt = {.dtor = SequenceExpr__dtor,
-                                      .emit_ = SequenceExpr__emit_,
-                                      .is_json_object = true};
+                                      .emit_ = SequenceExpr__emit_};
     return SequenceExpr__new(line, &ListExprVt, count, OP_BUILD_LIST);
 }
 
 SequenceExpr* DictExpr__new(int line, int count) {
     const static ExprVt DictExprVt = {.dtor = SequenceExpr__dtor,
-                                      .emit_ = SequenceExpr__emit_,
-                                      .is_json_object = true};
+                                      .emit_ = SequenceExpr__emit_};
     return SequenceExpr__new(line, &DictExprVt, count, OP_BUILD_DICT);
 }
 
@@ -2636,15 +2632,6 @@ Error* Compiler__compile(Compiler* self, CodeObject* out) {
         check(EXPR_TUPLE(self));
         Ctx__s_emit_top(ctx());
         consume(TK_EOF);
-        Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
-        check(pop_context(self));
-        return NULL;
-    } else if(mode() == JSON_MODE) {
-        check(EXPR(self));
-        Expr* e = Ctx__s_popx(ctx());
-        if(!e->vt->is_json_object) return SyntaxError("expect a JSON object, literal or array");
-        consume(TK_EOF);
-        vtemit_(e, ctx());
         Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         check(pop_context(self));
         return NULL;

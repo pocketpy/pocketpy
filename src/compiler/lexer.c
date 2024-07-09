@@ -241,19 +241,6 @@ static Error* eat_name(pk_Lexer* self){
     if(length == 0) return SyntaxError("@id contains invalid char");
     c11_sv name = {self->token_start, length};
 
-    if(self->src->mode == JSON_MODE) {
-        if(c11__sveq2(name, "true")) {
-            add_token(self, TK_TRUE);
-        } else if(c11__sveq2(name, "false")) {
-            add_token(self, TK_FALSE);
-        } else if(c11__sveq2(name, "null")) {
-            add_token(self, TK_NONE);
-        } else {
-            return SyntaxError("invalid JSON token");
-        }
-        return NULL;
-    }
-
     const char** KW_BEGIN = pk_TokenSymbols + TK_FALSE;
     int KW_COUNT = TK__COUNT__ - TK_FALSE;
     #define less(a, b) (c11_sv__cmp2(b, a) > 0)

@@ -7,7 +7,7 @@
 static void pk_SourceData__ctor(struct pk_SourceData* self,
                                 const char* source,
                                 const char* filename,
-                                enum CompileMode mode,
+                                enum py_CompileMode mode,
                                 bool is_dynamic) {
     self->filename = c11_string__new(filename);
     self->mode = mode;
@@ -45,7 +45,7 @@ static void pk_SourceData__dtor(struct pk_SourceData* self) {
 
 pk_SourceData_ pk_SourceData__rcnew(const char* source,
                                     const char* filename,
-                                    enum CompileMode mode,
+                                    enum py_CompileMode mode,
                                     bool is_dynamic) {
     pk_SourceData_ self = malloc(sizeof(struct pk_SourceData));
     pk_SourceData__ctor(self, source, filename, mode, is_dynamic);
