@@ -126,8 +126,7 @@ static bool _py_tuple__iter__(int argc, py_Ref argv) {
 }
 
 py_Type pk_tuple__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "tuple", tp_object, NULL, false);
+    py_Type type = pk_newtype("tuple", tp_object, NULL, NULL, false, true);
 
     py_bindmagic(type, __len__, _py_tuple__len__);
     py_bindmagic(type, __repr__, _py_tuple__repr__);

@@ -3,8 +3,12 @@
 #include "pocketpy/pocketpy.h"
 
 static bool _py_object__new__(int argc, py_Ref argv) {
-    assert(argc >= 1);
+    if(argc == 0) return TypeError("object.__new__(): not enough arguments");
     py_Type cls = py_totype(py_arg(0));
+    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &pk_current_vm->types, cls);
+    if(!ti->is_python) {
+        return TypeError("object.__new__(%t) is not safe, use %t.__new__()", cls, cls);
+    }
     py_newobject(py_retval(), cls, 0, 0);
     return true;
 }
@@ -54,7 +58,9 @@ static bool _py_type__repr__(int argc, py_Ref argv) {
 }
 
 void pk_object__register() {
+    // use staticmethod
     py_bindmagic(tp_object, __new__, _py_object__new__);
+
     py_bindmagic(tp_object, __hash__, _py_object__hash__);
     py_bindmagic(tp_object, __eq__, _py_object__eq__);
     py_bindmagic(tp_object, __ne__, _py_object__ne__);

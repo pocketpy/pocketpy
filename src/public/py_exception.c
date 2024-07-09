@@ -17,6 +17,11 @@ typedef struct BaseException {
     c11_vector /*T=BaseExceptionFrame*/ stacktrace;
 } BaseException;
 
+static void BaseException__dtor(void* ud) {
+    BaseException* self = (BaseException*)ud;
+    c11_vector__dtor(&self->stacktrace);
+}
+
 static bool _py_BaseException__new__(int argc, py_Ref argv) {
     py_Type cls = py_totype(argv);
     BaseException* ud = py_newobject(py_retval(), cls, 1, sizeof(BaseException));
@@ -65,8 +70,8 @@ static bool _py_BaseException__str__(int argc, py_Ref argv) {
 }
 
 py_Type pk_BaseException__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "BaseException", tp_object, NULL, true);
+    py_Type type = pk_newtype("BaseException", tp_object, NULL, BaseException__dtor, false, false);
+
     py_bindmagic(type, __new__, _py_BaseException__new__);
     py_bindmagic(type, __init__, _py_BaseException__init__);
     py_bindmagic(type, __repr__, _py_BaseException__repr__);
@@ -75,7 +80,6 @@ py_Type pk_BaseException__register() {
 }
 
 py_Type pk_Exception__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "Exception", tp_BaseException, NULL, true);
+    py_Type type = pk_newtype("Exception", tp_BaseException, NULL, NULL, false, true);
     return type;
 }

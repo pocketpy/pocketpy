@@ -64,7 +64,7 @@ void py_list__insert(py_Ref self, int i, const py_Ref val) {
     c11_vector__insert(py_TValue, userdata, i, *val);
 }
 
-void py_list__reverse(py_Ref self){
+void py_list__reverse(py_Ref self) {
     List* userdata = py_touserdata(self);
     c11__reverse(py_TValue, userdata);
 }
@@ -405,10 +405,8 @@ static bool _py_list__iter__(int argc, py_Ref argv) {
 }
 
 py_Type pk_list__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "list", tp_object, NULL, false);
-    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &vm->types, type);
-    ti->dtor = (void (*)(void*))c11_vector__dtor;
+    py_Type type =
+        pk_newtype("list", tp_object, NULL, (void (*)(void*))c11_vector__dtor, false, true);
 
     py_bindmagic(type, __len__, _py_list__len__);
     py_bindmagic(type, __eq__, _py_list__eq__);

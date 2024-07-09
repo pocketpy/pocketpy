@@ -27,12 +27,11 @@ static void pk_default_stderr(const char* fmt, ...) {
     fflush(stderr);
 }
 
-void pk_TypeInfo__ctor(pk_TypeInfo* self,
-                       py_Name name,
-                       py_Type index,
-                       py_Type base,
-                       const py_TValue* module,
-                       bool subclass_enabled) {
+static void pk_TypeInfo__ctor(pk_TypeInfo* self,
+                              py_Name name,
+                              py_Type index,
+                              py_Type base,
+                              const py_TValue* module) {
     memset(self, 0, sizeof(pk_TypeInfo));
 
     self->name = name;
@@ -49,12 +48,10 @@ void pk_TypeInfo__ctor(pk_TypeInfo* self,
     };
 
     self->module = module ? *module : PY_NIL;
-    self->subclass_enabled = subclass_enabled;
-
     c11_vector__ctor(&self->annotated_fields, sizeof(py_Name));
 }
 
-void pk_TypeInfo__dtor(pk_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
+static void pk_TypeInfo__dtor(pk_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
 
 void pk_VM__ctor(pk_VM* self) {
     self->top_frame = NULL;
@@ -82,17 +79,19 @@ void pk_VM__ctor(pk_VM* self) {
 
     /* Init Builtin Types */
     // 0: unused
-    pk_TypeInfo__ctor(c11_vector__emplace(&self->types), 0, 0, 0, NULL, false);
+    void* placeholder = c11_vector__emplace(&self->types);
+    memset(placeholder, 0, sizeof(pk_TypeInfo));
+
 #define validate(t, expr)                                                                          \
     if(t != (expr)) abort()
 
-    validate(tp_object, pk_VM__new_type(self, "object", 0, NULL, true));
-    validate(tp_type, pk_VM__new_type(self, "type", 1, NULL, false));
+    validate(tp_object, pk_newtype("object", 0, NULL, NULL, true, false));
+    validate(tp_type, pk_newtype("type", 1, NULL, NULL, false, true));
     pk_object__register();
 
-    validate(tp_int, pk_VM__new_type(self, "int", tp_object, NULL, false));
-    validate(tp_float, pk_VM__new_type(self, "float", tp_object, NULL, false));
-    validate(tp_bool, pk_VM__new_type(self, "bool", tp_object, NULL, false));
+    validate(tp_int, pk_newtype("int", tp_object, NULL, NULL, false, true));
+    validate(tp_float, pk_newtype("float", tp_object, NULL, NULL, false, true));
+    validate(tp_bool, pk_newtype("bool", tp_object, NULL, NULL, false, true));
     pk_number__register();
 
     validate(tp_str, pk_str__register());
@@ -105,32 +104,32 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_slice, pk_slice__register());
     validate(tp_range, pk_range__register());
     validate(tp_range_iterator, pk_range_iterator__register());
-    validate(tp_module, pk_VM__new_type(self, "module", tp_object, NULL, false));
+    validate(tp_module, pk_newtype("module", tp_object, NULL, NULL, false, true));
 
     validate(tp_function, pk_function__register());
     validate(tp_nativefunc, pk_nativefunc__register());
-    validate(tp_boundmethod, pk_VM__new_type(self, "boundmethod", tp_object, NULL, false));
+    validate(tp_boundmethod, pk_newtype("boundmethod", tp_object, NULL, NULL, false, true));
 
-    validate(tp_super, pk_VM__new_type(self, "super", tp_object, NULL, false));
+    validate(tp_super, pk_newtype("super", tp_object, NULL, NULL, false, true));
     validate(tp_BaseException, pk_BaseException__register());
     validate(tp_Exception, pk_Exception__register());
     validate(tp_bytes, pk_bytes__register());
-    validate(tp_mappingproxy, pk_VM__new_type(self, "mappingproxy", tp_object, NULL, false));
+    validate(tp_mappingproxy, pk_newtype("mappingproxy", tp_object, NULL, NULL, false, true));
 
-    validate(tp_dict, pk_VM__new_type(self, "dict", tp_object, NULL, true));
-    validate(tp_property, pk_VM__new_type(self, "property", tp_object, NULL, false));
-    validate(tp_star_wrapper, pk_VM__new_type(self, "star_wrapper", tp_object, NULL, false));
+    validate(tp_dict, pk_newtype("dict", tp_object, NULL, NULL, false, false));
+    validate(tp_property, pk_newtype("property", tp_object, NULL, NULL, false, true));
+    validate(tp_star_wrapper, pk_newtype("star_wrapper", tp_object, NULL, NULL, false, true));
 
-    validate(tp_staticmethod, pk_VM__new_type(self, "staticmethod", tp_object, NULL, false));
-    validate(tp_classmethod, pk_VM__new_type(self, "classmethod", tp_object, NULL, false));
+    validate(tp_staticmethod, pk_newtype("staticmethod", tp_object, NULL, NULL, false, true));
+    validate(tp_classmethod, pk_newtype("classmethod", tp_object, NULL, NULL, false, true));
 
-    validate(tp_NoneType, pk_VM__new_type(self, "NoneType", tp_object, NULL, false));
+    validate(tp_NoneType, pk_newtype("NoneType", tp_object, NULL, NULL, false, true));
     validate(tp_NotImplementedType,
-             pk_VM__new_type(self, "NotImplementedType", tp_object, NULL, false));
-    validate(tp_ellipsis, pk_VM__new_type(self, "ellipsis", tp_object, NULL, false));
+             pk_newtype("NotImplementedType", tp_object, NULL, NULL, false, true));
+    validate(tp_ellipsis, pk_newtype("ellipsis", tp_object, NULL, NULL, false, true));
 
-    validate(tp_SyntaxError, pk_VM__new_type(self, "SyntaxError", tp_Exception, NULL, false));
-    validate(tp_StopIteration, pk_VM__new_type(self, "StopIteration", tp_Exception, NULL, false));
+    validate(tp_SyntaxError, pk_newtype("SyntaxError", tp_Exception, NULL, NULL, false, true));
+    validate(tp_StopIteration, pk_newtype("StopIteration", tp_Exception, NULL, NULL, false, true));
 #undef validate
 
     self->builtins = pk_builtins__register();
@@ -174,6 +173,7 @@ void pk_VM__dtor(pk_VM* self) {
     // clear frames
     // ...
     pk_NameDict__dtor(&self->modules);
+    c11__foreach(pk_TypeInfo, &self->types, ti) pk_TypeInfo__dtor(ti);
     c11_vector__dtor(&self->types);
     ValueStack__clear(&self->stack);
 }
@@ -255,22 +255,28 @@ bool pk__normalize_index(int* index, int length) {
     return true;
 }
 
-py_Type pk_VM__new_type(pk_VM* self,
-                        const char* name,
-                        py_Type base,
-                        const py_TValue* module,
-                        bool subclass_enabled) {
-    py_Type index = self->types.count;
-    pk_TypeInfo* ti = c11_vector__emplace(&self->types);
-    pk_TypeInfo__ctor(ti, py_name(name), index, base, module, subclass_enabled);
+py_Type pk_newtype(const char* name,
+                   py_Type base,
+                   const py_GlobalRef module,
+                   void (*dtor)(void*),
+                   bool is_python,
+                   bool is_sealed) {
+    c11_vector* types = &pk_current_vm->types;
+    py_Type index = types->count;
+    pk_TypeInfo* ti = c11_vector__emplace(types);
+    pk_TypeInfo__ctor(ti, py_name(name), index, base, module);
+    ti->dtor = dtor;
+    ti->is_python = is_python;
+    ti->is_sealed = is_sealed;
     return index;
 }
 
-bool __prepare_py_call(py_TValue* buffer,
-                       py_Ref argv,
-                       py_Ref p1,
-                       int kwargc,
-                       const FuncDecl* decl) {
+py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, void (*dtor)(void*)) {
+    return pk_newtype(name, base, module, dtor, false, false);
+}
+
+static bool
+    __prepare_py_call(py_TValue* buffer, py_Ref argv, py_Ref p1, int kwargc, const FuncDecl* decl) {
     const CodeObject* co = &decl->code;
     int decl_argc = decl->args.count;
 

@@ -64,8 +64,7 @@ static bool _py_array_iterator__next__(int argc, py_Ref argv) {
 }
 
 py_Type pk_array_iterator__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "array_iterator", tp_object, NULL, false);
+    py_Type type = pk_newtype("array_iterator", tp_object, NULL, NULL, false, true);
 
     py_bindmagic(type, __new__, _py_array_iterator__new__);
     py_bindmagic(type, __iter__, _py_array_iterator__iter__);

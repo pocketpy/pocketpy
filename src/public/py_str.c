@@ -463,8 +463,7 @@ static bool _py_str__index(int argc, py_Ref argv) {
 }
 
 py_Type pk_str__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "str", tp_object, NULL, false);
+    py_Type type = pk_newtype("str", tp_object, NULL, NULL, false, true);
     // no need to dtor because the memory is controlled by the object
 
     py_bindmagic(tp_str, __new__, _py_str__new__);
@@ -534,8 +533,8 @@ static bool _py_str_iterator__next__(int argc, py_Ref argv) {
 }
 
 py_Type pk_str_iterator__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "str_iterator", tp_object, NULL, false);
+    py_Type type = pk_newtype("str_iterator", tp_object, NULL, NULL, false, true);
+
     py_bindmagic(type, __new__, _py_str_iterator__new__);
     py_bindmagic(type, __iter__, _py_str_iterator__iter__);
     py_bindmagic(type, __next__, _py_str_iterator__next__);
@@ -543,8 +542,7 @@ py_Type pk_str_iterator__register() {
 }
 
 py_Type pk_bytes__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "bytes", tp_object, NULL, false);
+    py_Type type = pk_newtype("bytes", tp_object, NULL, NULL, false, true);
     // no need to dtor because the memory is controlled by the object
     return type;
 }

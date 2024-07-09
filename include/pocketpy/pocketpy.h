@@ -92,6 +92,13 @@ void py_newslice(py_Ref);
 // old style argc-based function
 void py_newnativefunc(py_Ref out, py_CFunction);
 
+/// Create a new type.
+/// @param name name of the type.
+/// @param base base type.
+/// @param module module where the type is defined. Use NULL for built-in types.
+/// @param dtor destructor function. Use NULL if not needed.
+py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, void (*dtor)(void*));
+
 /// Create a new object.
 /// @param out output reference.
 /// @param type type of the object.

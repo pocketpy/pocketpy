@@ -163,10 +163,8 @@ py_TValue pk_builtins__register() {
 }
 
 py_Type pk_function__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "function", tp_object, NULL, false);
-    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &vm->types, type);
-    ti->dtor = (void (*)(void*))Function__dtor;
+    py_Type type =
+        pk_newtype("function", tp_object, NULL, (void (*)(void*))Function__dtor, false, true);
     return type;
 }
 
@@ -177,8 +175,7 @@ static bool _py_nativefunc__repr(int argc, py_Ref argv) {
 }
 
 py_Type pk_nativefunc__register() {
-    pk_VM* vm = pk_current_vm;
-    py_Type type = pk_VM__new_type(vm, "nativefunc", tp_object, NULL, false);
+    py_Type type = pk_newtype("nativefunc", tp_object, NULL, NULL, false, true);
     py_bindmagic(type, __repr__, _py_nativefunc__repr);
     return type;
 }

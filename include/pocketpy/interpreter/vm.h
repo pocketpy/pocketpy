@@ -15,10 +15,11 @@ typedef struct pk_TypeInfo {
 
     py_TValue self;
     py_TValue module;  // the module where the type is defined
-    bool subclass_enabled;
+
+    bool is_python;  // is it a python class? (not derived from c object)
+    bool is_sealed;  // can it be subclassed?
 
     void (*dtor)(void*);
-    void (*gc_mark)(void*);
 
     c11_vector /*T=py_Name*/ annotated_fields;
 
@@ -27,14 +28,6 @@ typedef struct pk_TypeInfo {
     /* Magic Slots */
     py_TValue magic[64];
 } pk_TypeInfo;
-
-void pk_TypeInfo__ctor(pk_TypeInfo* self,
-                       py_Name name,
-                       py_Type index,
-                       py_Type base,
-                       const py_TValue* module,
-                       bool subclass_enabled);
-void pk_TypeInfo__dtor(pk_TypeInfo* self);
 
 typedef struct pk_VM {
     Frame* top_frame;
@@ -82,11 +75,12 @@ typedef enum pk_FrameResult {
 
 pk_FrameResult pk_VM__run_top_frame(pk_VM* self);
 
-py_Type pk_VM__new_type(pk_VM* self,
-                        const char* name,
-                        py_Type base,
-                        const py_TValue* module,
-                        bool subclass_enabled);
+py_Type pk_newtype(const char* name,
+                   py_Type base,
+                   const py_GlobalRef module,
+                   void (*dtor)(void*),
+                   bool is_python,
+                   bool is_sealed);
 
 pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall);
 
