@@ -99,6 +99,7 @@ int pk_arrayeq(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length);
 /// The result is stored in `self->last_retval`.
 /// The stack remains unchanged.
 bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
+void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte);
 
 // type registration
 void pk_object__register();

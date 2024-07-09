@@ -35,9 +35,9 @@ bool py_exception(const char* name, const char* fmt, ...) {
     py_Ref message = py_pushtmp();
     py_newstrn(message, res->data, res->size);
     c11_string__delete(res);
+    bool ok = py_tpcall(tp_exception, 1, message);
     py_pop();
 
-    bool ok = py_tpcall(tp_exception, 1, message);
     if(!ok) abort();
     vm->last_exception = *py_retval();
 

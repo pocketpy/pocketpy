@@ -110,10 +110,11 @@ static bool _py_list__new__(int argc, py_Ref argv) {
             }
             return true;
         }
+        
+        if(!py_iter(py_arg(1))) return false;
 
         py_Ref iter = py_pushtmp();
         py_Ref list = py_pushtmp();
-        if(!py_iter(py_arg(1))) return false;
         *iter = *py_retval();
         py_newlist(list);
         while(true) {

@@ -334,6 +334,8 @@ bool __prepare_py_call(py_TValue* buffer,
 }
 
 pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall) {
+    pk_print_stack(self, self->top_frame, (Bytecode){});
+
     py_Ref p1 = self->stack.sp - kwargc * 2;
     py_Ref p0 = p1 - argc - 2;
     // [callable, <self>, args..., kwargs...]
@@ -458,7 +460,6 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
         *self->stack.sp++ = *p0;     // push cls
         memcpy(self->stack.sp, argv, span * sizeof(py_TValue));
         self->stack.sp += span;
-
         // [new_f, cls, args..., kwargs...]
         pk_FrameResult res = pk_VM__vectorcall(self, argc, kwargc, false);
         if(res == RES_ERROR) return RES_ERROR;
@@ -521,4 +522,57 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
     // vm->obj_gc_mark(vm->__c.error);
     // vm->__stack_gc_mark(vm->s_data.begin(), vm->s_data.end());
     // if(self->_gc_marker_ex) self->_gc_marker_ex((pkpy_VM*)vm);
+}
+
+void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
+    return;
+    py_TValue* sp = self->stack.sp;
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    for(py_Ref p = self->stack.begin; p != sp; p++) {
+        switch(p->type) {
+            case 0: c11_sbuf__write_cstr(&buf, "nil"); break;
+            case tp_int: c11_sbuf__write_i64(&buf, p->_i64); break;
+            case tp_float: c11_sbuf__write_f64(&buf, p->_f64, -1); break;
+            case tp_bool: c11_sbuf__write_cstr(&buf, p->_bool ? "True" : "False"); break;
+            case tp_none_type: c11_sbuf__write_cstr(&buf, "None"); break;
+            case tp_list: {
+                pk_sprintf(&buf, "list(%d)", py_list__len(p));
+                break;
+            }
+            case tp_tuple: {
+                pk_sprintf(&buf, "tuple(%d)", py_tuple__len(p));
+                break;
+            }
+            case tp_function: {
+                Function* ud = py_touserdata(p);
+                c11_sbuf__write_cstr(&buf, ud->decl->code.name->data);
+                c11_sbuf__write_cstr(&buf, "()");
+                break;
+            }
+            case tp_type: {
+                pk_sprintf(&buf, "<class '%t'>", py_totype(p));
+                break;
+            }
+            case tp_str: {
+                int size;
+                const char* data = py_tostrn(p, &size);
+                pk_sprintf(&buf, "%q", (c11_sv){data, size});
+                break;
+            }
+            default: {
+                pk_sprintf(&buf, "(%t)", p->type);
+                break;
+            }
+        }
+        if(p != &sp[-1]) c11_sbuf__write_cstr(&buf, ", ");
+    }
+    c11_string* stack_str = c11_sbuf__submit(&buf);
+
+    printf("L%-3d: %-25s %-6d [%s]\n",
+           Frame__lineno(frame),
+           pk_opname(byte.op),
+           byte.arg,
+           stack_str->data);
+    c11_string__delete(stack_str);
 }
