@@ -153,9 +153,7 @@ static bool _py_str__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
-    int size;
-    const char* data = py_tostrn(&argv[0], &size);
-    c11_sbuf__write_quoted(&buf, (c11_sv){data, size}, '\'');
+    c11_sbuf__write_quoted(&buf, py_tosv(&argv[0]), '\'');
     c11_string* res = c11_sbuf__submit(&buf);
     py_newstrn(py_retval(), res->data, res->size);
     c11_string__delete(res);

@@ -237,9 +237,7 @@ static bool _py_list__repr__(int argc, py_Ref argv) {
             c11_sbuf__dtor(&buf);
             return false;
         }
-        int size;
-        const char* data = py_tostrn(py_retval(), &size);
-        c11_sbuf__write_cstrn(&buf, data, size);
+        c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
         if(i != self->count - 1) c11_sbuf__write_cstr(&buf, ", ");
     }
     c11_sbuf__write_char(&buf, ']');

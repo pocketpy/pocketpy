@@ -248,11 +248,6 @@ bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self)
     return false;
 }
 
-pk_TypeInfo* pk_tpinfo(const py_Ref self) {
-    pk_VM* vm = pk_current_vm;
-    return c11__at(pk_TypeInfo, &vm->types, self->type);
-}
-
 py_Ref py_tpfindmagic(py_Type t, py_Name name) {
     assert(py_ismagicname(name));
     pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;

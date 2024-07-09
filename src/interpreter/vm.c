@@ -596,9 +596,7 @@ void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
                 break;
             }
             case tp_str: {
-                int size;
-                const char* data = py_tostrn(p, &size);
-                pk_sprintf(&buf, "%q", (c11_sv){data, size});
+                pk_sprintf(&buf, "%q", py_tosv(p));
                 break;
             }
             default: {

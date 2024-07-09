@@ -15,6 +15,8 @@ void py_newtuple(py_Ref out, int n) {
 
 py_Ref py_tuple__getitem(const py_Ref self, int i) { return py_getslot(self, i); }
 
+py_Ref py_tuple__data(const py_Ref self) { return PyObject__slots(self->_obj); }
+
 void py_tuple__setitem(py_Ref self, int i, const py_Ref val) { py_setslot(self, i, val); }
 
 int py_tuple__len(const py_Ref self) { return self->_obj->slots; }
@@ -37,9 +39,7 @@ static bool _py_tuple__repr__(int argc, py_Ref argv) {
             c11_sbuf__dtor(&buf);
             return false;
         }
-        int size;
-        const char* data = py_tostrn(py_retval(), &size);
-        c11_sbuf__write_cstrn(&buf, data, size);
+        c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
         if(i != length - 1) c11_sbuf__write_cstr(&buf, ", ");
     }
     if(length == 1) c11_sbuf__write_char(&buf, ',');

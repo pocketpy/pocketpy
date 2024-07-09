@@ -497,9 +497,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 c11_sbuf__ctor(&ss);
                 for(int i = 0; i < byte.arg; i++) {
                     if(!py_str(begin + i)) goto __ERROR;
-                    int size;
-                    const char* data = py_tostrn(&self->last_retval, &size);
-                    c11_sbuf__write_cstrn(&ss, data, size);
+                    c11_sbuf__write_sv(&ss, py_tosv(&self->last_retval));
                 }
                 SP() = begin;
                 c11_string* res = c11_sbuf__submit(&ss);

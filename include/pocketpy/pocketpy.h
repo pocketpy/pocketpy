@@ -314,7 +314,6 @@ bool py_callmethod(py_Ref self, py_Name, int argc, py_Ref argv);
 bool py_callmagic(py_Name name, int argc, py_Ref argv);
 
 bool py_str(py_Ref val);
-
 #define py_repr(val) py_callmagic(__repr__, 1, val)
 #define py_len(val) py_callmagic(__len__, 1, val)
 
@@ -327,13 +326,14 @@ py_GlobalRef py_retval();
 /* tuple */
 
 // unchecked functions, if self is not a tuple, the behavior is undefined
+py_ObjectRef py_tuple__data(const py_Ref self);
 py_ObjectRef py_tuple__getitem(const py_Ref self, int i);
 void py_tuple__setitem(py_Ref self, int i, const py_Ref val);
 int py_tuple__len(const py_Ref self);
 
 // unchecked functions, if self is not a list, the behavior is undefined
-py_ObjectRef py_list__getitem(const py_Ref self, int i);
 py_ObjectRef py_list__data(const py_Ref self);
+py_ObjectRef py_list__getitem(const py_Ref self, int i);
 void py_list__setitem(py_Ref self, int i, const py_Ref val);
 void py_list__delitem(py_Ref self, int i);
 int py_list__len(const py_Ref self);
@@ -341,10 +341,6 @@ void py_list__append(py_Ref self, const py_Ref val);
 void py_list__clear(py_Ref self);
 void py_list__insert(py_Ref self, int i, const py_Ref val);
 void py_list__reverse(py_Ref self);
-
-// internal functions
-typedef struct pk_TypeInfo pk_TypeInfo;
-pk_TypeInfo* pk_tpinfo(const py_Ref self);
 
 /// Search the magic method from the given type to the base type.
 /// Return the reference or NULL if not found.
