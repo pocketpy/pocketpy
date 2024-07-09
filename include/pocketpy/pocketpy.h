@@ -16,7 +16,7 @@ typedef int64_t py_i64;
 typedef double py_f64;
 
 /* string_view */
-typedef struct c11_sv{
+typedef struct c11_sv {
     const char* data;
     int size;
 } c11_sv;
@@ -136,25 +136,25 @@ py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 // new style decl-based bindings
 void py_bind(py_Ref obj, const char* sig, py_CFunction f);
 py_ObjectRef py_bind2(py_Ref obj,
-              const char* sig,
-              py_CFunction f,
-              enum BindType bt,
-              const char* docstring,
-              int slots);
+                      const char* sig,
+                      py_CFunction f,
+                      enum BindType bt,
+                      const char* docstring,
+                      int slots);
 
 py_ObjectRef py_bind3(py_Ref obj,
-              py_CFunction f,
-              c11_sv name,
-              c11_sv* args,
-              int argc,
-              c11_sv starred_arg,
-              c11_sv* kwargs,
-              int kwargc,
-              py_Ref kwdefaults,  // a tuple contains default values
-              c11_sv starred_kwarg,
-              enum BindType bt,
-              const char* docstring,
-              int slots);
+                      py_CFunction f,
+                      c11_sv name,
+                      c11_sv* args,
+                      int argc,
+                      c11_sv starred_arg,
+                      c11_sv* kwargs,
+                      int kwargc,
+                      py_Ref kwdefaults,  // a tuple contains default values
+                      c11_sv starred_kwarg,
+                      enum BindType bt,
+                      const char* docstring,
+                      int slots);
 
 // old style argc-based bindings
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
@@ -321,8 +321,8 @@ bool py_str(py_Ref val);
 /// The return value of the most recent call.
 py_GlobalRef py_retval();
 
-#define py_isnil(self) ((self)->type == 0)
-#define py_isnone(self) ((self)->type == tp_none_type)
+#define py_isnil(self) py_istype(self, 0)
+#define py_isnone(self) py_istype(self, tp_none_type)
 
 /* tuple */
 
