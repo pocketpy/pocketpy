@@ -420,8 +420,8 @@ enum py_PredefinedTypes {
     tp_bytes,
     tp_mappingproxy,
     tp_dict,
-    tp_property,  // 2 slots (getter + setter)
-    tp_star_wrapper,
+    tp_property,      // 2 slots (getter + setter)
+    tp_star_wrapper,  // 1 slot + int level
     tp_staticmethod,  // 1 slot
     tp_classmethod,   // 1 slot
     tp_NoneType,

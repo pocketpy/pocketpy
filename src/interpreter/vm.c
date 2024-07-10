@@ -276,7 +276,7 @@ py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, vo
 }
 
 static bool
-    __prepare_py_call(py_TValue* buffer, py_Ref argv, py_Ref p1, int kwargc, const FuncDecl* decl) {
+    prepare_py_call(py_TValue* buffer, py_Ref argv, py_Ref p1, int kwargc, const FuncDecl* decl) {
     const CodeObject* co = &decl->code;
     int decl_argc = decl->args.count;
 
@@ -376,7 +376,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
 
         switch(fn->decl->type) {
             case FuncType_NORMAL: {
-                bool ok = __prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
+                bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
                 // copy buffer back to stack
                 self->stack.sp = argv + co->nlocals;
@@ -412,7 +412,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
             case FuncType_GENERATOR:
                 assert(false);
                 break;
-                // __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
+                // prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
                 // s_data.reset(p0);
                 // callstack.emplace(nullptr, co, fn._module, callable.get(), nullptr);
                 // return __py_generator(
@@ -430,7 +430,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
         // PyVar ret;
         // if(f.decl != nullptr) {
         //     int co_nlocals = f.decl->code->nlocals;
-        //     __prepare_py_call(__vectorcall_buffer, args, kwargs, f.decl);
+        //     prepare_py_call(__vectorcall_buffer, args, kwargs, f.decl);
         //     // copy buffer back to stack
         //     s_data.reset(_base + co_nlocals);
         //     for(int j = 0; j < co_nlocals; j++)

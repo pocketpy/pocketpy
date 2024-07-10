@@ -1,3 +1,4 @@
+#include "pocketpy/common/config.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/sstream.h"
@@ -30,6 +31,7 @@ static bool stack_unpack_sequence(pk_VM* self, uint16_t arg);
 #define THIRD() (self->stack.sp - 3)
 #define FOURTH() (self->stack.sp - 4)
 #define STACK_SHRINK(n) (self->stack.sp -= n)
+#define STACK_GROW(n) (self->stack.sp += n)
 #define PUSH(v)                                                                                    \
     do {                                                                                           \
         *self->stack.sp = *(v);                                                                    \
@@ -625,7 +627,64 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_CALL_VARGS: {
-                assert(false);
+                uint16_t argc = byte.arg & 0xFF;
+                uint16_t kwargc = byte.arg >> 8;
+                int size = 0;
+                py_TValue* buf = self->__vectorcall_buffer;
+
+                // if(size == PK_MAX_CO_VARNAMES) {
+                //     ValueError("**kwargs is too large to unpack");
+                //     goto __ERROR;
+                // }
+
+                uint16_t new_argc = argc;
+                uint16_t new_kwargc = kwargc;
+
+                // pop kwargc
+                for(int i = 0; i < kwargc; i++) {
+                    // [k1, v1, k2, v2, ...] -> reversed
+                    py_TValue value = POPX();
+                    py_TValue key = POPX();
+                    if(value.type == tp_star_wrapper) {
+                        value = *py_getslot(&value, 0);
+                        // unpack dict
+                        if(value.type != tp_dict) {
+                            TypeError("**kwargs should be a dict, got '%t'", value.type);
+                            goto __ERROR;
+                        }
+                        new_kwargc += (0) - 1;
+                    } else {
+                        buf[size++] = value;
+                        buf[size++] = key;
+                    }
+                }
+                // pop argc
+                for(int i = 0; i < argc; i++) {
+                    py_TValue value = POPX();
+                    if(value.type == tp_star_wrapper) {
+                        value = *py_getslot(&value, 0);
+                        int length;
+                        py_TValue* p = pk_arrayview(&value, &length);
+                        if(!p) {
+                            TypeError("*args should be a list or tuple, got '%t'", value.type);
+                            goto __ERROR;
+                        }
+                        for(int j = 0; j < length; j++) {
+                            buf[size++] = p[j];
+                        }
+                        new_argc += length - 1;
+                    } else {
+                        buf[size++] = value;
+                    }
+                }
+
+                // push everything back in reversed order
+                for(int i = size - 1; i >= 0; i--) {
+                    PUSH(buf + i);
+                }
+                
+                vectorcall_opcall(new_argc, new_kwargc);
+                DISPATCH();
             }
             case OP_RETURN_VALUE: {
                 if(byte.arg == BC_NOARG) {
@@ -671,7 +730,13 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_newbool(TOP(), !res);
                 DISPATCH();
             }
-            // case OP_UNARY_STAR: TOP() = VAR(StarWrapper(byte.arg, TOP())); DISPATCH();
+            case OP_UNARY_STAR: {
+                py_TValue value = POPX();
+                int* level = py_newobject(SP()++, tp_star_wrapper, 1, sizeof(int));
+                *level = byte.arg;
+                py_setslot(TOP(), 0, &value);
+                DISPATCH();
+            }
             case OP_UNARY_INVERT: {
                 if(!py_callmagic(__invert__, 1, TOP())) goto __ERROR;
                 *TOP() = self->last_retval;
