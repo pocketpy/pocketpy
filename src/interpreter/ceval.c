@@ -275,7 +275,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__getitem__, a, b]
-                        vectorcall_opcall(1, 0);
+                        if(!py_vectorcall(1, 0)) goto __ERROR;
                     }
                     DISPATCH();
                 }
@@ -328,7 +328,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                         *TOP() = self->last_retval;
                     } else {
                         *FOURTH() = *magic;  // [__selitem__, a, b, val]
-                        vectorcall_opcall(2, 0);
+                        if(!py_vectorcall(2, 0)) goto __ERROR;
                         POP();  // discard retval
                     }
                     DISPATCH();
@@ -399,7 +399,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__delitem__, a, b]
-                        vectorcall_opcall(1, 0);
+                        if(!py_vectorcall(1, 0)) goto __ERROR;
                         POP();  // discard retval
                     }
                     DISPATCH();
@@ -427,7 +427,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_newnil(SP()++);        // [complex, NULL]
                 py_newint(SP()++, 0);     // [complex, NULL, 0]
                 *SP()++ = tmp;            // [complex, NULL, 0, x]
-                vectorcall_opcall(2, 0);  // [complex(x)]
+                if(!py_vectorcall(2, 0)) goto __ERROR;
                 DISPATCH();
             }
             case OP_BUILD_BYTES: {
@@ -472,14 +472,19 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_BUILD_SET: {
                 py_TValue* begin = SP() - byte.arg;
-                py_Ref tmp = py_pushtmp();
-                py_newset(tmp);
+                py_Ref typeobject_set = py_getdict(&self->builtins, py_name("set"));
+                assert(typeobject_set != NULL);
+                py_push(typeobject_set);
+                py_pushnil();
+                if(!py_vectorcall(0, 0)) goto __ERROR;
+                py_push(py_retval());   // empty set
                 py_Name id_add = py_name("add");
                 for(int i = 0; i < byte.arg; i++) {
-                    if(!py_callmethod(tmp, id_add, 1, begin + i)) goto __ERROR;
+                    if(!py_callmethod(TOP(), id_add, 1, begin + i)) goto __ERROR;
                 }
+                py_TValue tmp = *TOP();
                 SP() = begin;
-                PUSH(tmp);
+                PUSH(&tmp);
                 DISPATCH();
             }
             case OP_BUILD_SLICE: {
@@ -536,7 +541,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     } else {
                         INSERT_THIRD();     // [?, b, a]
                         *THIRD() = *magic;  // [__contains__, a, b]
-                        vectorcall_opcall(1, 0);
+                        if(!py_vectorcall(1, 0)) goto __ERROR;
                     }
                     bool res = py_tobool(TOP());
                     if(byte.arg) py_newbool(TOP(), !res);

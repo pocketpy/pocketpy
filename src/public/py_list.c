@@ -8,13 +8,8 @@
 typedef c11_vector List;
 
 void py_newlist(py_Ref out) {
-    pk_VM* vm = pk_current_vm;
-    PyObject* obj = pk_ManagedHeap__gcnew(&vm->heap, tp_list, 0, sizeof(List));
-    List* userdata = PyObject__userdata(obj);
-    c11_vector__ctor(userdata, sizeof(py_TValue));
-    out->type = tp_list;
-    out->is_ptr = true;
-    out->_obj = obj;
+    List* ud = py_newobject(out, tp_list, 0, sizeof(List));
+    c11_vector__ctor(ud, sizeof(py_TValue));
 }
 
 void py_newlistn(py_Ref out, int n) {

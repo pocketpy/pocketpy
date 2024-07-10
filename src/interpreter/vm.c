@@ -116,7 +116,7 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_bytes, pk_bytes__register());
     validate(tp_mappingproxy, pk_newtype("mappingproxy", tp_object, NULL, NULL, false, true));
 
-    validate(tp_dict, pk_newtype("dict", tp_object, NULL, NULL, false, false));
+    validate(tp_dict, pk_dict__register());
     validate(tp_property, pk_newtype("property", tp_object, NULL, NULL, false, true));
     validate(tp_star_wrapper, pk_newtype("star_wrapper", tp_object, NULL, NULL, false, true));
 

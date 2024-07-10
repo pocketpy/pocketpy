@@ -87,7 +87,6 @@ bool py_ismagicname(py_Name);
 
 // opaque types
 void py_newdict(py_Ref);
-void py_newset(py_Ref);
 void py_newslice(py_Ref);
 // old style argc-based function
 void py_newnativefunc(py_Ref out, py_CFunction);

@@ -101,6 +101,7 @@ void pk_number__register();
 py_Type pk_str__register();
 py_Type pk_str_iterator__register();
 py_Type pk_bytes__register();
+py_Type pk_dict__register();
 py_Type pk_list__register();
 py_Type pk_tuple__register();
 py_Type pk_array_iterator__register();
