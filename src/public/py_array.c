@@ -33,17 +33,15 @@ int pk_arrayeq(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length) {
     return true;
 }
 
-static bool _py_array_iterator__new__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
+bool pk_arrayiter(py_Ref val) {
     int length;
-    py_TValue* p = pk_arrayview(py_arg(1), &length);
-    if(!p) return TypeError("expected list or tuple, got %t", py_arg(1)->type);
+    py_TValue* p = pk_arrayview(val, &length);
+    if(!p) return TypeError("expected list or tuple, got %t", val->type);
     array_iterator* ud = py_newobject(py_retval(), tp_array_iterator, 1, sizeof(array_iterator));
     ud->p = p;
     ud->length = length;
     ud->index = 0;
-    // keep a reference to the object
-    py_setslot(py_retval(), 0, py_arg(1));
+    py_setslot(py_retval(), 0, val);  // keep a reference to the object
     return true;
 }
 
@@ -65,10 +63,7 @@ static bool _py_array_iterator__next__(int argc, py_Ref argv) {
 
 py_Type pk_array_iterator__register() {
     py_Type type = pk_newtype("array_iterator", tp_object, NULL, NULL, false, true);
-
-    py_bindmagic(type, __new__, _py_array_iterator__new__);
     py_bindmagic(type, __iter__, _py_array_iterator__iter__);
     py_bindmagic(type, __next__, _py_array_iterator__next__);
-
     return type;
 }

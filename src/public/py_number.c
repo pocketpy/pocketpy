@@ -241,6 +241,20 @@ static bool _py_float__hash__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_int__abs__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_i64 val = py_toint(&argv[0]);
+    py_newint(py_retval(), val < 0 ? -val : val);
+    return true;
+}
+
+static bool _py_float__abs__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_f64 val = py_tofloat(&argv[0]);
+    py_newfloat(py_retval(), val < 0 ? -val : val);
+    return true;
+}
+
 static bool _py_int__new__(int argc, py_Ref argv) {
     if(argc == 1 + 0) {
         // int() == 0
@@ -430,6 +444,10 @@ void pk_number__register() {
     // __hash__
     py_bindmagic(tp_int, __hash__, _py_int__hash__);
     py_bindmagic(tp_float, __hash__, _py_float__hash__);
+
+    // __abs__
+    py_bindmagic(tp_int, __abs__, _py_int__abs__);
+    py_bindmagic(tp_float, __abs__, _py_float__abs__);
 
     // __new__
     py_bindmagic(tp_int, __new__, _py_int__new__);

@@ -162,7 +162,10 @@ static bool _py_str__repr__(int argc, py_Ref argv) {
 
 static bool _py_str__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    return py_tpcall(tp_str_iterator, 1, argv);
+    int* ud = py_newobject(py_retval(), tp_str_iterator, 1, sizeof(int));
+    *ud = 0;
+    py_setslot(py_retval(), 0, argv);  // keep a reference to the string
+    return true;
 }
 
 static bool _py_str__getitem__(int argc, py_Ref argv) {
@@ -504,15 +507,6 @@ py_Type pk_str__register() {
     return type;
 }
 
-static bool _py_str_iterator__new__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    PY_CHECK_ARG_TYPE(1, tp_str);
-    int* ud = py_newobject(py_retval(), tp_str_iterator, 1, sizeof(int));
-    *ud = 0;
-    py_setslot(py_retval(), 0, &argv[1]);
-    return true;
-}
-
 static bool _py_str_iterator__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     *py_retval() = argv[0];
@@ -535,7 +529,6 @@ static bool _py_str_iterator__next__(int argc, py_Ref argv) {
 py_Type pk_str_iterator__register() {
     py_Type type = pk_newtype("str_iterator", tp_object, NULL, NULL, false, true);
 
-    py_bindmagic(type, __new__, _py_str_iterator__new__);
     py_bindmagic(type, __iter__, _py_str_iterator__iter__);
     py_bindmagic(type, __next__, _py_str_iterator__next__);
     return type;

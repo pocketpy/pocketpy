@@ -121,10 +121,17 @@ void* py_touserdata(const py_Ref);
 #define py_isfloat(self) py_istype(self, tp_float)
 #define py_isbool(self) py_istype(self, tp_bool)
 #define py_isstr(self) py_istype(self, tp_str)
+#define py_islist(self) py_istype(self, tp_list)
+#define py_istuple(self) py_istype(self, tp_tuple)
+#define py_isdict(self) py_istype(self, tp_dict)
 
 bool py_istype(const py_Ref, py_Type);
 bool py_isinstance(const py_Ref obj, py_Type type);
 bool py_issubclass(py_Type derived, py_Type base);
+
+extern py_GlobalRef py_True;
+extern py_GlobalRef py_False;
+extern py_GlobalRef py_None;
 
 /************* References *************/
 #define PY_CHECK_ARGC(n)                                                                           \
@@ -195,7 +202,7 @@ bool py_delattr(py_Ref self, py_Name name);
 /// Gets the unbound method of the object.
 bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self);
 
-bool py_getitem(const py_Ref self, const py_Ref key, py_Ref out);
+bool py_getitem(const py_Ref self, const py_Ref key);
 bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val);
 bool py_delitem(py_Ref self, const py_Ref key);
 
@@ -236,8 +243,6 @@ void py_pop();
 void py_shrink(int n);
 /// Get a temporary variable from the stack and returns the reference to it.
 py_StackRef py_pushtmp();
-/// Free n temporary variable.
-#define py_poptmp(n) py_shrink(n)
 
 #define py_gettop() py_peek(-1)
 #define py_getsecond() py_peek(-2)
@@ -262,9 +267,9 @@ void py_formatexc(char* out);
 /// Check if an error is set.
 bool py_checkexc();
 
-#define KeyError(q) py_exception("KeyError", "%q", (q))
 #define NameError(n) py_exception("NameError", "name '%n' is not defined", (n))
 #define TypeError(...) py_exception("TypeError", __VA_ARGS__)
+#define RuntimeError(...) py_exception("RuntimeError", __VA_ARGS__)
 #define ValueError(...) py_exception("ValueError", __VA_ARGS__)
 #define IndexError(...) py_exception("IndexError", __VA_ARGS__)
 #define NotImplementedError() py_exception("NotImplementedError", "")
@@ -274,6 +279,7 @@ bool py_checkexc();
     py_exception("UnboundLocalError", "local variable '%n' referenced before assignment", (n))
 
 bool StopIteration();
+bool KeyError(py_Ref key);
 
 /************* Operators *************/
 /// Equivalent to `bool(val)`.
@@ -338,8 +344,8 @@ void py_tuple__setitem(py_Ref self, int i, const py_Ref val);
 int py_tuple__len(const py_Ref self);
 
 // unchecked functions, if self is not a list, the behavior is undefined
-py_ObjectRef py_list__data(const py_Ref self);
-py_ObjectRef py_list__getitem(const py_Ref self, int i);
+py_TmpRef py_list__data(const py_Ref self);
+py_TmpRef py_list__getitem(const py_Ref self, int i);
 void py_list__setitem(py_Ref self, int i, const py_Ref val);
 void py_list__delitem(py_Ref self, int i);
 int py_list__len(const py_Ref self);
@@ -347,6 +353,12 @@ void py_list__append(py_Ref self, const py_Ref val);
 void py_list__clear(py_Ref self);
 void py_list__insert(py_Ref self, int i, const py_Ref val);
 void py_list__reverse(py_Ref self);
+
+// unchecked functions, if self is not a dict, the behavior is undefined
+py_TmpRef py_dict__getitem(const py_Ref self, const py_Ref key);
+void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val);
+bool py_dict__contains(const py_Ref self, const py_Ref key);
+int py_dict__len(const py_Ref self);
 
 /// Search the magic method from the given type to the base type.
 /// Return the reference or NULL if not found.
@@ -419,6 +431,7 @@ enum py_PredefinedTypes {
     tp_bytes,
     tp_mappingproxy,
     tp_dict,
+    tp_dict_items,    // 1 slot
     tp_property,      // 2 slots (getter + setter)
     tp_star_wrapper,  // 1 slot + int level
     tp_staticmethod,  // 1 slot

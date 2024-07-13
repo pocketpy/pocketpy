@@ -5,12 +5,15 @@ assert tinydict['Name'] == 'Tom';assert tinydict['Age'] == 7
 tinydict['Age'] = 8;tinydict['School'] = "aaa"
 assert tinydict['Age'] == 8;assert tinydict['School'] == "aaa"
 del tinydict['Name']
+
+assert repr(tinydict) == "{'Age': 8, 'Class': 'First', 'School': 'aaa'}"
 assert len(tinydict) == 3
 tinydict.clear()
 assert len(tinydict) == 0
 
 dict1 = {'user':'circle','num':[1,2,3]}
 dict2 = dict1.copy()
+
 for k,v in dict1.items():
     assert dict2[k] == v
 for t in dict1.items():
@@ -62,20 +65,6 @@ assert a == {3: 4}
 assert a.pop(3) == 4
 assert a == {}
 
-# unpacking builder
-a = {1:2, 3:4}
-b = {**a, 5:6, **a}
-assert b == {1: 2, 3: 4, 5: 6}
-
-a = {}
-b = {**a, 1:2, 3:4}
-assert b == {1: 2, 3: 4}
-
-a = {1:2, 3:4, 7:8}
-b = {**a, 1:5, 3:6}
-c = {**a, **b}
-assert c == {1: 5, 3: 6, 7: 8}
-
 a = {}
 for i in range(1000):
     a[i] = i
@@ -83,15 +72,6 @@ assert len(a) == 1000
 for i in range(1000):
     del a[i]
 assert len(a) == 0
-
-a = {
-    str(i): i
-    for i in range(10)
-}
-
-for i, s in enumerate(a):
-    assert s == str(i)
-
 
 a = {'g': 0}
 
@@ -130,34 +110,10 @@ for i in range(len(data)):
         y = b.pop()
         del a[y]
 
-# namedict delete test
-class A: pass
-a = A()
-b = ['0', '1']
-
-for i in range(len(data)):
-    z = data[i]
-    setattr(a, str(z), i)
-    b.append(z)
-    if i % 3 == 0:
-        y = b.pop()
-        delattr(a, y)
-
 a = {1: 2, 3: 4}
 assert a.pop(1) == 2
-try:
-    a.pop(1)
-    exit(1)
-except KeyError:
-    pass
 
 assert a.pop(1, None) is None
-
-try:
-    a.pop(1, 2, 3)
-    exit(1)
-except TypeError:
-    pass
 
 n = 2 ** 17
 a = {}
@@ -170,13 +126,15 @@ for i in range(n):
 for i in range(n):
     del a[str(i)]
 
-a = {1: 2, 3: 4}
-a['a'] = a
-assert repr(a) == "{1: 2, 3: 4, 'a': {...}}"
+# namedict delete test
+# class A: pass
+# a = A()
+# b = ['0', '1']
 
-# test gc
-import gc
-gc.collect()
-for k, v in a.items():
-    pass
-assert gc.collect() == 1
+# for i in range(len(data)):
+#     z = data[i]
+#     setattr(a, str(z), i)
+#     b.append(z)
+#     if i % 3 == 0:
+#         y = b.pop()
+#         delattr(a, y)

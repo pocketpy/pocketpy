@@ -107,6 +107,10 @@ assert 1 < 2 < 3
 assert 4 > 3 >= 3
 assert not 1 < 2 > 3
 
+assert abs(0) == 0
+assert abs(1) == 1
+assert abs(-1) == 1
+
 # try:
 #     1 // 0
 #     exit(1)

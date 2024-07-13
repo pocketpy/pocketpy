@@ -1,26 +1,39 @@
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
+#include "pocketpy/common/sstream.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
+#define PK_DICT_MAX_COLLISION 3
+
 typedef struct {
+    py_i64 hash;
     py_TValue key;
     py_TValue val;
 } DictEntry;
 
 typedef struct {
+    int _[PK_DICT_MAX_COLLISION];
+} DictIndex;
+
+typedef struct {
     int length;
     int capacity;
-    int* indices;
+    DictIndex* indices;
     c11_vector /*T=DictEntry*/ entries;
 } Dict;
 
-static void Dict__ctor(Dict* self) {
+typedef struct {
+    DictEntry* curr;
+    DictEntry* end;
+} DictIterator;
+
+static void Dict__ctor(Dict* self, int capacity) {
     self->length = 0;
-    self->capacity = 16;
-    self->indices = malloc(self->capacity * sizeof(int));
-    memset(self->indices, -1, self->capacity * sizeof(int));
+    self->capacity = capacity;
+    self->indices = malloc(self->capacity * sizeof(DictIndex));
+    memset(self->indices, -1, self->capacity * sizeof(DictIndex));
     c11_vector__ctor(&self->entries, sizeof(DictEntry));
 }
 
@@ -31,58 +44,390 @@ static void Dict__dtor(Dict* self) {
     c11_vector__dtor(&self->entries);
 }
 
-static bool Dict__probe(Dict* self, py_Ref key, DictEntry* out) {
+static bool Dict__try_get(Dict* self, py_TValue* key, DictEntry** out) {
     py_i64 hash;
     if(!py_hash(key, &hash)) return false;
-    int mask = self->capacity - 1;
-    for(int idx = hash & mask;; idx = (idx + 1) & mask) {
-        int idx2 = self->indices[idx];
-        DictEntry* slot = c11__at(DictEntry, &self->entries, idx2);
-        if(slot){
-            int res = py_eq(key, &slot->key);
-            if(res == -1) return false;
-            return res;
-        }else{
-            
+    int idx = hash & (self->capacity - 1);
+    for(int i = 0; i < PK_DICT_MAX_COLLISION; i++) {
+        int idx2 = self->indices[idx]._[i];
+        if(idx2 == -1) continue;
+        DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
+        int res = py_eq(&entry->key, key);
+        if(res == 1) {
+            *out = entry;
+            return true;
         }
+        if(res == -1) return false;  // error
     }
+    *out = NULL;
+    return true;
 }
 
+static void Dict__clear(Dict* self) {
+    memset(self->indices, -1, self->capacity * sizeof(DictIndex));
+    c11_vector__clear(&self->entries);
+    self->length = 0;
+}
+
+static void Dict__rehash_2x(Dict* self) {
+    Dict old_dict = *self;
+
+    int new_capacity = self->capacity * 2;
+    assert(new_capacity <= 1073741824);
+
+    do {
+        Dict__ctor(self, new_capacity);
+
+        for(int i = 0; i < old_dict.entries.count; i++) {
+            DictEntry* entry = c11__at(DictEntry, &old_dict.entries, i);
+            if(py_isnil(&entry->key)) continue;
+            int idx = entry->hash & (new_capacity - 1);
+            bool success = false;
+            for(int i = 0; i < PK_DICT_MAX_COLLISION; i++) {
+                int idx2 = self->indices[idx]._[i];
+                if(idx2 == -1) {
+                    // insert new entry (empty slot)
+                    c11_vector__push(DictEntry, &self->entries, *entry);
+                    self->indices[idx]._[i] = self->entries.count - 1;
+                    self->length++;
+                    success = true;
+                    break;
+                }
+            }
+            if(!success) {
+                Dict__dtor(self);
+                new_capacity *= 2;
+                continue;
+            }
+        }
+        // resize complete
+        Dict__dtor(&old_dict);
+        return;
+    } while(1);
+}
+
+static void Dict__compact_entries(Dict* self) {
+    int* mappings = malloc(self->entries.count * sizeof(int));
+
+    int n = 0;
+    for(int i = 0; i < self->entries.count; i++) {
+        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+        if(py_isnil(&entry->key)) continue;
+        mappings[i] = n;
+        if(i != n) {
+            DictEntry* new_entry = c11__at(DictEntry, &self->entries, n);
+            *new_entry = *entry;
+        }
+        n++;
+    }
+    self->entries.count = n;
+    // update indices
+    for(int i = 0; i < self->capacity; i++) {
+        for(int j = 0; j < PK_DICT_MAX_COLLISION; j++) {
+            int idx = self->indices[i]._[j];
+            if(idx == -1) continue;
+            self->indices[i]._[j] = mappings[idx];
+        }
+    }
+    free(mappings);
+}
+
+static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
+    py_i64 hash;
+    if(!py_hash(key, &hash)) return false;
+    int idx = hash & (self->capacity - 1);
+    for(int i = 0; i < PK_DICT_MAX_COLLISION; i++) {
+        int idx2 = self->indices[idx]._[i];
+        if(idx2 == -1) {
+            // insert new entry
+            DictEntry* new_entry = c11_vector__emplace(&self->entries);
+            new_entry->hash = hash;
+            new_entry->key = *key;
+            new_entry->val = *val;
+            self->indices[idx]._[i] = self->entries.count - 1;
+            self->length++;
+            return true;
+        }
+        // update existing entry
+        DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
+        int res = py_eq(&entry->key, key);
+        if(res == 1) {
+            entry->val = *val;
+            return true;
+        }
+        if(res == -1) return false;  // error
+    }
+    // no empty slot found
+    Dict__rehash_2x(self);
+    return Dict__set(self, key, val);
+}
+
+/// Delete an entry from the dict.
+/// If the key is found, `py_retval()` is set to the value.
+/// If the key is not found, `py_retval()` is set to `nil`.
+/// Returns false on error.
+static bool Dict__pop(Dict* self, py_Ref key) {
+    py_i64 hash;
+    if(!py_hash(key, &hash)) return false;
+    int idx = hash & (self->capacity - 1);
+    for(int i = 0; i < PK_DICT_MAX_COLLISION; i++) {
+        int idx2 = self->indices[idx]._[i];
+        if(idx2 == -1) continue;
+        DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
+        int res = py_eq(&entry->key, key);
+        if(res == 1) {
+            *py_retval() = entry->val;
+            py_newnil(&entry->key);
+            self->indices[idx]._[i] = -1;
+            self->length--;
+            if(self->length < self->entries.count / 2) Dict__compact_entries(self);
+            return true;
+        }
+        if(res == -1) return false;  // error
+    }
+    py_newnil(py_retval());
+    return true;
+}
+
+static void DictIterator__ctor(DictIterator* self, Dict* dict) {
+    self->curr = dict->entries.data;
+    self->end = self->curr + dict->entries.count;
+}
+
+static DictEntry* DictIterator__next(DictIterator* self) {
+    DictEntry* retval;
+    do {
+        if(self->curr == self->end) return NULL;
+        retval = self->curr++;
+    } while(py_isnil(&retval->key));
+    return retval;
+}
+
+///////////////////////////////
 static bool _py_dict__new__(int argc, py_Ref argv) {
     py_newdict(py_retval());
     return true;
 }
 
-static bool _py_dict__getitem__(int argc, py_Ref argv){
-    PY_CHECK_ARGC(2);
-    py_i64 hash;
-    if(!py_hash(py_arg(1), &hash)) return false;
+static bool _py_dict__init__(int argc, py_Ref argv) {
+    if(argc > 2) return TypeError("dict.__init__() takes at most 2 arguments (%d given)", argc);
+    if(argc == 1) return true;
+    assert(argc == 2);
+    PY_CHECK_ARG_TYPE(1, tp_list);
     Dict* self = py_touserdata(argv);
-
+    py_Ref list = py_arg(1);
+    for(int i = 0; i < py_list__len(list); i++) {
+        py_Ref tuple = py_list__getitem(list, i);
+        if(!py_istuple(tuple) || py_tuple__len(tuple) != 2) {
+            return TypeError("dict.__init__() argument must be a list of tuple-2");
+        }
+        py_Ref key = py_tuple__getitem(tuple, 0);
+        py_Ref val = py_tuple__getitem(tuple, 1);
+        if(!Dict__set(self, key, val)) return false;
+    }
+    return true;
 }
 
-static bool _py_dict__setitem__(int argc, py_Ref argv){
+static bool _py_dict__getitem__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    Dict* self = py_touserdata(argv);
+    DictEntry* entry;
+    if(!Dict__try_get(self, py_arg(1), &entry)) return false;
+    if(entry) {
+        *py_retval() = entry->val;
+        return true;
+    }
+    return KeyError(py_arg(1));
+}
+
+static bool _py_dict__setitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
-    py_i64 hash;
-    if(!py_hash(py_arg(1), &hash)) return false;
+    Dict* self = py_touserdata(argv);
+    return Dict__set(self, py_arg(1), py_arg(2));
 }
 
-static bool _py_dict__delitem__(int argc, py_Ref argv){
+static bool _py_dict__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    py_i64 hash;
-    if(!py_hash(py_arg(1), &hash)) return false;
+    Dict* self = py_touserdata(argv);
+    if(!Dict__pop(self, py_arg(1))) return false;
+    py_newnone(py_retval());
+    return true;
 }
 
-static bool _py_dict__contains__(int argc, py_Ref argv){
+static bool _py_dict__contains__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    py_i64 hash;
-    if(!py_hash(py_arg(1), &hash)) return false;
+    Dict* self = py_touserdata(argv);
+    DictEntry* entry;
+    if(!Dict__try_get(self, py_arg(1), &entry)) return false;
+    py_newbool(py_retval(), entry != NULL);
+    return true;
 }
 
-static bool _py_dict__len__(int argc, py_Ref argv){
+static bool _py_dict__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     py_newint(py_retval(), self->length);
+    return true;
+}
+
+static bool _py_dict__repr__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Dict* self = py_touserdata(argv);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    c11_sbuf__write_char(&buf, '{');
+    bool is_first = true;
+    for(int i = 0; i < self->entries.count; i++) {
+        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+        if(py_isnil(&entry->key)) continue;
+        if(!is_first) c11_sbuf__write_cstr(&buf, ", ");
+        if(!py_repr(&entry->key)) return false;
+        c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
+        c11_sbuf__write_cstr(&buf, ": ");
+        if(!py_repr(&entry->val)) return false;
+        c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
+        is_first = false;
+    }
+    c11_sbuf__write_char(&buf, '}');
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
+    return true;
+}
+
+static bool _py_dict__eq__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    Dict* self = py_touserdata(py_arg(0));
+    if(!py_isdict(py_arg(1))) {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    Dict* other = py_touserdata(py_arg(1));
+    if(self->length != other->length) {
+        py_newbool(py_retval(), false);
+        return true;
+    }
+    DictIterator iter;
+    DictIterator__ctor(&iter, self);
+    // for each self key
+    while(1) {
+        DictEntry* entry = DictIterator__next(&iter);
+        if(!entry) break;
+        DictEntry* other_entry;
+        if(!Dict__try_get(other, &entry->key, &other_entry)) return false;
+        if(!other_entry) {
+            py_newbool(py_retval(), false);
+            return true;
+        }
+        int res = py_eq(&entry->val, &other_entry->val);
+        if(res == -1) return false;
+        if(!res) {
+            py_newbool(py_retval(), false);
+            return true;
+        }
+    }
+    return true;
+}
+
+static bool _py_dict__ne__(int argc, py_Ref argv) {
+    if(!_py_dict__eq__(argc, argv)) return false;
+    if(py_isbool(py_retval())) {
+        bool res = py_tobool(py_retval());
+        py_newbool(py_retval(), !res);
+    }
+    return true;
+}
+
+static bool _py_dict__clear(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Dict* self = py_touserdata(argv);
+    Dict__clear(self);
+    return true;
+}
+
+static bool _py_dict__copy(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Dict* self = py_touserdata(argv);
+    Dict* new_dict = py_newobject(py_retval(), tp_dict, 0, sizeof(Dict));
+    new_dict->capacity = self->capacity;
+    new_dict->length = self->length;
+    new_dict->entries = c11_vector__copy(&self->entries);
+    // copy indices
+    new_dict->indices = malloc(new_dict->capacity * sizeof(DictIndex));
+    memcpy(new_dict->indices, self->indices, new_dict->capacity * sizeof(DictIndex));
+    return true;
+}
+
+static bool _py_dict__update(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(1, tp_dict);
+    Dict* self = py_touserdata(argv);
+    Dict* other = py_touserdata(py_arg(1));
+    for(int i = 0; i < other->entries.count; i++) {
+        DictEntry* entry = c11__at(DictEntry, &other->entries, i);
+        if(py_isnil(&entry->key)) continue;
+        if(!Dict__set(self, &entry->key, &entry->val)) return false;
+    }
+    return true;
+}
+
+static bool _py_dict__get(int argc, py_Ref argv) {
+    Dict* self = py_touserdata(argv);
+    if(argc > 3) return TypeError("get() takes at most 3 arguments (%d given)", argc);
+    py_Ref default_val = argc == 3 ? py_arg(2) : py_None;
+    DictEntry* entry;
+    if(!Dict__try_get(self, py_arg(1), &entry)) return false;
+    *py_retval() = entry ? entry->val : *default_val;
+    return true;
+}
+
+static bool _py_dict__pop(int argc, py_Ref argv) {
+    Dict* self = py_touserdata(argv);
+    if(argc < 2 || argc > 3) return TypeError("pop() takes 2 or 3 arguments (%d given)", argc);
+    py_Ref default_val = argc == 3 ? py_arg(2) : py_None;
+    if(!Dict__pop(self, py_arg(1))) return false;
+    if(py_isnil(py_retval())) *py_retval() = *default_val;
+    return true;
+}
+
+static bool _py_dict__items(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Dict* self = py_touserdata(argv);
+    DictIterator* ud = py_newobject(py_retval(), tp_dict_items, 1, sizeof(DictIterator));
+    DictIterator__ctor(ud, self);
+    py_setslot(py_retval(), 0, argv);  // keep a reference to the dict
+    return true;
+}
+
+static bool _py_dict__keys(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Dict* self = py_touserdata(argv);
+    py_newtuple(py_retval(), self->length);
+    DictIterator iter;
+    DictIterator__ctor(&iter, self);
+    int i = 0;
+    while(1) {
+        DictEntry* entry = DictIterator__next(&iter);
+        if(!entry) break;
+        py_tuple__setitem(py_retval(), i++, &entry->key);
+    }
+    assert(i == self->length);
+    return true;
+}
+
+static bool _py_dict__values(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Dict* self = py_touserdata(argv);
+    py_newtuple(py_retval(), self->length);
+    DictIterator iter;
+    DictIterator__ctor(&iter, self);
+    int i = 0;
+    while(1) {
+        DictEntry* entry = DictIterator__next(&iter);
+        if(!entry) break;
+        py_tuple__setitem(py_retval(), i++, &entry->val);
+    }
+    assert(i == self->length);
     return true;
 }
 
@@ -90,16 +435,98 @@ py_Type pk_dict__register() {
     py_Type type = pk_newtype("dict", tp_object, NULL, (void (*)(void*))Dict__dtor, false, false);
 
     py_bindmagic(type, __new__, _py_dict__new__);
-    // py_bindmagic(type, __init__, _py_dict__init__);
+    py_bindmagic(type, __init__, _py_dict__init__);
     py_bindmagic(type, __getitem__, _py_dict__getitem__);
     py_bindmagic(type, __setitem__, _py_dict__setitem__);
     py_bindmagic(type, __delitem__, _py_dict__delitem__);
     py_bindmagic(type, __contains__, _py_dict__contains__);
     py_bindmagic(type, __len__, _py_dict__len__);
+    py_bindmagic(type, __repr__, _py_dict__repr__);
+    py_bindmagic(type, __eq__, _py_dict__eq__);
+    py_bindmagic(type, __ne__, _py_dict__ne__);
+
+    py_bindmethod(type, "clear", _py_dict__clear);
+    py_bindmethod(type, "copy", _py_dict__copy);
+    py_bindmethod(type, "update", _py_dict__update);
+    py_bindmethod(type, "get", _py_dict__get);
+    py_bindmethod(type, "pop", _py_dict__pop);
+    py_bindmethod(type, "items", _py_dict__items);
+    py_bindmethod(type, "keys", _py_dict__keys);
+    py_bindmethod(type, "values", _py_dict__values);
+
+    py_setdict(py_tpobject(type), __hash__, py_None);
     return type;
 }
 
+//////////////////////////
+static bool _py_dict_items__iter__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    *py_retval() = *argv;
+    return true;
+}
+
+static bool _py_dict_items__next__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    DictIterator* iter = py_touserdata(py_arg(0));
+    DictEntry* entry = (DictIterator__next(iter));
+    if(entry) {
+        py_newtuple(py_retval(), 2);
+        py_tuple__setitem(py_retval(), 0, &entry->key);
+        py_tuple__setitem(py_retval(), 1, &entry->val);
+        return true;
+    }
+    return StopIteration();
+}
+
+py_Type pk_dict_items__register() {
+    py_Type type = pk_newtype("dict_items", tp_object, NULL, NULL, false, true);
+    py_bindmagic(type, __iter__, _py_dict_items__iter__);
+    py_bindmagic(type, __next__, _py_dict_items__next__);
+    return type;
+}
+
+//////////////////////////
+
 void py_newdict(py_Ref out) {
     Dict* ud = py_newobject(out, tp_dict, 0, sizeof(Dict));
-    Dict__ctor(ud);
+    Dict__ctor(ud, 8);
+}
+
+py_Ref py_dict__getitem(const py_Ref self, const py_Ref key) {
+    assert(py_isdict(self));
+    Dict* ud = py_touserdata(self);
+    DictEntry* entry;
+    if(!Dict__try_get(ud, key, &entry)) return NULL;
+    if(entry) return &entry->val;
+    return NULL;
+}
+
+void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val) {
+    assert(py_isdict(self));
+    Dict* ud = py_touserdata(self);
+    Dict__set(ud, key, val);
+}
+
+bool py_dict__contains(const py_Ref self, const py_Ref key) {
+    assert(py_isdict(self));
+    Dict* ud = py_touserdata(self);
+    DictEntry* entry;
+    bool ok = Dict__try_get(ud, key, &entry);
+    return ok && entry != NULL;
+}
+
+int py_dict__len(const py_Ref self) {
+    assert(py_isdict(self));
+    Dict* ud = py_touserdata(self);
+    return ud->length;
+}
+
+void pk_dict__mark(void* ud, void (*marker)(py_TValue*)) {
+    Dict* self = ud;
+    for(int i = 0; i < self->entries.count; i++) {
+        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+        if(py_isnil(&entry->key)) continue;
+        marker(&entry->key);
+        marker(&entry->val);
+    }
 }

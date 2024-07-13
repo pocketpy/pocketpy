@@ -113,16 +113,17 @@ static bool _py_tuple__eq__(int argc, py_Ref argv) {
 }
 
 static bool _py_tuple__ne__(int argc, py_Ref argv) {
-    bool ok = _py_tuple__eq__(argc, argv);
-    if(!ok) return false;
-    py_Ref retval = py_retval();
-    py_newbool(retval, !py_tobool(retval));
+    if(!_py_tuple__eq__(argc, argv)) return false;
+    if(py_isbool(py_retval())) {
+        bool res = py_tobool(py_retval());
+        py_newbool(py_retval(), !res);
+    }
     return true;
 }
 
 static bool _py_tuple__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    return py_tpcall(tp_array_iterator, 1, argv);
+    return pk_arrayiter(argv);
 }
 
 py_Type pk_tuple__register() {

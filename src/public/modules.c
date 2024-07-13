@@ -12,7 +12,7 @@ py_Ref py_getmodule(const char* name) {
 
 py_Ref py_newmodule(const char* name, const char* package) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
-    PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_module, -1, 0);
+    PyObject* obj = pk_ManagedHeap__new(heap, tp_module, -1, 0);
 
     py_Ref r0 = py_pushtmp();
     py_Ref r1 = py_pushtmp();
@@ -48,7 +48,7 @@ py_Ref py_newmodule(const char* name, const char* package) {
     if(exists) abort();
     pk_NameDict__set(&pk_current_vm->modules, py_name(name), *r0);
 
-    py_poptmp(2);
+    py_shrink(2);
     return py_getmodule(name);
 }
 
@@ -148,6 +148,36 @@ static bool _py_builtins__sorted(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_builtins__hash(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_i64 val;
+    if(!py_hash(argv, &val)) return false;
+    py_newint(py_retval(), val);
+    return true;
+}
+
+static bool _py_builtins__abs(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    return py_callmagic(__abs__, 1, argv);
+}
+
+static bool _py_builtins__sum(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    int length;
+    py_TValue* p = pk_arrayview(argv, &length);
+    if(!p) return TypeError("sum() expects a list or tuple");
+
+    py_Ref tmp = py_pushtmp();
+    py_newint(tmp, 0);
+    for(int i = 0; i < length; i++) {
+        if(!py_binaryadd(tmp, &p[i])) return false;
+        *tmp = *py_retval();
+    }
+
+    *py_retval() = *tmp;
+    return true;
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins", NULL);
     py_bindnativefunc(builtins, "repr", _py_builtins__repr);
@@ -157,6 +187,9 @@ py_TValue pk_builtins__register() {
     py_bindnativefunc(builtins, "hex", _py_builtins__hex);
     py_bindnativefunc(builtins, "iter", _py_builtins__iter);
     py_bindnativefunc(builtins, "next", _py_builtins__next);
+    py_bindnativefunc(builtins, "hash", _py_builtins__hash);
+    py_bindnativefunc(builtins, "abs", _py_builtins__abs);
+    py_bindnativefunc(builtins, "sum", _py_builtins__sum);
 
     py_bind(builtins, "sorted(iterable, key=None, reverse=False)", _py_builtins__sorted);
     return *builtins;

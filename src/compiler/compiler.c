@@ -310,8 +310,7 @@ void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
 }
 
 LiteralExpr* LiteralExpr__new(int line, const TokenValue* value) {
-    const static ExprVt Vt = {.emit_ = LiteralExpr__emit_,
-                              .is_literal = true};
+    const static ExprVt Vt = {.emit_ = LiteralExpr__emit_, .is_literal = true};
     static_assert_expr_size(LiteralExpr);
     LiteralExpr* self = PoolExpr_alloc();
     self->vt = &Vt;
@@ -389,6 +388,35 @@ SliceExpr* SliceExpr__new(int line) {
     self->start = NULL;
     self->stop = NULL;
     self->step = NULL;
+    return self;
+}
+
+typedef struct DictItemExpr {
+    EXPR_COMMON_HEADER
+    Expr* key;
+    Expr* value;
+} DictItemExpr;
+
+static void DictItemExpr__dtor(Expr* self_) {
+    DictItemExpr* self = (DictItemExpr*)self_;
+    vtdelete(self->key);
+    vtdelete(self->value);
+}
+
+static void DictItemExpr__emit_(Expr* self_, Ctx* ctx) {
+    DictItemExpr* self = (DictItemExpr*)self_;
+    vtemit_(self->key, ctx);
+    vtemit_(self->value, ctx);
+}
+
+static DictItemExpr* DictItemExpr__new(int line) {
+    const static ExprVt Vt = {.dtor = DictItemExpr__dtor, .emit_ = DictItemExpr__emit_};
+    static_assert_expr_size(DictItemExpr);
+    DictItemExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = line;
+    self->key = NULL;
+    self->value = NULL;
     return self;
 }
 
@@ -477,14 +505,12 @@ static SequenceExpr* SequenceExpr__new(int line, const ExprVt* vt, int count, Op
 }
 
 SequenceExpr* ListExpr__new(int line, int count) {
-    const static ExprVt ListExprVt = {.dtor = SequenceExpr__dtor,
-                                      .emit_ = SequenceExpr__emit_};
+    const static ExprVt ListExprVt = {.dtor = SequenceExpr__dtor, .emit_ = SequenceExpr__emit_};
     return SequenceExpr__new(line, &ListExprVt, count, OP_BUILD_LIST);
 }
 
 SequenceExpr* DictExpr__new(int line, int count) {
-    const static ExprVt DictExprVt = {.dtor = SequenceExpr__dtor,
-                                      .emit_ = SequenceExpr__emit_};
+    const static ExprVt DictExprVt = {.dtor = SequenceExpr__dtor, .emit_ = SequenceExpr__emit_};
     return SequenceExpr__new(line, &DictExprVt, count, OP_BUILD_DICT);
 }
 
@@ -1865,7 +1891,11 @@ static Error* exprMap(Compiler* self) {
         if(curr()->type == TK_COLON) { parsing_dict = true; }
         if(parsing_dict) {
             consume(TK_COLON);
-            check(EXPR(self));  // [key, value]
+            check(EXPR(self));  // [key, value] -> [item]
+            DictItemExpr* item = DictItemExpr__new(prev()->line);
+            item->value = Ctx__s_popx(ctx());
+            item->key = Ctx__s_popx(ctx());
+            Ctx__s_push(ctx(), (Expr*)item);
         }
         count += 1;  // key-value pair count
         match_newlines();
@@ -1884,7 +1914,6 @@ static Error* exprMap(Compiler* self) {
 
     SequenceExpr* se;
     if(count == 0 || parsing_dict) {
-        count *= 2;  // key + value
         se = DictExpr__new(line, count);
     } else {
         se = SetExpr__new(line, count);

@@ -88,10 +88,11 @@ static bool _py_list__eq__(int argc, py_Ref argv) {
 }
 
 static bool _py_list__ne__(int argc, py_Ref argv) {
-    bool ok = _py_list__eq__(argc, argv);
-    if(!ok) return false;
-    py_Ref retval = py_retval();
-    py_newbool(retval, !py_tobool(retval));
+    if(!_py_list__eq__(argc, argv)) return false;
+    if(py_isbool(py_retval())) {
+        bool res = py_tobool(py_retval());
+        py_newbool(py_retval(), !res);
+    }
     return true;
 }
 
@@ -396,7 +397,7 @@ static bool _py_list__sort(int argc, py_Ref argv) {
 
 static bool _py_list__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    return py_tpcall(tp_array_iterator, 1, argv);
+    return pk_arrayiter(argv);
 }
 
 py_Type pk_list__register() {
@@ -429,5 +430,14 @@ py_Type pk_list__register() {
     py_bindmethod(type, "sort", _py_list__sort);
 
     py_bind(py_tpobject(type), "sort(self, key=None, reverse=False)", _py_list__sort);
+
+    py_setdict(py_tpobject(type), __hash__, py_None);
     return type;
+}
+
+void pk_list__mark(void* ud, void (*marker)(py_TValue*)){
+    List* self = ud;
+    for(int i = 0; i < self->count; i++) {
+        marker(c11__at(py_TValue, self, i));
+    }
 }

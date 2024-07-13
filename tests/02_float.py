@@ -83,6 +83,10 @@ assert -2e-3 == -0.002
 assert 3.4e-3 == 0.0034
 assert 3.4e+3 == 3400.0
 
+assert abs(1.0) == 1.0
+assert abs(-1.0) == 1.0
+assert abs(0.0) == 0.0
+
 # import math
 # assert math.isnan(0/0)
 

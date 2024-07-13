@@ -317,15 +317,14 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_STORE_SUBSCR: {
                 // [val, a, b] -> a[b] = val
-                PUSH(THIRD());  // [val, a, b, val]
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __setitem__);
                 if(magic) {
+                    PUSH(THIRD());  // [val, a, b, val]
                     if(magic->type == tp_nativefunc) {
-                        py_TValue* next_sp = THIRD();
+                        py_TValue* next_sp = FOURTH();
                         bool ok = magic->_cfunc(3, THIRD());
                         if(!ok) goto __ERROR;
                         SP() = next_sp;
-                        *TOP() = self->last_retval;
                     } else {
                         *FOURTH() = *magic;  // [__selitem__, a, b, val]
                         if(!py_vectorcall(2, 0)) goto __ERROR;
@@ -423,10 +422,10 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref f = py_getdict(&self->builtins, py_name("complex"));
                 assert(f != NULL);
                 py_TValue tmp = *TOP();
-                *TOP() = *f;              // [complex]
-                py_newnil(SP()++);        // [complex, NULL]
-                py_newint(SP()++, 0);     // [complex, NULL, 0]
-                *SP()++ = tmp;            // [complex, NULL, 0, x]
+                *TOP() = *f;           // [complex]
+                py_newnil(SP()++);     // [complex, NULL]
+                py_newint(SP()++, 0);  // [complex, NULL, 0]
+                *SP()++ = tmp;         // [complex, NULL, 0, x]
                 if(!py_vectorcall(2, 0)) goto __ERROR;
                 DISPATCH();
             }
@@ -460,11 +459,12 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_BUILD_DICT: {
-                py_TValue* begin = SP() - byte.arg;
+                py_TValue* begin = SP() - byte.arg * 2;
                 py_Ref tmp = py_pushtmp();
                 py_newdict(tmp);
-                for(int i = 0; i < byte.arg; i += 2) {
-                    if(!py_setitem(tmp, begin + i, begin + i + 1)) goto __ERROR;
+                for(int i = 0; i < byte.arg * 2; i += 2) {
+                    py_dict__setitem(tmp, begin + i, begin + i + 1);
+                    if(py_checkexc()) goto __ERROR;
                 }
                 SP() = begin;
                 PUSH(tmp);
@@ -477,7 +477,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_push(typeobject_set);
                 py_pushnil();
                 if(!py_vectorcall(0, 0)) goto __ERROR;
-                py_push(py_retval());   // empty set
+                py_push(py_retval());  // empty set
                 py_Name id_add = py_name("add");
                 for(int i = 0; i < byte.arg; i++) {
                     if(!py_callmethod(TOP(), id_add, 1, begin + i)) goto __ERROR;
@@ -687,7 +687,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 for(int i = size - 1; i >= 0; i--) {
                     PUSH(buf + i);
                 }
-                
+
                 vectorcall_opcall(new_argc, new_kwargc);
                 DISPATCH();
             }
@@ -718,6 +718,10 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_DICT_ADD: {
+                // [dict, iter, key, value]
+                py_dict__setitem(FOURTH(), SECOND(), TOP());
+                if(py_checkexc()) goto __ERROR;
+                STACK_SHRINK(2);
                 DISPATCH();
             }
             case OP_SET_ADD: {
@@ -839,7 +843,12 @@ bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
             if(self->last_retval.type != tp_NotImplementedType) return true;
         }
     }
-    // eq/ne op never fails due to object.__eq__
+    // eq/ne op never fails
+    if(op == __eq__ || op == __ne__) {
+        bool res = py_isidentical(SECOND(), TOP());
+        py_newbool(py_retval(), res);
+        return true;
+    }
     return py_exception("TypeError", "unsupported operand type(s) for '%n'", op);
 }
 

@@ -10,12 +10,27 @@
 #include <stdint.h>
 
 pk_VM* pk_current_vm;
+
+py_GlobalRef py_True;
+py_GlobalRef py_False;
+py_GlobalRef py_None;
+
 static pk_VM pk_default_vm;
 
 void py_initialize() {
     pk_MemoryPools__initialize();
     py_Name__initialize();
     pk_current_vm = &pk_default_vm;
+
+    // initialize some convenient references
+    static py_TValue _True, _False, _None;
+    py_newbool(&_True, true);
+    py_newbool(&_False, false);
+    py_newnone(&_None);
+    py_True = &_True;
+    py_False = &_False;
+    py_None = &_None;
+
     pk_VM__ctor(&pk_default_vm);
 }
 
@@ -190,14 +205,11 @@ bool py_call(py_Ref f, int argc, py_Ref argv) {
     if(f->type == tp_nativefunc) {
         return f->_cfunc(argc, argv);
     } else {
-        pk_VM* vm = pk_current_vm;
         py_push(f);
         py_pushnil();
         for(int i = 0; i < argc; i++)
             py_push(py_offset(argv, i));
-        pk_FrameResult res = pk_VM__vectorcall(vm, argc, 0, false);
-        assert(res == RES_ERROR || res == RES_RETURN);
-        return res == RES_RETURN;
+        return py_vectorcall(argc, 0);
     }
 }
 

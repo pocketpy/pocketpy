@@ -48,3 +48,9 @@ bool py_exception(const char* name, const char* fmt, ...) {
 
     return false;
 }
+
+bool KeyError(py_Ref key){
+    if(!py_repr(key)) return false;
+    c11_sv message = py_tosv(py_retval());
+    return py_exception("KeyError", "%q", message);
+}

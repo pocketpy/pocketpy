@@ -66,6 +66,9 @@ void pk_VM__pop_frame(pk_VM* self);
 bool pk__parse_int_slice(const py_Ref slice, int length, int* start, int* stop, int* step);
 bool pk__normalize_index(int* index, int length);
 
+void pk_list__mark(void* ud, void (*marker)(py_TValue*));
+void pk_dict__mark(void* ud, void (*marker)(py_TValue*));
+
 typedef enum pk_FrameResult {
     RES_RETURN,
     RES_CALL,
@@ -88,11 +91,13 @@ const char* pk_opname(Opcode op);
 
 py_TValue* pk_arrayview(py_Ref self, int* length);
 int pk_arrayeq(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length);
+bool pk_arrayiter(py_Ref val);
 
 /// Assumes [a, b] are on the stack, performs a binary op.
 /// The result is stored in `self->last_retval`.
 /// The stack remains unchanged.
 bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
+
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte);
 
 // type registration
@@ -102,6 +107,7 @@ py_Type pk_str__register();
 py_Type pk_str_iterator__register();
 py_Type pk_bytes__register();
 py_Type pk_dict__register();
+py_Type pk_dict_items__register();
 py_Type pk_list__register();
 py_Type pk_tuple__register();
 py_Type pk_array_iterator__register();

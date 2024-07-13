@@ -117,6 +117,8 @@ void pk_VM__ctor(pk_VM* self) {
     validate(tp_mappingproxy, pk_newtype("mappingproxy", tp_object, NULL, NULL, false, true));
 
     validate(tp_dict, pk_dict__register());
+    validate(tp_dict_items, pk_dict_items__register());
+
     validate(tp_property, pk_newtype("property", tp_object, NULL, NULL, false, true));
     validate(tp_star_wrapper, pk_newtype("star_wrapper", tp_object, NULL, NULL, false, true));
 
@@ -330,9 +332,12 @@ static bool
                                  co->name->data);
             } else {
                 // add to **kwargs
-                // Dict& dict = _CAST(Dict&, vkwargs);
-                // dict.set(this, VAR(key.sv()), kwargs[j + 1]);
-                assert(false);
+                py_Ref tmp = py_pushtmp();
+                c11_sv key_sv = py_name2sv(key);
+                py_newstrn(tmp, key_sv.data, key_sv.size);
+                py_dict__setitem(&buffer[decl->starred_kwarg], tmp, &p1[2 * j + 1]);
+                if(py_checkexc()) return false;
+                py_pop();
             }
         }
     }
@@ -467,36 +472,31 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
         memcpy(self->stack.sp, argv, span * sizeof(py_TValue));
         self->stack.sp += span;
         // [new_f, cls, args..., kwargs...]
-        pk_FrameResult res = pk_VM__vectorcall(self, argc, kwargc, false);
-        if(res == RES_ERROR) return RES_ERROR;
-        assert(res == RES_RETURN);
+        if(pk_VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
         // by recursively using vectorcall, args and kwargs are consumed
-        // [cls, NULL, args..., kwargs...]
 
         // try __init__
-        // NOTE: previous we use `get_unbound_method` but here we just use `tpfindmagic`
+        // NOTE: previously we use `get_unbound_method` but here we just use `tpfindmagic`
+        // >> [cls, NULL, args..., kwargs...]
+        // >> py_retval() is the new instance
         py_Ref init_f = py_tpfindmagic(py_totype(p0), __init__);
         if(init_f) {
             // do an inplace patch
             *p0 = *init_f;              // __init__
             p0[1] = self->last_retval;  // self
             // [__init__, self, args..., kwargs...]
-            pk_FrameResult res = pk_VM__vectorcall(self, argc, kwargc, false);
-            if(res == RES_ERROR) return RES_ERROR;
-            assert(res == RES_RETURN);
-        } else {
-            // manually reset the stack
-            self->stack.sp = p0;
+            if(pk_VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
+            *py_retval() = p0[1];  // restore the new instance
         }
+        // reset the stack
+        self->stack.sp = p0;
         return RES_RETURN;
     }
 
     // handle `__call__` overload
     if(py_getunboundmethod(p0, __call__, p0, p0 + 1)) {
         // [__call__, self, args..., kwargs...]
-        pk_FrameResult res = pk_VM__vectorcall(self, argc, kwargc, false);
-        if(res == RES_ERROR) return RES_ERROR;
-        assert(res == RES_RETURN);
+        return pk_VM__vectorcall(self, argc, kwargc, opcall);
     }
 
     TypeError("'%t' object is not callable", p0->type);
@@ -525,13 +525,6 @@ static void mark_object(PyObject* obj) {
     if(obj->gc_marked) return;
     obj->gc_marked = true;
 
-    // list is a special case
-    if(obj->type == tp_list) {
-        c11_vector* vec = PyObject__userdata(obj);
-        c11__foreach(py_TValue, vec, p) mark_value(p);
-        return;
-    }
-
     if(obj->slots > 0) {
         py_TValue* p = PyObject__slots(obj);
         for(int i = 0; i < obj->slots; i++)
@@ -545,6 +538,16 @@ static void mark_object(PyObject* obj) {
             pk_NameDict_KV* kv = c11__at(pk_NameDict_KV, dict, j);
             mark_value(&kv->value);
         }
+        return;
+    }
+
+    if(obj->type == tp_list) {
+        pk_list__mark(PyObject__userdata(obj), mark_value);
+        return;
+    }
+
+    if(obj->type == tp_dict) {
+        pk_dict__mark(PyObject__userdata(obj), mark_value);
         return;
     }
 }
@@ -573,6 +576,7 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
 
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
     return;
+
     py_TValue* sp = self->stack.sp;
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);

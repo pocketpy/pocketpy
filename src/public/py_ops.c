@@ -48,6 +48,7 @@ bool py_hash(const py_Ref val, int64_t* out) {
     pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
     do {
         py_Ref _hash = &types[t].magic[__hash__];
+        if(py_isnone(_hash)) break;
         py_Ref _eq = &types[t].magic[__eq__];
         if(!py_isnil(_hash) && !py_isnil(_eq)) {
             bool ok = py_call(_hash, 1, val);
@@ -82,11 +83,30 @@ bool py_setattr(py_Ref self, py_Name name, const py_Ref val) { return false; }
 
 bool py_delattr(py_Ref self, py_Name name) { return false; }
 
-bool py_getitem(const py_Ref self, const py_Ref key, py_Ref out) { return -1; }
+bool py_getitem(const py_Ref self, const py_Ref key) {
+    py_push(self);
+    py_push(key);
+    bool ok = py_callmagic(__getitem__, 2, py_peek(-2));
+    py_shrink(2);
+    return ok;
+}
 
-bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val) { return -1; }
+bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val) {
+    py_push(self);
+    py_push(key);
+    py_push(val);
+    bool ok = py_callmagic(__setitem__, 3, py_peek(-3));
+    py_shrink(3);
+    return ok;
+}
 
-bool py_delitem(py_Ref self, const py_Ref key) { return -1; }
+bool py_delitem(py_Ref self, const py_Ref key) {
+    py_push(self);
+    py_push(key);
+    bool ok = py_callmagic(__delitem__, 2, py_peek(-2));
+    py_shrink(2);
+    return ok;
+}
 
 #define COMPARE_OP_IMPL(name, op, rop)                                                             \
     int py_##name(const py_Ref lhs, const py_Ref rhs) {                                            \
