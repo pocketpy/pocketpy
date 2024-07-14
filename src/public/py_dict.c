@@ -250,7 +250,6 @@ static bool _py_dict__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     Dict* self = py_touserdata(argv);
     if(!Dict__pop(self, py_arg(1))) return false;
-    py_newnone(py_retval());
     return true;
 }
 

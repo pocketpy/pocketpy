@@ -174,6 +174,7 @@ static bool _py_list__delitem__(int argc, py_Ref argv) {
     int index = py_toint(py_arg(1));
     if(!pk__normalize_index(&index, self->count)) return false;
     c11_vector__erase(py_TValue, self, index);
+    py_newnone(py_retval());
     return true;
 }
 

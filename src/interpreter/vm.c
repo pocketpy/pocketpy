@@ -391,8 +391,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
                     pk_VM__push_frame(self, Frame__new(co, fn->module, p0, p0, argv, co));
                     return opcall ? RES_CALL : pk_VM__run_top_frame(self);
                 } else {
-                    bool ok = fn->cfunc(co->nlocals, argv);
-                    self->stack.sp = p0;
+                    bool ok = py_callcfunc(p0, fn->cfunc, co->nlocals, argv);
                     return ok ? RES_RETURN : RES_ERROR;
                 }
             }
@@ -431,32 +430,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
     }
 
     if(p0->type == tp_nativefunc) {
-        // const auto& f = PK_OBJ_GET(NativeFunc, callable);
-        // PyVar ret;
-        // if(f.decl != nullptr) {
-        //     int co_nlocals = f.decl->code->nlocals;
-        //     prepare_py_call(__vectorcall_buffer, args, kwargs, f.decl);
-        //     // copy buffer back to stack
-        //     s_data.reset(_base + co_nlocals);
-        //     for(int j = 0; j < co_nlocals; j++)
-        //         _base[j] = __vectorcall_buffer[j];
-        //     ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
-        // } else {
-        //     if(f.argc != -1) {
-        //         if(KWARGC != 0)
-        //             TypeError(
-        //                 "old-style native_func does not accept keyword arguments. If you want to
-        //                 skip this check, specify `argc` to -1");
-        //         if(args.size() != f.argc) {
-        //             vm->TypeError(_S("expected ", f.argc, " arguments, got ", args.size()));
-        //         }
-        //     }
-        //     ret = f.call(this, args);
-        // }
-
-        // `argc` passed to _cfunc must include self if exists
-        if(!p0->_cfunc(p1 - argv, argv)) return RES_ERROR;
-        self->stack.sp = p0;
+        if(!py_callcfunc(p0, p0->_cfunc, p1 - argv, argv)) return RES_ERROR;
         return RES_RETURN;
     }
 

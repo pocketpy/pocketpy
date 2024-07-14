@@ -324,6 +324,8 @@ bool py_callmethod(py_Ref self, py_Name, int argc, py_Ref argv);
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_callmagic(py_Name name, int argc, py_Ref argv);
+/// Call a `py_CFunction` in a safe way.
+bool py_callcfunc(py_StackRef p0, py_CFunction cfunc, int argc, py_Ref argv);
 
 bool py_str(py_Ref val);
 #define py_repr(val) py_callmagic(__repr__, 1, val)

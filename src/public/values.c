@@ -66,7 +66,7 @@ void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f) {
 
 void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
     py_TValue tmp;
-    do{
+    do {
         char buffer[256];
         snprintf(buffer, sizeof(buffer), "def %s: pass", sig);
         // fn(a, b, *c, d=1) -> None
@@ -82,7 +82,7 @@ void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
         ud->cfunc = f;
         CodeObject__dtor(&code);
         PK_DECREF(source);
-    }while(0);
+    } while(0);
     Function* ud = py_touserdata(&tmp);
     py_Name name = py_name(ud->decl->code.name->data);
     py_setdict(obj, name, &tmp);

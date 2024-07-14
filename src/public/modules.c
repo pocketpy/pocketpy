@@ -178,6 +178,27 @@ static bool _py_builtins__sum(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_builtins__print(int argc, py_Ref argv) {
+    int length;
+    py_TValue* args = pk_arrayview(argv, &length);
+    assert(args != NULL);
+    c11_sv sep = py_tosv(py_arg(1));
+    c11_sv end = py_tosv(py_arg(2));
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    for(int i = 0; i < length; i++) {
+        if(i > 0) c11_sbuf__write_sv(&buf, sep);
+        if(!py_str(&args[i])) return false;
+        c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
+    }
+    c11_sbuf__write_sv(&buf, end);
+    c11_string* res = c11_sbuf__submit(&buf);
+    pk_current_vm->_stdout("%s", res->data);
+    c11_string__delete(res);
+    py_newnone(py_retval());
+    return true;
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins", NULL);
     py_bindnativefunc(builtins, "repr", _py_builtins__repr);
@@ -191,6 +212,7 @@ py_TValue pk_builtins__register() {
     py_bindnativefunc(builtins, "abs", _py_builtins__abs);
     py_bindnativefunc(builtins, "sum", _py_builtins__sum);
 
+    py_bind(builtins, "print(*args, sep=' ', end='\\n')", _py_builtins__print);
     py_bind(builtins, "sorted(iterable, key=None, reverse=False)", _py_builtins__sorted);
     return *builtins;
 }
