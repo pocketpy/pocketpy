@@ -231,7 +231,9 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 goto __ERROR;
             }
             case OP_LOAD_ATTR: {
-                if(!py_getattr(TOP(), byte.arg, TOP())) {
+                int res = py_getattr(TOP(), byte.arg, TOP());
+                if(res == -1) goto __ERROR;
+                if(!res) {
                     AttributeError(TOP(), byte.arg);
                     goto __ERROR;
                 }
@@ -320,8 +322,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_STORE_ATTR: {
-                int err = py_setattr(TOP(), byte.arg, SECOND());
-                if(err) goto __ERROR;
+                if(!py_setattr(TOP(), byte.arg, SECOND())) goto __ERROR;
                 STACK_SHRINK(2);
                 DISPATCH();
             }

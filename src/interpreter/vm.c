@@ -517,12 +517,8 @@ static void mark_object(PyObject* obj) {
 
     if(obj->type == tp_list) {
         pk_list__mark(PyObject__userdata(obj), mark_value);
-        return;
-    }
-
-    if(obj->type == tp_dict) {
+    } else if(obj->type == tp_dict) {
         pk_dict__mark(PyObject__userdata(obj), mark_value);
-        return;
     }
 }
 
@@ -551,7 +547,7 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
 }
 
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
-    return;
+    // return;
 
     py_TValue* sp = self->stack.sp;
     c11_sbuf buf;
