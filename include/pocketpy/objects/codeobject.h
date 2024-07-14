@@ -137,13 +137,13 @@ FuncDecl_ FuncDecl__build(c11_sv name,
 // runtime function
 typedef struct Function {
     FuncDecl_ decl;
-    PyObject* module;      // weak ref
+    py_TValue module;      // weak ref
     PyObject* clazz;       // weak ref
     pk_NameDict* closure;  // strong ref
     py_CFunction cfunc;    // wrapped C function
 } Function;
 
-void Function__ctor(Function* self, FuncDecl_ decl, PyObject* module);
+void Function__ctor(Function* self, FuncDecl_ decl, py_TValue* module);
 void Function__dtor(Function* self);
 
 #ifdef __cplusplus

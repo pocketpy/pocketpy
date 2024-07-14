@@ -1291,6 +1291,7 @@ static void Ctx__exit_block(Ctx* self) {
 }
 
 static void Ctx__s_emit_decorators(Ctx* self, int count) {
+    if(count == 0) return;
     assert(Ctx__s_size(self) >= count);
     // [obj]
     for(int i = 0; i < count; i++) {
@@ -2252,7 +2253,7 @@ static Error* read_literal(Compiler* self, py_Ref out) {
             }
             return NULL;
         }
-        default: *out = PY_NIL; return NULL;
+        default: py_newnil(out); return NULL;
     }
 }
 
@@ -2346,6 +2347,37 @@ static Error* compile_function(Compiler* self, int decorators) {
     return NULL;
 }
 
+static Error* compile_class(Compiler* self, int decorators) {
+    Error* err;
+    consume(TK_ID);
+    py_Name name = py_namev(Token__sv(prev()));
+    bool has_base = false;
+    if(match(TK_LPAREN)) {
+        if(is_expression(self, false)) {
+            check(EXPR(self));
+            has_base = true;  // [base]
+        }
+        consume(TK_RPAREN);
+    }
+    if(!has_base) {
+        Ctx__emit_(ctx(), OP_LOAD_NONE, BC_NOARG, prev()->line);
+    } else {
+        Ctx__s_emit_top(ctx());  // []
+    }
+    Ctx__emit_(ctx(), OP_BEGIN_CLASS, name, BC_KEEPLINE);
+
+    c11__foreach(Ctx, &self->contexts, it) {
+        if(it->is_compiling_class) return SyntaxError("nested class is not allowed");
+    }
+    ctx()->is_compiling_class = true;
+    check(compile_block_body(self, compile_stmt));
+    ctx()->is_compiling_class = false;
+
+    Ctx__s_emit_decorators(ctx(), decorators);
+    Ctx__emit_(ctx(), OP_END_CLASS, name, BC_KEEPLINE);
+    return NULL;
+}
+
 static Error* compile_decorated(Compiler* self) {
     Error* err;
     int count = 0;
@@ -2356,7 +2388,7 @@ static Error* compile_decorated(Compiler* self) {
     } while(match(TK_DECORATOR));
 
     if(match(TK_CLASS)) {
-        // check(compile_class(count));
+        check(compile_class(self, count));
     } else {
         consume(TK_DEF);
         check(compile_function(self, count));
@@ -2467,8 +2499,7 @@ static Error* compile_try_except(Compiler* self) {
 static Error* compile_stmt(Compiler* self) {
     Error* err;
     if(match(TK_CLASS)) {
-        // check(compile_class());
-        assert(false);
+        check(compile_class(self, 0));
         return NULL;
     }
     advance();

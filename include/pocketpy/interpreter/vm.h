@@ -23,7 +23,7 @@ typedef struct pk_TypeInfo {
 
     c11_vector /*T=py_Name*/ annotated_fields;
 
-    py_CFunction on_end_subclass;  // backdoor for enum module
+    void (*on_end_subclass)(struct pk_TypeInfo*);  // backdoor for enum module
 
     /* Magic Slots */
     py_TValue magic[64];
@@ -49,7 +49,7 @@ typedef struct pk_VM {
 
     py_TValue reg[8];  // users' registers
 
-    py_TValue __curr_class;
+    py_TValue* __curr_class;
     FuncDecl_ __dynamic_func_decl;
     py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 

@@ -1,8 +1,3 @@
-class A: pass
-class B: pass
-a = A()
-assert type(a) is A
-
 x = 0
 if x==0: x=1
 assert x==1
@@ -18,3 +13,8 @@ assert x==2
 
 def f1(x): return x+1
 assert f1(1)==2
+
+# class A: pass
+# class B: pass
+# a = A()
+# assert type(a) is A

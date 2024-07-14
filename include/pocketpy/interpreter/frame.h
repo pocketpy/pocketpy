@@ -38,7 +38,7 @@ typedef struct Frame {
     struct Frame* f_back;
     const Bytecode* ip;
     const CodeObject* co;
-    PyObject* module;
+    py_TValue module;    // weak ref
     PyObject* function;  // a function object or NULL (global scope)
     py_TValue* p0;       // unwinding base
     py_TValue* locals;   // locals base
@@ -47,7 +47,7 @@ typedef struct Frame {
 } Frame;
 
 Frame* Frame__new(const CodeObject* co,
-                  PyObject* module,
+                  py_TValue* module,
                   const py_TValue* function,
                   py_TValue* p0,
                   py_TValue* locals,
@@ -64,12 +64,6 @@ PK_INLINE int Frame__lineno(const Frame* self) {
 PK_INLINE int Frame__iblock(const Frame* self) {
     int ip = Frame__ip(self);
     return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).iblock;
-}
-
-PK_INLINE pk_NameDict* Frame__f_globals(Frame* self) { return PyObject__dict(self->module); }
-
-PK_INLINE py_TValue* Frame__f_globals_try_get(Frame* self, py_Name name) {
-    return pk_NameDict__try_get(Frame__f_globals(self), name);
 }
 
 PK_INLINE py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name) {

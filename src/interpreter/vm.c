@@ -47,7 +47,7 @@ static void pk_TypeInfo__ctor(pk_TypeInfo* self,
         ._obj = typeobj,
     };
 
-    self->module = module ? *module : PY_NIL;
+    self->module = module ? *module : *py_NIL;
     c11_vector__ctor(&self->annotated_fields, sizeof(py_Name));
 }
 
@@ -59,19 +59,19 @@ void pk_VM__ctor(pk_VM* self) {
     pk_NameDict__ctor(&self->modules);
     c11_vector__ctor(&self->types, sizeof(pk_TypeInfo));
 
-    self->builtins = PY_NIL;
-    self->main = PY_NIL;
+    self->builtins = *py_NIL;
+    self->main = *py_NIL;
 
     self->_ceval_on_step = NULL;
     self->_import_file = pk_default_import_file;
     self->_stdout = pk_default_stdout;
     self->_stderr = pk_default_stderr;
 
-    self->last_retval = PY_NIL;
-    self->last_exception = PY_NIL;
+    self->last_retval = *py_NIL;
+    self->last_exception = *py_NIL;
     self->is_stopiteration = false;
 
-    self->__curr_class = PY_NIL;
+    self->__curr_class = NULL;
     self->__dynamic_func_decl = NULL;
 
     pk_ManagedHeap__ctor(&self->heap, self);
@@ -388,7 +388,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 // submit the call
                 if(!fn->cfunc) {
-                    pk_VM__push_frame(self, Frame__new(co, fn->module, p0, p0, argv, co));
+                    pk_VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv, co));
                     return opcall ? RES_CALL : pk_VM__run_top_frame(self);
                 } else {
                     bool ok = py_callcfunc(p0, fn->cfunc, co->nlocals, argv);
@@ -408,10 +408,10 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
                 // [callable, <self>, args..., local_vars...]
                 //      ^p0                    ^p1      ^_sp
                 self->stack.sp = argv + co->nlocals;
-                // initialize local variables to PY_NIL
+                // initialize local variables to py_NIL
                 memset(p1, 0, (char*)self->stack.sp - (char*)p1);
                 // submit the call
-                pk_VM__push_frame(self, Frame__new(co, fn->module, p0, p0, argv, co));
+                pk_VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv, co));
                 return opcall ? RES_CALL : pk_VM__run_top_frame(self);
             case FuncType_GENERATOR:
                 assert(false);
@@ -537,15 +537,17 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
         mark_value(p);
     }
-
+    // mark frame
+    for(Frame* frame = vm->top_frame; frame; frame = frame->f_back) {
+        mark_value(&frame->module);
+        if(frame->function) mark_object(frame->function);
+    }
     // mark vm's registers
     mark_value(&vm->last_retval);
     mark_value(&vm->last_exception);
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
         mark_value(&vm->reg[i]);
     }
-
-    mark_value(&vm->__curr_class);
 }
 
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {

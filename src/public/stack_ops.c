@@ -25,6 +25,15 @@ void py_setdict(py_Ref self, py_Name name, const py_Ref val) {
     pk_NameDict__set(PyObject__dict(self->_obj), name, *val);
 }
 
+bool py_deldict(py_Ref self, py_Name name) {
+    assert(self && self->is_ptr);
+    if(self->type == tp_type && py_ismagicname(name)) {
+        py_Type* ud = py_touserdata(self);
+        py_newnil(py_tpmagic(*ud, name));
+    }
+    return pk_NameDict__del(PyObject__dict(self->_obj), name);
+}
+
 py_Ref py_getslot(const py_Ref self, int i) {
     assert(self && self->is_ptr);
     assert(i >= 0 && i < self->_obj->slots);

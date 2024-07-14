@@ -143,7 +143,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             case OP_LOAD_FUNCTION: {
                 FuncDecl_ decl = c11__getitem(FuncDecl_, &frame->co->func_decls, byte.arg);
                 Function* ud = py_newobject(SP(), tp_function, 0, sizeof(Function));
-                Function__ctor(ud, decl, frame->module);
+                Function__ctor(ud, decl, &frame->module);
                 if(decl->nested) {
                     ud->closure = FastLocals__to_namedict(frame->locals, frame->locals_co);
                     py_Name name = py_namev(c11_string__sv(decl->code.name));
@@ -182,7 +182,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     PUSH(tmp);
                     DISPATCH();
                 }
-                tmp = Frame__f_globals_try_get(frame, name);
+                tmp = py_getdict(&frame->module, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -202,7 +202,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     PUSH(tmp);
                     DISPATCH();
                 }
-                tmp = Frame__f_globals_try_get(frame, name);
+                tmp = py_getdict(&frame->module, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -217,7 +217,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_LOAD_GLOBAL: {
                 py_Name name = byte.arg;
-                py_Ref tmp = Frame__f_globals_try_get(frame, name);
+                py_Ref tmp = py_getdict(&frame->module, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -238,14 +238,13 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_LOAD_CLASS_GLOBAL: {
-                assert(self->__curr_class.type);
                 py_Name name = byte.arg;
-                if(py_getattr(&self->__curr_class, name, SP())) {
+                if(py_getattr(self->__curr_class, name, SP())) {
                     SP()++;
                     DISPATCH();
                 }
                 // load global if attribute not found
-                py_Ref tmp = Frame__f_globals_try_get(frame, name);
+                py_Ref tmp = py_getdict(&frame->module, name);
                 if(tmp) {
                     PUSH(tmp);
                     DISPATCH();
@@ -294,12 +293,11 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_STORE_FAST: frame->locals[byte.arg] = POPX(); DISPATCH();
             case OP_STORE_NAME: {
-                py_Name _name = byte.arg;
-                py_TValue _0 = POPX();
+                py_Name name = byte.arg;
                 if(frame->function) {
-                    py_Ref slot = Frame__f_locals_try_get(frame, _name);
+                    py_Ref slot = Frame__f_locals_try_get(frame, name);
                     if(slot != NULL) {
-                        *slot = _0;  // store in locals if possible
+                        *slot = *TOP();  // store in locals if possible
                     } else {
                         // Function& func = frame->_callable->as<Function>();
                         // if(func.decl == __dynamic_func_decl) {
@@ -311,14 +309,16 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                         // }
                     }
                 } else {
-                    pk_NameDict__set(Frame__f_globals(frame), _name, _0);
+                    py_setdict(&frame->module, name, TOP());
                 }
+                POP();
                 DISPATCH();
             }
-            case OP_STORE_GLOBAL:
-                pk_NameDict__set(Frame__f_globals(frame), byte.arg, POPX());
+            case OP_STORE_GLOBAL: {
+                py_setdict(&frame->module, byte.arg, TOP());
+                POP();
                 DISPATCH();
-
+            }
             case OP_STORE_ATTR: {
                 int err = py_setattr(TOP(), byte.arg, SECOND());
                 if(err) goto __ERROR;
@@ -370,8 +370,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                         // }
                     }
                 } else {
-                    // if(!frame->f_globals().del(_name)) vm->NameError(_name);
-                    bool ok = pk_NameDict__del(Frame__f_globals(frame), name);
+                    bool ok = py_deldict(&frame->module, name);
                     if(!ok) {
                         NameError(name);
                         goto __ERROR;
@@ -381,7 +380,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_DELETE_GLOBAL: {
                 py_Name name = byte.arg;
-                bool ok = pk_NameDict__del(Frame__f_globals(frame), name);
+                bool ok = py_deldict(&frame->module, name);
                 if(!ok) {
                     NameError(name);
                     goto __ERROR;
@@ -794,7 +793,58 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 }
                 DISPATCH();
             }
+            ///////////
+            case OP_BEGIN_CLASS: {
+                // [base]
+                py_Name name = byte.arg;
+                py_Type base;
+                if(py_isnone(TOP())) {
+                    base = tp_object;
+                } else {
+                    if(!py_checktype(TOP(), tp_type)) goto __ERROR;
+                    base = py_totype(TOP());
+                }
+                POP();
+                py_Type type = py_newtype(py_name2str(name), base, &frame->module, NULL);
+                PUSH(py_tpobject(type));
+                self->__curr_class = TOP();
+                DISPATCH();
+            }
+            case OP_END_CLASS: {
+                // [cls or decorated]
+                py_Name name = byte.arg;
+                // set into f_globals
+                py_setdict(&frame->module, name, TOP());
 
+                if(py_istype(TOP(), tp_type)) {
+                    // call on_end_subclass
+                    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, py_totype(TOP()));
+                    if(ti->base != tp_object) {
+                        // PyTypeInfo* base_ti = &_all_types[ti->base];
+                        pk_TypeInfo* base_ti = c11__at(pk_TypeInfo, &self->types, ti->base);
+                        if(base_ti->on_end_subclass) base_ti->on_end_subclass(ti);
+                    }
+                }
+                POP();
+                self->__curr_class = NULL;
+                DISPATCH();
+            }
+            case OP_STORE_CLASS_ATTR: {
+                py_Name name = byte.arg;
+                if(py_istype(TOP(), tp_function)) {
+                    Function* ud = py_touserdata(TOP());
+                    ud->clazz = self->__curr_class->_obj;
+                }
+                py_setdict(self->__curr_class, name, TOP());
+                POP();
+                DISPATCH();
+            }
+            case OP_ADD_CLASS_ANNOTATION: {
+                py_Type type = py_totype(self->__curr_class);
+                pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, type);
+                c11_vector__push(py_Name, &ti->annotated_fields, byte.arg);
+                DISPATCH();
+            }
             ///////////
             case OP_RAISE_ASSERT: {
                 if(byte.arg) {

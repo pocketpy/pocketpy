@@ -132,6 +132,7 @@ bool py_issubclass(py_Type derived, py_Type base);
 extern py_GlobalRef py_True;
 extern py_GlobalRef py_False;
 extern py_GlobalRef py_None;
+extern py_GlobalRef py_NIL;
 
 /************* References *************/
 #define PY_CHECK_ARGC(n)                                                                           \
@@ -183,6 +184,7 @@ py_GlobalRef py_reg(int i);
 /// Returns a reference to the value or NULL if not found.
 py_ObjectRef py_getdict(const py_Ref self, py_Name name);
 void py_setdict(py_Ref self, py_Name name, const py_Ref val);
+bool py_deldict(py_Ref self, py_Name name);
 
 /// Get the reference of the i-th slot of the object.
 /// The object must have slots and `i` must be in range.

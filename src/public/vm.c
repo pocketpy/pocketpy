@@ -14,6 +14,7 @@ pk_VM* pk_current_vm;
 py_GlobalRef py_True;
 py_GlobalRef py_False;
 py_GlobalRef py_None;
+py_GlobalRef py_NIL;
 
 static pk_VM pk_default_vm;
 
@@ -23,14 +24,15 @@ void py_initialize() {
     pk_current_vm = &pk_default_vm;
 
     // initialize some convenient references
-    static py_TValue _True, _False, _None;
+    static py_TValue _True, _False, _None, _NIL;
     py_newbool(&_True, true);
     py_newbool(&_False, false);
     py_newnone(&_None);
+    py_newnil(&_NIL);
     py_True = &_True;
     py_False = &_False;
     py_None = &_None;
-
+    py_NIL = &_NIL;
     pk_VM__ctor(&pk_default_vm);
 }
 
@@ -183,7 +185,7 @@ static bool
 
     // disassemble(&co);
 
-    Frame* frame = Frame__new(&co, vm->main._obj, NULL, vm->stack.sp, vm->stack.sp, &co);
+    Frame* frame = Frame__new(&co, &vm->main, NULL, vm->stack.sp, vm->stack.sp, &co);
     pk_VM__push_frame(vm, frame);
     pk_FrameResult res = pk_VM__run_top_frame(vm);
     CodeObject__dtor(&co);
@@ -289,6 +291,7 @@ py_Ref py_tpmagic(py_Type type, py_Name name) {
 }
 
 py_Ref py_tpobject(py_Type type) {
+    assert(type);
     pk_VM* vm = pk_current_vm;
     return &c11__at(pk_TypeInfo, &vm->types, type)->self;
 }
