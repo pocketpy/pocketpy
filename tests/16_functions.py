@@ -31,6 +31,23 @@ assert f(b=5) == 6
 assert f(a=5) == 4
 assert f(b=5, a=5) == 10
 
+# test args unpack
+def f(a, b, *args):
+    assert a == 1
+    assert b == 2
+    assert args == (3, 4)
+
+f(1, 2, 3, 4)
+
+# test kwargs unpack
+def f(a=1, b=2, **kwargs):
+    assert a == 10
+    assert b == 2
+    assert kwargs == {'c': 3, 'd': 4}
+
+f(10, c=3, d=4)
+f(a=10, c=3, d=4)
+
 def f(*args):
     return 10 * sum(args)
 
@@ -61,6 +78,7 @@ assert f(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
 
 assert g(1, 2, 3, 4) == 17
 assert g(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) == 62
+assert f(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, d=1, e=2) == 58
 assert g(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, d=1, e=2) == 58
 assert g(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, e=1, d=2) == 58
 assert g(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, d=1) == 61

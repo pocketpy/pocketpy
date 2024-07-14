@@ -520,6 +520,16 @@ int py_dict__len(const py_Ref self) {
     return ud->length;
 }
 
+bool py_dict__apply(const py_Ref self, bool (*f)(const py_Ref, const py_Ref, void *), void *ctx){
+    Dict* ud = py_touserdata(self);
+    for(int i = 0; i < ud->entries.count; i++) {
+        DictEntry* entry = c11__at(DictEntry, &ud->entries, i);
+        if(py_isnil(&entry->key)) continue;
+        if(!f(&entry->key, &entry->val, ctx)) return false;
+    }
+    return true;
+}
+
 void pk_dict__mark(void* ud, void (*marker)(py_TValue*)) {
     Dict* self = ud;
     for(int i = 0; i < self->entries.count; i++) {

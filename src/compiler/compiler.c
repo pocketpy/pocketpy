@@ -1385,6 +1385,7 @@ static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int l
 
 // emit top -> pop -> delete
 static void Ctx__s_emit_top(Ctx* self) {
+    assert(self->s_expr.count);
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     vtemit_(top, self);
     vtdelete(top);
@@ -1395,13 +1396,17 @@ static void Ctx__s_emit_top(Ctx* self) {
 static void Ctx__s_push(Ctx* self, Expr* expr) { c11_vector__push(Expr*, &self->s_expr, expr); }
 
 // top
-static Expr* Ctx__s_top(Ctx* self) { return c11_vector__back(Expr*, &self->s_expr); }
+static Expr* Ctx__s_top(Ctx* self) {
+    assert(self->s_expr.count);
+    return c11_vector__back(Expr*, &self->s_expr);
+}
 
 // size
 static int Ctx__s_size(Ctx* self) { return self->s_expr.count; }
 
 // pop -> delete
 static void Ctx__s_pop(Ctx* self) {
+    assert(self->s_expr.count);
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     vtdelete(top);
     c11_vector__pop(&self->s_expr);
@@ -1409,6 +1414,7 @@ static void Ctx__s_pop(Ctx* self) {
 
 // pop move
 static Expr* Ctx__s_popx(Ctx* self) {
+    assert(self->s_expr.count);
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     c11_vector__pop(&self->s_expr);
     return top;
@@ -1475,7 +1481,11 @@ static NameScope name_scope(Compiler* self) {
     return s;
 }
 
-#define SyntaxError(...) NULL
+Error* SyntaxError(const char* fmt, ...) {
+    printf("%s\n", fmt);
+    abort();
+    return NULL;
+}
 
 /* Matchers */
 static bool is_expression(Compiler* self, bool allow_slice) {
@@ -2108,7 +2118,7 @@ static Error* compile_for_loop(Compiler* self) {
     vtdelete(vars);
     if(!ok) {
         // this error occurs in `vars` instead of this line, but...nevermind
-        return SyntaxError();
+        return SyntaxError("invalid syntax");
     }
     check(compile_block_body(self, compile_stmt));
     Ctx__emit_virtual(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), BC_KEEPLINE, true);
@@ -2135,10 +2145,10 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
         case TK_IAND:
         case TK_IOR:
         case TK_IXOR: {
-            if(Ctx__s_top(ctx())->vt->is_starred) return SyntaxError();
-            if(ctx()->is_compiling_class) {
+            if(Ctx__s_top(ctx())->vt->is_starred)
+                return SyntaxError("can't use inplace operator with starred expression");
+            if(ctx()->is_compiling_class)
                 return SyntaxError("can't use inplace operator in class definition");
-            }
             advance();
             // a[x] += 1;   a and x should be evaluated only once
             // a.x += 1;    a should be evaluated only once
@@ -2147,14 +2157,15 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
             TokenIndex op = (TokenIndex)(prev()->type - 1);
             // [lhs]
             check(EXPR_TUPLE(self));  // [lhs, rhs]
-            if(Ctx__s_top(ctx())->vt->is_starred) return SyntaxError();
+            if(Ctx__s_top(ctx())->vt->is_starred)
+                return SyntaxError("can't use starred expression here");
             BinaryExpr* e = BinaryExpr__new(line, op, true);
             e->rhs = Ctx__s_popx(ctx());  // [lhs]
             e->lhs = Ctx__s_popx(ctx());  // []
             vtemit_((Expr*)e, ctx());
             bool ok = vtemit_istore(e->lhs, ctx());
             vtdelete((Expr*)e);
-            if(!ok) return SyntaxError();
+            if(!ok) return SyntaxError("invalid syntax");
             *is_assign = true;
             return NULL;
         }
@@ -2169,11 +2180,12 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
             for(int j = 1; j < n; j++)
                 Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             for(int j = 0; j < n; j++) {
-                if(Ctx__s_top(ctx())->vt->is_starred) return SyntaxError();
+                if(Ctx__s_top(ctx())->vt->is_starred)
+                    return SyntaxError("can't use starred expression here");
                 Expr* e = Ctx__s_top(ctx());
                 bool ok = vtemit_store(e, ctx());
                 Ctx__s_pop(ctx());
-                if(!ok) return SyntaxError();
+                if(!ok) return SyntaxError("invalid syntax");
             }
             *is_assign = true;
             return NULL;
@@ -2213,7 +2225,7 @@ static Error* read_literal(Compiler* self, py_Ref out) {
             } else if(value->index == TokenValue_F64) {
                 py_newfloat(out, negated ? -value->_f64 : value->_f64);
             } else {
-                return SyntaxError();
+                c11__unreachedable();
             }
             return NULL;
         }
@@ -2248,8 +2260,7 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
     int state = 0;  // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
     Error* err;
     do {
-        if(state > 3) return SyntaxError();
-        if(state == 3) return SyntaxError("**kwargs should be the last argument");
+        if(state >= 3) return SyntaxError("**kwargs should be the last argument");
         match_newlines();
         if(match(TK_MUL)) {
             if(state < 1)
@@ -2554,7 +2565,7 @@ static Error* compile_stmt(Compiler* self) {
         case TK_DEL: {
             check(EXPR_TUPLE(self));
             Expr* e = Ctx__s_top(ctx());
-            if(!vtemit_del(e, ctx())) return SyntaxError();
+            if(!vtemit_del(e, ctx())) return SyntaxError("invalid syntax");
             Ctx__s_pop(ctx());
             consume_end_stmt();
         } break;
@@ -2622,7 +2633,7 @@ static Error* compile_stmt(Compiler* self) {
             check(try_compile_assignment(self, &is_assign));
             if(!is_assign) {
                 if(Ctx__s_size(ctx()) > 0 && Ctx__s_top(ctx())->vt->is_starred) {
-                    return SyntaxError();
+                    return SyntaxError("can't use starred expression here");
                 }
                 if(!is_typed_name) {
                     Ctx__s_emit_top(ctx());

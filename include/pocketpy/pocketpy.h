@@ -361,6 +361,9 @@ py_TmpRef py_dict__getitem(const py_Ref self, const py_Ref key);
 void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val);
 bool py_dict__contains(const py_Ref self, const py_Ref key);
 int py_dict__len(const py_Ref self);
+bool py_dict__apply(const py_Ref self,
+                    bool (*f)(const py_Ref key, const py_Ref val, void* ctx),
+                    void* ctx);
 
 /// Search the magic method from the given type to the base type.
 /// Return the reference or NULL if not found.

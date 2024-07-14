@@ -59,6 +59,18 @@ static bool stack_unpack_sequence(pk_VM* self, uint16_t arg);
         }                                                                                          \
     } while(0)
 
+static bool unpack_dict_to_buffer(const py_Ref key, const py_Ref val, void* ctx) {
+    py_TValue** p = ctx;
+    if(py_isstr(key)) {
+        py_Name name = py_namev(py_tosv(key));
+        py_newint(*p, name);
+        py_assign(*p + 1, val);
+        (*p) += 2;
+        return true;
+    }
+    return TypeError("keywords must be strings, not '%t'", key->type);
+}
+
 pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     Frame* frame = self->top_frame;
     const Frame* base_frame = frame;
@@ -624,63 +636,58 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_CALL_VARGS: {
+                // [_0, _1, _2 | k1, v1, k2, v2]
                 uint16_t argc = byte.arg & 0xFF;
                 uint16_t kwargc = byte.arg >> 8;
-                int size = 0;
+
+                int n = 0;
+                py_TValue* sp = SP();
+                py_TValue* p1 = sp - kwargc * 2;
+                py_TValue* base = p1 - argc;
                 py_TValue* buf = self->__vectorcall_buffer;
 
-                // if(size == PK_MAX_CO_VARNAMES) {
-                //     ValueError("**kwargs is too large to unpack");
-                //     goto __ERROR;
-                // }
-
-                uint16_t new_argc = argc;
-                uint16_t new_kwargc = kwargc;
-
-                // pop kwargc
-                for(int i = 0; i < kwargc; i++) {
-                    // [k1, v1, k2, v2, ...] -> reversed
-                    py_TValue value = POPX();
-                    py_TValue key = POPX();
-                    if(value.type == tp_star_wrapper) {
-                        value = *py_getslot(&value, 0);
-                        // unpack dict
-                        if(value.type != tp_dict) {
-                            TypeError("**kwargs should be a dict, got '%t'", value.type);
-                            goto __ERROR;
-                        }
-                        new_kwargc += (0) - 1;
+                for(py_TValue* curr = base; curr != p1; curr++) {
+                    if(curr->type != tp_star_wrapper) {
+                        buf[n++] = *curr;
                     } else {
-                        buf[size++] = value;
-                        buf[size++] = key;
-                    }
-                }
-                // pop argc
-                for(int i = 0; i < argc; i++) {
-                    py_TValue value = POPX();
-                    if(value.type == tp_star_wrapper) {
-                        value = *py_getslot(&value, 0);
+                        py_TValue* args = py_getslot(curr, 0);
                         int length;
-                        py_TValue* p = pk_arrayview(&value, &length);
-                        if(!p) {
-                            TypeError("*args should be a list or tuple, got '%t'", value.type);
+                        py_TValue* p = pk_arrayview(args, &length);
+                        if(p) {
+                            for(int j = 0; j < length; j++) {
+                                buf[n++] = p[j];
+                            }
+                            argc += length - 1;
+                        } else {
+                            TypeError("*args must be a list or tuple, got '%t'", args->type);
                             goto __ERROR;
                         }
-                        for(int j = 0; j < length; j++) {
-                            buf[size++] = p[j];
-                        }
-                        new_argc += length - 1;
-                    } else {
-                        buf[size++] = value;
                     }
                 }
 
-                // push everything back in reversed order
-                for(int i = size - 1; i >= 0; i--) {
-                    PUSH(buf + i);
+                for(py_TValue* curr = p1; curr != sp; curr += 2) {
+                    if(curr[1].type != tp_star_wrapper) {
+                        buf[n++] = curr[0];
+                        buf[n++] = curr[1];
+                    } else {
+                        assert(py_toint(&curr[0]) == 0);
+                        py_TValue* kwargs = py_getslot(&curr[1], 0);
+                        if(kwargs->type == tp_dict) {
+                            py_TValue* p = buf + n;
+                            if(!py_dict__apply(kwargs, unpack_dict_to_buffer, &p)) goto __ERROR;
+                            n = p - buf;
+                            kwargc += py_dict__len(kwargs) - 1;
+                        } else {
+                            TypeError("*kwargs must be a dict, got '%t'", kwargs->type);
+                            goto __ERROR;
+                        }
+                    }
                 }
 
-                vectorcall_opcall(new_argc, new_kwargc);
+                memcpy(base, buf, n * sizeof(py_TValue));
+                SP() = base + n;
+
+                vectorcall_opcall(argc, kwargc);
                 DISPATCH();
             }
             case OP_RETURN_VALUE: {
