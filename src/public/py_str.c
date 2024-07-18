@@ -83,7 +83,7 @@ static bool _py_str__hash__(int argc, py_Ref argv) {
 static bool _py_str__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_string* self = py_touserdata(&argv[0]);
-    py_newint(py_retval(), self->size);
+    py_newint(py_retval(), c11_sv__u8_length((c11_sv){self->data, self->size}));
     return true;
 }
 

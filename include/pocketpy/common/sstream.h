@@ -21,6 +21,7 @@ void c11_sbuf__write_int(c11_sbuf* self, int);
 void c11_sbuf__write_i64(c11_sbuf* self, int64_t);
 void c11_sbuf__write_f64(c11_sbuf* self, double, int precision);
 void c11_sbuf__write_char(c11_sbuf* self, char);
+void c11_sbuf__write_pad(c11_sbuf* self, int count, char pad);
 void c11_sbuf__write_sv(c11_sbuf* self, c11_sv);
 void c11_sbuf__write_cstr(c11_sbuf* self, const char*);
 void c11_sbuf__write_cstrn(c11_sbuf* self, const char*, int);

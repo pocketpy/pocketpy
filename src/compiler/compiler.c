@@ -1126,7 +1126,7 @@ bool AttribExpr__emit_del(Expr* self_, Ctx* ctx) {
 bool AttribExpr__emit_store(Expr* self_, Ctx* ctx) {
     AttribExpr* self = (AttribExpr*)self_;
     vtemit_(self->child, ctx);
-    Ctx__emit_(ctx, OP_STORE_ATTR, BC_NOARG, self->line);
+    Ctx__emit_(ctx, OP_STORE_ATTR, self->name, self->line);
     return true;
 }
 

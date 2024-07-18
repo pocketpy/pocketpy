@@ -547,7 +547,7 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
 }
 
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
-    // return;
+    return;
 
     py_TValue* sp = self->stack.sp;
     c11_sbuf buf;

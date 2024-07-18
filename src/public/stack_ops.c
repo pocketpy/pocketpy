@@ -8,30 +8,35 @@ py_Ref py_reg(int i) { return pk_current_vm->reg + i; }
 
 py_Ref py_getdict(const py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
-    if(self->type == tp_type && py_ismagicname(name)) {
+    if(!py_ismagicname(name) || self->type != tp_type) {
+        return pk_NameDict__try_get(PyObject__dict(self->_obj), name);
+    } else {
         py_Type* ud = py_touserdata(self);
         py_Ref slot = py_tpmagic(*ud, name);
         return py_isnil(slot) ? NULL : slot;
     }
-    return pk_NameDict__try_get(PyObject__dict(self->_obj), name);
 }
 
 void py_setdict(py_Ref self, py_Name name, const py_Ref val) {
     assert(self && self->is_ptr);
-    if(self->type == tp_type && py_ismagicname(name)) {
+    if(!py_ismagicname(name) || self->type != tp_type) {
+        pk_NameDict__set(PyObject__dict(self->_obj), name, *val);
+    } else {
         py_Type* ud = py_touserdata(self);
         *py_tpmagic(*ud, name) = *val;
     }
-    pk_NameDict__set(PyObject__dict(self->_obj), name, *val);
 }
 
 bool py_deldict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
-    if(self->type == tp_type && py_ismagicname(name)) {
+    if(!py_ismagicname(name) || self->type != tp_type) {
+        return pk_NameDict__del(PyObject__dict(self->_obj), name);
+
+    } else {
         py_Type* ud = py_touserdata(self);
         py_newnil(py_tpmagic(*ud, name));
+        return true;
     }
-    return pk_NameDict__del(PyObject__dict(self->_obj), name);
 }
 
 py_Ref py_getslot(const py_Ref self, int i) {

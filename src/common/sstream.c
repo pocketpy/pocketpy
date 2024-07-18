@@ -20,6 +20,12 @@ void c11_sbuf__dtor(c11_sbuf* self) { c11_vector__dtor(&self->data); }
 
 void c11_sbuf__write_char(c11_sbuf* self, char c) { c11_vector__push(char, &self->data, c); }
 
+void c11_sbuf__write_pad(c11_sbuf* self, int count, char pad) {
+    for(int i = 0; i < count; i++) {
+        c11_sbuf__write_char(self, pad);
+    }
+}
+
 void c11_sbuf__write_int(c11_sbuf* self, int i) {
     // len('-2147483648') == 11
     c11_vector__reserve(&self->data, self->data.count + 11 + 1);

@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 static bool stack_unpack_sequence(pk_VM* self, uint16_t arg);
+static bool format_object(py_Ref obj, c11_sv spec);
 
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
@@ -231,22 +232,22 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 goto __ERROR;
             }
             case OP_LOAD_ATTR: {
-                int res = py_getattr(TOP(), byte.arg, TOP());
-                if(res == -1) goto __ERROR;
-                if(!res) {
-                    AttributeError(TOP(), byte.arg);
+                if(py_getattr(TOP(), byte.arg)) {
+                    py_assign(TOP(), py_retval());
+                } else {
                     goto __ERROR;
                 }
                 DISPATCH();
             }
             case OP_LOAD_CLASS_GLOBAL: {
                 py_Name name = byte.arg;
-                if(py_getattr(self->__curr_class, name, SP())) {
-                    SP()++;
+                py_Ref tmp = py_getdict(self->__curr_class, name);
+                if(tmp) {
+                    PUSH(tmp);
                     DISPATCH();
                 }
                 // load global if attribute not found
-                py_Ref tmp = py_getdict(&frame->module, name);
+                tmp = py_getdict(&frame->module, name);
                 if(tmp) {
                     PUSH(tmp);
                     DISPATCH();
@@ -267,9 +268,9 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     SP()++;
                 } else {
                     // fallback to getattr
-                    int res = py_getattr(TOP(), byte.arg, TOP());
-                    if(res != 1) {
-                        if(res == 0) { AttributeError(TOP(), byte.arg); }
+                    if(py_getattr(TOP(), byte.arg)) {
+                        py_assign(TOP(), py_retval());
+                    } else {
                         goto __ERROR;
                     }
                 }
@@ -322,6 +323,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_STORE_ATTR: {
+                // [val, a] -> a.b = val
                 if(!py_setattr(TOP(), byte.arg, SECOND())) goto __ERROR;
                 STACK_SHRINK(2);
                 DISPATCH();
@@ -616,19 +618,20 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 POP();
                 DISPATCH_JUMP_ABSOLUTE(target);
             }
-                // case OP_GOTO: {
-                //     py_Name _name(byte.arg);
-                //     int target = c11_smallmap_n2i__get(&frame->co->labels, byte.arg, -1);
-                //     if(target < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
-                //     frame->prepare_jump_break(&s_data, target);
-                //     DISPATCH_JUMP_ABSOLUTE(target)
-                // }
-                /*****************************************/
-            case OP_FSTRING_EVAL: {
-                assert(false);
+            case OP_GOTO: {
+                int target = c11_smallmap_n2i__get(&frame->co->labels, byte.arg, -1);
+                if(target < 0) {
+                    RuntimeError("label '%n' not found", byte.arg);
+                    goto __ERROR;
+                }
+                Frame__prepare_jump_break(frame, &self->stack, target);
+                DISPATCH_JUMP_ABSOLUTE(target);
             }
+                /*****************************************/
             case OP_REPR: {
-                assert(false);
+                if(!py_repr(TOP())) goto __ERROR;
+                py_assign(TOP(), py_retval());
+                DISPATCH();
             }
             case OP_CALL: {
                 pk_ManagedHeap__collect_if_needed(&self->heap);
@@ -678,7 +681,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                             n = p - buf;
                             kwargc += py_dict__len(kwargs) - 1;
                         } else {
-                            TypeError("*kwargs must be a dict, got '%t'", kwargs->type);
+                            TypeError("**kwargs must be a dict, got '%t'", kwargs->type);
                             goto __ERROR;
                         }
                     }
@@ -806,7 +809,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     base = py_totype(TOP());
                 }
                 POP();
-                py_Type type = py_newtype(py_name2str(name), base, &frame->module, NULL);
+                py_Type type =
+                    pk_newtype(py_name2str(name), base, &frame->module, NULL, true, false);
                 PUSH(py_tpobject(type));
                 self->__curr_class = TOP();
                 DISPATCH();
@@ -856,6 +860,22 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     py_exception("AssertionError", "");
                 }
                 goto __ERROR;
+            }
+            //////////////////
+            case OP_FSTRING_EVAL: {
+                py_TValue* tmp = c11__at(py_TValue, &frame->co->consts, byte.arg);
+                const char* string = py_tostr(tmp);
+                // TODO: optimize this
+                if(!py_exec2(string, "<eval>", EVAL_MODE)) goto __ERROR;
+                PUSH(py_retval());
+                DISPATCH();
+            }
+            case OP_FORMAT_STRING: {
+                py_Ref spec = c11__at(py_TValue, &frame->co->consts, byte.arg);
+                bool ok = format_object(TOP(), py_tosv(spec));
+                if(!ok) goto __ERROR;
+                py_assign(TOP(), py_retval());
+                DISPATCH();
             }
             default: c11__unreachedable();
         }
@@ -920,5 +940,132 @@ static bool stack_unpack_sequence(pk_VM* self, uint16_t arg) {
     for(int i = 0; i < length; i++) {
         PUSH(p + i);
     }
+    return true;
+}
+
+static bool format_object(py_Ref val, c11_sv spec) {
+    if(spec.size == 0) return py_str(val);
+
+    char type;
+    switch(spec.data[spec.size - 1]) {
+        case 'f':
+        case 'd':
+        case 's':
+            type = spec.data[spec.size - 1];
+            spec.size--;  // remove last char
+            break;
+        default: type = ' '; break;
+    }
+
+    char pad_c = ' ';
+    if(strchr("0-=*#@!~", spec.data[0])) {
+        pad_c = spec.data[0];
+        spec = c11_sv__slice(spec, 1);
+    }
+
+    char align;
+    if(spec.data[0] == '^') {
+        align = '^';
+        spec = c11_sv__slice(spec, 1);
+    } else if(spec.data[0] == '>') {
+        align = '>';
+        spec = c11_sv__slice(spec, 1);
+    } else if(spec.data[0] == '<') {
+        align = '<';
+        spec = c11_sv__slice(spec, 1);
+    } else {
+        align = (py_isint(val) || py_isfloat(val)) ? '>' : '<';
+    }
+
+    int dot = c11_sv__index(spec, '.');
+    py_i64 width, precision;
+
+    if(dot >= 0) {
+        if(dot == 0) {
+            // {.2f}
+            width = -1;
+        } else {
+            // {10.2f}
+            IntParsingResult res = c11__parse_uint(c11_sv__slice2(spec, 0, dot), &width, 10);
+            if(res != IntParsing_SUCCESS) return ValueError("invalid format specifer");
+        }
+        IntParsingResult res = c11__parse_uint(c11_sv__slice(spec, dot + 1), &precision, 10);
+        if(res != IntParsing_SUCCESS) return ValueError("invalid format specifer");
+    } else {
+        // {10s}
+        IntParsingResult res = c11__parse_uint(spec, &width, 10);
+        if(res != IntParsing_SUCCESS) return ValueError("invalid format specifer");
+        precision = -1;
+    }
+
+    if(type != 'f' && dot >= 0) {
+        return ValueError("precision not allowed in the format specifier");
+    }
+
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+
+    if(type == 'f') {
+        py_f64 x;
+        if(!py_castfloat(val, &x)) {
+            c11_sbuf__dtor(&buf);
+            return false;
+        }
+        if(precision < 0) precision = 6;
+        c11_sbuf__write_f64(&buf, x, precision);
+    } else if(type == 'd') {
+        if(!py_checkint(val)) {
+            c11_sbuf__dtor(&buf);
+            return false;
+        }
+        c11_sbuf__write_i64(&buf, py_toint(val));
+    } else if(type == 's') {
+        if(!py_checkstr(val)) {
+            c11_sbuf__dtor(&buf);
+            return false;
+        }
+        c11_sbuf__write_sv(&buf, py_tosv(val));
+    } else {
+        if(!py_str(val)) {
+            c11_sbuf__dtor(&buf);
+            return false;
+        }
+        c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
+    }
+
+    c11_string* body = c11_sbuf__submit(&buf);
+    int length = c11_sv__u8_length(c11_string__sv(body));
+    c11_sbuf__ctor(&buf);  // reinit sbuf
+
+    if(width != -1 && width > length) {
+        switch(align) {
+            case '>': {
+                c11_sbuf__write_pad(&buf, width - length, pad_c);
+                c11_sbuf__write_sv(&buf, c11_string__sv(body));
+                break;
+            }
+            case '<': {
+                c11_sbuf__write_sv(&buf, c11_string__sv(body));
+                c11_sbuf__write_pad(&buf, width - length, pad_c);
+                break;
+            }
+            case '^': {
+                int pad_left = (width - length) / 2;
+                int pad_right = (width - length) - pad_left;
+                c11_sbuf__write_pad(&buf, pad_left, pad_c);
+                c11_sbuf__write_sv(&buf, c11_string__sv(body));
+                c11_sbuf__write_pad(&buf, pad_right, pad_c);
+                break;
+            }
+            default: c11__unreachedable();
+        }
+    } else {
+        c11_sbuf__write_sv(&buf, c11_string__sv(body));
+    }
+
+    c11_string__delete(body);
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_newstrn(py_retval(), res->data, res->size);
+    c11_string__delete(res);
     return true;
 }

@@ -83,7 +83,7 @@ const char* py_name2str(py_Name);
 py_Name py_namev(c11_sv name);
 c11_sv py_name2sv(py_Name);
 
-bool py_ismagicname(py_Name);
+#define py_ismagicname(name) (name <= __missing__)
 
 // opaque types
 void py_newdict(py_Ref);
@@ -195,8 +195,7 @@ py_TmpRef py_getupvalue(py_StackRef argv);
 void py_setupvalue(py_StackRef argv, const py_Ref val);
 
 /// Gets the attribute of the object.
-/// 1: success, 0: not found, -1: error
-int py_getattr(const py_Ref self, py_Name name, py_Ref out);
+bool py_getattr(py_Ref self, py_Name name);
 /// Sets the attribute of the object.
 bool py_setattr(py_Ref self, py_Name name, const py_Ref val);
 /// Deletes the attribute of the object.

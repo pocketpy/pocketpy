@@ -62,4 +62,3 @@ c11_sv py_name2sv(py_Name index) {
     return (c11_sv){p, strlen(p)};
 }
 
-bool py_ismagicname(py_Name name) { return name <= __missing__; }

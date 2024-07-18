@@ -9,7 +9,7 @@ static bool _py_object__new__(int argc, py_Ref argv) {
     if(!ti->is_python) {
         return TypeError("object.__new__(%t) is not safe, use %t.__new__()", cls, cls);
     }
-    py_newobject(py_retval(), cls, 0, 0);
+    py_newobject(py_retval(), cls, -1, 0);
     return true;
 }
 

@@ -77,11 +77,104 @@ int py_next(const py_Ref val) {
     return vm->is_stopiteration ? 0 : -1;
 }
 
-int py_getattr(const py_Ref self, py_Name name, py_Ref out) { return -1; }
+bool py_getattr(py_Ref self, py_Name name) {
+    // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
+    py_Type type = self->type;
+    // handle super() proxy
+    if(py_istype(self, tp_super)) {
+        self = py_getslot(self, 0);
+        type = *(py_Type*)py_touserdata(self);
+    }
 
-bool py_setattr(py_Ref self, py_Name name, const py_Ref val) { return false; }
+    py_Ref cls_var = py_tpfindname(type, name);
+    if(cls_var) {
+        // handle descriptor
+        if(py_istype(cls_var, tp_property)) {
+            py_Ref getter = py_getslot(cls_var, 0);
+            return py_call(getter, 1, self);
+        }
+    }
+    // handle instance __dict__
+    if(self->is_ptr && self->_obj->slots == -1) {
+        if(!py_istype(self, tp_type)) {
+            py_Ref res = py_getdict(self, name);
+            if(res) {
+                py_assign(py_retval(), res);
+                return true;
+            }
+        } else {
+            py_Type* inner_type = py_touserdata(self);
+            py_Ref res = py_tpfindname(*inner_type, name);
+            if(res) {
+                if(py_istype(res, tp_staticmethod)) {
+                    res = py_getslot(res, 0);
+                } else if(py_istype(res, tp_classmethod)) {
+                    // TODO: make a closure
+                    assert(false);
+                }
+                py_assign(py_retval(), res);
+                return true;
+            }
+        }
+    }
 
-bool py_delattr(py_Ref self, py_Name name) { return false; }
+    if(cls_var) {
+        // bound method is non-data descriptor
+        switch(cls_var->type) {
+            case tp_function: assert(false);
+            case tp_nativefunc: assert(false);
+            case tp_staticmethod: assert(false);
+            case tp_classmethod: assert(false);
+            default: {
+                py_assign(py_retval(), cls_var);
+                return true;
+            }
+        }
+    }
+
+    return AttributeError(self, name);
+}
+
+bool py_setattr(py_Ref self, py_Name name, const py_Ref val) {
+    py_Type type = self->type;
+    // handle super() proxy
+    if(py_istype(self, tp_super)) {
+        self = py_getslot(self, 0);
+        type = *(py_Type*)py_touserdata(self);
+    }
+
+    py_Ref cls_var = py_tpfindname(type, name);
+    if(cls_var) {
+        // handle descriptor
+        if(py_istype(cls_var, tp_property)) {
+            py_Ref setter = py_getslot(cls_var, 1);
+            if(!py_isnone(setter)) {
+                py_push(setter);
+                py_push(self);
+                py_push(val);
+                return py_vectorcall(1, 0);
+            } else {
+                return TypeError("readonly attribute: '%n'", name);
+            }
+        }
+    }
+
+    // handle instance __dict__
+    if(self->is_ptr && self->_obj->slots == -1) {
+        py_setdict(self, name, val);
+        return true;
+    }
+
+    return TypeError("cannot set attribute");
+}
+
+bool py_delattr(py_Ref self, py_Name name) {
+    if(self->is_ptr && self->_obj->slots == -1) {
+        if(py_deldict(self, name)) return true;
+        return AttributeError(self, name);
+    }
+    return TypeError("cannot delete attribute");
+}
 
 bool py_getitem(const py_Ref self, const py_Ref key) {
     py_push(self);
