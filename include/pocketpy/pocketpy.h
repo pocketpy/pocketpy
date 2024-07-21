@@ -149,23 +149,10 @@ py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 
 // new style decl-based bindings
 void py_bind(py_Ref obj, const char* sig, py_CFunction f);
+
 py_ObjectRef py_bind2(py_Ref obj,
                       const char* sig,
                       py_CFunction f,
-                      enum BindType bt,
-                      const char* docstring,
-                      int slots);
-
-py_ObjectRef py_bind3(py_Ref obj,
-                      py_CFunction f,
-                      c11_sv name,
-                      c11_sv* args,
-                      int argc,
-                      c11_sv starred_arg,
-                      c11_sv* kwargs,
-                      int kwargc,
-                      py_Ref kwdefaults,  // a tuple contains default values
-                      c11_sv starred_kwarg,
                       enum BindType bt,
                       const char* docstring,
                       int slots);
@@ -380,6 +367,9 @@ bool py_tpcall(py_Type type, int argc, py_Ref argv);
 
 /// Check if the object is an instance of the given type.
 bool py_checktype(py_Ref self, py_Type type);
+
+/// Get the type of the object.
+py_Type py_typeof(py_Ref self);
 
 #define py_checkint(self) py_checktype(self, tp_int)
 #define py_checkfloat(self) py_checktype(self, tp_float)

@@ -42,8 +42,8 @@ void* py_touserdata(py_Ref self) {
 bool py_istype(py_Ref self, py_Type type) { return self->type == type; }
 
 bool py_checktype(py_Ref self, py_Type type) {
-    if(self->type != type) {
-        return TypeError("expected %t, got %t", type, self->type);
-    }
-    return true;
+    if(self->type == type) return true;
+    return TypeError("expected %t, got %t", type, self->type);
 }
+
+py_Type py_typeof(py_Ref self) { return self->type; }
