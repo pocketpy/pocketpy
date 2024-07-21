@@ -63,7 +63,7 @@ void pk_VM__dtor(pk_VM* self);
 void pk_VM__push_frame(pk_VM* self, Frame* frame);
 void pk_VM__pop_frame(pk_VM* self);
 
-bool pk__parse_int_slice(const py_Ref slice, int length, int* start, int* stop, int* step);
+bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* step);
 bool pk__normalize_index(int* index, int length);
 
 void pk_list__mark(void* ud, void (*marker)(py_TValue*));
@@ -90,8 +90,9 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
 const char* pk_opname(Opcode op);
 
 py_TValue* pk_arrayview(py_Ref self, int* length);
-int pk_arrayeq(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length);
+int pk_arrayequal(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length);
 bool pk_arrayiter(py_Ref val);
+bool pk_arraycontains(py_Ref self, py_Ref val);
 
 /// Assumes [a, b] are on the stack, performs a binary op.
 /// The result is stored in `self->last_retval`.

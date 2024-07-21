@@ -491,7 +491,7 @@ void py_newdict(py_Ref out) {
     Dict__ctor(ud, 8);
 }
 
-py_Ref py_dict__getitem(const py_Ref self, const py_Ref key) {
+py_Ref py_dict__getitem(py_Ref self, py_Ref key) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     DictEntry* entry;
@@ -500,13 +500,13 @@ py_Ref py_dict__getitem(const py_Ref self, const py_Ref key) {
     return NULL;
 }
 
-void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val) {
+void py_dict__setitem(py_Ref self, py_Ref key, py_Ref val) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     Dict__set(ud, key, val);
 }
 
-bool py_dict__contains(const py_Ref self, const py_Ref key) {
+bool py_dict__contains(py_Ref self, py_Ref key) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     DictEntry* entry;
@@ -514,13 +514,13 @@ bool py_dict__contains(const py_Ref self, const py_Ref key) {
     return ok && entry != NULL;
 }
 
-int py_dict__len(const py_Ref self) {
+int py_dict__len(py_Ref self) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     return ud->length;
 }
 
-bool py_dict__apply(const py_Ref self, bool (*f)(const py_Ref, const py_Ref, void *), void *ctx){
+bool py_dict__apply(py_Ref self, bool (*f)(py_Ref, py_Ref, void *), void *ctx){
     Dict* ud = py_touserdata(self);
     for(int i = 0; i < ud->entries.count; i++) {
         DictEntry* entry = c11__at(DictEntry, &ud->entries, i);

@@ -105,17 +105,17 @@ py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, vo
 /// @param udsize size of your userdata. You can use `py_touserdata()` to get the pointer to it.
 void* py_newobject(py_Ref out, py_Type type, int slots, int udsize);
 /************* Type Cast *************/
-py_i64 py_toint(const py_Ref);
-py_f64 py_tofloat(const py_Ref);
-bool py_castfloat(const py_Ref, py_f64* out);
-bool py_tobool(const py_Ref);
-py_Type py_totype(const py_Ref);
-const char* py_tostr(const py_Ref);
-const char* py_tostrn(const py_Ref, int* size);
-c11_sv py_tosv(const py_Ref);
-unsigned char* py_tobytes(const py_Ref, int* size);
+py_i64 py_toint(py_Ref);
+py_f64 py_tofloat(py_Ref);
+bool py_castfloat(py_Ref, py_f64* out);
+bool py_tobool(py_Ref);
+py_Type py_totype(py_Ref);
+const char* py_tostr(py_Ref);
+const char* py_tostrn(py_Ref, int* size);
+c11_sv py_tosv(py_Ref);
+unsigned char* py_tobytes(py_Ref, int* size);
 
-void* py_touserdata(const py_Ref);
+void* py_touserdata(py_Ref);
 
 #define py_isint(self) py_istype(self, tp_int)
 #define py_isfloat(self) py_istype(self, tp_float)
@@ -125,8 +125,8 @@ void* py_touserdata(const py_Ref);
 #define py_istuple(self) py_istype(self, tp_tuple)
 #define py_isdict(self) py_istype(self, tp_dict)
 
-bool py_istype(const py_Ref, py_Type);
-bool py_isinstance(const py_Ref obj, py_Type type);
+bool py_istype(py_Ref, py_Type);
+bool py_isinstance(py_Ref obj, py_Type type);
 bool py_issubclass(py_Type derived, py_Type base);
 
 extern py_GlobalRef py_True;
@@ -182,35 +182,35 @@ py_GlobalRef py_reg(int i);
 /// Get the reference of the object's `__dict__`.
 /// The object must have a `__dict__`.
 /// Returns a reference to the value or NULL if not found.
-py_ObjectRef py_getdict(const py_Ref self, py_Name name);
-void py_setdict(py_Ref self, py_Name name, const py_Ref val);
+py_ObjectRef py_getdict(py_Ref self, py_Name name);
+void py_setdict(py_Ref self, py_Name name, py_Ref val);
 bool py_deldict(py_Ref self, py_Name name);
 
 /// Get the reference of the i-th slot of the object.
 /// The object must have slots and `i` must be in range.
-py_ObjectRef py_getslot(const py_Ref self, int i);
-void py_setslot(py_Ref self, int i, const py_Ref val);
+py_ObjectRef py_getslot(py_Ref self, int i);
+void py_setslot(py_Ref self, int i, py_Ref val);
 
 py_TmpRef py_getupvalue(py_StackRef argv);
-void py_setupvalue(py_StackRef argv, const py_Ref val);
+void py_setupvalue(py_StackRef argv, py_Ref val);
 
 /// Gets the attribute of the object.
 bool py_getattr(py_Ref self, py_Name name);
 /// Sets the attribute of the object.
-bool py_setattr(py_Ref self, py_Name name, const py_Ref val);
+bool py_setattr(py_Ref self, py_Name name, py_Ref val);
 /// Deletes the attribute of the object.
 bool py_delattr(py_Ref self, py_Name name);
 /// Gets the unbound method of the object.
 bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self);
 
-bool py_getitem(const py_Ref self, const py_Ref key);
-bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val);
-bool py_delitem(py_Ref self, const py_Ref key);
+bool py_getitem(py_Ref self, py_Ref key);
+bool py_setitem(py_Ref self, py_Ref key, py_Ref val);
+bool py_delitem(py_Ref self, py_Ref key);
 
 /// Perform a binary operation on the stack.
 /// It assumes `lhs` and `rhs` are already pushed to the stack.
 /// The result will be set to `py_retval()`.
-bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop);
+bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop);
 
 #define py_binaryadd(lhs, rhs) py_binaryop(lhs, rhs, __add__, __radd__)
 #define py_binarysub(lhs, rhs) py_binaryop(lhs, rhs, __sub__, __rsub__)
@@ -228,14 +228,14 @@ bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop);
 #define py_binarymatmul(lhs, rhs) py_binaryop(lhs, rhs, __matmul__, 0)
 
 /// Equivalent to `*dst = *src`.
-void py_assign(py_Ref dst, const py_Ref src);
+void py_assign(py_Ref dst, py_Ref src);
 
 /************* Stack Operations *************/
 /// Return a reference to the i-th object from the top of the stack.
 /// i should be negative, e.g. (-1) means TOS.
 py_StackRef py_peek(int i);
 /// Push the object to the stack.
-void py_push(const py_Ref src);
+void py_push(py_Ref src);
 /// Push a nil object to the stack.
 void py_pushnil();
 /// Pop an object from the stack.
@@ -286,7 +286,7 @@ bool KeyError(py_Ref key);
 /// Equivalent to `bool(val)`.
 /// Returns 1 if `val` is truthy, otherwise 0.
 /// Returns -1 if an error occurred.
-int py_bool(const py_Ref val);
+int py_bool(py_Ref val);
 
 #define py_eq(lhs, rhs) py_binaryop(lhs, rhs, __eq__, __eq__)
 #define py_ne(lhs, rhs) py_binaryop(lhs, rhs, __ne__, __ne__)
@@ -295,19 +295,19 @@ int py_bool(const py_Ref val);
 #define py_gt(lhs, rhs) py_binaryop(lhs, rhs, __gt__, __lt__)
 #define py_ge(lhs, rhs) py_binaryop(lhs, rhs, __ge__, __le__)
 
-int py_equal(const py_Ref lhs, const py_Ref rhs);
-int py_less(const py_Ref lhs, const py_Ref rhs);
+int py_equal(py_Ref lhs, py_Ref rhs);
+int py_less(py_Ref lhs, py_Ref rhs);
 
-bool py_hash(const py_Ref, py_i64* out);
+bool py_hash(py_Ref, py_i64* out);
 
 /// Get the iterator of the object.
-bool py_iter(const py_Ref);
+bool py_iter(py_Ref);
 /// Get the next element from the iterator.
 /// 1: success, 0: StopIteration, -1: error
-int py_next(const py_Ref);
+int py_next(py_Ref);
 
 /// Python equivalent to `lhs is rhs`.
-bool py_isidentical(const py_Ref, const py_Ref);
+bool py_isidentical(py_Ref, py_Ref);
 
 /// A stack operation that calls a function.
 /// It assumes `argc + kwargc` arguments are already pushed to the stack.
@@ -344,30 +344,28 @@ py_GlobalRef py_retval();
 /* tuple */
 
 // unchecked functions, if self is not a tuple, the behavior is undefined
-py_ObjectRef py_tuple__data(const py_Ref self);
-py_ObjectRef py_tuple__getitem(const py_Ref self, int i);
-void py_tuple__setitem(py_Ref self, int i, const py_Ref val);
-int py_tuple__len(const py_Ref self);
+py_ObjectRef py_tuple__data(py_Ref self);
+py_ObjectRef py_tuple__getitem(py_Ref self, int i);
+void py_tuple__setitem(py_Ref self, int i, py_Ref val);
+int py_tuple__len(py_Ref self);
 
 // unchecked functions, if self is not a list, the behavior is undefined
-py_TmpRef py_list__data(const py_Ref self);
-py_TmpRef py_list__getitem(const py_Ref self, int i);
-void py_list__setitem(py_Ref self, int i, const py_Ref val);
+py_TmpRef py_list__data(py_Ref self);
+py_TmpRef py_list__getitem(py_Ref self, int i);
+void py_list__setitem(py_Ref self, int i, py_Ref val);
 void py_list__delitem(py_Ref self, int i);
-int py_list__len(const py_Ref self);
-void py_list__append(py_Ref self, const py_Ref val);
+int py_list__len(py_Ref self);
+void py_list__append(py_Ref self, py_Ref val);
 void py_list__clear(py_Ref self);
-void py_list__insert(py_Ref self, int i, const py_Ref val);
+void py_list__insert(py_Ref self, int i, py_Ref val);
 void py_list__reverse(py_Ref self);
 
 // unchecked functions, if self is not a dict, the behavior is undefined
-py_TmpRef py_dict__getitem(const py_Ref self, const py_Ref key);
-void py_dict__setitem(py_Ref self, const py_Ref key, const py_Ref val);
-bool py_dict__contains(const py_Ref self, const py_Ref key);
-int py_dict__len(const py_Ref self);
-bool py_dict__apply(const py_Ref self,
-                    bool (*f)(const py_Ref key, const py_Ref val, void* ctx),
-                    void* ctx);
+py_TmpRef py_dict__getitem(py_Ref self, py_Ref key);
+void py_dict__setitem(py_Ref self, py_Ref key, py_Ref val);
+bool py_dict__contains(py_Ref self, py_Ref key);
+int py_dict__len(py_Ref self);
+bool py_dict__apply(py_Ref self, bool (*f)(py_Ref key, py_Ref val, void* ctx), void* ctx);
 
 /// Search the magic method from the given type to the base type.
 /// Return the reference or NULL if not found.
@@ -387,7 +385,7 @@ const char* py_tpname(py_Type type);
 bool py_tpcall(py_Type type, int argc, py_Ref argv);
 
 /// Check if the object is an instance of the given type.
-bool py_checktype(const py_Ref self, py_Type type);
+bool py_checktype(py_Ref self, py_Type type);
 
 #define py_checkint(self) py_checktype(self, tp_int)
 #define py_checkfloat(self) py_checktype(self, tp_float)

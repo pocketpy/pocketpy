@@ -60,7 +60,7 @@ static bool format_object(py_Ref obj, c11_sv spec);
         }                                                                                          \
     } while(0)
 
-static bool unpack_dict_to_buffer(const py_Ref key, const py_Ref val, void* ctx) {
+static bool unpack_dict_to_buffer(py_Ref key, py_Ref val, void* ctx) {
     py_TValue** p = ctx;
     if(py_isstr(key)) {
         py_Name name = py_namev(py_tosv(key));
@@ -553,8 +553,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     if(byte.arg) py_newbool(TOP(), !res);
                     DISPATCH();
                 }
-                // TODO: fallback to __iter__?
-                TypeError("argument of type '%t' is not iterable", SECOND()->type);
+                TypeError("'%t' type does not support '__contains__'", SECOND()->type);
                 goto __ERROR;
             }
                 /*****************************************/
@@ -922,7 +921,7 @@ bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
     return py_exception("TypeError", "unsupported operand type(s) for '%n'", op);
 }
 
-bool py_binaryop(const py_Ref lhs, const py_Ref rhs, py_Name op, py_Name rop) {
+bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
     pk_VM* self = pk_current_vm;
     PUSH(lhs);
     PUSH(rhs);

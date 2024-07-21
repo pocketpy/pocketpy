@@ -200,7 +200,7 @@ static void _clip_int(int* value, int min, int max) {
     if(*value > max) *value = max;
 }
 
-bool pk__parse_int_slice(const py_Ref slice, int length, int* start, int* stop, int* step) {
+bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* step) {
     py_Ref s_start = py_getslot(slice, 0);
     py_Ref s_stop = py_getslot(slice, 1);
     py_Ref s_step = py_getslot(slice, 2);

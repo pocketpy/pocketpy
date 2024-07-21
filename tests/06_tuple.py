@@ -31,3 +31,7 @@ assert repr((1,)) == '(1,)'
 assert repr((1,2,)) == '(1, 2)'
 assert repr((1,2,(3,4))) == '(1, 2, (3, 4))'
 assert repr(tuple()) == '()'
+
+# test in and not in
+assert 1 in (1, 2, 3)
+assert 4 not in (1, 2, 3)

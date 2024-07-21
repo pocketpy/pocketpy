@@ -19,17 +19,17 @@ void py_newlistn(py_Ref out, int n) {
     userdata->count = n;
 }
 
-py_Ref py_list__data(const py_Ref self) {
+py_Ref py_list__data(py_Ref self) {
     List* userdata = py_touserdata(self);
     return userdata->data;
 }
 
-py_Ref py_list__getitem(const py_Ref self, int i) {
+py_Ref py_list__getitem(py_Ref self, int i) {
     List* userdata = py_touserdata(self);
     return c11__at(py_TValue, userdata, i);
 }
 
-void py_list__setitem(py_Ref self, int i, const py_Ref val) {
+void py_list__setitem(py_Ref self, int i, py_Ref val) {
     List* userdata = py_touserdata(self);
     c11__setitem(py_TValue, userdata, i, *val);
 }
@@ -39,12 +39,12 @@ void py_list__delitem(py_Ref self, int i) {
     c11_vector__erase(py_TValue, userdata, i);
 }
 
-int py_list__len(const py_Ref self) {
+int py_list__len(py_Ref self) {
     List* userdata = py_touserdata(self);
     return userdata->count;
 }
 
-void py_list__append(py_Ref self, const py_Ref val) {
+void py_list__append(py_Ref self, py_Ref val) {
     List* userdata = py_touserdata(self);
     c11_vector__push(py_TValue, userdata, *val);
 }
@@ -54,7 +54,7 @@ void py_list__clear(py_Ref self) {
     c11_vector__clear(userdata);
 }
 
-void py_list__insert(py_Ref self, int i, const py_Ref val) {
+void py_list__insert(py_Ref self, int i, py_Ref val) {
     List* userdata = py_touserdata(self);
     c11_vector__insert(py_TValue, userdata, i, *val);
 }
@@ -78,7 +78,7 @@ static bool _py_list__eq__(int argc, py_Ref argv) {
         int length0, length1;
         py_TValue* a0 = pk_arrayview(py_arg(0), &length0);
         py_TValue* a1 = pk_arrayview(py_arg(1), &length1);
-        int res = pk_arrayeq(a0, length0, a1, length1);
+        int res = pk_arrayequal(a0, length0, a1, length1);
         if(res == -1) return false;
         py_newbool(py_retval(), res);
     } else {
@@ -401,6 +401,11 @@ static bool _py_list__iter__(int argc, py_Ref argv) {
     return pk_arrayiter(argv);
 }
 
+static bool _py_list__contains__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    return pk_arraycontains(py_arg(0), py_arg(1));
+}
+
 py_Type pk_list__register() {
     py_Type type =
         pk_newtype("list", tp_object, NULL, (void (*)(void*))c11_vector__dtor, false, true);
@@ -417,6 +422,7 @@ py_Type pk_list__register() {
     py_bindmagic(type, __rmul__, _py_list__rmul__);
     py_bindmagic(type, __repr__, _py_list__repr__);
     py_bindmagic(type, __iter__, _py_list__iter__);
+    py_bindmagic(type, __contains__, _py_list__contains__);
 
     py_bindmethod(type, "append", _py_list__append);
     py_bindmethod(type, "extend", _py_list__extend);

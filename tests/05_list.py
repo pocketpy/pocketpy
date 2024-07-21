@@ -152,9 +152,13 @@ assert repr([1, [2, 3], 4]) == "[1, [2, 3], 4]"
 assert repr([1, [2, [3, 4]], 5]) == "[1, [2, [3, 4]], 5]"
 assert repr([]) == "[]"
 
-# b = [(1, 2), (3, 3), (5, 1)]
-# b.sort(key=lambda x:x[1])
-# assert b == [(5, 1), (1, 2), (3,3)]
+# test in and not in
+assert 1 in [1, 2, 3]
+assert 4 not in [1, 2, 3]
+
+b = [(1, 2), (3, 3), (5, 1)]
+b.sort(key=lambda x:x[1])
+assert b == [(5, 1), (1, 2), (3,3)]
 
 # test cyclic reference
 # a = []

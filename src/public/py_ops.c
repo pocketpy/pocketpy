@@ -2,7 +2,7 @@
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 
-bool py_isidentical(const py_Ref lhs, const py_Ref rhs) {
+bool py_isidentical(py_Ref lhs, py_Ref rhs) {
     if(lhs->type != rhs->type) return false;
     switch(lhs->type) {
         case tp_int: return lhs->_i64 == rhs->_i64;
@@ -17,7 +17,7 @@ bool py_isidentical(const py_Ref lhs, const py_Ref rhs) {
     }
 }
 
-int py_bool(const py_Ref val) {
+int py_bool(py_Ref val) {
     switch(val->type) {
         case tp_bool: return val->_bool;
         case tp_int: return val->_i64 != 0;
@@ -43,7 +43,7 @@ int py_bool(const py_Ref val) {
     }
 }
 
-bool py_hash(const py_Ref val, int64_t* out) {
+bool py_hash(py_Ref val, int64_t* out) {
     py_Type t = val->type;
     pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
     do {
@@ -61,13 +61,13 @@ bool py_hash(const py_Ref val, int64_t* out) {
     return TypeError("unhashable type: '%t'", val->type);
 }
 
-bool py_iter(const py_Ref val) {
+bool py_iter(py_Ref val) {
     py_Ref tmp = py_tpfindmagic(val->type, __iter__);
     if(!tmp) return TypeError("'%t' object is not iterable", val->type);
     return py_call(tmp, 1, val);
 }
 
-int py_next(const py_Ref val) {
+int py_next(py_Ref val) {
     pk_VM* vm = pk_current_vm;
     vm->is_stopiteration = false;
     py_Ref tmp = py_tpfindmagic(val->type, __next__);
@@ -134,7 +134,7 @@ bool py_getattr(py_Ref self, py_Name name) {
     return AttributeError(self, name);
 }
 
-bool py_setattr(py_Ref self, py_Name name, const py_Ref val) {
+bool py_setattr(py_Ref self, py_Name name, py_Ref val) {
     py_Type type = self->type;
     // handle super() proxy
     if(py_istype(self, tp_super)) {
@@ -175,7 +175,7 @@ bool py_delattr(py_Ref self, py_Name name) {
     return TypeError("cannot delete attribute");
 }
 
-bool py_getitem(const py_Ref self, const py_Ref key) {
+bool py_getitem(py_Ref self, py_Ref key) {
     py_push(self);
     py_push(key);
     bool ok = py_callmagic(__getitem__, 2, py_peek(-2));
@@ -183,7 +183,7 @@ bool py_getitem(const py_Ref self, const py_Ref key) {
     return ok;
 }
 
-bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val) {
+bool py_setitem(py_Ref self, py_Ref key, py_Ref val) {
     py_push(self);
     py_push(key);
     py_push(val);
@@ -192,7 +192,7 @@ bool py_setitem(py_Ref self, const py_Ref key, const py_Ref val) {
     return ok;
 }
 
-bool py_delitem(py_Ref self, const py_Ref key) {
+bool py_delitem(py_Ref self, py_Ref key) {
     py_push(self);
     py_push(key);
     bool ok = py_callmagic(__delitem__, 2, py_peek(-2));
@@ -200,12 +200,12 @@ bool py_delitem(py_Ref self, const py_Ref key) {
     return ok;
 }
 
-int py_equal(const py_Ref lhs, const py_Ref rhs){
+int py_equal(py_Ref lhs, py_Ref rhs){
     if(!py_eq(lhs, rhs)) return -1;
     return py_bool(py_retval());
 }
 
-int py_less(const py_Ref lhs, const py_Ref rhs){
+int py_less(py_Ref lhs, py_Ref rhs){
     if(!py_lt(lhs, rhs)) return -1;
     return py_bool(py_retval());
 }

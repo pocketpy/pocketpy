@@ -23,7 +23,7 @@ py_TValue* pk_arrayview(py_Ref self, int* length) {
     return NULL;
 }
 
-int pk_arrayeq(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length) {
+int pk_arrayequal(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length) {
     if(lhs_length != rhs_length) return false;
     for(int i = 0; i < lhs_length; i++) {
         int res = py_equal(lhs + i, rhs + i);
@@ -42,6 +42,22 @@ bool pk_arrayiter(py_Ref val) {
     ud->length = length;
     ud->index = 0;
     py_setslot(py_retval(), 0, val);  // keep a reference to the object
+    return true;
+}
+
+bool pk_arraycontains(py_Ref self, py_Ref val) {
+    int length;
+    py_TValue* p = pk_arrayview(self, &length);
+    if(!p) return TypeError("expected list or tuple, got %t", self->type);
+    for(int i = 0; i < length; i++) {
+        int res = py_equal(p + i, val);
+        if(res == -1) return false;
+        if(res) {
+            py_newbool(py_retval(), true);
+            return true;
+        }
+    }
+    py_newbool(py_retval(), false);
     return true;
 }
 

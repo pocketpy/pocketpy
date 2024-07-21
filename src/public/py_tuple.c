@@ -13,13 +13,13 @@ void py_newtuple(py_Ref out, int n) {
     out->_obj = obj;
 }
 
-py_Ref py_tuple__getitem(const py_Ref self, int i) { return py_getslot(self, i); }
+py_Ref py_tuple__getitem(py_Ref self, int i) { return py_getslot(self, i); }
 
-py_Ref py_tuple__data(const py_Ref self) { return PyObject__slots(self->_obj); }
+py_Ref py_tuple__data(py_Ref self) { return PyObject__slots(self->_obj); }
 
-void py_tuple__setitem(py_Ref self, int i, const py_Ref val) { py_setslot(self, i, val); }
+void py_tuple__setitem(py_Ref self, int i, py_Ref val) { py_setslot(self, i, val); }
 
-int py_tuple__len(const py_Ref self) { return self->_obj->slots; }
+int py_tuple__len(py_Ref self) { return self->_obj->slots; }
 
 //////////////
 static bool _py_tuple__len__(int argc, py_Ref argv) {
@@ -103,7 +103,7 @@ static bool _py_tuple__eq__(int argc, py_Ref argv) {
         int length0, length1;
         py_TValue* a0 = pk_arrayview(py_arg(0), &length0);
         py_TValue* a1 = pk_arrayview(py_arg(1), &length1);
-        int res = pk_arrayeq(a0, length0, a1, length1);
+        int res = pk_arrayequal(a0, length0, a1, length1);
         if(res == -1) return false;
         py_newbool(py_retval(), res);
     } else {
@@ -126,6 +126,11 @@ static bool _py_tuple__iter__(int argc, py_Ref argv) {
     return pk_arrayiter(argv);
 }
 
+static bool _py_tuple__contains__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    return pk_arraycontains(py_arg(0), py_arg(1));
+}
+
 py_Type pk_tuple__register() {
     py_Type type = pk_newtype("tuple", tp_object, NULL, NULL, false, true);
 
@@ -136,5 +141,6 @@ py_Type pk_tuple__register() {
     py_bindmagic(type, __eq__, _py_tuple__eq__);
     py_bindmagic(type, __ne__, _py_tuple__ne__);
     py_bindmagic(type, __iter__, _py_tuple__iter__);
+    py_bindmagic(type, __contains__, _py_tuple__contains__);
     return type;
 }

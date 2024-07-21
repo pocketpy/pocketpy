@@ -6,7 +6,7 @@
 
 py_Ref py_reg(int i) { return pk_current_vm->reg + i; }
 
-py_Ref py_getdict(const py_Ref self, py_Name name) {
+py_Ref py_getdict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
     if(!py_ismagicname(name) || self->type != tp_type) {
         return pk_NameDict__try_get(PyObject__dict(self->_obj), name);
@@ -17,7 +17,7 @@ py_Ref py_getdict(const py_Ref self, py_Name name) {
     }
 }
 
-void py_setdict(py_Ref self, py_Name name, const py_Ref val) {
+void py_setdict(py_Ref self, py_Name name, py_Ref val) {
     assert(self && self->is_ptr);
     if(!py_ismagicname(name) || self->type != tp_type) {
         pk_NameDict__set(PyObject__dict(self->_obj), name, *val);
@@ -39,19 +39,19 @@ bool py_deldict(py_Ref self, py_Name name) {
     }
 }
 
-py_Ref py_getslot(const py_Ref self, int i) {
+py_Ref py_getslot(py_Ref self, int i) {
     assert(self && self->is_ptr);
     assert(i >= 0 && i < self->_obj->slots);
     return PyObject__slots(self->_obj) + i;
 }
 
-void py_setslot(py_Ref self, int i, const py_Ref val) {
+void py_setslot(py_Ref self, int i, py_Ref val) {
     assert(self && self->is_ptr);
     assert(i >= 0 && i < self->_obj->slots);
     PyObject__slots(self->_obj)[i] = *val;
 }
 
-void py_assign(py_Ref dst, const py_Ref src) { *dst = *src; }
+void py_assign(py_Ref dst, py_Ref src) { *dst = *src; }
 
 /* Stack References */
 py_Ref py_peek(int i) {
@@ -69,7 +69,7 @@ void py_shrink(int n) {
     vm->stack.sp -= n;
 }
 
-void py_push(const py_Ref src) {
+void py_push(py_Ref src) {
     pk_VM* vm = pk_current_vm;
     *vm->stack.sp++ = *src;
 }

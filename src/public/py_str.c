@@ -31,26 +31,26 @@ unsigned char* py_newbytes(py_Ref out, int size) {
     return ud->data;
 }
 
-const char* py_tostr(const py_Ref self) {
+const char* py_tostr(py_Ref self) {
     assert(self->type == tp_str);
     c11_string* ud = PyObject__userdata(self->_obj);
     return ud->data;
 }
 
-const char* py_tostrn(const py_Ref self, int* size) {
+const char* py_tostrn(py_Ref self, int* size) {
     assert(self->type == tp_str);
     c11_string* ud = PyObject__userdata(self->_obj);
     *size = ud->size;
     return ud->data;
 }
 
-c11_sv py_tosv(const py_Ref self) {
+c11_sv py_tosv(py_Ref self) {
     assert(self->type == tp_str);
     c11_string* ud = PyObject__userdata(self->_obj);
     return c11_string__sv(ud);
 }
 
-unsigned char* py_tobytes(const py_Ref self, int* size) {
+unsigned char* py_tobytes(py_Ref self, int* size) {
     assert(self->type == tp_bytes);
     c11_bytes* ud = PyObject__userdata(self->_obj);
     *size = ud->size;
