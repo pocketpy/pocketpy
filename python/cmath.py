@@ -77,8 +77,8 @@ class complex:
     
     def __pow__(self, other: int | float):
         if type(other) in (int, float):
-            return complex(self.__abs__() ** other * math.cos(other * phase(self)),
-                           self.__abs__() ** other * math.sin(other * phase(self)))
+            return complex(abs(self) ** other * math.cos(other * phase(self)),
+                           abs(self) ** other * math.sin(other * phase(self)))
         return NotImplemented
     
     def __abs__(self) -> float:
@@ -97,7 +97,7 @@ def phase(z: complex):
     return math.atan2(z.imag, z.real)
 
 def polar(z: complex):
-    return z.__abs__(), phase(z)
+    return abs(z), phase(z)
 
 def rect(r: float, phi: float):
     return r * math.cos(phi) + r * math.sin(phi) * 1j
@@ -108,7 +108,7 @@ def exp(z: complex):
     return math.exp(z.real) * rect(1, z.imag)
 
 def log(z: complex, base=2.718281828459045):
-    return math.log(z.__abs__(), base) + phase(z) * 1j
+    return math.log(abs(z), base) + phase(z) * 1j
 
 def log10(z: complex):
     return log(z, 10)

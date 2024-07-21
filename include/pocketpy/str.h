@@ -224,6 +224,7 @@ extern const StrName __package__;
 extern const StrName __path__;
 extern const StrName __class__;
 extern const StrName __missing__;
+extern const StrName __abs__;
 
 extern const StrName pk_id_add;
 extern const StrName pk_id_set;

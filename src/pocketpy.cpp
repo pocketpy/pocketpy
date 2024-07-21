@@ -158,8 +158,7 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(_vm->builtins, "abs", 1, [](VM* vm, ArgsView args) {
         if(is_int(args[0])) return VAR(std::abs(_CAST(i64, args[0])));
         if(is_float(args[0])) return VAR(std::abs(_CAST(f64, args[0])));
-        vm->TypeError("bad operand type for abs()");
-        return vm->None;
+        return vm->call_method(args[0], __abs__);
     });
 
     _vm->bind(_vm->builtins, "max(*args, key=None)", [](VM* vm, ArgsView args){
