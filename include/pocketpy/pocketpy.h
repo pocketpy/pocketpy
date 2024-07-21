@@ -288,12 +288,15 @@ bool KeyError(py_Ref key);
 /// Returns -1 if an error occurred.
 int py_bool(const py_Ref val);
 
-int py_eq(const py_Ref, const py_Ref);
-int py_ne(const py_Ref, const py_Ref);
-int py_le(const py_Ref, const py_Ref);
-int py_lt(const py_Ref, const py_Ref);
-int py_ge(const py_Ref, const py_Ref);
-int py_gt(const py_Ref, const py_Ref);
+#define py_eq(lhs, rhs) py_binaryop(lhs, rhs, __eq__, __eq__)
+#define py_ne(lhs, rhs) py_binaryop(lhs, rhs, __ne__, __ne__)
+#define py_lt(lhs, rhs) py_binaryop(lhs, rhs, __lt__, __gt__)
+#define py_le(lhs, rhs) py_binaryop(lhs, rhs, __le__, __ge__)
+#define py_gt(lhs, rhs) py_binaryop(lhs, rhs, __gt__, __lt__)
+#define py_ge(lhs, rhs) py_binaryop(lhs, rhs, __ge__, __le__)
+
+int py_equal(const py_Ref lhs, const py_Ref rhs);
+int py_less(const py_Ref lhs, const py_Ref rhs);
 
 bool py_hash(const py_Ref, py_i64* out);
 

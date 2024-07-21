@@ -258,7 +258,7 @@ static bool _py_list__count(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     int count = 0;
     for(int i = 0; i < py_list__len(py_arg(0)); i++) {
-        int res = py_eq(py_list__getitem(py_arg(0), i), py_arg(1));
+        int res = py_equal(py_list__getitem(py_arg(0), i), py_arg(1));
         if(res == -1) return false;
         if(res) count++;
     }
@@ -290,7 +290,7 @@ static bool _py_list__index(int argc, py_Ref argv) {
         start = py_toint(py_arg(2));
     }
     for(int i = start; i < py_list__len(py_arg(0)); i++) {
-        int res = py_eq(py_list__getitem(py_arg(0), i), py_arg(1));
+        int res = py_equal(py_list__getitem(py_arg(0), i), py_arg(1));
         if(res == -1) return false;
         if(res) {
             py_newint(py_retval(), i);
@@ -311,7 +311,7 @@ static bool _py_list__reverse(int argc, py_Ref argv) {
 static bool _py_list__remove(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     for(int i = 0; i < py_list__len(py_arg(0)); i++) {
-        int res = py_eq(py_list__getitem(py_arg(0), i), py_arg(1));
+        int res = py_equal(py_list__getitem(py_arg(0), i), py_arg(1));
         if(res == -1) return false;
         if(res) {
             py_list__delitem(py_arg(0), i);
@@ -354,7 +354,7 @@ static bool _py_list__insert(int argc, py_Ref argv) {
 }
 
 static int _py_lt_with_key(py_TValue* a, py_TValue* b, py_TValue* key) {
-    if(!key) return py_lt(a, b);
+    if(!key) return py_less(a, b);
     pk_VM* vm = pk_current_vm;
     // project a
     py_push(key);
@@ -372,7 +372,7 @@ static int _py_lt_with_key(py_TValue* a, py_TValue* b, py_TValue* key) {
     bool ok = pk_stack_binaryop(vm, __lt__, __gt__);
     if(!ok) return -1;
     py_shrink(2);
-    return py_tobool(py_retval());
+    return py_bool(py_retval());
 }
 
 // sort(self, key=None, reverse=False)
@@ -436,7 +436,7 @@ py_Type pk_list__register() {
     return type;
 }
 
-void pk_list__mark(void* ud, void (*marker)(py_TValue*)){
+void pk_list__mark(void* ud, void (*marker)(py_TValue*)) {
     List* self = ud;
     for(int i = 0; i < self->count; i++) {
         marker(c11__at(py_TValue, self, i));

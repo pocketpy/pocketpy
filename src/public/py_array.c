@@ -26,7 +26,7 @@ py_TValue* pk_arrayview(py_Ref self, int* length) {
 int pk_arrayeq(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length) {
     if(lhs_length != rhs_length) return false;
     for(int i = 0; i < lhs_length; i++) {
-        int res = py_eq(lhs + i, rhs + i);
+        int res = py_equal(lhs + i, rhs + i);
         if(res == -1) return -1;
         if(!res) return false;
     }

@@ -52,7 +52,7 @@ static bool Dict__try_get(Dict* self, py_TValue* key, DictEntry** out) {
         int idx2 = self->indices[idx]._[i];
         if(idx2 == -1) continue;
         DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
-        int res = py_eq(&entry->key, key);
+        int res = py_equal(&entry->key, key);
         if(res == 1) {
             *out = entry;
             return true;
@@ -150,7 +150,7 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
         }
         // update existing entry
         DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
-        int res = py_eq(&entry->key, key);
+        int res = py_equal(&entry->key, key);
         if(res == 1) {
             entry->val = *val;
             return true;
@@ -174,7 +174,7 @@ static bool Dict__pop(Dict* self, py_Ref key) {
         int idx2 = self->indices[idx]._[i];
         if(idx2 == -1) continue;
         DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
-        int res = py_eq(&entry->key, key);
+        int res = py_equal(&entry->key, key);
         if(res == 1) {
             *py_retval() = entry->val;
             py_newnil(&entry->key);
@@ -318,7 +318,7 @@ static bool _py_dict__eq__(int argc, py_Ref argv) {
             py_newbool(py_retval(), false);
             return true;
         }
-        int res = py_eq(&entry->val, &other_entry->val);
+        int res = py_equal(&entry->val, &other_entry->val);
         if(res == -1) return false;
         if(!res) {
             py_newbool(py_retval(), false);

@@ -26,14 +26,14 @@ int py_bool(const py_Ref val) {
         default: {
             py_Ref tmp = py_tpfindmagic(val->type, __bool__);
             if(tmp) {
-                bool ok = py_call(tmp, 1, val);
-                if(!ok) return -1;
+                if(!py_call(tmp, 1, val)) return -1;
+                if(!py_checkbool(py_retval())) return -1;
                 return py_tobool(py_retval());
             } else {
                 tmp = py_tpfindmagic(val->type, __len__);
                 if(tmp) {
-                    bool ok = py_call(tmp, 1, val);
-                    if(!ok) return -1;
+                    if(!py_call(tmp, 1, val)) return -1;
+                    if(!py_checkint(py_retval())) return -1;
                     return py_toint(py_retval());
                 } else {
                     return 1;  // True
@@ -51,8 +51,8 @@ bool py_hash(const py_Ref val, int64_t* out) {
         if(py_isnone(_hash)) break;
         py_Ref _eq = &types[t].magic[__eq__];
         if(!py_isnil(_hash) && !py_isnil(_eq)) {
-            bool ok = py_call(_hash, 1, val);
-            if(!ok) return false;
+            if(!py_call(_hash, 1, val)) return false;
+            if(!py_checkint(py_retval())) return false;
             *out = py_toint(py_retval());
             return true;
         }
@@ -72,8 +72,7 @@ int py_next(const py_Ref val) {
     vm->is_stopiteration = false;
     py_Ref tmp = py_tpfindmagic(val->type, __next__);
     if(!tmp) return TypeError("'%t' object is not an iterator", val->type);
-    bool ok = py_call(tmp, 1, val);
-    if(ok) return true;
+    if(py_call(tmp, 1, val)) return true;
     return vm->is_stopiteration ? 0 : -1;
 }
 
@@ -201,16 +200,12 @@ bool py_delitem(py_Ref self, const py_Ref key) {
     return ok;
 }
 
-#define COMPARE_OP_IMPL(name, op, rop)                                                             \
-    int py_##name(const py_Ref lhs, const py_Ref rhs) {                                            \
-        bool ok = py_binaryop(lhs, rhs, op, rop);                                                  \
-        if(!ok) return -1;                                                                         \
-        return py_tobool(py_retval());                                                             \
-    }
+int py_equal(const py_Ref lhs, const py_Ref rhs){
+    if(!py_eq(lhs, rhs)) return -1;
+    return py_bool(py_retval());
+}
 
-COMPARE_OP_IMPL(eq, __eq__, __eq__)
-COMPARE_OP_IMPL(ne, __ne__, __ne__)
-COMPARE_OP_IMPL(lt, __lt__, __gt__)
-COMPARE_OP_IMPL(le, __le__, __ge__)
-COMPARE_OP_IMPL(gt, __gt__, __lt__)
-COMPARE_OP_IMPL(ge, __ge__, __le__)
+int py_less(const py_Ref lhs, const py_Ref rhs){
+    if(!py_lt(lhs, rhs)) return -1;
+    return py_bool(py_retval());
+}
