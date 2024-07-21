@@ -82,5 +82,5 @@ void py_pushnil() {
 py_Ref py_pushtmp() {
     pk_VM* vm = pk_current_vm;
     py_newnil(vm->stack.sp++);
-    return py_gettop();
+    return py_peek(-1);
 }

@@ -245,12 +245,6 @@ void py_shrink(int n);
 /// Get a temporary variable from the stack and returns the reference to it.
 py_StackRef py_pushtmp();
 
-#define py_gettop() py_peek(-1)
-#define py_getsecond() py_peek(-2)
-#define py_settop(v) py_assign(py_peek(-1), v)
-#define py_setsecond(v) py_assign(py_peek(-2), v)
-#define py_duptop() py_push(py_peek(-1))
-#define py_dupsecond() py_push(py_peek(-2))
 /************* Modules *************/
 py_TmpRef py_newmodule(const char* name, const char* package);
 py_TmpRef py_getmodule(const char* name);
