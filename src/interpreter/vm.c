@@ -68,7 +68,7 @@ void pk_VM__ctor(pk_VM* self) {
     self->_stderr = pk_default_stderr;
 
     self->last_retval = *py_NIL;
-    self->last_exception = *py_NIL;
+    self->curr_exception = *py_NIL;
     self->is_stopiteration = false;
 
     self->__curr_class = NULL;
@@ -540,14 +540,14 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
     }
     // mark vm's registers
     mark_value(&vm->last_retval);
-    mark_value(&vm->last_exception);
+    mark_value(&vm->curr_exception);
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
         mark_value(&vm->reg[i]);
     }
 }
 
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
-    return;
+    // return;
 
     py_TValue* sp = self->stack.sp;
     c11_sbuf buf;

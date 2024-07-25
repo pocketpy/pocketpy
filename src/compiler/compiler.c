@@ -8,6 +8,7 @@
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/memorypool.h"
 #include <ctype.h>
+#include <stdbool.h>
 
 /* expr.h */
 typedef struct Expr Expr;
@@ -2492,7 +2493,53 @@ __EAT_DOTS_END:
 }
 
 static Error* compile_try_except(Compiler* self) {
-    assert(false);
+    Error* err;
+    Ctx__enter_block(ctx(), CodeBlockType_TRY_EXCEPT);
+    Ctx__emit_(ctx(), OP_TRY_ENTER, BC_NOARG, prev()->line);
+    check(compile_block_body(self, compile_stmt));
+
+    int patches[8];
+    int patches_length = 0;
+
+    patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
+    Ctx__exit_block(ctx());
+
+    if(curr()->type == TK_FINALLY) { return SyntaxError("finally clause is not supported yet"); }
+
+    do {
+        if(patches_length == 8) { return SyntaxError("maximum number of except clauses reached"); }
+        py_Name as_name = 0;
+        consume(TK_EXCEPT);
+        if(is_expression(self, false)) {
+            check(EXPR(self));  // push assumed type on to the stack
+            Ctx__s_emit_top(ctx());
+            Ctx__emit_(ctx(), OP_EXCEPTION_MATCH, BC_NOARG, prev()->line);
+            if(match(TK_AS)) {
+                consume(TK_ID);
+                as_name = py_namev(Token__sv(prev()));
+            }
+        } else {
+            Ctx__emit_(ctx(), OP_LOAD_TRUE, BC_NOARG, BC_KEEPLINE);
+        }
+        int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
+        // on match
+        if(as_name) {
+            Ctx__emit_(ctx(), OP_PUSH_EXCEPTION, BC_NOARG, BC_KEEPLINE);
+            Ctx__emit_store_name(ctx(), name_scope(self), as_name, BC_KEEPLINE);
+        }
+        // pop the exception
+        Ctx__emit_(ctx(), OP_POP_EXCEPTION, BC_NOARG, BC_KEEPLINE);
+        check(compile_block_body(self, compile_stmt));
+        patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
+        Ctx__patch_jump(ctx(), patch);
+    } while(curr()->type == TK_EXCEPT);
+
+    // no match, re-raise
+    Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
+
+    // no exception or no match, jump to the end
+    for(int i = 0; i < patches_length; i++)
+        Ctx__patch_jump(ctx(), patches[i]);
     return NULL;
 }
 

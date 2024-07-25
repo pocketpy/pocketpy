@@ -1,3 +1,5 @@
+#include "pocketpy/objects/codeobject.h"
+#include "pocketpy/objects/error.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
@@ -12,20 +14,41 @@ typedef struct BaseExceptionFrame {
 } BaseExceptionFrame;
 
 typedef struct BaseException {
-    int ip_backup;
-    CodeObject* code_backup;
+    const Bytecode* ip_backup;
+    const CodeObject* code_backup;
     c11_vector /*T=BaseExceptionFrame*/ stacktrace;
 } BaseException;
 
+void py_BaseException__record(py_Ref self, const Bytecode* ip, const CodeObject* code) {
+    BaseException* ud = py_touserdata(self);
+    ud->ip_backup = ip;
+    ud->code_backup = code;
+}
+
+void py_BaseException__stpush(py_Ref self, pk_SourceData_ src, int lineno, const char *func_name){
+    BaseException* ud = py_touserdata(self);
+    if(ud->stacktrace.count >= 7) return;
+    BaseExceptionFrame* frame = c11_vector__emplace(&ud->stacktrace);
+    PK_INCREF(src);
+    frame->src = src;
+    frame->lineno = lineno;
+    frame->name = func_name ? c11_string__new(func_name) : NULL;
+}
+
 static void BaseException__dtor(void* ud) {
     BaseException* self = (BaseException*)ud;
+    c11__foreach(BaseExceptionFrame, &self->stacktrace, it) {
+        PK_DECREF(it->src);
+        if(it->name) c11_string__delete(it->name);
+    }
     c11_vector__dtor(&self->stacktrace);
 }
 
 static bool _py_BaseException__new__(int argc, py_Ref argv) {
     py_Type cls = py_totype(argv);
     BaseException* ud = py_newobject(py_retval(), cls, 1, sizeof(BaseException));
-    ud->ip_backup = -1;
+    c11_vector__ctor(&ud->stacktrace, sizeof(BaseExceptionFrame));
+    ud->ip_backup = NULL;
     ud->code_backup = NULL;
     return true;
 }

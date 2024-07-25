@@ -1,10 +1,12 @@
 #include "pocketpy/common/config.h"
+#include "pocketpy/common/utils.h"
+#include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
-#include <stdbool.h>
+#include "pocketpy/objects/error.h"
 
 static bool stack_unpack_sequence(pk_VM* self, uint16_t arg);
 static bool format_object(py_Ref obj, c11_sv spec);
@@ -850,6 +852,30 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             ///////////
+            case OP_TRY_ENTER: {
+                Frame__set_unwind_target(frame, SP());
+                DISPATCH();
+            }
+            case OP_EXCEPTION_MATCH: {
+                if(!py_checktype(TOP(), tp_type)) goto __ERROR;
+                bool ok = py_isinstance(TOP(), py_totype(&self->curr_exception));
+                POP();
+                py_newbool(TOP(), ok);
+                DISPATCH();
+            }
+            case OP_RAISE: {
+                // [exception]
+                if(py_istype(TOP(), tp_type)) {
+                    if(!py_tpcall(py_totype(TOP()), 0, NULL)) goto __ERROR;
+                    py_assign(TOP(), py_retval());
+                }
+                if(!py_isinstance(TOP(), tp_BaseException)) {
+                    TypeError("exceptions must derive from BaseException");
+                    goto __ERROR;
+                }
+                py_raise(TOP());
+                goto __ERROR;
+            }
             case OP_RAISE_ASSERT: {
                 if(byte.arg) {
                     if(!py_str(TOP())) goto __ERROR;
@@ -859,6 +885,20 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     py_exception("AssertionError", "");
                 }
                 goto __ERROR;
+            }
+            case OP_RE_RAISE: {
+                py_raise(&self->curr_exception);
+                goto __ERROR;
+            }
+            case OP_PUSH_EXCEPTION: {
+                assert(self->curr_exception.type);
+                PUSH(&self->curr_exception);
+                DISPATCH();
+            }
+            case OP_POP_EXCEPTION: {
+                assert(self->curr_exception.type);
+                self->curr_exception = *py_NIL;
+                DISPATCH();
             }
             //////////////////
             case OP_FSTRING_EVAL: {
@@ -879,13 +919,28 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             default: c11__unreachedable();
         }
 
-        assert(false);  // should never reach here
+        c11__unreachedable();
 
     __ERROR:
-        // 1. Exception can be handled inside the current frame
-        // 2. Exception need to be propagated to the upper frame
         printf("error.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
-        return RES_ERROR;
+        py_BaseException__record(&self->curr_exception, frame->ip, frame->co);
+        // TODO: lineno bug on re-raise
+        int lineno = Frame__lineno(frame);
+        py_BaseException__stpush(
+            &self->curr_exception,
+            frame->co->src,
+            lineno,
+            frame->function ? frame->co->name->data : NULL
+        );
+
+        int target = Frame__prepare_jump_exception_handler(frame, &self->stack);
+        if(target >= 0) {
+            // 1. Exception can be handled inside the current frame
+            DISPATCH_JUMP_ABSOLUTE(target);
+        } else {
+            // 2. Exception need to be propagated to the upper frame
+            return RES_ERROR;
+        }
     }
 
     return RES_RETURN;

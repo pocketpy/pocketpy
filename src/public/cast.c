@@ -46,4 +46,17 @@ bool py_checktype(py_Ref self, py_Type type) {
     return TypeError("expected %t, got %t", type, self->type);
 }
 
+bool py_isinstance(py_Ref obj, py_Type type){
+    return py_issubclass(obj->type, type);
+}
+
+bool py_issubclass(py_Type derived, py_Type base){
+    pk_TypeInfo* types = pk_current_vm->types.data;
+    do {
+        if(derived == base) return true;
+        derived = types[derived].base;
+    } while(derived);
+    return false;
+}
+
 py_Type py_typeof(py_Ref self) { return self->type; }

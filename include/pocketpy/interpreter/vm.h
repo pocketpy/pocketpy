@@ -44,7 +44,7 @@ typedef struct pk_VM {
     void (*_stderr)(const char*, ...);
 
     py_TValue last_retval;
-    py_TValue last_exception;
+    py_TValue curr_exception;
     bool is_stopiteration;
 
     py_TValue reg[8];  // users' registers

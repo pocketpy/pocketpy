@@ -241,12 +241,15 @@ py_TmpRef py_getmodule(const char* name);
 bool py_import(const char* name);
 
 /************* Errors *************/
+/// Raise an exception by name and message. Always returns false.
 bool py_exception(const char* name, const char* fmt, ...);
+/// Raise an expection object. Always returns false.
+bool py_raise(py_Ref);
 /// Print the last error to the console.
 void py_printexc();
 /// Format the last error to a string.
-void py_formatexc(char* out);
-/// Check if an error is set.
+char* py_formatexc();
+/// Check if an exception is raised.
 bool py_checkexc();
 
 #define NameError(n) py_exception("NameError", "name '%n' is not defined", (n))
