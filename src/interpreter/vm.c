@@ -31,7 +31,7 @@ static void pk_TypeInfo__ctor(pk_TypeInfo* self,
                               py_Name name,
                               py_Type index,
                               py_Type base,
-                              const py_TValue* module) {
+                              py_TValue module) {
     memset(self, 0, sizeof(pk_TypeInfo));
 
     self->name = name;
@@ -47,7 +47,7 @@ static void pk_TypeInfo__ctor(pk_TypeInfo* self,
         ._obj = typeobj,
     };
 
-    self->module = module ? *module : *py_NIL;
+    self->module = module;
     c11_vector__ctor(&self->annotated_fields, sizeof(py_Name));
 }
 
@@ -161,6 +161,30 @@ void pk_VM__ctor(pk_VM* self) {
         py_setdict(&self->builtins, ti->name, py_tpobject(t));
     }
 
+    // inject some builtin expections
+    const char** builtin_exceptions = (const char*[]){
+        "StackOverflowError",
+        "IOError",
+        "NotImplementedError",
+        "TypeError",
+        "IndexError",
+        "ValueError",
+        "RuntimeError",
+        "ZeroDivisionError",
+        "NameError",
+        "UnboundLocalError",
+        "AttributeError",
+        "ImportError",
+        "AssertionError",
+        // "KeyError",
+        NULL,   // sentinel
+    };
+    const char** it = builtin_exceptions;
+    while(*it){
+        py_Type type = pk_newtype(*it, tp_Exception, &self->builtins, NULL, false, true);
+        py_setdict(&self->builtins, py_name(*it), py_tpobject(type));
+    }
+
     py_TValue tmp;
     py_newnotimplemented(&tmp);
     py_setdict(&self->builtins, py_name("NotImplemented"), &tmp);
@@ -266,7 +290,7 @@ py_Type pk_newtype(const char* name,
     c11_vector* types = &pk_current_vm->types;
     py_Type index = types->count;
     pk_TypeInfo* ti = c11_vector__emplace(types);
-    pk_TypeInfo__ctor(ti, py_name(name), index, base, module);
+    pk_TypeInfo__ctor(ti, py_name(name), index, base, module ? *module : *py_NIL);
     ti->dtor = dtor;
     ti->is_python = is_python;
     ti->is_sealed = is_sealed;

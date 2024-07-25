@@ -7,6 +7,7 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/objects/error.h"
+#include <stdbool.h>
 
 static bool stack_unpack_sequence(pk_VM* self, uint16_t arg);
 static bool format_object(py_Ref obj, c11_sv spec);
@@ -888,7 +889,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_RE_RAISE: {
                 py_raise(&self->curr_exception);
-                goto __ERROR;
+                goto __ERROR_RE_RAISE;
             }
             case OP_PUSH_EXCEPTION: {
                 assert(self->curr_exception.type);
@@ -922,16 +923,16 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
         c11__unreachedable();
 
     __ERROR:
+        pk_print_stack(self, frame, (Bytecode){OP_NO_OP, 0});
+        py_BaseException__set_lineno(&self->curr_exception, Frame__lineno(frame), frame->co);
+    __ERROR_RE_RAISE:
+
         printf("error.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
-        py_BaseException__record(&self->curr_exception, frame->ip, frame->co);
-        // TODO: lineno bug on re-raise
-        int lineno = Frame__lineno(frame);
-        py_BaseException__stpush(
-            &self->curr_exception,
-            frame->co->src,
-            lineno,
-            frame->function ? frame->co->name->data : NULL
-        );
+        int lineno = py_BaseException__get_lineno(&self->curr_exception, frame->co);
+        py_BaseException__stpush(&self->curr_exception,
+                                 frame->co->src,
+                                 lineno < 0 ? Frame__lineno(frame) : lineno,
+                                 frame->function ? frame->co->name->data : NULL);
 
         int target = Frame__prepare_jump_exception_handler(frame, &self->stack);
         if(target >= 0) {

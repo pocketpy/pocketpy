@@ -14,15 +14,21 @@ typedef struct BaseExceptionFrame {
 } BaseExceptionFrame;
 
 typedef struct BaseException {
-    const Bytecode* ip_backup;
+    int lineno_backup;
     const CodeObject* code_backup;
     c11_vector /*T=BaseExceptionFrame*/ stacktrace;
 } BaseException;
 
-void py_BaseException__record(py_Ref self, const Bytecode* ip, const CodeObject* code) {
+void py_BaseException__set_lineno(py_Ref self, int lineno, const CodeObject* code){
     BaseException* ud = py_touserdata(self);
-    ud->ip_backup = ip;
+    ud->lineno_backup = lineno;
     ud->code_backup = code;
+}
+
+int py_BaseException__get_lineno(py_Ref self, const CodeObject* code){
+    BaseException* ud = py_touserdata(self);
+    if(code != ud->code_backup) return -1;
+    return ud->lineno_backup;
 }
 
 void py_BaseException__stpush(py_Ref self, pk_SourceData_ src, int lineno, const char *func_name){
@@ -48,7 +54,7 @@ static bool _py_BaseException__new__(int argc, py_Ref argv) {
     py_Type cls = py_totype(argv);
     BaseException* ud = py_newobject(py_retval(), cls, 1, sizeof(BaseException));
     c11_vector__ctor(&ud->stacktrace, sizeof(BaseExceptionFrame));
-    ud->ip_backup = NULL;
+    ud->lineno_backup = -1;
     ud->code_backup = NULL;
     return true;
 }

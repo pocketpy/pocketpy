@@ -71,10 +71,8 @@ int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {
         iblock = block->parent;
     }
     if(iblock < 0) return -1;
-    py_TValue obj = *--_s->sp;  // pop exception object
     UnwindTarget* uw = Frame__find_unwind_target(self, iblock);
     _s->sp = (self->locals + uw->offset);  // unwind the stack
-    *(_s->sp++) = obj;                     // push it back
     return c11__at(CodeBlock, &self->co->blocks, iblock)->end;
 }
 

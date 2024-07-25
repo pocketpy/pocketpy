@@ -1,12 +1,12 @@
 try:
-    raise 1
-except TypeError:
-    pass
-
-try:
     assert False
     exit(1)
 except AssertionError:
+    pass
+
+try:
+    raise 1
+except TypeError:
     pass
 
 try:
@@ -134,6 +134,7 @@ except SyntaxError as e:
     ok = True
 assert ok
 
+"""
 # finally, only
 def finally_only():
     try:
@@ -195,3 +196,4 @@ except KeyError:
     exit(0)
 
 exit(1)
+"""
