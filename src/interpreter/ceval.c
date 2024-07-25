@@ -82,20 +82,6 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     while(true) {
         Bytecode byte;
     __NEXT_FRAME:
-        // if(__internal_exception.type == InternalExceptionType::Null) {
-        //     // None
-        //     frame->_ip++;
-        // } else if(__internal_exception.type == InternalExceptionType::Handled) {
-        //     // HandledException + continue
-        //     frame->_ip = c11__at(Bytecode, &frame->co->codes, __internal_exception.arg);
-        //     __internal_exception = {};
-        // } else {
-        //     // UnhandledException + continue (need_raise = true)
-        //     // ToBeRaisedException + continue (need_raise = true)
-        //     __internal_exception = {};
-        //     __raise_exc();  // no return
-        // }
-
         frame->ip++;
 
     __NEXT_STEP:
@@ -939,7 +925,14 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             DISPATCH_JUMP_ABSOLUTE(target);
         } else {
             // 2. Exception need to be propagated to the upper frame
-            return RES_ERROR;
+            bool is_base_frame_to_be_popped = frame == base_frame;
+            pk_VM__pop_frame(self);
+            if(self->top_frame == NULL || is_base_frame_to_be_popped) {
+                // propagate to the top level
+                return RES_ERROR;
+            }
+            frame = self->top_frame;
+            goto __ERROR;
         }
     }
 

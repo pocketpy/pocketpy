@@ -278,7 +278,9 @@ bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* s
 
 bool pk__normalize_index(int* index, int length) {
     if(*index < 0) *index += length;
-    if(*index < 0 || *index >= length) { return IndexError("index out of range"); }
+    if(*index < 0 || *index >= length) {
+        return IndexError("%d not in [0, %d)", *index, length);
+    }
     return true;
 }
 

@@ -57,6 +57,13 @@ static bool _py_type__repr__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_type__new__(int argc, py_Ref argv){
+    PY_CHECK_ARGC(2);
+    py_Type type = py_typeof(py_arg(1));
+    py_assign(py_retval(), py_tpobject(type));
+    return true;
+}
+
 void pk_object__register() {
     // use staticmethod
     py_bindmagic(tp_object, __new__, _py_object__new__);
@@ -68,4 +75,5 @@ void pk_object__register() {
 
     // type patch...
     py_bindmagic(tp_type, __repr__, _py_type__repr__);
+    py_bindmagic(tp_type, __new__, _py_type__new__);
 }
