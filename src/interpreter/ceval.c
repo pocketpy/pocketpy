@@ -859,8 +859,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_EXCEPTION_MATCH: {
                 if(!py_checktype(TOP(), tp_type)) goto __ERROR;
-                bool ok = py_isinstance(TOP(), py_totype(&self->curr_exception));
-                POP();
+                bool ok = py_isinstance(&self->curr_exception, py_totype(TOP()));
                 py_newbool(TOP(), ok);
                 DISPATCH();
             }

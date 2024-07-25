@@ -45,7 +45,7 @@ py_Ref py_newmodule(const char* name, const char* package) {
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
     bool exists = pk_NameDict__contains(&pk_current_vm->modules, py_name(name));
-    if(exists) abort();
+    if(exists) c11__abort("module '%s' already exists", name);
     pk_NameDict__set(&pk_current_vm->modules, py_name(name), *r0);
 
     py_shrink(2);

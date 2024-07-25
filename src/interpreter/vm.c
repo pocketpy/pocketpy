@@ -176,13 +176,14 @@ void pk_VM__ctor(pk_VM* self) {
         "AttributeError",
         "ImportError",
         "AssertionError",
-        // "KeyError",
+        "KeyError",
         NULL,   // sentinel
     };
     const char** it = builtin_exceptions;
     while(*it){
         py_Type type = pk_newtype(*it, tp_Exception, &self->builtins, NULL, false, true);
         py_setdict(&self->builtins, py_name(*it), py_tpobject(type));
+        it++;
     }
 
     py_TValue tmp;
@@ -379,7 +380,6 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
 #if 0
     // handle boundmethod, do a patch
     if(p0->type == tp_boundmethod) {
-        assert(false);
         assert(py_isnil(p0 + 1));  // self must be NULL
         // BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
         // callable = bm.func;  // get unbound method

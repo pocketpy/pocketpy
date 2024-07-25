@@ -1484,8 +1484,7 @@ static NameScope name_scope(Compiler* self) {
 }
 
 Error* SyntaxError(const char* fmt, ...) {
-    printf("%s\n", fmt);
-    abort();
+    c11__abort("%s", fmt);
     return NULL;
 }
 

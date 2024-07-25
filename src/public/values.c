@@ -73,8 +73,8 @@ void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
         CodeObject code;
         pk_SourceData_ source = pk_SourceData__rcnew(buffer, "<bind>", EXEC_MODE, false);
         Error* err = pk_compile(source, &code);
-        if(err) abort();
-        if(code.func_decls.count != 1) abort();
+        if(err) c11__abort("py_bind(): failed to compile signature '%s'", sig);
+        if(code.func_decls.count != 1) c11__abort("py_bind(): invalid signature '%s'", sig);
         FuncDecl_ decl = c11__getitem(FuncDecl_, &code.func_decls, 0);
         // construct the function
         Function* ud = py_newobject(&tmp, tp_function, 0, sizeof(Function));

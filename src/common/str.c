@@ -255,7 +255,7 @@ int c11__u8_header(unsigned char c, bool suppress) {
     if((c & 0b11111000) == 0b11110000) return 4;
     if((c & 0b11111100) == 0b11111000) return 5;
     if((c & 0b11111110) == 0b11111100) return 6;
-    if(!suppress) PK_FATAL_ERROR("invalid utf8 char\n");
+    if(!suppress) c11__abort("invalid utf8 char");
     return 0;
 }
 

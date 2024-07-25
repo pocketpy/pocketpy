@@ -38,7 +38,7 @@ py_Name py_namev(c11_sv name) {
     uint16_t index = c11_smallmap_s2n__get(&_interned, name, 0);
     if(index != 0) return index;
     // generate new index
-    if(_interned.count > 65530) PK_FATAL_ERROR("py_Name index overflow\n");
+    if(_interned.count > 65530) c11__abort("py_Name index overflow");
     // NOTE: we must allocate the string in the heap so iterators are not invalidated
     char* p = malloc(name.size + 1);
     memcpy(p, name.data, name.size);

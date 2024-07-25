@@ -27,9 +27,10 @@ extern "C" {
 #define c11__unreachedable() __builtin_unreachable()
 #endif
 
-#define PK_FATAL_ERROR(...)                                                                        \
+#define c11__abort(...)                                                                            \
     do {                                                                                           \
         fprintf(stderr, __VA_ARGS__);                                                              \
+        putchar('\n');                                                                             \
         abort();                                                                                   \
     } while(0)
 

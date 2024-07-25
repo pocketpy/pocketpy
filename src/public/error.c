@@ -1,3 +1,4 @@
+#include "pocketpy/common/utils.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/common/sstream.h"
@@ -17,7 +18,7 @@ void py_printexc() {
     } else {
         const char* name = py_tpname(vm->curr_exception.type);
         bool ok = py_str(&vm->curr_exception);
-        if(!ok) abort();
+        if(!ok) c11__abort("py_printexc(): failed to convert exception to string");
         const char* message = py_tostr(py_retval());
         vm->_stdout("%s: %s\n", name, message);
     }
@@ -43,8 +44,11 @@ bool py_exception(const char* name, const char* fmt, ...) {
     py_Ref message = py_pushtmp();
     py_newstrn(message, res->data, res->size);
     c11_string__delete(res);
-    bool ok = py_tpcall(tp_Exception, 1, message);
-    if(!ok) abort();
+    
+    py_Ref exc_type = py_getdict(&pk_current_vm->builtins, py_name(name));
+    if(exc_type == NULL) c11__abort("py_exception(): '%s' not found", name);
+    bool ok = py_call(exc_type, 1, message);
+    if(!ok) c11__abort("py_exception(): failed to create exception object");
     py_pop();
 
     return py_raise(py_retval());
