@@ -1,3 +1,12 @@
+def f():
+    raise IndexError
+
+try:
+    f()
+    exit(1)
+except IndexError:
+    pass
+
 try:
     assert False
     exit(1)

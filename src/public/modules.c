@@ -199,6 +199,11 @@ static bool _py_builtins__print(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_NoneType__repr__(int argc, py_Ref argv) {
+    py_newstr(py_retval(), "None");
+    return true;
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins", NULL);
     py_bindnativefunc(builtins, "repr", _py_builtins__repr);
@@ -214,6 +219,9 @@ py_TValue pk_builtins__register() {
 
     py_bind(builtins, "print(*args, sep=' ', end='\\n')", _py_builtins__print);
     py_bind(builtins, "sorted(iterable, key=None, reverse=False)", _py_builtins__sorted);
+
+    // None __repr__
+    py_bindmagic(tp_NoneType, __repr__, _py_NoneType__repr__);
     return *builtins;
 }
 

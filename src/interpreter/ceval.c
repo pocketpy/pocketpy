@@ -887,7 +887,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 goto __ERROR;
             }
             case OP_RE_RAISE: {
-                py_raise(&self->curr_exception);
+                assert(self->curr_exception.type);
                 goto __ERROR_RE_RAISE;
             }
             case OP_PUSH_EXCEPTION: {
