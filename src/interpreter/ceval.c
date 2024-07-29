@@ -908,7 +908,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
         c11__unreachedable();
 
     __ERROR:
-        pk_print_stack(self, frame, (Bytecode){OP_NO_OP, 0});
+        pk_print_stack(self, frame, (Bytecode){});
         py_BaseException__set_lineno(&self->curr_exception, Frame__lineno(frame), frame->co);
     __ERROR_RE_RAISE:
 

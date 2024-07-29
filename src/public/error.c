@@ -62,7 +62,8 @@ bool py_raise(py_Ref exc) {
 }
 
 bool KeyError(py_Ref key){
-    if(!py_repr(key)) return false;
-    c11_sv message = py_tosv(py_retval());
-    return py_exception("KeyError", "%q", message);
+    py_Ref cls = py_getdict(&pk_current_vm->builtins, py_name("KeyError"));
+    bool ok = py_call(cls, 1, key);
+    if(!ok) return false;
+    return py_raise(py_retval());
 }

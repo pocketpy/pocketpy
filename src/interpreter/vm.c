@@ -294,6 +294,9 @@ py_Type pk_newtype(const char* name,
     py_Type index = types->count;
     pk_TypeInfo* ti = c11_vector__emplace(types);
     pk_TypeInfo__ctor(ti, py_name(name), index, base, module ? *module : *py_NIL);
+    if(!dtor && base){
+        dtor = c11__at(pk_TypeInfo, types, base)->dtor;
+    }
     ti->dtor = dtor;
     ti->is_python = is_python;
     ti->is_sealed = is_sealed;

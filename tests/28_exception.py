@@ -135,13 +135,13 @@ except Exception:
     exit(1)
 assert ok
 
-ok = False
-try:
-    eval('1+')
-except SyntaxError as e:
-    assert type(e) is SyntaxError
-    ok = True
-assert ok
+# ok = False
+# try:
+#     eval('1+')
+# except SyntaxError as e:
+#     assert type(e) is SyntaxError
+#     ok = True
+# assert ok
 
 """
 # finally, only

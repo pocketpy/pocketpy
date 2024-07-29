@@ -19,19 +19,19 @@ typedef struct BaseException {
     c11_vector /*T=BaseExceptionFrame*/ stacktrace;
 } BaseException;
 
-void py_BaseException__set_lineno(py_Ref self, int lineno, const CodeObject* code){
+void py_BaseException__set_lineno(py_Ref self, int lineno, const CodeObject* code) {
     BaseException* ud = py_touserdata(self);
     ud->lineno_backup = lineno;
     ud->code_backup = code;
 }
 
-int py_BaseException__get_lineno(py_Ref self, const CodeObject* code){
+int py_BaseException__get_lineno(py_Ref self, const CodeObject* code) {
     BaseException* ud = py_touserdata(self);
     if(code != ud->code_backup) return -1;
     return ud->lineno_backup;
 }
 
-void py_BaseException__stpush(py_Ref self, pk_SourceData_ src, int lineno, const char *func_name){
+void py_BaseException__stpush(py_Ref self, pk_SourceData_ src, int lineno, const char* func_name) {
     BaseException* ud = py_touserdata(self);
     if(ud->stacktrace.count >= 7) return;
     BaseExceptionFrame* frame = c11_vector__emplace(&ud->stacktrace);
