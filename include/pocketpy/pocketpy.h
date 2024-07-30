@@ -160,7 +160,7 @@ py_ObjectRef py_bind2(py_Ref obj,
 // old style argc-based bindings
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
 void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum BindType bt);
-void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f);
+void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
 
 /// Get the reference to the i-th register.
 /// All registers are located in a contiguous memory.

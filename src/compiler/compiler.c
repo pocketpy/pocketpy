@@ -1450,6 +1450,7 @@ static void Compiler__ctor(Compiler* self, pk_SourceData_ src, pk_TokenArray tok
 
 static void Compiler__dtor(Compiler* self) {
     pk_TokenArray__dtor(&self->tokens);
+    c11__foreach(Ctx, &self->contexts, ctx) Ctx__dtor(ctx);
     c11_vector__dtor(&self->contexts);
 }
 
@@ -1458,7 +1459,6 @@ static void Compiler__dtor(Compiler* self) {
 #define prev() tk(self->i - 1)
 #define curr() tk(self->i)
 #define next() tk(self->i + 1)
-// #define err() (self->i == self->tokens.count ? prev() : curr())
 
 #define advance() self->i++
 #define mode() self->src->mode
@@ -1468,11 +1468,12 @@ static void Compiler__dtor(Compiler* self) {
 
 #define consume(expected)                                                                          \
     if(!match(expected))                                                                           \
-        return SyntaxError("expected '%s', got '%s'",                                              \
+        return SyntaxError(self,                                                                   \
+                           "expected '%s', got '%s'",                                              \
                            pk_TokenSymbols[expected],                                              \
                            pk_TokenSymbols[curr()->type]);
 #define consume_end_stmt()                                                                         \
-    if(!match_end_stmt(self)) return SyntaxError("expected statement end")
+    if(!match_end_stmt(self)) return SyntaxError(self, "expected statement end")
 
 #define check(B)                                                                                   \
     if((err = B)) return err
@@ -1483,9 +1484,17 @@ static NameScope name_scope(Compiler* self) {
     return s;
 }
 
-Error* SyntaxError(const char* fmt, ...) {
-    c11__abort("%s", fmt);
-    return NULL;
+Error* SyntaxError(Compiler* self, const char* fmt, ...) {
+    Error* err = malloc(sizeof(Error));
+    err->src = self->src;
+    PK_INCREF(self->src);
+    Token* t = self->i == self->tokens.count ? prev() : curr();
+    err->lineno = t->line;
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(err->msg, sizeof(err->msg), fmt, args);
+    va_end(args);
+    return err;
 }
 
 /* Matchers */
@@ -1522,7 +1531,7 @@ static bool match_end_stmt(Compiler* self) {
 static Error* parse_expression(Compiler* self, int precedence, bool allow_slice) {
     PrattCallback prefix = rules[curr()->type].prefix;
     if(!prefix || (curr()->type == TK_COLON && !allow_slice)) {
-        return SyntaxError("expected an expression, got %s", pk_TokenSymbols[curr()->type]);
+        return SyntaxError(self, "expected an expression, got %s", pk_TokenSymbols[curr()->type]);
     }
     advance();
     Error* err;
@@ -1612,9 +1621,11 @@ static Error* pop_context(Compiler* self) {
     // some check here
     c11_vector* codes = &co->codes;
     if(co->nlocals > PK_MAX_CO_VARNAMES) {
-        return SyntaxError("maximum number of local variables exceeded");
+        return SyntaxError(self, "maximum number of local variables exceeded");
     }
-    if(co->consts.count > 65530) { return SyntaxError("maximum number of constants exceeded"); }
+    if(co->consts.count > 65530) {
+        return SyntaxError(self, "maximum number of constants exceeded");
+    }
     // pre-compute LOOP_BREAK and LOOP_CONTINUE
     for(int i = 0; i < codes->count; i++) {
         Bytecode* bc = c11__at(Bytecode, codes, i);
@@ -1635,7 +1646,8 @@ static Error* pop_context(Compiler* self) {
                 func->type = FuncType_GENERATOR;
                 c11__foreach(Bytecode, &func->code.codes, bc) {
                     if(bc->op == OP_RETURN_VALUE && bc->arg == BC_NOARG) {
-                        return SyntaxError("'return' with argument inside generator function");
+                        return SyntaxError(self,
+                                           "'return' with argument inside generator function");
                     }
                 }
                 break;
@@ -1962,7 +1974,7 @@ static Error* exprCall(Compiler* self) {
             } else {
                 // positional argument
                 if(e->kwargs.count > 0) {
-                    return SyntaxError("positional argument follows keyword argument");
+                    return SyntaxError(self, "positional argument follows keyword argument");
                 }
                 c11_vector__push(Expr*, &e->args, Ctx__s_popx(ctx()));
             }
@@ -2052,7 +2064,7 @@ static Error* compile_block_body(Compiler* self, PrattCallback callback) {
     }
 
     bool consumed = match_newlines();
-    if(!consumed) return SyntaxError("expected a new line after ':'");
+    if(!consumed) return SyntaxError(self, "expected a new line after ':'");
 
     consume(TK_INDENT);
     while(curr()->type != TK_DEDENT) {
@@ -2119,7 +2131,7 @@ static Error* compile_for_loop(Compiler* self) {
     vtdelete(vars);
     if(!ok) {
         // this error occurs in `vars` instead of this line, but...nevermind
-        return SyntaxError("invalid syntax");
+        return SyntaxError(self, "invalid syntax");
     }
     check(compile_block_body(self, compile_stmt));
     Ctx__emit_virtual(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), BC_KEEPLINE, true);
@@ -2147,9 +2159,9 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
         case TK_IOR:
         case TK_IXOR: {
             if(Ctx__s_top(ctx())->vt->is_starred)
-                return SyntaxError("can't use inplace operator with starred expression");
+                return SyntaxError(self, "can't use inplace operator with starred expression");
             if(ctx()->is_compiling_class)
-                return SyntaxError("can't use inplace operator in class definition");
+                return SyntaxError(self, "can't use inplace operator in class definition");
             advance();
             // a[x] += 1;   a and x should be evaluated only once
             // a.x += 1;    a should be evaluated only once
@@ -2159,14 +2171,14 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
             // [lhs]
             check(EXPR_TUPLE(self));  // [lhs, rhs]
             if(Ctx__s_top(ctx())->vt->is_starred)
-                return SyntaxError("can't use starred expression here");
+                return SyntaxError(self, "can't use starred expression here");
             BinaryExpr* e = BinaryExpr__new(line, op, true);
             e->rhs = Ctx__s_popx(ctx());  // [lhs]
             e->lhs = Ctx__s_popx(ctx());  // []
             vtemit_((Expr*)e, ctx());
             bool ok = vtemit_istore(e->lhs, ctx());
             vtdelete((Expr*)e);
-            if(!ok) return SyntaxError("invalid syntax");
+            if(!ok) return SyntaxError(self, "invalid syntax");
             *is_assign = true;
             return NULL;
         }
@@ -2182,11 +2194,11 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
                 Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             for(int j = 0; j < n; j++) {
                 if(Ctx__s_top(ctx())->vt->is_starred)
-                    return SyntaxError("can't use starred expression here");
+                    return SyntaxError(self, "can't use starred expression here");
                 Expr* e = Ctx__s_top(ctx());
                 bool ok = vtemit_store(e, ctx());
                 Ctx__s_pop(ctx());
-                if(!ok) return SyntaxError("invalid syntax");
+                if(!ok) return SyntaxError(self, "invalid syntax");
             }
             *is_assign = true;
             return NULL;
@@ -2239,7 +2251,8 @@ static Error* read_literal(Compiler* self, py_Ref out) {
             py_TValue cpnts[4];
             int count = 0;
             while(true) {
-                if(count == 4) return SyntaxError("default argument tuple exceeds 4 elements");
+                if(count == 4)
+                    return SyntaxError(self, "default argument tuple exceeds 4 elements");
                 check(read_literal(self, &cpnts[count]));
                 count += 1;
                 if(curr()->type == TK_RPAREN) break;
@@ -2261,13 +2274,13 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
     int state = 0;  // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
     Error* err;
     do {
-        if(state >= 3) return SyntaxError("**kwargs should be the last argument");
+        if(state >= 3) return SyntaxError(self, "**kwargs should be the last argument");
         match_newlines();
         if(match(TK_MUL)) {
             if(state < 1)
                 state = 1;
             else
-                return SyntaxError("*args should be placed before **kwargs");
+                return SyntaxError(self, "*args should be placed before **kwargs");
         } else if(match(TK_POW)) {
             state = 3;
         }
@@ -2276,7 +2289,7 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
 
         // check duplicate argument name
         if(FuncDecl__is_duplicated_arg(decl, name)) {
-            return SyntaxError("duplicate argument name");
+            return SyntaxError(self, "duplicate argument name");
         }
 
         // eat type hints
@@ -2292,7 +2305,7 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
                 consume(TK_ASSIGN);
                 py_TValue value;
                 check(read_literal(self, &value));
-                if(py_isnil(&value)) return SyntaxError("default argument must be a literal");
+                if(py_isnil(&value)) return SyntaxError(self, "default argument must be a literal");
                 FuncDecl__add_kwarg(decl, name, &value);
             } break;
             case 3:
@@ -2367,7 +2380,7 @@ static Error* compile_class(Compiler* self, int decorators) {
     Ctx__emit_(ctx(), OP_BEGIN_CLASS, name, BC_KEEPLINE);
 
     c11__foreach(Ctx, &self->contexts, it) {
-        if(it->is_compiling_class) return SyntaxError("nested class is not allowed");
+        if(it->is_compiling_class) return SyntaxError(self, "nested class is not allowed");
     }
     ctx()->is_compiling_class = true;
     check(compile_block_body(self, compile_stmt));
@@ -2384,7 +2397,7 @@ static Error* compile_decorated(Compiler* self) {
     do {
         check(EXPR(self));
         count += 1;
-        if(!match_newlines()) return SyntaxError("expected a newline after '@'");
+        if(!match_newlines()) return SyntaxError(self, "expected a newline after '@'");
     } while(match(TK_DECORATOR));
 
     if(match(TK_CLASS)) {
@@ -2468,7 +2481,7 @@ __EAT_DOTS_END:
 
     if(match(TK_MUL)) {
         if(name_scope(self) != NAME_GLOBAL)
-            return SyntaxError("from <module> import * can only be used in global scope");
+            return SyntaxError(self, "from <module> import * can only be used in global scope");
         // pop the module and import __all__
         Ctx__emit_(ctx(), OP_POP_IMPORT_STAR, BC_NOARG, prev()->line);
         consume_end_stmt();
@@ -2503,10 +2516,14 @@ static Error* compile_try_except(Compiler* self) {
     patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
     Ctx__exit_block(ctx());
 
-    if(curr()->type == TK_FINALLY) { return SyntaxError("finally clause is not supported yet"); }
+    if(curr()->type == TK_FINALLY) {
+        return SyntaxError(self, "finally clause is not supported yet");
+    }
 
     do {
-        if(patches_length == 8) { return SyntaxError("maximum number of except clauses reached"); }
+        if(patches_length == 8) {
+            return SyntaxError(self, "maximum number of except clauses reached");
+        }
         py_Name as_name = 0;
         consume(TK_EXCEPT);
         if(is_expression(self, false)) {
@@ -2553,24 +2570,24 @@ static Error* compile_stmt(Compiler* self) {
     int curr_loop_block = Ctx__get_loop(ctx());
     switch(prev()->type) {
         case TK_BREAK:
-            if(curr_loop_block < 0) return SyntaxError("'break' outside loop");
+            if(curr_loop_block < 0) return SyntaxError(self, "'break' outside loop");
             Ctx__emit_(ctx(), OP_LOOP_BREAK, curr_loop_block, kw_line);
             consume_end_stmt();
             break;
         case TK_CONTINUE:
-            if(curr_loop_block < 0) return SyntaxError("'continue' not properly in loop");
+            if(curr_loop_block < 0) return SyntaxError(self, "'continue' not properly in loop");
             Ctx__emit_(ctx(), OP_LOOP_CONTINUE, curr_loop_block, kw_line);
             consume_end_stmt();
             break;
         case TK_YIELD:
-            if(self->contexts.count <= 1) return SyntaxError("'yield' outside function");
+            if(self->contexts.count <= 1) return SyntaxError(self, "'yield' outside function");
             check(EXPR_TUPLE(self));
             Ctx__s_emit_top(ctx());
             Ctx__emit_(ctx(), OP_YIELD_VALUE, BC_NOARG, kw_line);
             consume_end_stmt();
             break;
         case TK_YIELD_FROM:
-            if(self->contexts.count <= 1) return SyntaxError("'yield from' outside function");
+            if(self->contexts.count <= 1) return SyntaxError(self, "'yield from' outside function");
             check(EXPR_TUPLE(self));
             Ctx__s_emit_top(ctx());
             Ctx__emit_(ctx(), OP_GET_ITER, BC_NOARG, kw_line);
@@ -2582,7 +2599,7 @@ static Error* compile_stmt(Compiler* self) {
             consume_end_stmt();
             break;
         case TK_RETURN:
-            if(self->contexts.count <= 1) return SyntaxError("'return' outside function");
+            if(self->contexts.count <= 1) return SyntaxError(self, "'return' outside function");
             if(match_end_stmt(self)) {
                 Ctx__emit_(ctx(), OP_RETURN_VALUE, 1, kw_line);
             } else {
@@ -2642,7 +2659,7 @@ static Error* compile_stmt(Compiler* self) {
         case TK_DEL: {
             check(EXPR_TUPLE(self));
             Expr* e = Ctx__s_top(ctx());
-            if(!vtemit_del(e, ctx())) return SyntaxError("invalid syntax");
+            if(!vtemit_del(e, ctx())) return SyntaxError(self, "invalid syntax");
             Ctx__s_pop(ctx());
             consume_end_stmt();
         } break;
@@ -2660,7 +2677,7 @@ static Error* compile_stmt(Compiler* self) {
         //     if(as_name) {
         //         bool ok = as_name->emit_store(ctx());
         //         delete_expr(as_name);
-        //         if(!ok) return SyntaxError();
+        //         if(!ok) return SyntaxError(self, );
         //     } else {
         //         Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
         //     }
@@ -2671,16 +2688,18 @@ static Error* compile_stmt(Compiler* self) {
         /*************************************************/
         case TK_EQ: {
             consume(TK_ID);
-            if(mode() != EXEC_MODE) return SyntaxError("'label' is only available in EXEC_MODE");
+            if(mode() != EXEC_MODE)
+                return SyntaxError(self, "'label' is only available in EXEC_MODE");
             c11_sv name = Token__sv(prev());
             bool ok = Ctx__add_label(ctx(), py_namev(name));
-            if(!ok) return SyntaxError("label %q already exists", name);
+            if(!ok) return SyntaxError(self, "label %q already exists", name);
             consume(TK_EQ);
             consume_end_stmt();
         } break;
         case TK_ARROW:
             consume(TK_ID);
-            if(mode() != EXEC_MODE) return SyntaxError("'goto' is only available in EXEC_MODE");
+            if(mode() != EXEC_MODE)
+                return SyntaxError(self, "'goto' is only available in EXEC_MODE");
             py_Name name = py_namev(Token__sv(prev()));
             Ctx__emit_(ctx(), OP_GOTO, name, prev()->line);
             consume_end_stmt();
@@ -2710,7 +2729,7 @@ static Error* compile_stmt(Compiler* self) {
             check(try_compile_assignment(self, &is_assign));
             if(!is_assign) {
                 if(Ctx__s_size(ctx()) > 0 && Ctx__s_top(ctx())->vt->is_starred) {
-                    return SyntaxError("can't use starred expression here");
+                    return SyntaxError(self, "can't use starred expression here");
                 }
                 if(!is_typed_name) {
                     Ctx__s_emit_top(ctx());

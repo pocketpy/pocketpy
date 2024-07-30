@@ -3,6 +3,7 @@
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/vector.h"
 #include "pocketpy/objects/sourcedata.h"
+#include "pocketpy/objects/error.h"
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -86,8 +87,6 @@ enum Precedence {
     PREC_PRIMARY,        // f() x[] a.b 1:2
     PREC_HIGHEST,
 };
-
-typedef struct Error Error;
 
 typedef c11_array pk_TokenArray;
 

@@ -204,18 +204,35 @@ static bool _py_NoneType__repr__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _py_builtins__exec(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    bool ok = py_exec(py_tostr(argv));
+    py_newnone(py_retval());
+    return ok;
+}
+
+static bool _py_builtins__eval(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    return py_eval(py_tostr(argv));
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins", NULL);
-    py_bindnativefunc(builtins, "repr", _py_builtins__repr);
-    py_bindnativefunc(builtins, "exit", _py_builtins__exit);
-    py_bindnativefunc(builtins, "len", _py_builtins__len);
-    py_bindnativefunc(builtins, "reversed", _py_builtins__reversed);
-    py_bindnativefunc(builtins, "hex", _py_builtins__hex);
-    py_bindnativefunc(builtins, "iter", _py_builtins__iter);
-    py_bindnativefunc(builtins, "next", _py_builtins__next);
-    py_bindnativefunc(builtins, "hash", _py_builtins__hash);
-    py_bindnativefunc(builtins, "abs", _py_builtins__abs);
-    py_bindnativefunc(builtins, "sum", _py_builtins__sum);
+    py_bindfunc(builtins, "repr", _py_builtins__repr);
+    py_bindfunc(builtins, "exit", _py_builtins__exit);
+    py_bindfunc(builtins, "len", _py_builtins__len);
+    py_bindfunc(builtins, "reversed", _py_builtins__reversed);
+    py_bindfunc(builtins, "hex", _py_builtins__hex);
+    py_bindfunc(builtins, "iter", _py_builtins__iter);
+    py_bindfunc(builtins, "next", _py_builtins__next);
+    py_bindfunc(builtins, "hash", _py_builtins__hash);
+    py_bindfunc(builtins, "abs", _py_builtins__abs);
+    py_bindfunc(builtins, "sum", _py_builtins__sum);
+
+    py_bindfunc(builtins, "exec", _py_builtins__exec);
+    py_bindfunc(builtins, "eval", _py_builtins__eval);
 
     py_bind(builtins, "print(*args, sep=' ', end='\\n')", _py_builtins__print);
     py_bind(builtins, "sorted(iterable, key=None, reverse=False)", _py_builtins__sorted);

@@ -58,7 +58,7 @@ void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum BindTyp
     py_setdict(py_tpobject(type), py_name(name), &tmp);
 }
 
-void py_bindnativefunc(py_Ref obj, const char* name, py_CFunction f) {
+void py_bindfunc(py_Ref obj, const char* name, py_CFunction f) {
     py_TValue tmp;
     py_newnativefunc(&tmp, f);
     py_setdict(obj, py_name(name), &tmp);

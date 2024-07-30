@@ -192,13 +192,19 @@ static bool is_possible_number_char(char c){
 }
 
 /******************************/
-static Error* SyntaxError(const char* fmt, ...){
-    // va_list args;
-    // va_start(args, fmt);
-    // Error* err = _error(true, "SyntaxError", fmt, &args);
-    // va_end(args);
-    // return err;
-    return NULL;
+static Error* SyntaxError(pk_Lexer* self, const char* fmt, ...){
+    Error* err = malloc(sizeof(Error));
+    err->src = self->src;
+    PK_INCREF(self->src);
+    err->lineno = self->current_line;
+    if(*self->curr_char == '\n') {
+        err->lineno--;
+    }
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(err->msg, sizeof(err->msg), fmt, args);
+    va_end(args);
+    return err;
 }
 
 static Error* eat_name(pk_Lexer* self){
@@ -206,7 +212,7 @@ static Error* eat_name(pk_Lexer* self){
     while(true) {
         unsigned char c = *self->curr_char;
         int u8bytes = c11__u8_header(c, true);
-        if(u8bytes == 0) return SyntaxError("invalid char: %c", c);
+        if(u8bytes == 0) return SyntaxError(self, "invalid char: %c", c);
         if(u8bytes == 1) {
             if(isalnum(c) || c == '_') {
                 self->curr_char++;
@@ -238,7 +244,7 @@ static Error* eat_name(pk_Lexer* self){
     }
 
     int length = (int)(self->curr_char - self->token_start);
-    if(length == 0) return SyntaxError("@id contains invalid char");
+    if(length == 0) return SyntaxError(self, "@id contains invalid char");
     c11_sv name = {self->token_start, length};
 
     const char** KW_BEGIN = pk_TokenSymbols + TK_FALSE;
@@ -271,11 +277,11 @@ static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, c11_string*
             break;
         }
         if(c == '\0') {
-            return SyntaxError("EOL while scanning string literal");
+            return SyntaxError(self, "EOL while scanning string literal");
         }
         if(c == '\n') {
             if(!quote3)
-                return SyntaxError("EOL while scanning string literal");
+                return SyntaxError(self, "EOL while scanning string literal");
             else {
                 c11_sbuf__write_char(&buff, c);
                 continue;
@@ -294,11 +300,11 @@ static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, c11_string*
                     char hex[3] = {eatchar(self), eatchar(self), '\0'};
                     int code;
                     if(sscanf(hex, "%x", &code) != 1) {
-                        return SyntaxError("invalid hex char");
+                        return SyntaxError(self, "invalid hex char");
                     }
                     c11_sbuf__write_char(&buff, (char)code);
                 } break;
-                default: return SyntaxError("invalid escape char");
+                default: return SyntaxError(self, "invalid escape char");
             }
         } else {
             c11_sbuf__write_char(&buff, c);
@@ -357,7 +363,7 @@ static Error* eat_number(pk_Lexer* self){
                 add_token_with_value(self, TK_NUM, value);
                 return NULL;
             case IntParsing_OVERFLOW:
-                return SyntaxError("int literal is too large");
+                return SyntaxError(self, "int literal is too large");
             case IntParsing_FAILURE:
                 break;  // do nothing
         }
@@ -380,7 +386,7 @@ static Error* eat_number(pk_Lexer* self){
         return NULL;
     }
 
-    return SyntaxError("invalid number literal");
+    return SyntaxError(self, "invalid number literal");
 }
 
 static Error* lex_one_token(pk_Lexer* self, bool* eof){
@@ -411,7 +417,7 @@ static Error* lex_one_token(pk_Lexer* self, bool* eof){
                 // line continuation character
                 char c = eatchar_include_newline(self);
                 if(c != '\n') {
-                    return SyntaxError("expected newline after line continuation character");
+                    return SyntaxError(self, "expected newline after line continuation character");
                 }
                 eat_spaces(self);
                 return NULL;
@@ -471,7 +477,7 @@ static Error* lex_one_token(pk_Lexer* self, bool* eof){
                 if(matchchar(self, '=')){
                     add_token(self, TK_NE);
                 }else{
-                    Error* err = SyntaxError("expected '=' after '!'");
+                    Error* err = SyntaxError(self, "expected '=' after '!'");
                     if(err) return err;
                 }
                 break;
@@ -494,7 +500,7 @@ static Error* lex_one_token(pk_Lexer* self, bool* eof){
             case '\n': {
                 add_token(self, TK_EOL);
                 if(!eat_indentation(self)){
-                    return SyntaxError("unindent does not match any outer indentation level");
+                    return SyntaxError(self, "unindent does not match any outer indentation level");
                 }
                 return NULL;
             }
@@ -534,10 +540,10 @@ static Error* from_precompiled(pk_Lexer* self) {
     c11_sv version = TokenDeserializer__read_string(&deserializer, '\n');
 
     if(c11_sv__cmp2(version, PK_VERSION) != 0) {
-        return SyntaxError("precompiled version mismatch");
+        return SyntaxError(self, "precompiled version mismatch");
     }
     if(TokenDeserializer__read_uint(&deserializer, '\n') != (int64_t)self->src->mode){
-        return SyntaxError("precompiled mode mismatch");
+        return SyntaxError(self, "precompiled mode mismatch");
     }
 
     int count = TokenDeserializer__read_count(&deserializer);

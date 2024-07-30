@@ -11,14 +11,11 @@
 extern "C" {
 #endif
 
-struct Error{
-    const char* type;
+typedef struct{
     pk_SourceData_ src;
     int lineno;
-    const char* cursor;
     char msg[100];
-    int64_t userdata;
-};
+} Error;
 
 void py_BaseException__set_lineno(py_Ref, int lineno, const CodeObject* code);
 int py_BaseException__get_lineno(py_Ref, const CodeObject* code);

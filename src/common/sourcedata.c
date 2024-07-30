@@ -71,41 +71,38 @@ bool pk_SourceData__get_line(const struct pk_SourceData* self,
     return true;
 }
 
-c11_string* pk_SourceData__snapshot(const struct pk_SourceData* self,
-                               int lineno,
-                               const char* cursor,
-                               const char* name) {
-    c11_sbuf ss;
-    c11_sbuf__ctor(&ss);
-
-    pk_sprintf(&ss, "  File \"%s\", line %d", self->filename->data, lineno);
+void pk_SourceData__snapshot(const struct pk_SourceData* self,
+                             c11_sbuf* ss,
+                             int lineno,
+                             const char* cursor,
+                             const char* name) {
+    pk_sprintf(ss, "  File \"%s\", line %d", self->filename->data, lineno);
 
     if(name && *name) {
-        c11_sbuf__write_cstr(&ss, ", in ");
-        c11_sbuf__write_cstr(&ss, name);
+        c11_sbuf__write_cstr(ss, ", in ");
+        c11_sbuf__write_cstr(ss, name);
     }
 
     if(!self->is_precompiled) {
-        c11_sbuf__write_char(&ss, '\n');
+        c11_sbuf__write_char(ss, '\n');
         const char *st = NULL, *ed;
         if(pk_SourceData__get_line(self, lineno, &st, &ed)) {
             while(st < ed && isblank(*st))
                 ++st;
             if(st < ed) {
-                c11_sbuf__write_cstr(&ss, "    ");
-                c11_sbuf__write_cstrn(&ss, st, ed - st);
+                c11_sbuf__write_cstr(ss, "    ");
+                c11_sbuf__write_cstrn(ss, st, ed - st);
                 if(cursor && st <= cursor && cursor <= ed) {
-                    c11_sbuf__write_cstr(&ss, "\n    ");
+                    c11_sbuf__write_cstr(ss, "\n    ");
                     for(int i = 0; i < (cursor - st); ++i)
-                        c11_sbuf__write_char(&ss, ' ');
-                    c11_sbuf__write_cstr(&ss, "^");
+                        c11_sbuf__write_char(ss, ' ');
+                    c11_sbuf__write_cstr(ss, "^");
                 }
             } else {
                 st = NULL;
             }
         }
 
-        if(!st) { c11_sbuf__write_cstr(&ss, "    <?>"); }
+        if(!st) { c11_sbuf__write_cstr(ss, "    <?>"); }
     }
-    return c11_sbuf__submit(&ss);
 }

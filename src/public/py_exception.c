@@ -112,3 +112,89 @@ py_Type pk_Exception__register() {
     py_Type type = pk_newtype("Exception", tp_BaseException, NULL, NULL, false, true);
     return type;
 }
+
+//////////////////////////////////////////////////
+bool py_checkexc() {
+    pk_VM* vm = pk_current_vm;
+    return !py_isnil(&vm->curr_exception);
+}
+
+void py_printexc() {
+    char* msg = py_formatexc();
+    if(!msg) return;
+    pk_current_vm->_stdout("%s\n", msg);
+    free(msg);
+}
+
+char* py_formatexc() {
+    pk_VM* vm = pk_current_vm;
+    if(py_isnil(&vm->curr_exception)) { return NULL; }
+    c11_sbuf ss;
+    c11_sbuf__ctor(&ss);
+
+    if(true) { c11_sbuf__write_cstr(&ss, "Traceback (most recent call last):\n"); }
+
+    BaseException* ud = py_touserdata(&vm->curr_exception);
+
+    for(int i = ud->stacktrace.count - 1; i >= 0; i--) {
+        BaseExceptionFrame* frame = c11__at(BaseExceptionFrame, &ud->stacktrace, i);
+        pk_SourceData__snapshot(frame->src,
+                                &ss,
+                                frame->lineno,
+                                NULL,
+                                frame->name ? frame->name->data : NULL);
+        c11_sbuf__write_char(&ss, '\n');
+    }
+
+    const char* name = py_tpname(vm->curr_exception.type);
+    bool ok = py_str(&vm->curr_exception);
+    if(!ok) c11__abort("py_printexc(): failed to convert exception to string");
+    const char* message = py_tostr(py_retval());
+
+    c11_sbuf__write_cstr(&ss, name);
+    c11_sbuf__write_cstr(&ss, ": ");
+    c11_sbuf__write_cstr(&ss, message);
+
+    c11_string* res = c11_sbuf__submit(&ss);
+    char* dup = malloc(res->size + 1);
+    memcpy(dup, res->data, res->size);
+    dup[res->size] = '\0';
+    c11_string__delete(res);
+    return dup;
+}
+
+bool py_exception(const char* name, const char* fmt, ...) {
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    va_list args;
+    va_start(args, fmt);
+    pk_vsprintf(&buf, fmt, args);
+    va_end(args);
+
+    c11_string* res = c11_sbuf__submit(&buf);
+    py_Ref message = py_pushtmp();
+    py_newstrn(message, res->data, res->size);
+    c11_string__delete(res);
+
+    py_Ref exc_type = py_getdict(&pk_current_vm->builtins, py_name(name));
+    if(exc_type == NULL) c11__abort("py_exception(): '%s' not found", name);
+    bool ok = py_call(exc_type, 1, message);
+    if(!ok) c11__abort("py_exception(): failed to create exception object");
+    py_pop();
+
+    return py_raise(py_retval());
+}
+
+bool py_raise(py_Ref exc) {
+    assert(py_isinstance(exc, tp_BaseException));
+    pk_VM* vm = pk_current_vm;
+    vm->curr_exception = *exc;
+    return false;
+}
+
+bool KeyError(py_Ref key) {
+    py_Ref cls = py_getdict(&pk_current_vm->builtins, py_name("KeyError"));
+    bool ok = py_call(cls, 1, key);
+    if(!ok) return false;
+    return py_raise(py_retval());
+}
