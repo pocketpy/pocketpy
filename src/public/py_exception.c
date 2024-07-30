@@ -122,7 +122,8 @@ bool py_checkexc() {
 void py_printexc() {
     char* msg = py_formatexc();
     if(!msg) return;
-    pk_current_vm->_stdout("%s\n", msg);
+    pk_current_vm->print(msg);
+    pk_current_vm->print("\n");
     free(msg);
 }
 

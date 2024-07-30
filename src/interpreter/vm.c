@@ -11,13 +11,7 @@
 
 static unsigned char* pk_default_import_file(const char* path) { return NULL; }
 
-static void pk_default_stdout(const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vprintf(fmt, args);
-    va_end(args);
-    fflush(stdout);
-}
+static void pk_default_print(const char* data) { printf("%s", data); }
 
 static void pk_TypeInfo__ctor(pk_TypeInfo* self,
                               py_Name name,
@@ -54,9 +48,9 @@ void pk_VM__ctor(pk_VM* self) {
     self->builtins = *py_NIL;
     self->main = *py_NIL;
 
-    self->_ceval_on_step = NULL;
-    self->_import_file = pk_default_import_file;
-    self->_stdout = pk_default_stdout;
+    self->ceval_on_step = NULL;
+    self->import_file = pk_default_import_file;
+    self->print = pk_default_print;
 
     self->last_retval = *py_NIL;
     self->curr_exception = *py_NIL;
@@ -168,10 +162,10 @@ void pk_VM__ctor(pk_VM* self) {
         "ImportError",
         "AssertionError",
         "KeyError",
-        NULL,   // sentinel
+        NULL,  // sentinel
     };
     const char** it = builtin_exceptions;
-    while(*it){
+    while(*it) {
         py_Type type = pk_newtype(*it, tp_Exception, &self->builtins, NULL, false, true);
         py_setdict(&self->builtins, py_name(*it), py_tpobject(type));
         it++;
@@ -269,9 +263,7 @@ bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* s
 
 bool pk__normalize_index(int* index, int length) {
     if(*index < 0) *index += length;
-    if(*index < 0 || *index >= length) {
-        return IndexError("%d not in [0, %d)", *index, length);
-    }
+    if(*index < 0 || *index >= length) { return IndexError("%d not in [0, %d)", *index, length); }
     return true;
 }
 
@@ -285,9 +277,7 @@ py_Type pk_newtype(const char* name,
     py_Type index = types->count;
     pk_TypeInfo* ti = c11_vector__emplace(types);
     pk_TypeInfo__ctor(ti, py_name(name), index, base, module ? *module : *py_NIL);
-    if(!dtor && base){
-        dtor = c11__at(pk_TypeInfo, types, base)->dtor;
-    }
+    if(!dtor && base) { dtor = c11__at(pk_TypeInfo, types, base)->dtor; }
     ti->dtor = dtor;
     ti->is_python = is_python;
     ti->is_sealed = is_sealed;

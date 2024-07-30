@@ -117,7 +117,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 if(TOP()->type != tp_NoneType) {
                     bool ok = py_repr(TOP());
                     if(!ok) goto __ERROR;
-                    self->_stdout("%s\n", py_tostr(&self->last_retval));
+                    self->print(py_tostr(&self->last_retval));
+                    self->print("\n");
                 }
                 POP();
                 DISPATCH();

@@ -38,9 +38,9 @@ typedef struct pk_VM {
     py_TValue builtins;  // builtins module
     py_TValue main;      // __main__ module
 
-    void (*_ceval_on_step)(Frame*, Bytecode);
-    unsigned char* (*_import_file)(const char*);
-    void (*_stdout)(const char*, ...);
+    void (*ceval_on_step)(Frame*, Bytecode);
+    unsigned char* (*import_file)(const char*);
+    void (*print)(const char*);
 
     py_TValue last_retval;
     py_TValue curr_exception;

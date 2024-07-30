@@ -193,7 +193,7 @@ static bool _py_builtins__print(int argc, py_Ref argv) {
     }
     c11_sbuf__write_sv(&buf, end);
     c11_string* res = c11_sbuf__submit(&buf);
-    pk_current_vm->_stdout("%s", res->data);
+    pk_current_vm->print(res->data);
     c11_string__delete(res);
     py_newnone(py_retval());
     return true;

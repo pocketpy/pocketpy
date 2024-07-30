@@ -168,7 +168,8 @@ static void disassemble(CodeObject* co) {
     }
 
     c11_string* output = c11_sbuf__submit(&ss);
-    pk_current_vm->_stdout("%s\n", output->data);
+    pk_current_vm->print(output->data);
+    pk_current_vm->print("\n");
     c11_string__delete(output);
     c11_vector__dtor(&jumpTargets);
 }
