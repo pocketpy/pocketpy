@@ -478,7 +478,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
     }
 
     // handle `__call__` overload
-    if(py_getunboundmethod(p0, __call__, p0, p0 + 1)) {
+    if(pk_pushmethod(p0, __call__)) {
         // [__call__, self, args..., kwargs...]
         return pk_VM__vectorcall(self, argc, kwargc, opcall);
     }
@@ -557,7 +557,7 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
 }
 
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
-    // return;
+    return;
     if(frame == NULL) return;
 
     py_TValue* sp = self->stack.sp;

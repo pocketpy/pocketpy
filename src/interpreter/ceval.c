@@ -251,12 +251,9 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 goto __ERROR;
             }
             case OP_LOAD_METHOD: {
-                // [self]
-                bool ok = py_getunboundmethod(TOP(), byte.arg, TOP(), SP());
-                if(ok) {
-                    // [unbound, self]
-                    SP()++;
-                } else {
+                // [self] -> [unbound, self]
+                bool ok = py_pushmethod(byte.arg);
+                if(!ok) {
                     // fallback to getattr
                     if(py_getattr(TOP(), byte.arg)) {
                         py_assign(TOP(), py_retval());
@@ -912,8 +909,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
         pk_print_stack(self, frame, (Bytecode){});
         py_BaseException__set_lineno(&self->curr_exception, Frame__lineno(frame), frame->co);
     __ERROR_RE_RAISE:
-
-        printf("error.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
+        do {} while(0);
+        //printf("error.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
         int lineno = py_BaseException__get_lineno(&self->curr_exception, frame->co);
         py_BaseException__stpush(&self->curr_exception,
                                  frame->co->src,

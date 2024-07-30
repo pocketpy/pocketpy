@@ -93,6 +93,8 @@ int pk_arrayequal(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length
 bool pk_arrayiter(py_Ref val);
 bool pk_arraycontains(py_Ref self, py_Ref val);
 
+bool pk_pushmethod(py_StackRef self, py_Name name);
+
 /// Assumes [a, b] are on the stack, performs a binary op.
 /// The result is stored in `self->last_retval`.
 /// The stack remains unchanged.

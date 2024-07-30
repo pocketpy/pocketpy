@@ -230,7 +230,11 @@ bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
 
 py_Ref py_retval() { return &pk_current_vm->last_retval; }
 
-bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self) {
+bool py_pushmethod(py_Name name){
+    return pk_pushmethod(py_peek(-1), name);
+}
+
+bool pk_pushmethod(py_StackRef self, py_Name name) {
     // NOTE: `out` and `out_self` may overlap with `self`
     py_Type type;
     // handle super() proxy
@@ -243,22 +247,23 @@ bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self)
 
     py_Ref cls_var = py_tpfindname(type, name);
     if(cls_var != NULL) {
+        pk_current_vm->stack.sp++;
         switch(cls_var->type) {
             case tp_function:
             case tp_nativefunc: {
                 py_TValue self_bak = *self;
                 // `out` may overlap with `self`. If we assign `out`, `self` may be corrupted.
-                *out = *cls_var;
-                *out_self = self_bak;
+                self[0] = *cls_var;
+                self[1] = self_bak;
                 break;
             }
             case tp_staticmethod:
-                *out = *py_getslot(cls_var, 0);
-                py_newnil(out_self);
+                self[0] = *py_getslot(cls_var, 0);
+                self[1] = *py_NIL;
                 break;
             case tp_classmethod:
-                *out = *py_getslot(cls_var, 0);
-                *out_self = c11__getitem(pk_TypeInfo, &pk_current_vm->types, type).self;
+                self[0] = *py_getslot(cls_var, 0);
+                self[1] = c11__getitem(pk_TypeInfo, &pk_current_vm->types, type).self;
                 break;
             default: c11__unreachedable();
         }

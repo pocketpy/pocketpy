@@ -178,17 +178,12 @@ bool py_deldict(py_Ref self, py_Name name);
 py_ObjectRef py_getslot(py_Ref self, int i);
 void py_setslot(py_Ref self, int i, py_Ref val);
 
-py_TmpRef py_getupvalue(py_StackRef argv);
-void py_setupvalue(py_StackRef argv, py_Ref val);
-
 /// Gets the attribute of the object.
 bool py_getattr(py_Ref self, py_Name name);
 /// Sets the attribute of the object.
 bool py_setattr(py_Ref self, py_Name name, py_Ref val);
 /// Deletes the attribute of the object.
 bool py_delattr(py_Ref self, py_Name name);
-/// Gets the unbound method of the object.
-bool py_getunboundmethod(py_Ref self, py_Name name, py_Ref out, py_Ref out_self);
 
 bool py_getitem(py_Ref self, py_Ref key);
 bool py_setitem(py_Ref self, py_Ref key, py_Ref val);
@@ -231,6 +226,11 @@ void py_pop();
 void py_shrink(int n);
 /// Get a temporary variable from the stack and returns the reference to it.
 py_StackRef py_pushtmp();
+/// Gets the unbound method of the object.
+/// Assumes the object is located at the top of the stack.
+/// If returns true:  [self] -> [unbound, self]
+/// If returns false: [self] -> [self] (no change)
+bool py_pushmethod(py_Name name);
 
 /************* Modules *************/
 py_TmpRef py_newmodule(const char* name, const char* package);

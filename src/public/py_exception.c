@@ -129,7 +129,7 @@ void py_printexc() {
 
 char* py_formatexc() {
     pk_VM* vm = pk_current_vm;
-    if(py_isnil(&vm->curr_exception)) { return NULL; }
+    if(py_isnil(&vm->curr_exception)) return NULL;
     c11_sbuf ss;
     c11_sbuf__ctor(&ss);
 

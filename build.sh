@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Check if clang++ is installed
-if ! type -P clang++ >/dev/null 2>&1; then
-    echo "clang++ is required and not installed. Kindly install it."
-    echo "Run: sudo apt-get install libc++-dev libc++abi-dev clang"
+# Check if clang is installed
+if ! type -P clang >/dev/null 2>&1; then
+    echo "clang is required and not installed. Kindly install it."
+    echo "Run: sudo apt-get install clang"
     exit 1
 fi
 
@@ -18,13 +18,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-SRC_C=$(find src/ -name "*.c")
-SRC_CPP=$(find src/ -name "*.cpp")
-SRC="$SRC_C $SRC_CPP"
+SRC=$(find src/ -name "*.c")
 
 echo "> Compiling and linking source files... "
 
-FLAGS="-std=c++17 -O1 -stdlib=libc++ -frtti -Wfatal-errors -Iinclude"
+FLAGS="-std=c11 -O1 -Wfatal-errors -Iinclude"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     LIB_EXTENSION=".dylib"
@@ -35,12 +33,12 @@ else
     LINK_FLAGS="-Wl,-rpath=."
 fi
 
-clang++ $FLAGS -o libpocketpy$LIB_EXTENSION $SRC -fPIC -shared
+clang $FLAGS -o libpocketpy$LIB_EXTENSION $SRC -fPIC -shared
 
 # compile main.cpp and link to libpocketpy.so
-echo "> Compiling main.cpp and linking to libpocketpy$LIB_EXTENSION..."
+echo "> Compiling main.c and linking to libpocketpy$LIB_EXTENSION..."
 
-clang++ $FLAGS -o main -O1 src2/main.cpp -L. -lpocketpy $LINK_FLAGS
+clang $FLAGS -o main -O1 src2/main.c -L. -lpocketpy $LINK_FLAGS
 
 if [ $? -eq 0 ]; then
     echo "Build completed. Type \"./main\" to enter REPL."

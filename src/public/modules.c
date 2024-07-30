@@ -132,19 +132,17 @@ static bool _py_builtins__next(int argc, py_Ref argv) {
 static bool _py_builtins__sorted(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     // convert _0 to list object
-    if(!py_tpcall(tp_list, 1, argv)) return false;
-    py_Ref retval = py_pushtmp();
-    py_Ref sort = py_pushtmp();
-    py_Ref self = py_pushtmp();
-    py_Ref key = py_pushtmp();
-    py_Ref reverse = py_pushtmp();
-    *self = *retval = *py_retval();
-    bool ok = py_getunboundmethod(self, py_name("sort"), sort, self);
+    if(!py_tpcall(tp_list, 1, py_arg(0))) return false;
+    py_push(py_retval());                       // duptop
+    py_push(py_retval());                       // [| <list>]
+    bool ok = py_pushmethod(py_name("sort"));   // [| list.sort, <list>]
     if(!ok) return false;
-    *key = argv[1];
-    *reverse = argv[2];
-    if(!py_vectorcall(2, 0)) return false;
-    *py_retval() = *retval;
+    py_push(py_arg(1));                         // [| list.sort, <list>, key]
+    py_push(py_arg(2));                         // [| list.sort, <list>, key, reverse]
+    ok = py_vectorcall(2, 0);                   // [| ]
+    if(!ok) return false;
+    py_assign(py_retval(), py_peek(-1));
+    py_pop();
     return true;
 }
 
