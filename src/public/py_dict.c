@@ -500,6 +500,12 @@ py_Ref py_dict__getitem(py_Ref self, py_Ref key) {
     return NULL;
 }
 
+void py_dict__delitem(py_Ref self, py_Ref key) {
+    assert(py_isdict(self));
+    Dict* ud = py_touserdata(self);
+    Dict__pop(ud, key);
+}
+
 void py_dict__setitem(py_Ref self, py_Ref key, py_Ref val) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);

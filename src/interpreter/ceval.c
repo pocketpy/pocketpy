@@ -717,7 +717,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             /////////
             case OP_UNARY_NEGATIVE: {
-                if(!py_callmagic(__neg__, 1, TOP())) goto __ERROR;
+                if(!pk_callmagic(__neg__, 1, TOP())) goto __ERROR;
                 *TOP() = self->last_retval;
                 DISPATCH();
             }
@@ -735,7 +735,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_UNARY_INVERT: {
-                if(!py_callmagic(__invert__, 1, TOP())) goto __ERROR;
+                if(!pk_callmagic(__invert__, 1, TOP())) goto __ERROR;
                 *TOP() = self->last_retval;
                 DISPATCH();
             }
@@ -889,7 +889,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_TValue* tmp = c11__at(py_TValue, &frame->co->consts, byte.arg);
                 const char* string = py_tostr(tmp);
                 // TODO: optimize this
-                if(!py_exec2(string, "<eval>", EVAL_MODE)) goto __ERROR;
+                if(!py_exec(string, "<eval>", EVAL_MODE, &frame->module)) goto __ERROR;
                 PUSH(py_retval());
                 DISPATCH();
             }

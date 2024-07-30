@@ -156,7 +156,7 @@ static bool _py_builtins__hash(int argc, py_Ref argv) {
 
 static bool _py_builtins__abs(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    return py_callmagic(__abs__, 1, argv);
+    return pk_callmagic(__abs__, 1, argv);
 }
 
 static bool _py_builtins__sum(int argc, py_Ref argv) {
@@ -205,15 +205,13 @@ static bool _py_NoneType__repr__(int argc, py_Ref argv) {
 static bool _py_builtins__exec(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
-    bool ok = py_exec(py_tostr(argv));
-    py_newnone(py_retval());
-    return ok;
+    return py_exec(py_tostr(argv), "<exec>", EXEC_MODE, NULL);
 }
 
 static bool _py_builtins__eval(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
-    return py_eval(py_tostr(argv));
+    return py_exec(py_tostr(argv), "<eval>", EVAL_MODE, NULL);
 }
 
 py_TValue pk_builtins__register() {

@@ -49,13 +49,13 @@ int main(int argc, char** argv) {
             int size = py_replinput(buf);
             assert(size < sizeof(buf));
             if(size >= 0) {
-                if(!py_exec2(buf, "<stdin>", REPL_MODE)) py_printexc();
+                if(!py_exec(buf, "<stdin>", REPL_MODE, NULL)) py_printexc();
             }
         }
     } else {
         char* source = read_file(argv[1]);
         if(source) {
-            if(!py_exec(source)) py_printexc();
+            if(!py_exec(source, argv[1], EXEC_MODE, NULL)) py_printexc();
             free(source);
         }
     }

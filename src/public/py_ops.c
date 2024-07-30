@@ -178,7 +178,7 @@ bool py_delattr(py_Ref self, py_Name name) {
 bool py_getitem(py_Ref self, py_Ref key) {
     py_push(self);
     py_push(key);
-    bool ok = py_callmagic(__getitem__, 2, py_peek(-2));
+    bool ok = pk_callmagic(__getitem__, 2, py_peek(-2));
     py_shrink(2);
     return ok;
 }
@@ -187,7 +187,7 @@ bool py_setitem(py_Ref self, py_Ref key, py_Ref val) {
     py_push(self);
     py_push(key);
     py_push(val);
-    bool ok = py_callmagic(__setitem__, 3, py_peek(-3));
+    bool ok = pk_callmagic(__setitem__, 3, py_peek(-3));
     py_shrink(3);
     return ok;
 }
@@ -195,7 +195,7 @@ bool py_setitem(py_Ref self, py_Ref key, py_Ref val) {
 bool py_delitem(py_Ref self, py_Ref key) {
     py_push(self);
     py_push(key);
-    bool ok = py_callmagic(__delitem__, 2, py_peek(-2));
+    bool ok = pk_callmagic(__delitem__, 2, py_peek(-2));
     py_shrink(2);
     return ok;
 }

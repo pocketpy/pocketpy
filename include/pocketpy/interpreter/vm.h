@@ -94,6 +94,7 @@ bool pk_arrayiter(py_Ref val);
 bool pk_arraycontains(py_Ref self, py_Ref val);
 
 bool pk_pushmethod(py_StackRef self, py_Name name);
+bool pk_callmagic(py_Name name, int argc, py_Ref argv);
 
 /// Assumes [a, b] are on the stack, performs a binary op.
 /// The result is stored in `self->last_retval`.

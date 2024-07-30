@@ -15,7 +15,8 @@ typedef int16_t py_Type;
 typedef int64_t py_i64;
 typedef double py_f64;
 
-/* string_view */
+#define PY_RAISE  // mark a function that can raise an exception
+
 typedef struct c11_sv {
     const char* data;
     int size;
@@ -36,26 +37,33 @@ typedef py_TValue* py_TmpRef;
 /// @param argc number of arguments.
 /// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
 /// @return true if the function is successful.
-typedef bool (*py_CFunction)(int argc, py_StackRef argv);
+typedef bool (*py_CFunction)(int argc, py_StackRef argv) PY_RAISE;
 
-enum py_BindType {
-    bt_function,
-    bt_staticmethod,
-    bt_classmethod,
-};
+enum py_BindType { bt_function, bt_staticmethod, bt_classmethod };
 
 enum py_CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, CELL_MODE };
 
-/************* Global VMs *************/
+extern py_GlobalRef py_True;
+extern py_GlobalRef py_False;
+extern py_GlobalRef py_None;
+extern py_GlobalRef py_NIL;
+
+/************* Global Setup *************/
+/// Initialize the VM.
 void py_initialize();
+/// Finalize the VM.
 void py_finalize();
 
-/// Run a simple source string. Do not change the stack.
-bool py_exec(const char* source);
-/// Eval a simple expression.
-/// The result will be set to `py_retval()`.
-bool py_eval(const char* source);
-bool py_exec2(const char* source, const char* filename, enum py_CompileMode mode);
+/// Run a source string.
+/// @param source source string.
+/// @param filename filename (for error messages).
+/// @param mode compile mode. Use `EXEC_MODE` for statements `EVAL_MODE` for expressions.
+/// @param module target module. Use NULL for the main module.
+/// @return true if the execution is successful.
+bool py_exec(const char* source,
+             const char* filename,
+             enum py_CompileMode mode,
+             py_Ref module) PY_RAISE;
 
 /************* Values Creation *************/
 void py_newint(py_Ref, py_i64);
@@ -78,6 +86,17 @@ void py_newlist(py_Ref);
 /// You should initialize all elements before using it.
 void py_newlistn(py_Ref, int n);
 
+void py_newdict(py_Ref);
+void py_newslice(py_Ref);
+void py_newnativefunc(py_Ref out, py_CFunction);
+py_Name py_newfunction(py_Ref out,
+                    const char* sig,
+                    py_CFunction f,
+                    enum py_BindType bt,
+                    const char* docstring,
+                    int slots);
+
+/************* Name Convertions *************/
 py_Name py_name(const char*);
 const char* py_name2str(py_Name);
 py_Name py_namev(c11_sv name);
@@ -85,12 +104,7 @@ c11_sv py_name2sv(py_Name);
 
 #define py_ismagicname(name) (name <= __missing__)
 
-// opaque types
-void py_newdict(py_Ref);
-void py_newslice(py_Ref);
-// old style argc-based function
-void py_newnativefunc(py_Ref out, py_CFunction);
-
+/************* Meta Operations *************/
 /// Create a new type.
 /// @param name name of the type.
 /// @param base base type.
@@ -104,6 +118,7 @@ py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, vo
 /// @param slots number of slots. Use -1 to create a `__dict__`.
 /// @param udsize size of your userdata. You can use `py_touserdata()` to get the pointer to it.
 void* py_newobject(py_Ref out, py_Type type, int slots, int udsize);
+
 /************* Type Cast *************/
 py_i64 py_toint(py_Ref);
 py_f64 py_tofloat(py_Ref);
@@ -125,15 +140,34 @@ void* py_touserdata(py_Ref);
 #define py_istuple(self) py_istype(self, tp_tuple)
 #define py_isdict(self) py_istype(self, tp_dict)
 
+#define py_isnil(self) py_istype(self, 0)
+#define py_isnone(self) py_istype(self, tp_NoneType)
+
+py_Type py_typeof(py_Ref self);
 bool py_istype(py_Ref, py_Type);
 bool py_isinstance(py_Ref obj, py_Type type);
 bool py_issubclass(py_Type derived, py_Type base);
 
-extern py_GlobalRef py_True;
-extern py_GlobalRef py_False;
-extern py_GlobalRef py_None;
-extern py_GlobalRef py_NIL;
+/// Search the magic method from the given type to the base type.
+py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
+/// Search the name from the given type to the base type.
+py_GlobalRef py_tpfindname(py_Type, py_Name name);
+/// Get the type object of the given type.
+py_GlobalRef py_tpobject(py_Type type);
+/// Get the type name.
+const char* py_tpname(py_Type type);
+/// Call a type to create a new instance.
+bool py_tpcall(py_Type type, int argc, py_Ref argv);
+/// Find the magic method from the given type to the base type.
+py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 
+/// Check if the object is an instance of the given type.
+bool py_checktype(py_Ref self, py_Type type) PY_RAISE;
+
+#define py_checkint(self) py_checktype(self, tp_int)
+#define py_checkfloat(self) py_checktype(self, tp_float)
+#define py_checkbool(self) py_checktype(self, tp_bool)
+#define py_checkstr(self) py_checktype(self, tp_str)
 /************* References *************/
 #define PY_CHECK_ARGC(n)                                                                           \
     if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
@@ -144,27 +178,16 @@ extern py_GlobalRef py_NIL;
 #define py_offset(p, i) ((py_Ref)((char*)p + ((i) << 4)))
 #define py_arg(i) py_offset(argv, i)
 
-py_GlobalRef py_tpmagic(py_Type type, py_Name name);
-#define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
-
-// new style decl-based bindings
-void py_bind(py_Ref obj, const char* sig, py_CFunction f);
-
-py_ObjectRef py_bind2(py_Ref obj,
-                      const char* sig,
-                      py_CFunction f,
-                      enum py_BindType bt,
-                      const char* docstring,
-                      int slots);
-
-// old style argc-based bindings
-void py_bindmethod(py_Type type, const char* name, py_CFunction f);
-void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum py_BindType bt);
-void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
-
 /// Get the reference to the i-th register.
 /// All registers are located in a contiguous memory.
-py_GlobalRef py_reg(int i);
+py_GlobalRef py_getreg(int i);
+/// Set the reference to the i-th register.
+void py_setreg(int i, py_Ref val);
+
+/// Equivalent to `*dst = *src`.
+void py_assign(py_Ref dst, py_Ref src);
+/// The return value of the most recent call.
+py_GlobalRef py_retval();
 
 /// Get the reference of the object's `__dict__`.
 /// The object must have a `__dict__`.
@@ -178,21 +201,28 @@ bool py_deldict(py_Ref self, py_Name name);
 py_ObjectRef py_getslot(py_Ref self, int i);
 void py_setslot(py_Ref self, int i, py_Ref val);
 
-/// Gets the attribute of the object.
-bool py_getattr(py_Ref self, py_Name name);
-/// Sets the attribute of the object.
-bool py_setattr(py_Ref self, py_Name name, py_Ref val);
-/// Deletes the attribute of the object.
-bool py_delattr(py_Ref self, py_Name name);
+/************* Bindings *************/
+// new style decl-based bindings
+void py_bind(py_Ref obj, const char* sig, py_CFunction f);
+// old style argc-based bindings
+void py_bindmethod(py_Type type, const char* name, py_CFunction f);
+void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
 
-bool py_getitem(py_Ref self, py_Ref key);
-bool py_setitem(py_Ref self, py_Ref key, py_Ref val);
-bool py_delitem(py_Ref self, py_Ref key);
+#define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
+
+/************* Python Equivalents *************/
+bool py_getattr(py_Ref self, py_Name name) PY_RAISE;
+bool py_setattr(py_Ref self, py_Name name, py_Ref val) PY_RAISE;
+bool py_delattr(py_Ref self, py_Name name) PY_RAISE;
+
+bool py_getitem(py_Ref self, py_Ref key) PY_RAISE;
+bool py_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
+bool py_delitem(py_Ref self, py_Ref key) PY_RAISE;
 
 /// Perform a binary operation on the stack.
 /// It assumes `lhs` and `rhs` are already pushed to the stack.
 /// The result will be set to `py_retval()`.
-bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop);
+bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) PY_RAISE;
 
 #define py_binaryadd(lhs, rhs) py_binaryop(lhs, rhs, __add__, __radd__)
 #define py_binarysub(lhs, rhs) py_binaryop(lhs, rhs, __sub__, __rsub__)
@@ -208,9 +238,6 @@ bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop);
 #define py_binaryor(lhs, rhs) py_binaryop(lhs, rhs, __or__, 0)
 #define py_binaryxor(lhs, rhs) py_binaryop(lhs, rhs, __xor__, 0)
 #define py_binarymatmul(lhs, rhs) py_binaryop(lhs, rhs, __matmul__, 0)
-
-/// Equivalent to `*dst = *src`.
-void py_assign(py_Ref dst, py_Ref src);
 
 /************* Stack Operations *************/
 /// Return a reference to the i-th object from the top of the stack.
@@ -238,13 +265,13 @@ py_TmpRef py_getmodule(const char* name);
 
 /// Import a module.
 /// The result will be set to `py_retval()`.
-bool py_import(const char* name);
+bool py_import(const char* name) PY_RAISE;
 
 /************* Errors *************/
 /// Raise an exception by name and message. Always returns false.
-bool py_exception(const char* name, const char* fmt, ...);
+bool py_exception(const char* name, const char* fmt, ...) PY_RAISE;
 /// Raise an expection object. Always returns false.
-bool py_raise(py_Ref);
+bool py_raise(py_Ref) PY_RAISE;
 /// Print the last error to the console.
 void py_printexc();
 /// Format the last error to a string.
@@ -264,13 +291,16 @@ bool py_checkexc();
     py_exception("UnboundLocalError", "local variable '%n' referenced before assignment", (n))
 
 bool StopIteration();
-bool KeyError(py_Ref key);
+bool KeyError(py_Ref key) PY_RAISE;
 
 /************* Operators *************/
+int py_equal(py_Ref lhs, py_Ref rhs) PY_RAISE;
+int py_less(py_Ref lhs, py_Ref rhs) PY_RAISE;
+
 /// Equivalent to `bool(val)`.
 /// Returns 1 if `val` is truthy, otherwise 0.
 /// Returns -1 if an error occurred.
-int py_bool(py_Ref val);
+int py_bool(py_Ref val) PY_RAISE;
 
 #define py_eq(lhs, rhs) py_binaryop(lhs, rhs, __eq__, __eq__)
 #define py_ne(lhs, rhs) py_binaryop(lhs, rhs, __ne__, __ne__)
@@ -279,61 +309,42 @@ int py_bool(py_Ref val);
 #define py_gt(lhs, rhs) py_binaryop(lhs, rhs, __gt__, __lt__)
 #define py_ge(lhs, rhs) py_binaryop(lhs, rhs, __ge__, __le__)
 
-int py_equal(py_Ref lhs, py_Ref rhs);
-int py_less(py_Ref lhs, py_Ref rhs);
-
-bool py_hash(py_Ref, py_i64* out);
-
+bool py_hash(py_Ref, py_i64* out) PY_RAISE;
 /// Get the iterator of the object.
-bool py_iter(py_Ref);
+bool py_iter(py_Ref) PY_RAISE;
 /// Get the next element from the iterator.
 /// 1: success, 0: StopIteration, -1: error
-int py_next(py_Ref);
-
+int py_next(py_Ref) PY_RAISE;
 /// Python equivalent to `lhs is rhs`.
 bool py_isidentical(py_Ref, py_Ref);
-
 /// A stack operation that calls a function.
 /// It assumes `argc + kwargc` arguments are already pushed to the stack.
 /// The result will be set to `py_retval()`.
 /// The stack size will be reduced by `argc + kwargc`.
-bool py_vectorcall(uint16_t argc, uint16_t kwargc);
+bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE;
 /// Call a function.
 /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
-bool py_call(py_Ref f, int argc, py_Ref argv);
+bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE;
 /// Call a non-magic method.
 /// It prepares the stack and then performs a `vectorcall(argc+1, 0, false)`.
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
-bool py_callmethod(py_Ref self, py_Name, int argc, py_Ref argv);
-/// Call a magic method using a continuous buffer.
-/// The result will be set to `py_retval()`.
-/// The stack remains unchanged after the operation.
-bool py_callmagic(py_Name name, int argc, py_Ref argv);
+bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv) PY_RAISE;
 /// Call a `py_CFunction` in a safe way.
-bool py_callcfunc(py_StackRef p0, py_CFunction cfunc, int argc, py_Ref argv);
+bool py_callcfunc(py_StackRef p0, py_CFunction cfunc, int argc, py_Ref argv) PY_RAISE;
 
-bool py_str(py_Ref val);
-#define py_repr(val) py_callmagic(__repr__, 1, val)
-#define py_len(val) py_callmagic(__len__, 1, val)
+bool py_str(py_Ref val) PY_RAISE;
+bool py_repr(py_Ref val) PY_RAISE;
+bool py_len(py_Ref val) PY_RAISE;
 
-/// The return value of the most recent call.
-py_GlobalRef py_retval();
-
-#define py_isnil(self) py_istype(self, 0)
-#define py_isnone(self) py_istype(self, tp_NoneType)
-
-/* tuple */
-
-// unchecked functions, if self is not a tuple, the behavior is undefined
+/************* Unchecked Functions *************/
 py_ObjectRef py_tuple__data(py_Ref self);
 py_ObjectRef py_tuple__getitem(py_Ref self, int i);
 void py_tuple__setitem(py_Ref self, int i, py_Ref val);
 int py_tuple__len(py_Ref self);
 
-// unchecked functions, if self is not a list, the behavior is undefined
 py_TmpRef py_list__data(py_Ref self);
 py_TmpRef py_list__getitem(py_Ref self, int i);
 void py_list__setitem(py_Ref self, int i, py_Ref val);
@@ -344,44 +355,17 @@ void py_list__clear(py_Ref self);
 void py_list__insert(py_Ref self, int i, py_Ref val);
 void py_list__reverse(py_Ref self);
 
-// unchecked functions, if self is not a dict, the behavior is undefined
-py_TmpRef py_dict__getitem(py_Ref self, py_Ref key);
-void py_dict__setitem(py_Ref self, py_Ref key, py_Ref val);
+py_TmpRef py_dict__getitem(py_Ref self, py_Ref key) PY_RAISE;
+void py_dict__setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
+void py_dict__delitem(py_Ref self, py_Ref key) PY_RAISE;
 bool py_dict__contains(py_Ref self, py_Ref key);
 int py_dict__len(py_Ref self);
 bool py_dict__apply(py_Ref self, bool (*f)(py_Ref key, py_Ref val, void* ctx), void* ctx);
 
-/// Search the magic method from the given type to the base type.
-/// Return the reference or NULL if not found.
-py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
-
-/// Search the name from the given type to the base type.
-/// Return the reference or NULL if not found.
-py_GlobalRef py_tpfindname(py_Type, py_Name name);
-
-/// Get the type object of the given type.
-py_GlobalRef py_tpobject(py_Type type);
-
-/// Get the type name.
-const char* py_tpname(py_Type type);
-
-/// Call a type to create a new instance.
-bool py_tpcall(py_Type type, int argc, py_Ref argv);
-
-/// Check if the object is an instance of the given type.
-bool py_checktype(py_Ref self, py_Type type);
-
-/// Get the type of the object.
-py_Type py_typeof(py_Ref self);
-
-#define py_checkint(self) py_checktype(self, tp_int)
-#define py_checkfloat(self) py_checktype(self, tp_float)
-#define py_checkbool(self) py_checktype(self, tp_bool)
-#define py_checkstr(self) py_checktype(self, tp_str)
-
+/************* Others *************/
 int py_replinput(char* buf);
 
-/// Python favored string formatting.
+/// Python favored string formatting. (just put here, not for users)
 /// %d: int
 /// %i: py_i64 (int64_t)
 /// %f: py_f64 (double)

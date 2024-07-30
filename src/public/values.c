@@ -49,10 +49,6 @@ void py_newnativefunc(py_Ref out, py_CFunction f) {
 }
 
 void py_bindmethod(py_Type type, const char* name, py_CFunction f) {
-    py_bindmethod2(type, name, f, bt_function);
-}
-
-void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum py_BindType bt) {
     py_TValue tmp;
     py_newnativefunc(&tmp, f);
     py_setdict(py_tpobject(type), py_name(name), &tmp);
@@ -66,26 +62,35 @@ void py_bindfunc(py_Ref obj, const char* name, py_CFunction f) {
 
 void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
     py_TValue tmp;
-    do {
-        char buffer[256];
-        snprintf(buffer, sizeof(buffer), "def %s: pass", sig);
-        // fn(a, b, *c, d=1) -> None
-        CodeObject code;
-        pk_SourceData_ source = pk_SourceData__rcnew(buffer, "<bind>", EXEC_MODE, false);
-        Error* err = pk_compile(source, &code);
-        if(err) c11__abort("py_bind(): failed to compile signature '%s'", sig);
-        if(code.func_decls.count != 1) c11__abort("py_bind(): invalid signature '%s'", sig);
-        FuncDecl_ decl = c11__getitem(FuncDecl_, &code.func_decls, 0);
-        // construct the function
-        Function* ud = py_newobject(&tmp, tp_function, 0, sizeof(Function));
-        Function__ctor(ud, decl, NULL);
-        ud->cfunc = f;
-        CodeObject__dtor(&code);
-        PK_DECREF(source);
-    } while(0);
-    Function* ud = py_touserdata(&tmp);
-    py_Name name = py_name(ud->decl->code.name->data);
+    py_Name name = py_newfunction(&tmp, sig, f, bt_function, NULL, 0);
     py_setdict(obj, name, &tmp);
+}
+
+py_Name py_newfunction(py_Ref out,
+                       const char* sig,
+                       py_CFunction f,
+                       enum py_BindType bt,
+                       const char* docstring,
+                       int slots) {
+    char buffer[256];
+    snprintf(buffer, sizeof(buffer), "def %s: pass", sig);
+    // fn(a, b, *c, d=1) -> None
+    CodeObject code;
+    pk_SourceData_ source = pk_SourceData__rcnew(buffer, "<bind>", EXEC_MODE, false);
+    Error* err = pk_compile(source, &code);
+    if(err || code.func_decls.count != 1) {
+        c11__abort("py_newfunction(): invalid signature '%s'", sig);
+    }
+    FuncDecl_ decl = c11__getitem(FuncDecl_, &code.func_decls, 0);
+    decl->docstring = docstring;
+    // construct the function
+    Function* ud = py_newobject(out, tp_function, slots, sizeof(Function));
+    Function__ctor(ud, decl, NULL);
+    ud->cfunc = f;
+    CodeObject__dtor(&code);
+    PK_DECREF(source);
+    assert(decl->rc.count == 1);
+    return py_name(ud->decl->code.name->data);
 }
 
 void* py_newobject(py_Ref out, py_Type type, int slots, int udsize) {

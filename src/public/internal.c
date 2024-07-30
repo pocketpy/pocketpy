@@ -174,8 +174,8 @@ static void disassemble(CodeObject* co) {
     c11_vector__dtor(&jumpTargets);
 }
 
-static bool
-    pk_VM__exec(pk_VM* vm, const char* source, const char* filename, enum py_CompileMode mode) {
+bool py_exec(const char* source, const char* filename, enum py_CompileMode mode, py_Ref module) {
+    pk_VM* vm = pk_current_vm;
     CodeObject co;
     pk_SourceData_ src = pk_SourceData__rcnew(source, filename, mode, false);
     Error* err = pk_compile(src, &co);
@@ -189,8 +189,9 @@ static bool
     }
 
     // disassemble(&co);
+    if(!module) module = &vm->main;
 
-    Frame* frame = Frame__new(&co, &vm->main, NULL, vm->stack.sp, vm->stack.sp, &co);
+    Frame* frame = Frame__new(&co, module, NULL, vm->stack.sp, vm->stack.sp, &co);
     pk_VM__push_frame(vm, frame);
     pk_FrameResult res = pk_VM__run_top_frame(vm);
     CodeObject__dtor(&co);
@@ -198,14 +199,6 @@ static bool
     if(res == RES_ERROR) return false;
     if(res == RES_RETURN) return true;
     c11__unreachedable();
-}
-
-bool py_exec(const char* source) { return pk_VM__exec(pk_current_vm, source, "<exec>", EXEC_MODE); }
-
-bool py_eval(const char* source) { return pk_VM__exec(pk_current_vm, source, "<eval>", EVAL_MODE); }
-
-bool py_exec2(const char* source, const char* filename, enum py_CompileMode mode) {
-    return pk_VM__exec(pk_current_vm, source, filename, mode);
 }
 
 bool py_call(py_Ref f, int argc, py_Ref argv) {
@@ -230,9 +223,7 @@ bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
 
 py_Ref py_retval() { return &pk_current_vm->last_retval; }
 
-bool py_pushmethod(py_Name name){
-    return pk_pushmethod(py_peek(-1), name);
-}
+bool py_pushmethod(py_Name name) { return pk_pushmethod(py_peek(-1), name); }
 
 bool pk_pushmethod(py_StackRef self, py_Name name) {
     // NOTE: `out` and `out_self` may overlap with `self`
@@ -317,7 +308,7 @@ bool py_tpcall(py_Type type, int argc, py_Ref argv) {
     return py_call(py_tpobject(type), argc, argv);
 }
 
-bool py_callmagic(py_Name name, int argc, py_Ref argv) {
+bool pk_callmagic(py_Name name, int argc, py_Ref argv) {
     assert(argc >= 1);
     assert(py_ismagicname(name));
     py_Ref tmp = py_tpfindmagic(argv->type, name);
