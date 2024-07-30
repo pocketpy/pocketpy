@@ -49,7 +49,7 @@ void py_newnativefunc(py_Ref out, py_CFunction f) {
 }
 
 void py_bindmethod(py_Type type, const char* name, py_CFunction f) {
-    py_bindmethod2(type, name, f, py_FUNCTION);
+    py_bindmethod2(type, name, f, py_BindType_FUNCTION);
 }
 
 void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum py_BindType bt) {
