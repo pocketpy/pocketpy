@@ -168,16 +168,8 @@ bool py_checktype(py_Ref self, py_Type type) PY_RAISE;
 #define py_checkfloat(self) py_checktype(self, tp_float)
 #define py_checkbool(self) py_checktype(self, tp_bool)
 #define py_checkstr(self) py_checktype(self, tp_str)
+
 /************* References *************/
-#define PY_CHECK_ARGC(n)                                                                           \
-    if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
-
-#define PY_CHECK_ARG_TYPE(i, type)                                                                 \
-    if(!py_checktype(py_arg(i), type)) return false
-
-#define py_offset(p, i) ((py_Ref)((char*)p + ((i) << 4)))
-#define py_arg(i) py_offset(argv, i)
-
 /// Get the reference to the i-th register.
 /// All registers are located in a contiguous memory.
 py_GlobalRef py_getreg(int i);
@@ -210,6 +202,14 @@ void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
 
 #define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
 
+#define PY_CHECK_ARGC(n)                                                                           \
+    if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
+
+#define PY_CHECK_ARG_TYPE(i, type)                                                                 \
+    if(!py_checktype(py_arg(i), type)) return false
+
+#define py_offset(p, i) ((py_Ref)((char*)p + ((i) << 4)))
+#define py_arg(i) py_offset(argv, i)
 /************* Python Equivalents *************/
 bool py_getattr(py_Ref self, py_Name name) PY_RAISE;
 bool py_setattr(py_Ref self, py_Name name, py_Ref val) PY_RAISE;
