@@ -41,7 +41,6 @@ typedef struct pk_VM {
     void (*_ceval_on_step)(Frame*, Bytecode);
     unsigned char* (*_import_file)(const char*);
     void (*_stdout)(const char*, ...);
-    void (*_stderr)(const char*, ...);
 
     py_TValue last_retval;
     py_TValue curr_exception;

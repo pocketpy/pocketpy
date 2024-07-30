@@ -14,17 +14,9 @@ static unsigned char* pk_default_import_file(const char* path) { return NULL; }
 static void pk_default_stdout(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    vfprintf(stdout, fmt, args);
+    vprintf(fmt, args);
     va_end(args);
     fflush(stdout);
-}
-
-static void pk_default_stderr(const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fflush(stderr);
 }
 
 static void pk_TypeInfo__ctor(pk_TypeInfo* self,
@@ -65,7 +57,6 @@ void pk_VM__ctor(pk_VM* self) {
     self->_ceval_on_step = NULL;
     self->_import_file = pk_default_import_file;
     self->_stdout = pk_default_stdout;
-    self->_stderr = pk_default_stderr;
 
     self->last_retval = *py_NIL;
     self->curr_exception = *py_NIL;
