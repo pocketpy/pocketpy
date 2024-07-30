@@ -38,10 +38,10 @@ typedef py_TValue* py_TmpRef;
 /// @return true if the function is successful.
 typedef bool (*py_CFunction)(int argc, py_StackRef argv);
 
-enum BindType {
-    BindType_FUNCTION,
-    BindType_STATICMETHOD,
-    BindType_CLASSMETHOD,
+enum py_BindType {
+    py_FUNCTION,
+    py_STATICMETHOD,
+    py_CLASSMETHOD,
 };
 
 enum py_CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, CELL_MODE };
@@ -153,13 +153,13 @@ void py_bind(py_Ref obj, const char* sig, py_CFunction f);
 py_ObjectRef py_bind2(py_Ref obj,
                       const char* sig,
                       py_CFunction f,
-                      enum BindType bt,
+                      enum py_BindType bt,
                       const char* docstring,
                       int slots);
 
 // old style argc-based bindings
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
-void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum BindType bt);
+void py_bindmethod2(py_Type type, const char* name, py_CFunction f, enum py_BindType bt);
 void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
 
 /// Get the reference to the i-th register.
