@@ -39,9 +39,9 @@ typedef py_TValue* py_TmpRef;
 typedef bool (*py_CFunction)(int argc, py_StackRef argv);
 
 enum py_BindType {
-    py_BindType_FUNCTION,
-    py_BindType_STATICMETHOD,
-    py_BindType_CLASSMETHOD
+    bt_function,
+    bt_staticmethod,
+    bt_classmethod,
 };
 
 enum py_CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, CELL_MODE };
