@@ -154,7 +154,7 @@ py_GlobalRef py_tpobject(py_Type type);
 /// Get the type name.
 const char* py_tpname(py_Type type);
 /// Call a type to create a new instance.
-bool py_tpcall(py_Type type, int argc, py_Ref argv);
+bool py_tpcall(py_Type type, int argc, py_Ref argv) PY_RAISE;
 /// Find the magic method from the given type only.
 py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 
