@@ -62,14 +62,13 @@ void py_bindfunc(py_Ref obj, const char* name, py_CFunction f) {
 
 void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
     py_TValue tmp;
-    py_Name name = py_newfunction(&tmp, sig, f, bt_function, NULL, 0);
+    py_Name name = py_newfunction(&tmp, sig, f, NULL, 0);
     py_setdict(obj, name, &tmp);
 }
 
 py_Name py_newfunction(py_Ref out,
                        const char* sig,
                        py_CFunction f,
-                       enum py_BindType bt,
                        const char* docstring,
                        int slots) {
     char buffer[256];

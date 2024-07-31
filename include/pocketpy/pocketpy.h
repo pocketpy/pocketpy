@@ -39,8 +39,6 @@ typedef py_TValue* py_TmpRef;
 /// @return true if the function is successful.
 typedef bool (*py_CFunction)(int argc, py_StackRef argv) PY_RAISE;
 
-enum py_BindType { bt_function, bt_staticmethod, bt_classmethod };
-
 enum py_CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, CELL_MODE };
 
 extern py_GlobalRef py_True;
@@ -92,7 +90,6 @@ void py_newnativefunc(py_Ref out, py_CFunction);
 py_Name py_newfunction(py_Ref out,
                     const char* sig,
                     py_CFunction f,
-                    enum py_BindType bt,
                     const char* docstring,
                     int slots);
 
