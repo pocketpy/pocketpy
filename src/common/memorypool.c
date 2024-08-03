@@ -238,59 +238,47 @@ static int FixedMemoryPool__total_bytes(FixedMemoryPool* self) {
     return self->BlockCount * self->BlockSize;
 }
 
-PK_THREAD_LOCAL FixedMemoryPool PoolExpr;
-PK_THREAD_LOCAL FixedMemoryPool PoolFrame;
-PK_THREAD_LOCAL MemoryPool PoolObject;
-PK_THREAD_LOCAL bool _Pools_initialized = false;
+static FixedMemoryPool PoolExpr;
+static FixedMemoryPool PoolFrame;
+static MemoryPool PoolObject;
 
 void pk_MemoryPools__initialize(){
-    if(_Pools_initialized) return;
     FixedMemoryPool__ctor(&PoolExpr, kPoolExprBlockSize, 64);
     FixedMemoryPool__ctor(&PoolFrame, kPoolFrameBlockSize, 128);
     MemoryPool__ctor(&PoolObject);
-    _Pools_initialized = true;
 }
 
 void pk_MemoryPools__finalize(){
-    if(!_Pools_initialized) return;
     FixedMemoryPool__dtor(&PoolExpr);
     FixedMemoryPool__dtor(&PoolFrame);
     MemoryPool__dtor(&PoolObject);
-    _Pools_initialized = false;
 }
 
 void* PoolExpr_alloc() {
-    assert(_Pools_initialized);
     return FixedMemoryPool__alloc(&PoolExpr);
 }
 
 void PoolExpr_dealloc(void* p) {
-    assert(_Pools_initialized);
     FixedMemoryPool__dealloc(&PoolExpr, p);
 }
 
 void* PoolFrame_alloc() {
-    assert(_Pools_initialized);
     return FixedMemoryPool__alloc(&PoolFrame);
 }
 
 void PoolFrame_dealloc(void* p) {
-    assert(_Pools_initialized);
     FixedMemoryPool__dealloc(&PoolFrame, p);
 }
 
 void* PoolObject_alloc() {
-    assert(_Pools_initialized);
     return MemoryPool__alloc(&PoolObject);
 }
 
 void PoolObject_dealloc(void* p) {
-    assert(_Pools_initialized);
     MemoryPool__dealloc(&PoolObject, p);
 }
 
 void PoolObject_shrink_to_fit() {
-    assert(_Pools_initialized);
     MemoryPool__shrink_to_fit(&PoolObject);
 }
 

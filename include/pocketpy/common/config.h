@@ -13,12 +13,6 @@
 #define PK_ENABLE_OS                0
 #endif
 
-// Enable this if you are working with multi-threading (experimental)
-// This triggers necessary locks to make the VM thread-safe
-#ifndef PK_ENABLE_THREAD            // can be overridden by cmake
-#define PK_ENABLE_THREAD            0
-#endif
-
 // Enable `line_profiler` module and `breakpoint()` function
 #ifndef PK_ENABLE_PROFILER          // can be overridden by cmake
 #define PK_ENABLE_PROFILER          0
@@ -55,10 +49,4 @@
     #define PK_PLATFORM_SEP '\\'
 #else
     #define PK_PLATFORM_SEP '/'
-#endif
-
-#if PK_ENABLE_THREAD
-#define PK_THREAD_LOCAL     thread_local
-#else
-#define PK_THREAD_LOCAL     static
 #endif
