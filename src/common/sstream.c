@@ -147,6 +147,12 @@ c11_string* c11_sbuf__submit(c11_sbuf* self) {
     return retval;
 }
 
+void c11_sbuf__py_submit(c11_sbuf *self, py_Ref out){
+    c11_string* res = c11_sbuf__submit(self);
+    py_newstrn(out, res->data, res->size);
+    c11_string__delete(res);
+}
+
 void pk_vsprintf(c11_sbuf* ss, const char* fmt, va_list args) {
     while(*fmt) {
         char c = *fmt;

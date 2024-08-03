@@ -78,9 +78,7 @@ static bool _py_BaseException__repr__(int argc, py_Ref argv) {
         c11_sbuf__write_sv(&ss, py_tosv(py_retval()));
     }
     c11_sbuf__write_char(&ss, ')');
-    c11_string* res = c11_sbuf__submit(&ss);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&ss, py_retval());
     return true;
 }
 
@@ -92,9 +90,7 @@ static bool _py_BaseException__str__(int argc, py_Ref argv) {
         if(!py_str(arg)) return false;
         c11_sbuf__write_sv(&ss, py_tosv(py_retval()));
     }
-    c11_string* res = c11_sbuf__submit(&ss);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&ss, py_retval());
     return true;
 }
 
@@ -172,10 +168,8 @@ bool py_exception(const char* name, const char* fmt, ...) {
     pk_vsprintf(&buf, fmt, args);
     va_end(args);
 
-    c11_string* res = c11_sbuf__submit(&buf);
     py_Ref message = py_pushtmp();
-    py_newstrn(message, res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, message);
 
     py_Ref exc_type = py_getdict(&pk_current_vm->builtins, py_name(name));
     if(exc_type == NULL) c11__abort("py_exception(): '%s' not found", name);

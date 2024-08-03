@@ -30,6 +30,7 @@ void c11_sbuf__write_hex(c11_sbuf* self, unsigned char, bool non_zero);
 void c11_sbuf__write_ptr(c11_sbuf* self, void*);
 // Submit the stream and return the final string. The stream becomes invalid after this call
 c11_string* c11_sbuf__submit(c11_sbuf* self);
+void c11_sbuf__py_submit(c11_sbuf* self, py_Ref out);
 
 void pk_vsprintf(c11_sbuf* ss, const char* fmt, va_list args);
 void pk_sprintf(c11_sbuf* ss, const char* fmt, ...);

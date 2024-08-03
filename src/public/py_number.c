@@ -201,9 +201,7 @@ static bool _py_float__repr__(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     c11_sbuf__write_f64(&buf, val, -1);
-    c11_string* res = c11_sbuf__submit(&buf);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 

@@ -154,9 +154,7 @@ static bool _py_str__repr__(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     c11_sbuf__write_quoted(&buf, py_tosv(&argv[0]), '\'');
-    c11_string* res = c11_sbuf__submit(&buf);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 
@@ -294,9 +292,7 @@ static bool _py_str__join(int argc, py_Ref argv) {
         c11_string* item = py_touserdata(&p[i]);
         c11_sbuf__write_cstrn(&buf, item->data, item->size);
     }
-    c11_string* res = c11_sbuf__submit(&buf);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 
@@ -391,9 +387,7 @@ static bool _py_str__zfill(int argc, py_Ref argv) {
         c11_sbuf__write_char(&buf, '0');
     }
     c11_sbuf__write_sv(&buf, self);
-    c11_string* res = c11_sbuf__submit(&buf);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 
@@ -429,9 +423,7 @@ static bool _py_str__widthjust_impl(bool left, int argc, py_Ref argv) {
         }
         c11_sbuf__write_sv(&buf, self);
     }
-    c11_string* res = c11_sbuf__submit(&buf);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 

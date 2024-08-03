@@ -109,10 +109,8 @@ static bool _py_builtins__hex(int argc, py_Ref argv) {
         c11_sbuf__write_hex(&ss, cpnt, non_zero);
         if(cpnt != 0) non_zero = false;
     }
-    // return VAR(ss.str());
-    c11_string* res = c11_sbuf__submit(&ss);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+
+    c11_sbuf__py_submit(&ss, py_retval());
     return true;
 }
 

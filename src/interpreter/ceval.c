@@ -502,9 +502,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     c11_sbuf__write_sv(&ss, py_tosv(&self->last_retval));
                 }
                 SP() = begin;
-                c11_string* res = c11_sbuf__submit(&ss);
-                py_newstrn(SP()++, res->data, res->size);
-                c11_string__delete(res);
+                c11_sbuf__py_submit(&ss, SP()++);
                 DISPATCH();
             }
             /*****************************/
@@ -1109,8 +1107,6 @@ static bool format_object(py_Ref val, c11_sv spec) {
     }
 
     c11_string__delete(body);
-    c11_string* res = c11_sbuf__submit(&buf);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }

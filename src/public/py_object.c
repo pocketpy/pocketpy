@@ -40,9 +40,7 @@ static bool _py_object__repr__(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     pk_sprintf(&buf, "<%t object at %p>", argv->type, argv->_obj);
-    c11_string* res = c11_sbuf__submit(&buf);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 
@@ -51,9 +49,7 @@ static bool _py_type__repr__(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     pk_sprintf(&buf, "<class '%t'>", py_totype(argv));
-    c11_string* res = c11_sbuf__submit(&buf);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 

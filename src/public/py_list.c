@@ -239,9 +239,7 @@ static bool _py_list__repr__(int argc, py_Ref argv) {
         if(i != self->count - 1) c11_sbuf__write_cstr(&buf, ", ");
     }
     c11_sbuf__write_char(&buf, ']');
-    c11_string* res = c11_sbuf__submit(&buf);
-    py_newstrn(py_retval(), res->data, res->size);
-    c11_string__delete(res);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 
