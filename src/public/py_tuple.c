@@ -65,6 +65,7 @@ static bool _py_tuple__new__(int argc, py_Ref argv) {
         for(int i = 0; i < py_tuple__len(py_retval()); i++) {
             py_tuple__setitem(py_retval(), i, py_list__getitem(tmp, i));
         }
+        py_pop();
         return true;
     }
     return TypeError("tuple() takes at most 1 argument");
@@ -91,6 +92,7 @@ static bool _py_tuple__getitem__(int argc, py_Ref argv) {
         for(int i = 0; i < py_tuple__len(py_retval()); i++) {
             py_tuple__setitem(py_retval(), i, py_list__getitem(tmp, i));
         }
+        py_pop();
         return true;
     } else {
         return TypeError("tuple indices must be integers");

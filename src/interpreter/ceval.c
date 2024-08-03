@@ -268,8 +268,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __getitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        py_TValue* p0 = TOP();
-                        if(!py_callcfunc(p0, magic->_cfunc, 2, SECOND())) goto __ERROR;
+                        if(!magic->_cfunc(2, SECOND())) goto __ERROR;
+                        POP();
                         *TOP() = self->last_retval;
                     } else {
                         INSERT_THIRD();     // [?, a, b]
@@ -321,8 +321,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 if(magic) {
                     PUSH(THIRD());  // [val, a, b, val]
                     if(magic->type == tp_nativefunc) {
-                        py_TValue* p0 = FOURTH();
-                        if(!py_callcfunc(p0, magic->_cfunc, 3, THIRD())) goto __ERROR;
+                        if(!magic->_cfunc(3, THIRD())) goto __ERROR;
+                        STACK_SHRINK(4);
                     } else {
                         *FOURTH() = *magic;  // [__selitem__, a, b, val]
                         if(!py_vectorcall(2, 0)) goto __ERROR;
@@ -388,8 +388,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __delitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        py_TValue* p0 = SECOND();
-                        if(!py_callcfunc(p0, magic->_cfunc, 2, SECOND())) goto __ERROR;
+                        if(!magic->_cfunc(2, SECOND())) goto __ERROR;
+                        STACK_SHRINK(2);
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__delitem__, a, b]
@@ -528,8 +528,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __contains__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        py_TValue* p0 = TOP();
-                        if(!py_callcfunc(p0, magic->_cfunc, 2, SECOND())) goto __ERROR;
+                        if(!magic->_cfunc(2, SECOND())) goto __ERROR;
+                        POP();
                         *TOP() = self->last_retval;
                     } else {
                         INSERT_THIRD();     // [?, b, a]

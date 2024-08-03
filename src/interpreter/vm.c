@@ -347,8 +347,8 @@ static bool
                 c11_sv key_sv = py_name2sv(key);
                 py_newstrn(tmp, key_sv.data, key_sv.size);
                 py_dict__setitem(&buffer[decl->starred_kwarg], tmp, &p1[2 * j + 1]);
-                if(py_checkexc()) return false;
                 py_pop();
+                if(py_checkexc()) return false;
             }
         }
     }
@@ -401,7 +401,8 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
                     pk_VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv, co));
                     return opcall ? RES_CALL : pk_VM__run_top_frame(self);
                 } else {
-                    bool ok = py_callcfunc(p0, fn->cfunc, co->nlocals, argv);
+                    bool ok = fn->cfunc(co->nlocals, argv);
+                    self->stack.sp = p0;
                     return ok ? RES_RETURN : RES_ERROR;
                 }
             }
@@ -440,8 +441,9 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
     }
 
     if(p0->type == tp_nativefunc) {
-        if(!py_callcfunc(p0, p0->_cfunc, p1 - argv, argv)) return RES_ERROR;
-        return RES_RETURN;
+        bool ok = p0->_cfunc(p1 - argv, argv);
+        self->stack.sp = p0;
+        return ok ? RES_RETURN : RES_ERROR;
     }
 
     if(p0->type == tp_type) {

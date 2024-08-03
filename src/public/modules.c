@@ -133,13 +133,13 @@ static bool _py_builtins__sorted(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     // convert _0 to list object
     if(!py_tpcall(tp_list, 1, py_arg(0))) return false;
-    py_push(py_retval());                       // duptop
-    py_push(py_retval());                       // [| <list>]
-    bool ok = py_pushmethod(py_name("sort"));   // [| list.sort, <list>]
+    py_push(py_retval());                      // duptop
+    py_push(py_retval());                      // [| <list>]
+    bool ok = py_pushmethod(py_name("sort"));  // [| list.sort, <list>]
     if(!ok) return false;
-    py_push(py_arg(1));                         // [| list.sort, <list>, key]
-    py_push(py_arg(2));                         // [| list.sort, <list>, key, reverse]
-    ok = py_vectorcall(2, 0);                   // [| ]
+    py_push(py_arg(1));        // [| list.sort, <list>, key]
+    py_push(py_arg(2));        // [| list.sort, <list>, key, reverse]
+    ok = py_vectorcall(2, 0);  // [| ]
     if(!ok) return false;
     py_assign(py_retval(), py_peek(-1));
     py_pop();
@@ -165,14 +165,25 @@ static bool _py_builtins__sum(int argc, py_Ref argv) {
     py_TValue* p = pk_arrayview(argv, &length);
     if(!p) return TypeError("sum() expects a list or tuple");
 
-    py_Ref tmp = py_pushtmp();
-    py_newint(tmp, 0);
+    py_i64 total_i64 = 0;
+    py_f64 total_f64 = 0.0;
+    bool is_float = false;
     for(int i = 0; i < length; i++) {
-        if(!py_binaryadd(tmp, &p[i])) return false;
-        *tmp = *py_retval();
+        switch(p[i].type) {
+            case tp_int: total_i64 += p[i]._i64; break;
+            case tp_float:
+                is_float = true;
+                total_f64 += p[i]._f64;
+                break;
+            default: return TypeError("sum() expects a list of numbers");
+        }
     }
 
-    *py_retval() = *tmp;
+    if(is_float) {
+        py_newfloat(py_retval(), total_f64 + total_i64);
+    } else {
+        py_newint(py_retval(), total_i64);
+    }
     return true;
 }
 

@@ -203,8 +203,7 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
 
 bool py_call(py_Ref f, int argc, py_Ref argv) {
     if(f->type == tp_nativefunc) {
-        py_TValue* p0 = pk_current_vm->stack.sp;
-        return py_callcfunc(p0, f->_cfunc, argc, argv);
+        return f->_cfunc(argc, argv);
     } else {
         py_push(f);
         py_pushnil();
@@ -314,12 +313,6 @@ bool pk_callmagic(py_Name name, int argc, py_Ref argv) {
     py_Ref tmp = py_tpfindmagic(argv->type, name);
     if(!tmp) return AttributeError(argv, name);
     return py_call(tmp, argc, argv);
-}
-
-bool py_callcfunc(py_StackRef p0, py_CFunction cfunc, int argc, py_Ref argv) {
-    bool ok = cfunc(argc, argv);
-    pk_current_vm->stack.sp = p0;
-    return ok;
 }
 
 bool StopIteration() {

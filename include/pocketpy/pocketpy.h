@@ -329,8 +329,6 @@ bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE;
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv) PY_RAISE;
-/// Call a `py_CFunction` in a safe way.
-bool py_callcfunc(py_StackRef p0, py_CFunction cfunc, int argc, py_Ref argv) PY_RAISE;
 
 bool py_str(py_Ref val) PY_RAISE;
 bool py_repr(py_Ref val) PY_RAISE;

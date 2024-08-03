@@ -120,14 +120,15 @@ static bool _py_list__new__(int argc, py_Ref argv) {
         py_newlist(list);
         while(true) {
             int res = py_next(iter);
-            if(res == -1) return false;
-            if(res) {
-                py_list__append(list, py_retval());
-            } else {
-                break;
+            if(res == -1){
+                py_shrink(2);
+                return false;
             }
+            if(!res) break;
+            py_list__append(list, py_retval());
         }
         *py_retval() = *list;
+        py_shrink(2);
         return true;
     }
     return TypeError("list() takes at most 1 argument");
