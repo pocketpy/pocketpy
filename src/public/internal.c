@@ -17,11 +17,13 @@ py_GlobalRef py_None;
 py_GlobalRef py_NIL;
 
 static pk_VM pk_default_vm;
+static pk_VM* pk_all_vm[16];
 
 void py_initialize() {
     pk_MemoryPools__initialize();
     py_Name__initialize();
-    pk_current_vm = &pk_default_vm;
+
+    pk_current_vm = pk_all_vm[0] = &pk_default_vm;
 
     // initialize some convenient references
     static py_TValue _True, _False, _None, _NIL;
@@ -37,10 +39,33 @@ void py_initialize() {
 }
 
 void py_finalize() {
+    for(int i = 1; i < 16; i++) {
+        pk_VM* vm = pk_all_vm[i];
+        if(vm) {
+            pk_VM__dtor(vm);
+            free(vm);
+        }
+    }
     pk_VM__dtor(&pk_default_vm);
     pk_current_vm = NULL;
     py_Name__finalize();
     pk_MemoryPools__finalize();
+}
+
+void py_switchvm(int index){
+    if(index < 0 || index >= 16) c11__abort("invalid vm index");
+    if(!pk_all_vm[index]){
+        pk_all_vm[index] = malloc(sizeof(pk_VM));
+        pk_VM__ctor(pk_all_vm[index]);
+    }
+    pk_current_vm = pk_all_vm[index];
+}
+
+int py_currentvm() {
+    for(int i = 0; i < 16; i++) {
+        if(pk_all_vm[i] == pk_current_vm) return i;
+    }
+    return -1;
 }
 
 const char* pk_opname(Opcode op) {

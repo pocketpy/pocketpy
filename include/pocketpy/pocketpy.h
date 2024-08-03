@@ -47,10 +47,15 @@ extern py_GlobalRef py_None;
 extern py_GlobalRef py_NIL;
 
 /************* Global Setup *************/
-/// Initialize the VM.
+/// Initialize pocketpy and the default VM.
 void py_initialize();
-/// Finalize the VM.
+/// Finalize pocketpy.
 void py_finalize();
+/// Get the current VM index.
+int py_currentvm();
+/// Switch to a VM.
+/// @param index index of the VM ranging from 0 to 16 (exclusive). `0` is the default VM.
+void py_switchvm(int index);
 
 /// Run a source string.
 /// @param source source string.
