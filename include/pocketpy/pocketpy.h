@@ -263,6 +263,11 @@ py_StackRef py_pushtmp();
 /// If returns true:  [self] -> [unbound, self]
 /// If returns false: [self] -> [self] (no change)
 bool py_pushmethod(py_Name name);
+/// A stack operation that calls a function.
+/// It assumes `argc + kwargc` arguments are already pushed to the stack.
+/// The result will be set to `py_retval()`.
+/// The stack size will be reduced by `argc + kwargc`.
+bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE;
 
 /************* Modules *************/
 py_TmpRef py_newmodule(const char* path);
@@ -328,11 +333,6 @@ bool py_iter(py_Ref) PY_RAISE;
 int py_next(py_Ref) PY_RAISE;
 /// Python equivalent to `lhs is rhs`.
 bool py_isidentical(py_Ref, py_Ref);
-/// A stack operation that calls a function.
-/// It assumes `argc + kwargc` arguments are already pushed to the stack.
-/// The result will be set to `py_retval()`.
-/// The stack size will be reduced by `argc + kwargc`.
-bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE;
 /// Call a function.
 /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
 /// The result will be set to `py_retval()`.
