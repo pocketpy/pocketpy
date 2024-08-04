@@ -202,7 +202,7 @@ void VM__dtor(VM* self) {
     // destroy all objects
     ManagedHeap__dtor(&self->heap);
     // clear frames
-    // ...
+    while(self->top_frame) VM__pop_frame(self);
     NameDict__dtor(&self->modules);
     c11__foreach(py_TypeInfo, &self->types, ti) py_TypeInfo__dtor(ti);
     c11_vector__dtor(&self->types);

@@ -1,7 +1,11 @@
 class A:
-    def __init__(self, a, b):
+    def __init__(self, a, __b):
         self.a = a
-        self.b = b
+        self.__b = __b
+
+    @property
+    def b(self):
+        return self.__b
 
     def add(self):
         return self.a + self.b
