@@ -101,6 +101,12 @@ py_Name
     return py_name(ud->decl->code.name->data);
 }
 
+void py_newboundmethod(py_Ref out, py_Ref self, py_Ref func){
+    py_newobject(out, tp_boundmethod, 2, 0);
+    py_setslot(out, 0, self);
+    py_setslot(out, 1, func);
+}
+
 void* py_newobject(py_Ref out, py_Type type, int slots, int udsize) {
     ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* obj = ManagedHeap__gcnew(heap, type, slots, udsize);

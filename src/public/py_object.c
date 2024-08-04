@@ -68,8 +68,16 @@ static bool type__base__getter(int argc, py_Ref argv) {
     return true;
 }
 
+static bool type__name__getter(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_Type type = py_totype(argv);
+    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
+    py_newstr(py_retval(), py_name2str(ti->name));
+    return true;
+}
+
 void pk_object__register() {
-    // use staticmethod
+    // TODO: use staticmethod
     py_bindmagic(tp_object, __new__, object__new__);
 
     py_bindmagic(tp_object, __hash__, object__hash__);
@@ -77,9 +85,9 @@ void pk_object__register() {
     py_bindmagic(tp_object, __ne__, object__ne__);
     py_bindmagic(tp_object, __repr__, object__repr__);
 
-    // type patch...
     py_bindmagic(tp_type, __repr__, type__repr__);
     py_bindmagic(tp_type, __new__, type__new__);
 
     py_bindproperty(tp_type, "__base__", type__base__getter, NULL);
+    py_bindproperty(tp_type, "__name__", type__name__getter, NULL);
 }

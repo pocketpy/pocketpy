@@ -113,8 +113,9 @@ bool py_getattr(py_Ref self, py_Name name) {
                 if(py_istype(res, tp_staticmethod)) {
                     res = py_getslot(res, 0);
                 } else if(py_istype(res, tp_classmethod)) {
-                    // TODO: make a closure
-                    assert(false);
+                    res = py_getslot(res, 0);
+                    py_newboundmethod(py_retval(), self, res);
+                    return true;
                 }
                 py_assign(py_retval(), res);
                 return true;
@@ -125,10 +126,22 @@ bool py_getattr(py_Ref self, py_Name name) {
     if(cls_var) {
         // bound method is non-data descriptor
         switch(cls_var->type) {
-            case tp_function: assert(false);
-            case tp_nativefunc: assert(false);
-            case tp_staticmethod: assert(false);
-            case tp_classmethod: assert(false);
+            case tp_function: {
+                py_newboundmethod(py_retval(), self, cls_var);
+                return true;
+            }
+            case tp_nativefunc: {
+                py_newboundmethod(py_retval(), self, cls_var);
+                return true;
+            }
+            case tp_staticmethod: {
+                py_assign(py_retval(), py_getslot(cls_var, 0));
+                return true;
+            }
+            case tp_classmethod: {
+                py_newboundmethod(py_retval(), py_tpobject(type), py_getslot(cls_var, 0));
+                return true;
+            }
             default: {
                 py_assign(py_retval(), cls_var);
                 return true;

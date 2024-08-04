@@ -98,6 +98,7 @@ void py_newslice(py_Ref);
 void py_newnativefunc(py_Ref out, py_CFunction);
 py_Name
     py_newfunction(py_Ref out, const char* sig, py_CFunction f, const char* docstring, int slots);
+void py_newboundmethod(py_Ref out, py_Ref self, py_Ref func);
 
 /************* Name Convertions *************/
 py_Name py_name(const char*);

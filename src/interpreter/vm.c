@@ -116,11 +116,11 @@ void VM__ctor(VM* self) {
     validate(tp_dict, pk_dict__register());
     validate(tp_dict_items, pk_dict_items__register());
 
-    validate(tp_property, pk_newtype("property", tp_object, NULL, NULL, false, true));
+    validate(tp_property, pk_property__register());
     validate(tp_star_wrapper, pk_newtype("star_wrapper", tp_object, NULL, NULL, false, true));
 
-    validate(tp_staticmethod, pk_newtype("staticmethod", tp_object, NULL, NULL, false, true));
-    validate(tp_classmethod, pk_newtype("classmethod", tp_object, NULL, NULL, false, true));
+    validate(tp_staticmethod, pk_staticmethod__register());
+    validate(tp_classmethod, pk_classmethod__register());
 
     validate(tp_NoneType, pk_newtype("NoneType", tp_object, NULL, NULL, false, true));
     validate(tp_NotImplementedType,
@@ -134,24 +134,11 @@ void VM__ctor(VM* self) {
     self->builtins = pk_builtins__register();
 
     /* Setup Public Builtin Types */
-    py_Type public_types[] = {tp_object,
-                              tp_type,
-                              tp_int,
-                              tp_float,
-                              tp_bool,
-                              tp_str,
-                              tp_list,
-                              tp_tuple,
-                              tp_slice,
-                              tp_range,
-                              tp_bytes,
-                              tp_dict,
-                              tp_property,
-                              tp_super,
-                              tp_BaseException,
-                              tp_Exception,
-                              tp_StopIteration,
-                              tp_SyntaxError};
+    py_Type public_types[] = {tp_object,        tp_type,         tp_int,           tp_float,
+                              tp_bool,          tp_str,          tp_list,          tp_tuple,
+                              tp_slice,         tp_range,        tp_bytes,         tp_dict,
+                              tp_property,      tp_staticmethod, tp_classmethod,   tp_super,
+                              tp_BaseException, tp_Exception,    tp_StopIteration, tp_SyntaxError};
 
     for(int i = 0; i < c11__count_array(public_types); i++) {
         py_Type t = public_types[i];
@@ -202,7 +189,8 @@ void VM__dtor(VM* self) {
     // destroy all objects
     ManagedHeap__dtor(&self->heap);
     // clear frames
-    while(self->top_frame) VM__pop_frame(self);
+    while(self->top_frame)
+        VM__pop_frame(self);
     NameDict__dtor(&self->modules);
     c11__foreach(py_TypeInfo, &self->types, ti) py_TypeInfo__dtor(ti);
     c11_vector__dtor(&self->types);
@@ -218,6 +206,7 @@ void VM__pop_frame(VM* self) {
     assert(self->top_frame);
     Frame* frame = self->top_frame;
     // reset stack pointer
+
     self->stack.sp = frame->p0;
     // pop frame and delete
     self->top_frame = frame->f_back;
@@ -382,18 +371,14 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
     // [callable, <self>, args..., kwargs...]
     //      ^p0                    ^p1      ^_sp
 
-#if 0
     // handle boundmethod, do a patch
     if(p0->type == tp_boundmethod) {
         assert(py_isnil(p0 + 1));  // self must be NULL
-        // BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
-        // callable = bm.func;  // get unbound method
-        // callable_t = _tp(callable);
-        // p1[-(ARGC + 2)] = bm.func;
-        // p1[-(ARGC + 1)] = bm.self;
+        py_TValue* slots = PyObject__slots(p0->_obj);
+        p0[0] = slots[1];  // callable
+        p0[1] = slots[0];  // self
         // [unbound, self, args..., kwargs...]
     }
-#endif
 
     py_Ref argv = py_isnil(p0 + 1) ? p0 + 2 : p0 + 1;
 
