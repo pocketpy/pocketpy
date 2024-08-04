@@ -10,7 +10,7 @@
 
 // Whether to compile os-related modules or not
 #ifndef PK_ENABLE_OS                // can be overridden by cmake
-#define PK_ENABLE_OS                0
+#define PK_ENABLE_OS                1
 #endif
 
 // Enable `line_profiler` module and `breakpoint()` function

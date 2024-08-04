@@ -165,6 +165,16 @@ int c11_sv__count(c11_sv self, c11_sv sub) {
     return cnt;
 }
 
+bool c11_sv__startswith(c11_sv self, c11_sv prefix) {
+    if(prefix.size > self.size) return false;
+    return memcmp(self.data, prefix.data, prefix.size) == 0;
+}
+
+bool c11_sv__endswith(c11_sv self, c11_sv suffix) {
+    if(suffix.size > self.size) return false;
+    return memcmp(self.data + self.size - suffix.size, suffix.data, suffix.size) == 0;
+}
+
 c11_vector /* T=c11_sv */ c11_sv__split(c11_sv self, char sep) {
     c11_vector retval;
     c11_vector__ctor(&retval, sizeof(c11_sv));

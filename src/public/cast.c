@@ -19,7 +19,7 @@ bool py_castfloat(py_Ref self, double* out) {
     switch(self->type) {
         case tp_int: *out = (double)self->_i64; return true;
         case tp_float: *out = self->_f64; return true;
-        default: return false;
+        default: return TypeError("expected int or float, got %t", self->type);
     }
 }
 
@@ -46,11 +46,9 @@ bool py_checktype(py_Ref self, py_Type type) {
     return TypeError("expected %t, got %t", type, self->type);
 }
 
-bool py_isinstance(py_Ref obj, py_Type type){
-    return py_issubclass(obj->type, type);
-}
+bool py_isinstance(py_Ref obj, py_Type type) { return py_issubclass(obj->type, type); }
 
-bool py_issubclass(py_Type derived, py_Type base){
+bool py_issubclass(py_Type derived, py_Type base) {
     pk_TypeInfo* types = pk_current_vm->types.data;
     do {
         if(derived == base) return true;

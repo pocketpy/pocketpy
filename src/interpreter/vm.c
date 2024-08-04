@@ -6,7 +6,22 @@
 #include "pocketpy/common/_generated.h"
 #include "pocketpy/pocketpy.h"
 
-static char* pk_default_import_file(const char* path) { return NULL; }
+static char* pk_default_import_file(const char* path) {
+#if PK_ENABLE_OS
+    FILE* f = fopen(path, "rb");
+    if(f == NULL) return NULL;
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char* buffer = malloc(size + 1);
+    fread(buffer, 1, size, f);
+    buffer[size] = 0;
+    fclose(f);
+    return buffer;
+#else
+    return NULL;
+#endif
+}
 
 static void pk_default_print(const char* data) { printf("%s", data); }
 
@@ -147,6 +162,7 @@ void pk_VM__ctor(pk_VM* self) {
     const char** builtin_exceptions = (const char*[]){
         "StackOverflowError",
         "IOError",
+        "OSError",
         "NotImplementedError",
         "TypeError",
         "IndexError",
@@ -174,6 +190,8 @@ void pk_VM__ctor(pk_VM* self) {
 
     // add modules
     pk__add_module_pkpy();
+    pk__add_module_os();
+    pk__add_module_math();
 
     self->main = *py_newmodule("__main__");
 }
@@ -559,7 +577,7 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
 }
 
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
-    // return;
+    return;
     if(frame == NULL) return;
 
     py_TValue* sp = self->stack.sp;
@@ -592,6 +610,11 @@ void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
             }
             case tp_str: {
                 pk_sprintf(&buf, "%q", py_tosv(p));
+                break;
+            }
+            case tp_module: {
+                py_Ref path = py_getdict(p, __path__);
+                pk_sprintf(&buf, "<module '%v'>", py_tosv(path));
                 break;
             }
             default: {

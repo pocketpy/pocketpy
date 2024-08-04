@@ -136,6 +136,21 @@ bool py_getattr(py_Ref self, py_Name name) {
         }
     }
 
+    if(self->type == tp_module) {
+        py_Ref path = py_getdict(self, __path__);
+        c11_sbuf buf;
+        c11_sbuf__ctor(&buf);
+        pk_sprintf(&buf, "%v.%n", py_tosv(path), name);
+        c11_string* new_path = c11_sbuf__submit(&buf);
+        int res = py_import(new_path->data);
+        c11_string__delete(new_path);
+        if(res == -1) {
+            return false;
+        } else if(res == 1) {
+            return true;
+        }
+    }
+
     return AttributeError(self, name);
 }
 

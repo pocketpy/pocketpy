@@ -7,6 +7,10 @@
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/export.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /************* Public Types *************/
 typedef struct py_TValue py_TValue;
 typedef uint16_t py_Name;
@@ -121,7 +125,7 @@ void* py_newobject(py_Ref out, py_Type type, int slots, int udsize);
 /************* Type Cast *************/
 py_i64 py_toint(py_Ref);
 py_f64 py_tofloat(py_Ref);
-bool py_castfloat(py_Ref, py_f64* out);
+bool py_castfloat(py_Ref, py_f64* out) PY_RAISE;
 bool py_tobool(py_Ref);
 py_Type py_totype(py_Ref);
 const char* py_tostr(py_Ref);
@@ -186,6 +190,7 @@ py_GlobalRef py_retval();
 py_ObjectRef py_getdict(py_Ref self, py_Name name);
 void py_setdict(py_Ref self, py_Name name, py_Ref val);
 bool py_deldict(py_Ref self, py_Name name);
+py_ObjectRef py_emplacedict(py_Ref self, py_Name name);
 
 /// Get the reference of the i-th slot of the object.
 /// The object must have slots and `i` must be in range.
@@ -264,7 +269,8 @@ py_TmpRef py_getmodule(const char* path);
 
 /// Import a module.
 /// The result will be set to `py_retval()`.
-bool py_import(const char* path) PY_RAISE;
+/// -1: error, 0: not found, 1: success
+int py_import(const char* path) PY_RAISE;
 
 /************* Errors *************/
 /// Raise an exception by name and message. Always returns false.
@@ -280,6 +286,8 @@ bool py_checkexc();
 /// Clear the current exception.
 void py_clearexc(py_StackRef p0);
 
+#define IOError(...) py_exception("IOError", __VA_ARGS__)
+#define OSError(...) py_exception("OSError", __VA_ARGS__)
 #define NameError(n) py_exception("NameError", "name '%n' is not defined", (n))
 #define TypeError(...) py_exception("TypeError", __VA_ARGS__)
 #define RuntimeError(...) py_exception("RuntimeError", __VA_ARGS__)

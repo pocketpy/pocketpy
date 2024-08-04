@@ -52,21 +52,53 @@ py_Ref py_newmodule(const char* path) {
     return py_getmodule(path);
 }
 
-bool py_import(const char* path_cstr) {
+int py_import(const char* path_cstr) {
+    // printf("importing %s\n", path_cstr);
+
     pk_VM* vm = pk_current_vm;
     c11_sv path = {path_cstr, strlen(path_cstr)};
     if(path.size == 0) return ValueError("empty module name");
 
     if(path.data[0] == '.') {
         // try relative import
-        py_Ref package = py_getdict(&vm->top_frame->module, __package__);
+        int dot_count = 1;
+        while(dot_count < path.size && path.data[dot_count] == '.')
+            dot_count++;
+
+        c11_sv top_filename = c11_string__sv(vm->top_frame->co->src->filename);
+        int is_init = c11_sv__endswith(top_filename, (c11_sv){"__init__.py", 11});
+
+        py_Ref package = py_getdict(&vm->top_frame->module, __path__);
         c11_sv package_sv = py_tosv(package);
-        if(package_sv.size == 0)
-            return ImportError("relative import %q with no known parent package", path);
-        c11_string* new_path = c11_string__new3("%v.%v", package_sv, path);
-        bool ok = py_import(new_path->data);
+        if(package_sv.size == 0) {
+            return ImportError("attempted relative import with no known parent package");
+        }
+
+        c11_vector /* T=c11_sv */ cpnts = c11_sv__split(package_sv, '.');
+        for(int i = is_init; i < dot_count; i++) {
+            if(cpnts.count == 0)
+                return ImportError("attempted relative import beyond top-level package");
+            c11_vector__pop(&cpnts);
+        }
+
+        if(dot_count < path.size) {
+            c11_sv last_cpnt = c11_sv__slice(path, dot_count);
+            c11_vector__push(c11_sv, &cpnts, last_cpnt);
+        }
+
+        // join cpnts
+        c11_sbuf buf;
+        c11_sbuf__ctor(&buf);
+        for(int i = 0; i < cpnts.count; i++) {
+            if(i > 0) c11_sbuf__write_char(&buf, '.');
+            c11_sbuf__write_sv(&buf, c11__getitem(c11_sv, &cpnts, i));
+        }
+
+        c11_vector__dtor(&cpnts);
+        c11_string* new_path = c11_sbuf__submit(&buf);
+        int res = py_import(new_path->data);
         c11_string__delete(new_path);
-        return ok;
+        return res;
     }
 
     assert(path.data[0] != '.' && path.data[path.size - 1] != '.');
@@ -74,16 +106,9 @@ bool py_import(const char* path_cstr) {
     // check existing module
     py_TmpRef ext_mod = py_getmodule(path.data);
     if(ext_mod) {
-        py_Ref is_pending = py_getdict(ext_mod, __module_is_pending__);
-        if(is_pending) return ImportError("circular import detected");
         py_assign(py_retval(), ext_mod);
         return true;
     }
-
-    // vector<std::string_view> path_cpnts = path.split('.');
-    // // check circular import
-    // if(__import_context.pending.size() > 128) { ImportError("maximum recursion depth exceeded
-    // while importing"); }
 
     // try import
     c11_string* slashed_path = c11_sv__replace(path, '.', PK_PLATFORM_SEP);
@@ -96,33 +121,29 @@ bool py_import(const char* path_cstr) {
         goto __SUCCESS;
     }
 
-    c11_string__delete(filename);
-    filename = c11_string__new3("%s.py", slashed_path->data);
-    data = vm->import_file(slashed_path->data);
+    data = vm->import_file(filename->data);
     if(data != NULL) goto __SUCCESS;
 
     c11_string__delete(filename);
     filename = c11_string__new3("%s/__init__.py", slashed_path->data);
-    data = vm->import_file(slashed_path->data);
+    data = vm->import_file(filename->data);
     if(data != NULL) goto __SUCCESS;
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
-    return ImportError("module %q not found", path);
+    return 0;
 
 __SUCCESS:
     py_push(py_newmodule(path_cstr));
     py_Ref mod = py_peek(-1);
-    py_setdict(mod, __module_is_pending__, py_True);
     bool ok = py_exec((const char*)data, filename->data, EXEC_MODE, mod);
-    py_deldict(mod, __module_is_pending__);
     py_assign(py_retval(), mod);
     py_pop();
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
     if(need_free) free((void*)data);
-    return ok;
+    return ok ? 1 : -1;
 }
 
 //////////////////////////

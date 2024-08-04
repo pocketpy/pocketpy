@@ -4,6 +4,7 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/gc.h"
 #include "pocketpy/interpreter/frame.h"
+#include "pocketpy/interpreter/modules.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,8 +124,6 @@ py_Type pk_BaseException__register();
 py_Type pk_Exception__register();
 
 py_TValue pk_builtins__register();
-
-void pk__add_module_pkpy();
 
 #ifdef __cplusplus
 }

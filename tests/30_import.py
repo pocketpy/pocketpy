@@ -4,6 +4,7 @@ except ImportError:
     exit(0)
 
 os.chdir('tests')
+assert os.getcwd().endswith('tests')
 
 import test1
 

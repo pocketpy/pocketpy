@@ -257,6 +257,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     // fallback to getattr
                     if(py_getattr(TOP(), byte.arg)) {
                         py_assign(TOP(), py_retval());
+                        py_newnil(SP()++);
                     } else {
                         goto __ERROR;
                     }
@@ -757,8 +758,13 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             ////////
             case OP_IMPORT_PATH: {
                 py_Ref path_object = c11__at(py_TValue, &frame->co->consts, byte.arg);
-                bool ok = py_import(py_tostr(path_object));
-                if(!ok) goto __ERROR;
+                const char* path = py_tostr(path_object);
+                int res = py_import(path);
+                if(res == -1) goto __ERROR;
+                if(res == 0) {
+                    ImportError("module '%s' not found", path);
+                    goto __ERROR;
+                }
                 PUSH(py_retval());
                 DISPATCH();
             }

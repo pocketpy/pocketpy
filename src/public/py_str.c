@@ -247,9 +247,7 @@ static bool _py_str__startswith(int argc, py_Ref argv) {
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
     c11_string* other = py_touserdata(&argv[1]);
-    c11_sv _0 = c11_sv__slice2(c11_string__sv(self), 0, other->size);
-    c11_sv _1 = c11_string__sv(other);
-    py_newbool(py_retval(), c11__sveq(_0, _1));
+    py_newbool(py_retval(), c11_sv__startswith(c11_string__sv(self), c11_string__sv(other)));
     return true;
 }
 
@@ -258,9 +256,7 @@ static bool _py_str__endswith(int argc, py_Ref argv) {
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
     c11_string* other = py_touserdata(&argv[1]);
-    c11_sv _0 = c11_sv__slice2(c11_string__sv(self), self->size - other->size, self->size);
-    c11_sv _1 = c11_string__sv(other);
-    py_newbool(py_retval(), c11__sveq(_0, _1));
+    py_newbool(py_retval(), c11_sv__endswith(c11_string__sv(self), c11_string__sv(other)));
     return true;
 }
 
@@ -538,10 +534,6 @@ bool py_str(py_Ref val) {
     return py_call(tmp, 1, val);
 }
 
-bool py_repr(py_Ref val) {
-    return pk_callmagic(__repr__, 1, val);
-}
+bool py_repr(py_Ref val) { return pk_callmagic(__repr__, 1, val); }
 
-bool py_len(py_Ref val){
-    return pk_callmagic(__len__, 1, val);
-}
+bool py_len(py_Ref val) { return pk_callmagic(__len__, 1, val); }
