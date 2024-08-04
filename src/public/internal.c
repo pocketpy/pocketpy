@@ -52,9 +52,9 @@ void py_finalize() {
     pk_MemoryPools__finalize();
 }
 
-void py_switchvm(int index){
+void py_switchvm(int index) {
     if(index < 0 || index >= 16) c11__abort("invalid vm index");
-    if(!pk_all_vm[index]){
+    if(!pk_all_vm[index]) {
         pk_all_vm[index] = malloc(sizeof(pk_VM));
         pk_VM__ctor(pk_all_vm[index]);
     }
@@ -123,13 +123,9 @@ static void disassemble(CodeObject* co) {
         for(int j = 0; j < padding; j++)
             c11_sbuf__write_char(&ss, ' ');
 
-        // _opcode_argstr(this, i, byte, co);
         do {
             if(Bytecode__is_forward_jump(&byte)) {
-                c11_sbuf__write_int(&ss, (int16_t)byte.arg);
-                c11_sbuf__write_cstr(&ss, " (to ");
-                c11_sbuf__write_int(&ss, (int16_t)byte.arg + i);
-                c11_sbuf__write_char(&ss, ')');
+                pk_sprintf(&ss, "%d (to %d)", (int16_t)byte.arg, (int16_t)byte.arg + i);
                 break;
             }
 
@@ -138,12 +134,8 @@ static void disassemble(CodeObject* co) {
                 case OP_LOAD_CONST:
                 case OP_FORMAT_STRING:
                 case OP_IMPORT_PATH: {
-                    py_Ref tmp = c11__at(py_TValue, &co->consts, byte.arg);
-                    c11_sbuf__write_cstr(&ss, " (");
-                    // here we need to use py_repr, however this function is not ready yet
-                    c11_sbuf__write_cstr(&ss, "<class '");
-                    c11_sbuf__write_cstr(&ss, py_tpname(tmp->type));
-                    c11_sbuf__write_cstr(&ss, "'>)");
+                    py_Ref path = c11__at(py_TValue, &co->consts, byte.arg);
+                    pk_sprintf(&ss, " (%q)", py_tosv(path));
                     break;
                 }
                 case OP_LOAD_NAME:
@@ -158,32 +150,24 @@ static void disassemble(CodeObject* co) {
                 case OP_GOTO:
                 case OP_DELETE_GLOBAL:
                 case OP_STORE_CLASS_ATTR: {
-                    c11_sbuf__write_cstr(&ss, " (");
-                    c11_sbuf__write_cstr(&ss, py_name2str(byte.arg));
-                    c11_sbuf__write_char(&ss, ')');
+                    pk_sprintf(&ss, " (%n)", byte.arg);
                     break;
                 }
                 case OP_LOAD_FAST:
                 case OP_STORE_FAST:
                 case OP_DELETE_FAST: {
                     py_Name name = c11__getitem(py_Name, &co->varnames, byte.arg);
-                    c11_sbuf__write_cstr(&ss, " (");
-                    c11_sbuf__write_cstr(&ss, py_name2str(name));
-                    c11_sbuf__write_char(&ss, ')');
+                    pk_sprintf(&ss, " (%n)", name);
                     break;
                 }
                 case OP_LOAD_FUNCTION: {
                     const FuncDecl* decl = c11__getitem(FuncDecl*, &co->func_decls, byte.arg);
-                    c11_sbuf__write_cstr(&ss, " (");
-                    c11_sbuf__write_cstr(&ss, decl->code.name->data);
-                    c11_sbuf__write_char(&ss, ')');
+                    pk_sprintf(&ss, " (%s)", decl->code.name->data);
                     break;
                 }
                 case OP_BINARY_OP: {
                     py_Name name = byte.arg & 0xFF;
-                    c11_sbuf__write_cstr(&ss, " (");
-                    c11_sbuf__write_cstr(&ss, py_name2str(name));
-                    c11_sbuf__write_char(&ss, ')');
+                    pk_sprintf(&ss, " (%n)", name);
                     break;
                 }
             }

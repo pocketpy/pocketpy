@@ -5,12 +5,12 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 
-py_Ref py_getmodule(const char* name) {
+py_Ref py_getmodule(const char* path) {
     pk_VM* vm = pk_current_vm;
-    return pk_NameDict__try_get(&vm->modules, py_name(name));
+    return pk_NameDict__try_get(&vm->modules, py_name(path));
 }
 
-py_Ref py_newmodule(const char* name, const char* package) {
+py_Ref py_newmodule(const char* path) {
     pk_ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* obj = pk_ManagedHeap__new(heap, tp_module, -1, 0);
 
@@ -23,33 +23,106 @@ py_Ref py_newmodule(const char* name, const char* package) {
         ._obj = obj,
     };
 
-    py_newstr(r1, name);
-    py_setdict(r0, __name__, r1);
-
-    package = package ? package : "";
-
-    py_newstr(r1, package);
-    py_setdict(r0, __package__, r1);
-
-    // convert to fullname
-    if(package[0] != '\0') {
-        // package.name
-        char buf[256];
-        snprintf(buf, sizeof(buf), "%s.%s", package, name);
-        name = buf;
+    int last_dot = c11_sv__rindex((c11_sv){path, strlen(path)}, '.');
+    if(last_dot == -1) {
+        py_newstr(r1, path);
+        py_setdict(r0, __name__, r1);
+        py_newstr(r1, "");
+        py_setdict(r0, __package__, r1);
+    } else {
+        const char* start = path + last_dot + 1;
+        py_newstr(r1, start);
+        py_setdict(r0, __name__, r1);
+        py_newstrn(r1, path, last_dot);
+        py_setdict(r0, __package__, r1);
     }
 
-    py_newstr(r1, name);
+    py_newstr(r1, path);
     py_setdict(r0, __path__, r1);
 
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
-    bool exists = pk_NameDict__contains(&pk_current_vm->modules, py_name(name));
-    if(exists) c11__abort("module '%s' already exists", name);
-    pk_NameDict__set(&pk_current_vm->modules, py_name(name), *r0);
+    py_Name path_name = py_name(path);
+    bool exists = pk_NameDict__contains(&pk_current_vm->modules, path_name);
+    if(exists) c11__abort("module '%s' already exists", path);
+    pk_NameDict__set(&pk_current_vm->modules, path_name, *r0);
 
     py_shrink(2);
-    return py_getmodule(name);
+    return py_getmodule(path);
+}
+
+bool py_import(const char* path_cstr) {
+    pk_VM* vm = pk_current_vm;
+    c11_sv path = {path_cstr, strlen(path_cstr)};
+    if(path.size == 0) return ValueError("empty module name");
+
+    if(path.data[0] == '.') {
+        // try relative import
+        py_Ref package = py_getdict(&vm->top_frame->module, __package__);
+        c11_sv package_sv = py_tosv(package);
+        if(package_sv.size == 0) return ImportError("relative import %q with no known parent package", path);
+        c11_string* new_path = c11_string__new3("%v.%v", package_sv, path);
+        bool ok = py_import(new_path->data);
+        c11_string__delete(new_path);
+        return ok;
+    }
+
+    assert(path.data[0] != '.' && path.data[path.size - 1] != '.');
+
+    // check existing module
+    py_TmpRef ext_mod = py_getmodule(path.data);
+    if(ext_mod) {
+        py_Ref is_pending = py_getdict(ext_mod, __module_is_pending__);
+        if(is_pending) return ImportError("circular import detected");
+        py_assign(py_retval(), ext_mod);
+        return true;
+    }
+
+    // vector<std::string_view> path_cpnts = path.split('.');
+    // // check circular import
+    // if(__import_context.pending.size() > 128) { ImportError("maximum recursion depth exceeded
+    // while importing"); }
+
+    // try import
+    c11_string* slashed_path = c11_sv__replace(path, '.', PK_PLATFORM_SEP);
+
+    c11_string* filename = c11_string__new3("site-packages/%s.py", slashed_path->data);
+    int size;
+    unsigned char* data = py_vfsread(filename->data, &size);
+    if(data != NULL) goto __SUCCESS;
+
+    c11_string__delete(filename);
+    filename = c11_string__new3("site-packages/%s/__init__.py", slashed_path->data);
+    data = py_vfsread(filename->data, &size);
+    if(data != NULL) goto __SUCCESS;
+
+    c11_string__delete(filename);
+    filename = c11_string__new3("%s.py", slashed_path->data);
+    data = vm->import_file(slashed_path->data, &size);
+    if(data != NULL) goto __SUCCESS;
+
+    c11_string__delete(filename);
+    filename = c11_string__new3("%s/__init__.py", slashed_path->data);
+    data = vm->import_file(slashed_path->data, &size);
+    if(data != NULL) goto __SUCCESS;
+
+    c11_string__delete(filename);
+    c11_string__delete(slashed_path);
+    return ImportError("module %q not found", path);
+
+__SUCCESS:
+    py_push(py_newmodule(path_cstr));
+    py_Ref mod = py_peek(-1);
+    py_setdict(mod, __module_is_pending__, py_True);
+    bool ok = py_exec((const char*)data, filename->data, EXEC_MODE, mod);
+    py_deldict(mod, __module_is_pending__);
+    py_assign(py_retval(), mod);
+    py_pop();
+
+    c11_string__delete(filename);
+    c11_string__delete(slashed_path);
+    free(data);
+    return ok;
 }
 
 //////////////////////////
@@ -224,7 +297,7 @@ static bool _py_builtins__eval(int argc, py_Ref argv) {
 }
 
 py_TValue pk_builtins__register() {
-    py_Ref builtins = py_newmodule("builtins", NULL);
+    py_Ref builtins = py_newmodule("builtins");
     py_bindfunc(builtins, "repr", _py_builtins__repr);
     py_bindfunc(builtins, "exit", _py_builtins__exit);
     py_bindfunc(builtins, "len", _py_builtins__len);

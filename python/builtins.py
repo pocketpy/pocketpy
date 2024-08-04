@@ -1,4 +1,4 @@
-from __builtins import next as __builtins_next
+from pkpy import next as __builtins_next
 
 def all(iterable):
     for i in iterable:

@@ -3,13 +3,10 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/objects/base.h"
+#include "pocketpy/common/_generated.h"
 #include "pocketpy/pocketpy.h"
 
-#include <assert.h>
-#include <stdarg.h>
-#include <stdbool.h>
-
-static unsigned char* pk_default_import_file(const char* path) { return NULL; }
+static unsigned char* pk_default_import_file(const char* path, int* size) { return NULL; }
 
 static void pk_default_print(const char* data) { printf("%s", data); }
 
@@ -39,6 +36,13 @@ static void pk_TypeInfo__ctor(pk_TypeInfo* self,
 
 static void pk_TypeInfo__dtor(pk_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
 
+static void save_site_package_to_vfs(const char* name, const char* source) {
+    char buf[512];
+    snprintf(buf, sizeof(buf), "site-packages/%s", name);
+    bool ok = py_vfswrite(buf, (unsigned char*)source, strlen(source) + 1);
+    if(!ok) c11__abort("failed to save '%s' to vfs", name);
+}
+
 void pk_VM__ctor(pk_VM* self) {
     self->top_frame = NULL;
 
@@ -56,6 +60,7 @@ void pk_VM__ctor(pk_VM* self) {
     self->curr_exception = *py_NIL;
     self->is_stopiteration = false;
 
+    Vfs__ctor(&self->__vfs);
     self->__curr_class = NULL;
     self->__dynamic_func_decl = NULL;
 
@@ -175,7 +180,23 @@ void pk_VM__ctor(pk_VM* self) {
     py_newnotimplemented(&tmp);
     py_setdict(&self->builtins, py_name("NotImplemented"), &tmp);
 
-    self->main = *py_newmodule("__main__", NULL);
+    // add modules
+    pk__add_module_pkpy();
+
+    self->main = *py_newmodule("__main__");
+
+    save_site_package_to_vfs("bisect.py", kPythonLibs_bisect);
+    save_site_package_to_vfs("cmath.py", kPythonLibs_cmath);
+    save_site_package_to_vfs("collections.py", kPythonLibs_collections);
+    save_site_package_to_vfs("colorsys.py", kPythonLibs_colorsys);
+    save_site_package_to_vfs("datetime.py", kPythonLibs_datetime);
+    save_site_package_to_vfs("functools.py", kPythonLibs_functools);
+    save_site_package_to_vfs("heapq.py", kPythonLibs_heapq);
+    save_site_package_to_vfs("itertools.py", kPythonLibs_itertools);
+    save_site_package_to_vfs("operator.py", kPythonLibs_operator);
+    save_site_package_to_vfs("pickle.py", kPythonLibs_pickle);
+    save_site_package_to_vfs("this.py", kPythonLibs_this);
+    save_site_package_to_vfs("typing.py", kPythonLibs_typing);
 }
 
 void pk_VM__dtor(pk_VM* self) {
@@ -188,6 +209,7 @@ void pk_VM__dtor(pk_VM* self) {
     c11__foreach(pk_TypeInfo, &self->types, ti) pk_TypeInfo__dtor(ti);
     c11_vector__dtor(&self->types);
     ValueStack__clear(&self->stack);
+    Vfs__dtor(&self->__vfs);
 }
 
 void pk_VM__push_frame(pk_VM* self, Frame* frame) {
@@ -559,7 +581,7 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
 }
 
 void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
-    return;
+    // return;
     if(frame == NULL) return;
 
     py_TValue* sp = self->stack.sp;

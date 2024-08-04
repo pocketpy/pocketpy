@@ -92,11 +92,8 @@ void py_newlistn(py_Ref, int n);
 void py_newdict(py_Ref);
 void py_newslice(py_Ref);
 void py_newnativefunc(py_Ref out, py_CFunction);
-py_Name py_newfunction(py_Ref out,
-                    const char* sig,
-                    py_CFunction f,
-                    const char* docstring,
-                    int slots);
+py_Name
+    py_newfunction(py_Ref out, const char* sig, py_CFunction f, const char* docstring, int slots);
 
 /************* Name Convertions *************/
 py_Name py_name(const char*);
@@ -262,12 +259,12 @@ py_StackRef py_pushtmp();
 bool py_pushmethod(py_Name name);
 
 /************* Modules *************/
-py_TmpRef py_newmodule(const char* name, const char* package);
-py_TmpRef py_getmodule(const char* name);
+py_TmpRef py_newmodule(const char* path);
+py_TmpRef py_getmodule(const char* path);
 
 /// Import a module.
 /// The result will be set to `py_retval()`.
-bool py_import(const char* name) PY_RAISE;
+bool py_import(const char* path) PY_RAISE;
 
 /************* Errors *************/
 /// Raise an exception by name and message. Always returns false.
@@ -286,6 +283,7 @@ bool py_checkexc();
 #define RuntimeError(...) py_exception("RuntimeError", __VA_ARGS__)
 #define ValueError(...) py_exception("ValueError", __VA_ARGS__)
 #define IndexError(...) py_exception("IndexError", __VA_ARGS__)
+#define ImportError(...) py_exception("ImportError", __VA_ARGS__)
 #define NotImplementedError() py_exception("NotImplementedError", "")
 #define AttributeError(self, n)                                                                    \
     py_exception("AttributeError", "'%t' object has no attribute '%n'", (self)->type, (n))
@@ -361,6 +359,11 @@ void py_dict__delitem(py_Ref self, py_Ref key) PY_RAISE;
 bool py_dict__contains(py_Ref self, py_Ref key);
 int py_dict__len(py_Ref self);
 bool py_dict__apply(py_Ref self, bool (*f)(py_Ref key, py_Ref val, void* ctx), void* ctx);
+
+/************* Virtual File System *************/
+unsigned char* py_vfsread(const char* path, int* size);
+bool py_vfswrite(const char* path, unsigned char* data, int size);
+char** py_vfslist(const char* path, int* length);
 
 /************* Others *************/
 int py_replinput(char* buf);

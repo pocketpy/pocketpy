@@ -1,4 +1,4 @@
-from __builtins import next
+from pkpy import next
 
 def zip_longest(a, b):
     a = iter(a)

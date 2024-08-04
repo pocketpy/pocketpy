@@ -16,6 +16,17 @@ c11_string* c11_string__new2(const char* data, int size) {
     return retval;
 }
 
+c11_string* c11_string__new3(const char* fmt, ...) {
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    va_list args;
+    va_start(args, fmt);
+    // c11_sbuf__write_vfmt(&buf, fmt, args);
+    pk_vsprintf(&buf, fmt, args);
+    va_end(args);
+    return c11_sbuf__submit(&buf);
+}
+
 void c11_string__ctor(c11_string* self, const char* data) {
     c11_string__ctor2(self, data, strlen(data));
 }
@@ -119,6 +130,13 @@ c11_sv c11_sv__strip(c11_sv sv, c11_sv chars, bool left, bool right) {
 
 int c11_sv__index(c11_sv self, char c) {
     for(int i = 0; i < self.size; i++) {
+        if(self.data[i] == c) return i;
+    }
+    return -1;
+}
+
+int c11_sv__rindex(c11_sv self, char c) {
+    for(int i = self.size - 1; i >= 0; i--) {
         if(self.data[i] == c) return i;
     }
     return -1;

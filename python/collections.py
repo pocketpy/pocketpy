@@ -1,4 +1,4 @@
-from __builtins import _enable_instance_dict
+from pkpy import _enable_instance_dict
 from typing import Generic, TypeVar, Iterable
 
 T = TypeVar('T')

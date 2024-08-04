@@ -1,4 +1,4 @@
-from __builtins import next
+from pkpy import next
 
 a = [1, 2, 3]
 a = iter(a)

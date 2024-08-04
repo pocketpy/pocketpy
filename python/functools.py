@@ -1,4 +1,4 @@
-from __builtins import next
+from pkpy import next
 
 class cache:
     def __init__(self, f):

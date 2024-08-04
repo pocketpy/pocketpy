@@ -755,6 +755,47 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 }
             }
             ////////
+            case OP_IMPORT_PATH: {
+                py_Ref path_object = c11__at(py_TValue, &frame->co->consts, byte.arg);
+                bool ok = py_import(py_tostr(path_object));
+                if(!ok) goto __ERROR;
+                PUSH(py_retval());
+                DISPATCH();
+            }
+            case OP_POP_IMPORT_STAR: {
+                // [module]
+                pk_NameDict* dict = PyObject__dict(TOP()->_obj);
+                py_Ref all = pk_NameDict__try_get(dict, __all__);
+                if(all) {
+                    int length;
+                    py_TValue* p = pk_arrayview(all, &length);
+                    if(!p) {
+                        TypeError("'__all__' must be a list or tuple, got '%t'", all->type);
+                        goto __ERROR;
+                    }
+                    for(int i = 0; i < length; i++) {
+                        py_Name name = py_namev(py_tosv(p + i));
+                        py_Ref value = pk_NameDict__try_get(dict, name);
+                        if(value == NULL) {
+                            ImportError("cannot import name '%n'", name);
+                            goto __ERROR;
+                        } else {
+                            py_setdict(&frame->module, name, value);
+                        }
+                    }
+                } else {
+                    for(int i = 0; i < dict->count; i++) {
+                        pk_NameDict_KV* kv = c11__at(pk_NameDict_KV, dict, i);
+                        if(!kv->key) continue;
+                        c11_sv name = py_name2sv(kv->key);
+                        if(name.size == 0 || name.data[0] == '_') continue;
+                        py_setdict(&frame->module, kv->key, &kv->value);
+                    }
+                }
+                POP();
+                DISPATCH();
+            }
+            ////////
             case OP_UNPACK_SEQUENCE: {
                 if(!stack_unpack_sequence(self, byte.arg)) goto __ERROR;
                 DISPATCH();
@@ -907,8 +948,9 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
         pk_print_stack(self, frame, (Bytecode){0});
         py_BaseException__set_lineno(&self->curr_exception, Frame__lineno(frame), frame->co);
     __ERROR_RE_RAISE:
-        do {} while(0);
-        //printf("error.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
+        do {
+        } while(0);
+        // printf("error.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
         int lineno = py_BaseException__get_lineno(&self->curr_exception, frame->co);
         py_BaseException__stpush(&self->curr_exception,
                                  frame->co->src,
