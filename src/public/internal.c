@@ -231,9 +231,13 @@ bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
 
 py_Ref py_retval() { return &pk_current_vm->last_retval; }
 
-bool py_pushmethod(py_Name name) { return pk_pushmethod(py_peek(-1), name); }
+bool py_pushmethod(py_Name name) {
+    bool ok = pk_loadmethod(py_peek(-1), name);
+    if(ok) pk_current_vm->stack.sp++;
+    return ok;
+}
 
-bool pk_pushmethod(py_StackRef self, py_Name name) {
+bool pk_loadmethod(py_StackRef self, py_Name name) {
     // NOTE: `out` and `out_self` may overlap with `self`
     py_Type type;
     // handle super() proxy
@@ -246,7 +250,6 @@ bool pk_pushmethod(py_StackRef self, py_Name name) {
 
     py_Ref cls_var = py_tpfindname(type, name);
     if(cls_var != NULL) {
-        pk_current_vm->stack.sp++;
         switch(cls_var->type) {
             case tp_function:
             case tp_nativefunc: {

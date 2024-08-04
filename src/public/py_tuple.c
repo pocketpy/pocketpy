@@ -131,6 +131,21 @@ static bool tuple__contains__(int argc, py_Ref argv) {
     return pk_arraycontains(py_arg(0), py_arg(1));
 }
 
+static bool tuple__hash__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    int length = py_tuple__len(argv);
+    py_TValue* data = py_tuple__data(argv);
+    uint64_t x = 1000003;
+    for(int i = 0; i < length; i++) {
+        py_i64 y;
+        if(!py_hash(&data[i], &y)) return false;
+        // recommended by Github Copilot
+        x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
+    }
+    py_newint(py_retval(), x);
+    return true;
+}
+
 py_Type pk_tuple__register() {
     py_Type type = pk_newtype("tuple", tp_object, NULL, NULL, false, true);
 
@@ -142,5 +157,6 @@ py_Type pk_tuple__register() {
     py_bindmagic(type, __ne__, tuple__ne__);
     py_bindmagic(type, __iter__, tuple__iter__);
     py_bindmagic(type, __contains__, tuple__contains__);
+    py_bindmagic(type, __hash__, tuple__hash__);
     return type;
 }

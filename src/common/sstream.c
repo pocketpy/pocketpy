@@ -234,7 +234,7 @@ void pk_sprintf(c11_sbuf* ss, const char* fmt, ...) {
 }
 
 int py_replinput(char* buf, int max_size) {
-    buf[0] = '\0';
+    buf[0] = '\0';  // reset first char because we check '@' at the beginning
 
     int size = 0;
     bool multiline = false;

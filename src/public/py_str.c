@@ -72,7 +72,7 @@ static bool str__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int size;
     const char* data = py_tostrn(&argv[0], &size);
-    py_i64 res = 0;
+    uint64_t res = 0;
     for(int i = 0; i < size; i++) {
         res = res * 31 + data[i];
     }

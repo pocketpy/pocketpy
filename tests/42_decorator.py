@@ -8,8 +8,12 @@ class A:
     def x(self):
         return self._x
     
+    def __call__(self, b):
+        return self.x + b
+    
 a = A(1)
 assert a.x == 1
+assert a(2) == 3
 
 class B:
     def __init__(self):
@@ -28,9 +32,6 @@ assert b.x == 1
 b.x = 2
 assert b.x == 2
 
-
-@cache
-@cache
 @cache
 def fib(n):
     # print(f'fib({n})')
@@ -76,5 +77,3 @@ def f():
 
 f()
 assert res == ['w2', 'w1', 'w']
-
-

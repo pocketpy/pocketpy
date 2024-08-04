@@ -484,7 +484,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
     }
 
     // handle `__call__` overload
-    if(pk_pushmethod(p0, __call__)) {
+    if(pk_loadmethod(p0, __call__)) {
         // [__call__, self, args..., kwargs...]
         return VM__vectorcall(self, argc, kwargc, opcall);
     }
