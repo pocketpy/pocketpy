@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
         printf("Type \"exit()\" to exit.\n");
 
         while(true) {
-            int size = py_replinput(buf);
+            int size = py_replinput(buf, sizeof(buf));
             assert(size < sizeof(buf));
             if(size >= 0) {
                 if(!py_exec(buf, "<stdin>", REPL_MODE, NULL)) py_printexc();

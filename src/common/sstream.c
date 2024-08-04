@@ -147,7 +147,7 @@ c11_string* c11_sbuf__submit(c11_sbuf* self) {
     return retval;
 }
 
-void c11_sbuf__py_submit(c11_sbuf *self, py_Ref out){
+void c11_sbuf__py_submit(c11_sbuf* self, py_Ref out) {
     c11_string* res = c11_sbuf__submit(self);
     py_newstrn(out, res->data, res->size);
     c11_string__delete(res);
@@ -233,7 +233,9 @@ void pk_sprintf(c11_sbuf* ss, const char* fmt, ...) {
     va_end(args);
 }
 
-int py_replinput(char* buf) {
+int py_replinput(char* buf, int max_size) {
+    buf[0] = '\0';
+
     int size = 0;
     bool multiline = false;
     printf(">>> ");
@@ -252,13 +254,18 @@ int py_replinput(char* buf) {
                     printf("... ");
                 }
             } else {
-                if(last == ':' || last == '(' || last == '[' || last == '{') {
+                if(last == ':' || last == '(' || last == '[' || last == '{' || buf[0] == '@') {
                     printf("... ");
                     multiline = true;
                 } else {
                     break;
                 }
             }
+        }
+
+        if(size == max_size - 1) {
+            buf[size] = '\0';
+            return size;
         }
 
         buf[size++] = c;

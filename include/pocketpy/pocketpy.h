@@ -373,7 +373,7 @@ int py_dict__len(py_Ref self);
 bool py_dict__apply(py_Ref self, bool (*f)(py_Ref key, py_Ref val, void* ctx), void* ctx);
 
 /************* Others *************/
-int py_replinput(char* buf);
+int py_replinput(char* buf, int max_size);
 
 /// Python favored string formatting. (just put here, not for users)
 /// %d: int

@@ -25,3 +25,13 @@ def f3(x, y):
 
 a = f3(1, 2)
 assert a(3) == 6
+
+# closure ex
+def f(n):
+    def g(x):
+        if x==n:
+            return n
+        return g(x+1)
+    return g(0)
+
+assert f(10) == 10

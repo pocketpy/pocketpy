@@ -1,5 +1,3 @@
-from pkpy import next
-
 class cache:
     def __init__(self, f):
         self.f = f
@@ -13,9 +11,10 @@ class cache:
 def reduce(function, sequence, initial=...):
     it = iter(sequence)
     if initial is ...:
-        value = next(it)
-        if value is StopIteration:
-            raise TypeError("reduce() of empty iterable with no initial value")
+        try:
+            value = next(it)
+        except StopIteration:
+            raise TypeError("reduce() of empty sequence with no initial value")
     else:
         value = initial
     for element in it:
