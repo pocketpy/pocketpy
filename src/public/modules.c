@@ -4,6 +4,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/common/_generated.h"
 
 py_Ref py_getmodule(const char* path) {
     pk_VM* vm = pk_current_vm;
@@ -60,7 +61,8 @@ bool py_import(const char* path_cstr) {
         // try relative import
         py_Ref package = py_getdict(&vm->top_frame->module, __package__);
         c11_sv package_sv = py_tosv(package);
-        if(package_sv.size == 0) return ImportError("relative import %q with no known parent package", path);
+        if(package_sv.size == 0)
+            return ImportError("relative import %q with no known parent package", path);
         c11_string* new_path = c11_string__new3("%v.%v", package_sv, path);
         bool ok = py_import(new_path->data);
         c11_string__delete(new_path);
@@ -85,25 +87,23 @@ bool py_import(const char* path_cstr) {
 
     // try import
     c11_string* slashed_path = c11_sv__replace(path, '.', PK_PLATFORM_SEP);
+    c11_string* filename = c11_string__new3("%s.py", slashed_path->data);
 
-    c11_string* filename = c11_string__new3("site-packages/%s.py", slashed_path->data);
-    int size;
-    unsigned char* data = py_vfsread(filename->data, &size);
-    if(data != NULL) goto __SUCCESS;
-
-    c11_string__delete(filename);
-    filename = c11_string__new3("site-packages/%s/__init__.py", slashed_path->data);
-    data = py_vfsread(filename->data, &size);
-    if(data != NULL) goto __SUCCESS;
+    bool need_free = true;
+    const char* data = load_kPythonLib(path_cstr);
+    if(data != NULL) {
+        need_free = false;
+        goto __SUCCESS;
+    }
 
     c11_string__delete(filename);
     filename = c11_string__new3("%s.py", slashed_path->data);
-    data = vm->import_file(slashed_path->data, &size);
+    data = vm->import_file(slashed_path->data);
     if(data != NULL) goto __SUCCESS;
 
     c11_string__delete(filename);
     filename = c11_string__new3("%s/__init__.py", slashed_path->data);
-    data = vm->import_file(slashed_path->data, &size);
+    data = vm->import_file(slashed_path->data);
     if(data != NULL) goto __SUCCESS;
 
     c11_string__delete(filename);
@@ -121,7 +121,7 @@ __SUCCESS:
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
-    free(data);
+    if(need_free) free((void*)data);
     return ok;
 }
 

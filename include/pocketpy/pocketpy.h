@@ -360,11 +360,6 @@ bool py_dict__contains(py_Ref self, py_Ref key);
 int py_dict__len(py_Ref self);
 bool py_dict__apply(py_Ref self, bool (*f)(py_Ref key, py_Ref val, void* ctx), void* ctx);
 
-/************* Virtual File System *************/
-unsigned char* py_vfsread(const char* path, int* size);
-bool py_vfswrite(const char* path, unsigned char* data, int size);
-char** py_vfslist(const char* path, int* length);
-
 /************* Others *************/
 int py_replinput(char* buf);
 

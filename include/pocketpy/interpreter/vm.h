@@ -4,7 +4,6 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/gc.h"
 #include "pocketpy/interpreter/frame.h"
-#include "pocketpy/interpreter/vfs.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +39,7 @@ typedef struct pk_VM {
     py_TValue main;      // __main__ module
 
     void (*ceval_on_step)(Frame*, Bytecode);
-    unsigned char* (*import_file)(const char*, int*);
+    char* (*import_file)(const char*);
     void (*print)(const char*);
 
     py_TValue last_retval;
@@ -49,7 +48,6 @@ typedef struct pk_VM {
 
     py_TValue reg[8];  // users' registers
 
-    Vfs __vfs;
     py_TValue* __curr_class;
     FuncDecl_ __dynamic_func_decl;
     py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];

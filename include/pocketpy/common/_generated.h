@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+const char* load_kPythonLib(const char* name);
+
 extern const char kPythonLibs__enum[];
 extern const char kPythonLibs__long[];
 extern const char kPythonLibs__set[];
