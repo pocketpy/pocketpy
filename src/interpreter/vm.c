@@ -107,7 +107,7 @@ void VM__ctor(VM* self) {
     validate(tp_nativefunc, pk_nativefunc__register());
     validate(tp_boundmethod, pk_newtype("boundmethod", tp_object, NULL, NULL, false, true));
 
-    validate(tp_super, pk_newtype("super", tp_object, NULL, NULL, false, true));
+    validate(tp_super, pk_super__register());
     validate(tp_BaseException, pk_BaseException__register());
     validate(tp_Exception, pk_Exception__register());
     validate(tp_bytes, pk_bytes__register());
@@ -147,6 +147,7 @@ void VM__ctor(VM* self) {
                               tp_bytes,
                               tp_dict,
                               tp_property,
+                              tp_super,
                               tp_BaseException,
                               tp_Exception,
                               tp_StopIteration,
@@ -504,7 +505,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
     }
 
     TypeError("'%t' object is not callable", p0->type);
-    c11__unreachedable();
+    return RES_ERROR;
 }
 
 /****************************************/

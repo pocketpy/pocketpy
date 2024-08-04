@@ -326,6 +326,35 @@ static bool builtins__eval(int argc, py_Ref argv) {
     return py_exec(py_tostr(argv), "<eval>", EVAL_MODE, NULL);
 }
 
+static bool builtins__isinstance(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(py_istuple(py_arg(1))) {
+        int length = py_tuple__len(py_arg(1));
+        for(int i = 0; i < length; i++) {
+            py_Ref item = py_tuple__getitem(py_arg(1), i);
+            if(!py_checktype(item, tp_type)) return false;
+            if(py_isinstance(py_arg(0), py_totype(item))) {
+                py_newbool(py_retval(), true);
+                return true;
+            }
+        }
+        py_newbool(py_retval(), false);
+        return true;
+    }
+
+    if(!py_checktype(py_arg(1), tp_type)) return false;
+    py_newbool(py_retval(), py_isinstance(py_arg(0), py_totype(py_arg(1))));
+    return true;
+}
+
+static bool builtins__issubclass(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(!py_checktype(py_arg(0), tp_type)) return false;
+    if(!py_checktype(py_arg(1), tp_type)) return false;
+    py_newbool(py_retval(), py_issubclass(py_totype(py_arg(0)), py_totype(py_arg(1))));
+    return true;
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins");
     py_bindfunc(builtins, "repr", builtins__repr);
@@ -344,6 +373,9 @@ py_TValue pk_builtins__register() {
 
     py_bind(builtins, "print(*args, sep=' ', end='\\n')", builtins__print);
     py_bind(builtins, "sorted(iterable, key=None, reverse=False)", builtins__sorted);
+
+    py_bindfunc(builtins, "isinstance", builtins__isinstance);
+    py_bindfunc(builtins, "issubclass", builtins__issubclass);
 
     // None __repr__
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);
@@ -365,5 +397,45 @@ static bool nativefunc__repr(int argc, py_Ref argv) {
 py_Type pk_nativefunc__register() {
     py_Type type = pk_newtype("nativefunc", tp_object, NULL, NULL, false, true);
     py_bindmagic(type, __repr__, nativefunc__repr);
+    return type;
+}
+
+static bool super__new__(int argc, py_Ref argv) {
+    py_Type* class_arg = py_newobject(py_retval(), tp_super, 1, sizeof(py_Type));
+    Frame* frame = pk_current_vm->top_frame;
+    *class_arg = 0;
+    py_Ref self_arg = NULL;
+    if(argc == 1) {
+        // super()
+        if(frame->function) {
+            // class_arg = PK_OBJ_GET(Function, frame->_callable)._class;
+            Function* func = PyObject__userdata(frame->function);
+            *class_arg = *(py_Type*)PyObject__userdata(func->clazz);
+            if(frame->locals_co->nlocals > 0) self_arg = &frame->locals[0];
+        }
+        if(class_arg == 0 || self_arg == NULL) return RuntimeError("super(): no arguments");
+    } else if(argc == 3) {
+        // super(type, obj)
+        PY_CHECK_ARG_TYPE(1, tp_type);
+        *class_arg = py_totype(py_arg(1));
+        self_arg = py_arg(2);
+        if(!py_isinstance(self_arg, *class_arg)) {
+            return TypeError("super(type, obj): obj must be an instance of type");
+        }
+    } else {
+        return TypeError("super() takes 0 or 2 arguments");
+    }
+
+    py_TypeInfo* types = pk_current_vm->types.data;
+    *class_arg = types[*class_arg].base;
+    if(*class_arg == 0) return RuntimeError("super(): base class is invalid");
+
+    py_setslot(py_retval(), 0, self_arg);
+    return true;
+}
+
+py_Type pk_super__register() {
+    py_Type type = pk_newtype("super", tp_object, NULL, NULL, false, true);
+    py_bindmagic(type, __new__, super__new__);
     return type;
 }

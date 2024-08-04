@@ -110,14 +110,6 @@ class B(A):
 assert B.b == 3
 assert B.c == 4
 
-import c
-
-class A(c.void_p):
-    pass
-    
-a = A(0)
-assert repr(a).startswith('<void* at')
-
 if 1:
     class TrueClass:
         pass

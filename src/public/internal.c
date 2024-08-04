@@ -238,8 +238,8 @@ bool pk_pushmethod(py_StackRef self, py_Name name) {
     py_Type type;
     // handle super() proxy
     if(py_istype(self, tp_super)) {
-        self = py_getslot(self, 0);
         type = *(py_Type*)py_touserdata(self);
+        *self = *py_getslot(self, 0);
     } else {
         type = self->type;
     }
@@ -268,7 +268,6 @@ bool pk_pushmethod(py_StackRef self, py_Name name) {
         }
         return true;
     }
-    // TODO: __getattr__ fallback
     return false;
 }
 
