@@ -84,7 +84,7 @@ py_Name
     snprintf(buffer, sizeof(buffer), "def %s: pass", sig);
     // fn(a, b, *c, d=1) -> None
     CodeObject code;
-    pk_SourceData_ source = pk_SourceData__rcnew(buffer, "<bind>", EXEC_MODE, false);
+    SourceData_ source = SourceData__rcnew(buffer, "<bind>", EXEC_MODE, false);
     Error* err = pk_compile(source, &code);
     if(err || code.func_decls.count != 1) {
         c11__abort("py_newfunction(): invalid signature '%s'", sig);
@@ -102,8 +102,8 @@ py_Name
 }
 
 void* py_newobject(py_Ref out, py_Type type, int slots, int udsize) {
-    pk_ManagedHeap* heap = &pk_current_vm->heap;
-    PyObject* obj = pk_ManagedHeap__gcnew(heap, type, slots, udsize);
+    ManagedHeap* heap = &pk_current_vm->heap;
+    PyObject* obj = ManagedHeap__gcnew(heap, type, slots, udsize);
     out->type = type;
     out->is_ptr = true;
     out->_obj = obj;

@@ -9,18 +9,18 @@
 #include "pocketpy/compiler/compiler.h"
 #include <stdint.h>
 
-pk_VM* pk_current_vm;
+VM* pk_current_vm;
 
 py_GlobalRef py_True;
 py_GlobalRef py_False;
 py_GlobalRef py_None;
 py_GlobalRef py_NIL;
 
-static pk_VM pk_default_vm;
-static pk_VM* pk_all_vm[16];
+static VM pk_default_vm;
+static VM* pk_all_vm[16];
 
 void py_initialize() {
-    pk_MemoryPools__initialize();
+    MemoryPools__initialize();
     py_Name__initialize();
 
     pk_current_vm = pk_all_vm[0] = &pk_default_vm;
@@ -35,28 +35,28 @@ void py_initialize() {
     py_False = &_False;
     py_None = &_None;
     py_NIL = &_NIL;
-    pk_VM__ctor(&pk_default_vm);
+    VM__ctor(&pk_default_vm);
 }
 
 void py_finalize() {
     for(int i = 1; i < 16; i++) {
-        pk_VM* vm = pk_all_vm[i];
+        VM* vm = pk_all_vm[i];
         if(vm) {
-            pk_VM__dtor(vm);
+            VM__dtor(vm);
             free(vm);
         }
     }
-    pk_VM__dtor(&pk_default_vm);
+    VM__dtor(&pk_default_vm);
     pk_current_vm = NULL;
     py_Name__finalize();
-    pk_MemoryPools__finalize();
+    MemoryPools__finalize();
 }
 
 void py_switchvm(int index) {
     if(index < 0 || index >= 16) c11__abort("invalid vm index");
     if(!pk_all_vm[index]) {
-        pk_all_vm[index] = malloc(sizeof(pk_VM));
-        pk_VM__ctor(pk_all_vm[index]);
+        pk_all_vm[index] = malloc(sizeof(VM));
+        VM__ctor(pk_all_vm[index]);
     }
     pk_current_vm = pk_all_vm[index];
 }
@@ -184,9 +184,9 @@ static void disassemble(CodeObject* co) {
 }
 
 bool py_exec(const char* source, const char* filename, enum py_CompileMode mode, py_Ref module) {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     CodeObject co;
-    pk_SourceData_ src = pk_SourceData__rcnew(source, filename, mode, false);
+    SourceData_ src = SourceData__rcnew(source, filename, mode, false);
     Error* err = pk_compile(src, &co);
     if(err) {
         py_exception("SyntaxError", err->msg);
@@ -201,8 +201,8 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
     if(!module) module = &vm->main;
 
     Frame* frame = Frame__new(&co, module, NULL, vm->stack.sp, vm->stack.sp, &co);
-    pk_VM__push_frame(vm, frame);
-    pk_FrameResult res = pk_VM__run_top_frame(vm);
+    VM__push_frame(vm, frame);
+    FrameResult res = VM__run_top_frame(vm);
     CodeObject__dtor(&co);
     PK_DECREF(src);
     if(res == RES_ERROR) return false;
@@ -225,8 +225,8 @@ bool py_call(py_Ref f, int argc, py_Ref argv) {
 bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv) { return -1; }
 
 bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
-    pk_VM* vm = pk_current_vm;
-    return pk_VM__vectorcall(vm, argc, kwargc, false) != RES_ERROR;
+    VM* vm = pk_current_vm;
+    return VM__vectorcall(vm, argc, kwargc, false) != RES_ERROR;
 }
 
 py_Ref py_retval() { return &pk_current_vm->last_retval; }
@@ -262,7 +262,7 @@ bool pk_pushmethod(py_StackRef self, py_Name name) {
                 break;
             case tp_classmethod:
                 self[0] = *py_getslot(cls_var, 0);
-                self[1] = c11__getitem(pk_TypeInfo, &pk_current_vm->types, type).self;
+                self[1] = c11__getitem(py_TypeInfo, &pk_current_vm->types, type).self;
                 break;
             default: c11__unreachedable();
         }
@@ -274,7 +274,7 @@ bool pk_pushmethod(py_StackRef self, py_Name name) {
 
 py_Ref py_tpfindmagic(py_Type t, py_Name name) {
     assert(py_ismagicname(name));
-    pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
+    py_TypeInfo* types = (py_TypeInfo*)pk_current_vm->types.data;
     do {
         py_Ref f = &types[t].magic[name];
         if(!py_isnil(f)) return f;
@@ -284,7 +284,7 @@ py_Ref py_tpfindmagic(py_Type t, py_Name name) {
 }
 
 py_Ref py_tpfindname(py_Type t, py_Name name) {
-    pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
+    py_TypeInfo* types = (py_TypeInfo*)pk_current_vm->types.data;
     do {
         py_Ref res = py_getdict(&types[t].self, name);
         if(res) return res;
@@ -295,20 +295,20 @@ py_Ref py_tpfindname(py_Type t, py_Name name) {
 
 py_Ref py_tpmagic(py_Type type, py_Name name) {
     assert(py_ismagicname(name));
-    pk_VM* vm = pk_current_vm;
-    return &c11__at(pk_TypeInfo, &vm->types, type)->magic[name];
+    VM* vm = pk_current_vm;
+    return &c11__at(py_TypeInfo, &vm->types, type)->magic[name];
 }
 
 py_Ref py_tpobject(py_Type type) {
     assert(type);
-    pk_VM* vm = pk_current_vm;
-    return &c11__at(pk_TypeInfo, &vm->types, type)->self;
+    VM* vm = pk_current_vm;
+    return &c11__at(py_TypeInfo, &vm->types, type)->self;
 }
 
 const char* py_tpname(py_Type type) {
     if(!type) return "nil";
-    pk_VM* vm = pk_current_vm;
-    py_Name name = c11__at(pk_TypeInfo, &vm->types, type)->name;
+    VM* vm = pk_current_vm;
+    py_Name name = c11__at(py_TypeInfo, &vm->types, type)->name;
     return py_name2str(name);
 }
 
@@ -325,7 +325,7 @@ bool pk_callmagic(py_Name name, int argc, py_Ref argv) {
 }
 
 bool StopIteration() {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     assert(!vm->is_stopiteration);  // flag is already set
     vm->is_stopiteration = true;
     return false;

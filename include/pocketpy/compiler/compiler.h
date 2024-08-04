@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-Error* pk_compile(pk_SourceData_ src, CodeObject* out);
+Error* pk_compile(SourceData_ src, CodeObject* out);
 
 #ifdef __cplusplus
 }

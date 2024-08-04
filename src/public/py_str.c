@@ -9,9 +9,9 @@
 void py_newstr(py_Ref out, const char* data) { py_newstrn(out, data, strlen(data)); }
 
 void py_newstrn(py_Ref out, const char* data, int size) {
-    pk_ManagedHeap* heap = &pk_current_vm->heap;
+    ManagedHeap* heap = &pk_current_vm->heap;
     int total_size = sizeof(c11_string) + size + 1;
-    PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_str, 0, total_size);
+    PyObject* obj = ManagedHeap__gcnew(heap, tp_str, 0, total_size);
     c11_string* ud = PyObject__userdata(obj);
     c11_string__ctor2(ud, data, size);
     out->type = tp_str;
@@ -20,9 +20,9 @@ void py_newstrn(py_Ref out, const char* data, int size) {
 }
 
 unsigned char* py_newbytes(py_Ref out, int size) {
-    pk_ManagedHeap* heap = &pk_current_vm->heap;
+    ManagedHeap* heap = &pk_current_vm->heap;
     // 4 bytes size + data
-    PyObject* obj = pk_ManagedHeap__gcnew(heap, tp_bytes, 0, sizeof(c11_bytes) + size);
+    PyObject* obj = ManagedHeap__gcnew(heap, tp_bytes, 0, sizeof(c11_bytes) + size);
     c11_bytes* ud = PyObject__userdata(obj);
     ud->size = size;
     out->type = tp_bytes;

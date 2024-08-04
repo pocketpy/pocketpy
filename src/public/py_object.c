@@ -5,7 +5,7 @@
 static bool object__new__(int argc, py_Ref argv) {
     if(argc == 0) return TypeError("object.__new__(): not enough arguments");
     py_Type cls = py_totype(py_arg(0));
-    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &pk_current_vm->types, cls);
+    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, cls);
     if(!ti->is_python) {
         return TypeError("object.__new__(%t) is not safe, use %t.__new__()", cls, cls);
     }
@@ -63,7 +63,7 @@ static bool type__new__(int argc, py_Ref argv) {
 static bool type__base__getter(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Type type = py_totype(argv);
-    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &pk_current_vm->types, type);
+    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
     py_assign(py_retval(), py_tpobject(ti->base));
     return true;
 }

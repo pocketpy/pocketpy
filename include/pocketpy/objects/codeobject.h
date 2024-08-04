@@ -68,7 +68,7 @@ typedef struct BytecodeEx {
 } BytecodeEx;
 
 typedef struct CodeObject {
-    pk_SourceData_ src;
+    SourceData_ src;
     c11_string* name;
 
     c11_vector /*T=Bytecode*/ codes;
@@ -88,7 +88,7 @@ typedef struct CodeObject {
     int end_line;
 } CodeObject;
 
-void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_sv name);
+void CodeObject__ctor(CodeObject* self, SourceData_ src, c11_sv name);
 void CodeObject__dtor(CodeObject* self);
 int CodeObject__add_varname(CodeObject* self, py_Name name);
 void CodeObject__gc_mark(const CodeObject* self);
@@ -118,7 +118,7 @@ typedef struct FuncDecl {
 
 typedef FuncDecl* FuncDecl_;
 
-FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name);
+FuncDecl_ FuncDecl__rcnew(SourceData_ src, c11_sv name);
 bool FuncDecl__is_duplicated_arg(const FuncDecl* self, py_Name name);
 void FuncDecl__add_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value);
@@ -139,7 +139,7 @@ typedef struct Function {
     FuncDecl_ decl;
     py_TValue module;      // weak ref
     PyObject* clazz;       // weak ref
-    pk_NameDict* closure;  // strong ref
+    NameDict* closure;  // strong ref
     py_CFunction cfunc;    // wrapped C function
 } Function;
 

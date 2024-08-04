@@ -10,8 +10,8 @@
 
 #define is_raw_string_used(t) ((t) == TK_ID || (t) == TK_LONG)
 
-typedef struct pk_Lexer{
-    pk_SourceData_ src;
+typedef struct Lexer{
+    SourceData_ src;
     const char* token_start;
     const char* curr_char;
     int current_line;
@@ -19,7 +19,7 @@ typedef struct pk_Lexer{
 
     c11_vector/*T=Token*/ nexts;
     c11_vector/*T=int*/ indents;
-} pk_Lexer;
+} Lexer;
 
 typedef struct TokenDeserializer {
     const char* curr;
@@ -37,7 +37,7 @@ double TokenDeserializer__read_float(TokenDeserializer* self, char c);
 
 const static TokenValue EmptyTokenValue;
 
-static void pk_Lexer__ctor(pk_Lexer* self, pk_SourceData_ src){
+static void Lexer__ctor(Lexer* self, SourceData_ src){
     PK_INCREF(src);
     self->src = src;
     self->curr_char = self->token_start = src->source->data;
@@ -47,20 +47,20 @@ static void pk_Lexer__ctor(pk_Lexer* self, pk_SourceData_ src){
     c11_vector__ctor(&self->indents, sizeof(int));
 }
 
-static void pk_Lexer__dtor(pk_Lexer* self){
+static void Lexer__dtor(Lexer* self){
     PK_DECREF(self->src);
     c11_vector__dtor(&self->nexts);
     c11_vector__dtor(&self->indents);
 }
 
-static char eatchar(pk_Lexer* self){
+static char eatchar(Lexer* self){
     char c = *self->curr_char;
     assert(c != '\n');  // eatchar() cannot consume a newline
     self->curr_char++;
     return c;
 }
 
-static char eatchar_include_newline(pk_Lexer* self){
+static char eatchar_include_newline(Lexer* self){
     char c = *self->curr_char;
     self->curr_char++;
     if(c == '\n') {
@@ -70,7 +70,7 @@ static char eatchar_include_newline(pk_Lexer* self){
     return c;
 }
 
-static int eat_spaces(pk_Lexer* self){
+static int eat_spaces(Lexer* self){
     int count = 0;
     while(true) {
         switch(*self->curr_char) {
@@ -82,13 +82,13 @@ static int eat_spaces(pk_Lexer* self){
     }
 }
 
-static bool matchchar(pk_Lexer* self, char c){
+static bool matchchar(Lexer* self, char c){
     if(*self->curr_char != c) return false;
     eatchar_include_newline(self);
     return true;
 }
 
-static bool match_n_chars(pk_Lexer* self, int n, char c0){
+static bool match_n_chars(Lexer* self, int n, char c0){
     const char* c = self->curr_char;
     for(int i = 0; i < n; i++) {
         if(*c == '\0') return false;
@@ -100,14 +100,14 @@ static bool match_n_chars(pk_Lexer* self, int n, char c0){
     return true;
 }
 
-static void skip_line_comment(pk_Lexer* self){
+static void skip_line_comment(Lexer* self){
     while(*self->curr_char) {
         if(*self->curr_char == '\n') return;
         eatchar(self);
     }
 }
 
-static void add_token_with_value(pk_Lexer* self, TokenIndex type, TokenValue value){
+static void add_token_with_value(Lexer* self, TokenIndex type, TokenValue value){
     switch(type) {
         case TK_LBRACE:
         case TK_LBRACKET:
@@ -142,18 +142,18 @@ static void add_token_with_value(pk_Lexer* self, TokenIndex type, TokenValue val
     }
 }
 
-static void add_token(pk_Lexer* self, TokenIndex type){
+static void add_token(Lexer* self, TokenIndex type){
     add_token_with_value(self, type, EmptyTokenValue);
 }
 
-static void add_token_2(pk_Lexer* self, char c, TokenIndex one, TokenIndex two){
+static void add_token_2(Lexer* self, char c, TokenIndex one, TokenIndex two){
     if(matchchar(self, c))
         add_token(self, two);
     else
         add_token(self, one);
 }
 
-static bool eat_indentation(pk_Lexer* self){
+static bool eat_indentation(Lexer* self){
     if(self->brackets_level > 0) return true;
     int spaces = eat_spaces(self);
     if(*self->curr_char == '#') skip_line_comment(self);
@@ -192,7 +192,7 @@ static bool is_possible_number_char(char c){
 }
 
 /******************************/
-static Error* SyntaxError(pk_Lexer* self, const char* fmt, ...){
+static Error* SyntaxError(Lexer* self, const char* fmt, ...){
     Error* err = malloc(sizeof(Error));
     err->src = self->src;
     PK_INCREF(self->src);
@@ -207,7 +207,7 @@ static Error* SyntaxError(pk_Lexer* self, const char* fmt, ...){
     return err;
 }
 
-static Error* eat_name(pk_Lexer* self){
+static Error* eat_name(Lexer* self){
     self->curr_char--;
     while(true) {
         unsigned char c = *self->curr_char;
@@ -247,7 +247,7 @@ static Error* eat_name(pk_Lexer* self){
     if(length == 0) return SyntaxError(self, "@id contains invalid char");
     c11_sv name = {self->token_start, length};
 
-    const char** KW_BEGIN = pk_TokenSymbols + TK_FALSE;
+    const char** KW_BEGIN = TokenSymbols + TK_FALSE;
     int KW_COUNT = TK__COUNT__ - TK_FALSE;
     #define less(a, b) (c11_sv__cmp2(b, a) > 0)
     int out;
@@ -262,7 +262,7 @@ static Error* eat_name(pk_Lexer* self){
     return NULL;
 }
 
-static Error* eat_string_until(pk_Lexer* self, char quote, bool raw, c11_string** out) {
+static Error* eat_string_until(Lexer* self, char quote, bool raw, c11_string** out) {
     // previous char is quote
     bool quote3 = match_n_chars(self, 2, quote);
     c11_sbuf buff;
@@ -321,7 +321,7 @@ enum StringType {
     NORMAL_BYTES
 };
 
-static Error* eat_string(pk_Lexer* self, char quote, enum StringType type){
+static Error* eat_string(Lexer* self, char quote, enum StringType type){
     c11_string* s;
     Error* err = eat_string_until(self, quote, type == RAW_STRING, &s);
     if(err) return err;
@@ -336,7 +336,7 @@ static Error* eat_string(pk_Lexer* self, char quote, enum StringType type){
     return NULL;
 }
 
-static Error* eat_number(pk_Lexer* self){
+static Error* eat_number(Lexer* self){
     const char* i = self->token_start;
     while(is_possible_number_char(*i)) i++;
 
@@ -389,7 +389,7 @@ static Error* eat_number(pk_Lexer* self){
     return SyntaxError(self, "invalid number literal");
 }
 
-static Error* lex_one_token(pk_Lexer* self, bool* eof){
+static Error* lex_one_token(Lexer* self, bool* eof){
     *eof = false;
     while(*self->curr_char) {
         self->token_start = self->curr_char;
@@ -532,7 +532,7 @@ static Error* lex_one_token(pk_Lexer* self, bool* eof){
     return NULL;
 }
 
-static Error* from_precompiled(pk_Lexer* self) {
+static Error* from_precompiled(Lexer* self) {
     TokenDeserializer deserializer;
     TokenDeserializer__ctor(&deserializer, self->src->source->data);
 
@@ -603,14 +603,14 @@ static Error* from_precompiled(pk_Lexer* self) {
     return NULL;
 }
 
-Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens){
-    pk_Lexer lexer;
-    pk_Lexer__ctor(&lexer, src);
+Error* Lexer__process(SourceData_ src, TokenArray* out_tokens){
+    Lexer lexer;
+    Lexer__ctor(&lexer, src);
 
     if(src->is_precompiled) {
         Error* err = from_precompiled(&lexer);
         // TODO: set out tokens
-        pk_Lexer__dtor(&lexer);
+        Lexer__dtor(&lexer);
         return err;
     }
     // push initial tokens
@@ -622,21 +622,21 @@ Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens){
     while(!eof) {
         void* err = lex_one_token(&lexer, &eof);
         if(err){
-            pk_Lexer__dtor(&lexer);
+            Lexer__dtor(&lexer);
             return err;
         }
     }
     // set out_tokens
     *out_tokens = c11_vector__submit(&lexer.nexts);
 
-    pk_Lexer__dtor(&lexer);
+    Lexer__dtor(&lexer);
     return NULL;
 }
 
-Error* pk_Lexer__process_and_dump(pk_SourceData_ src, c11_string** out) {
+Error* Lexer__process_and_dump(SourceData_ src, c11_string** out) {
     assert(!src->is_precompiled);
-    pk_TokenArray nexts;    // output tokens
-    Error* err = pk_Lexer__process(src, &nexts);
+    TokenArray nexts;    // output tokens
+    Error* err = Lexer__process(src, &nexts);
     if(err) return err;
 
     c11_sbuf ss;
@@ -729,7 +729,7 @@ Error* pk_Lexer__process_and_dump(pk_SourceData_ src, c11_string** out) {
     return NULL;
 }
 
-void pk_TokenArray__dtor(pk_TokenArray *self){
+void TokenArray__dtor(TokenArray *self){
     Token* data = self->data;
     for(int i=0; i<self->count; i++){
         if(data[i].value.index == TokenValue_STR){
@@ -739,7 +739,7 @@ void pk_TokenArray__dtor(pk_TokenArray *self){
     c11_array__dtor(self);
 }
 
-const char* pk_TokenSymbols[] = {
+const char* TokenSymbols[] = {
     "@eof", "@eol", "@sof",
     "@id", "@num", "@str", "@fstr", "@long", "@bytes", "@imag",
     "@indent", "@dedent",

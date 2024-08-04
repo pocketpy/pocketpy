@@ -4,9 +4,9 @@
 
 void* PyObject__userdata(PyObject* self) { return self->flex + PK_OBJ_SLOTS_SIZE(self->slots); }
 
-pk_NameDict* PyObject__dict(PyObject* self) {
+NameDict* PyObject__dict(PyObject* self) {
     assert(self->slots == -1);
-    return (pk_NameDict*)(self->flex);
+    return (NameDict*)(self->flex);
 }
 
 py_TValue* PyObject__slots(PyObject* self) {

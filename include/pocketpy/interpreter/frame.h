@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, py_Name name);
-pk_NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co);
+NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co);
 
 typedef struct ValueStack {
     // We allocate extra PK_VM_STACK_SIZE/128 places to keep `_sp` valid when `is_overflow() ==

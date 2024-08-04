@@ -8,7 +8,7 @@
 #include "pocketpy/common/sstream.h"
 
 typedef struct BaseExceptionFrame {
-    pk_SourceData_ src;
+    SourceData_ src;
     int lineno;
     c11_string* name;
 } BaseExceptionFrame;
@@ -31,7 +31,7 @@ int py_BaseException__get_lineno(py_Ref self, const CodeObject* code) {
     return ud->lineno_backup;
 }
 
-void py_BaseException__stpush(py_Ref self, pk_SourceData_ src, int lineno, const char* func_name) {
+void py_BaseException__stpush(py_Ref self, SourceData_ src, int lineno, const char* func_name) {
     BaseException* ud = py_touserdata(self);
     if(ud->stacktrace.count >= 7) return;
     BaseExceptionFrame* frame = c11_vector__emplace(&ud->stacktrace);
@@ -111,12 +111,12 @@ py_Type pk_Exception__register() {
 
 //////////////////////////////////////////////////
 bool py_checkexc() {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     return !py_isnil(&vm->curr_exception);
 }
 
 void py_clearexc(py_StackRef p0) {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     vm->last_retval = *py_NIL;
     vm->curr_exception = *py_NIL;
     vm->is_stopiteration = false;
@@ -133,7 +133,7 @@ void py_printexc() {
 }
 
 char* py_formatexc() {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     if(py_isnil(&vm->curr_exception)) return NULL;
     c11_sbuf ss;
     c11_sbuf__ctor(&ss);
@@ -144,7 +144,7 @@ char* py_formatexc() {
 
     for(int i = ud->stacktrace.count - 1; i >= 0; i--) {
         BaseExceptionFrame* frame = c11__at(BaseExceptionFrame, &ud->stacktrace, i);
-        pk_SourceData__snapshot(frame->src,
+        SourceData__snapshot(frame->src,
                                 &ss,
                                 frame->lineno,
                                 NULL,
@@ -191,7 +191,7 @@ bool py_exception(const char* name, const char* fmt, ...) {
 
 bool py_raise(py_Ref exc) {
     assert(py_isinstance(exc, tp_BaseException));
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     vm->curr_exception = *exc;
     return false;
 }

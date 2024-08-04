@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void pk_SourceData__ctor(struct pk_SourceData* self,
+static void SourceData__ctor(struct SourceData* self,
                                 const char* source,
                                 const char* filename,
                                 enum py_CompileMode mode,
@@ -31,7 +31,7 @@ static void pk_SourceData__ctor(struct pk_SourceData* self,
     c11_vector__push(const char*, &self->line_starts, self->source->data);
 }
 
-static void pk_SourceData__dtor(struct pk_SourceData* self) {
+static void SourceData__dtor(struct SourceData* self) {
     c11_string__delete(self->filename);
     c11_string__delete(self->source);
 
@@ -43,18 +43,18 @@ static void pk_SourceData__dtor(struct pk_SourceData* self) {
     c11_vector__dtor(&self->_precompiled_tokens);
 }
 
-pk_SourceData_ pk_SourceData__rcnew(const char* source,
+SourceData_ SourceData__rcnew(const char* source,
                                     const char* filename,
                                     enum py_CompileMode mode,
                                     bool is_dynamic) {
-    pk_SourceData_ self = malloc(sizeof(struct pk_SourceData));
-    pk_SourceData__ctor(self, source, filename, mode, is_dynamic);
+    SourceData_ self = malloc(sizeof(struct SourceData));
+    SourceData__ctor(self, source, filename, mode, is_dynamic);
     self->rc.count = 1;
-    self->rc.dtor = (void (*)(void*))pk_SourceData__dtor;
+    self->rc.dtor = (void (*)(void*))SourceData__dtor;
     return self;
 }
 
-bool pk_SourceData__get_line(const struct pk_SourceData* self,
+bool SourceData__get_line(const struct SourceData* self,
                              int lineno,
                              const char** st,
                              const char** ed) {
@@ -71,7 +71,7 @@ bool pk_SourceData__get_line(const struct pk_SourceData* self,
     return true;
 }
 
-void pk_SourceData__snapshot(const struct pk_SourceData* self,
+void SourceData__snapshot(const struct SourceData* self,
                              c11_sbuf* ss,
                              int lineno,
                              const char* cursor,
@@ -86,7 +86,7 @@ void pk_SourceData__snapshot(const struct pk_SourceData* self,
     if(!self->is_precompiled) {
         c11_sbuf__write_char(ss, '\n');
         const char *st = NULL, *ed;
-        if(pk_SourceData__get_line(self, lineno, &st, &ed)) {
+        if(SourceData__get_line(self, lineno, &st, &ed)) {
             while(st < ed && isblank(*st))
                 ++st;
             if(st < ed) {

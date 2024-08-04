@@ -6,8 +6,8 @@
 #include "pocketpy/interpreter/vm.h"
 
 void py_newslice(py_Ref out) {
-    pk_VM* vm = pk_current_vm;
-    PyObject* obj = pk_ManagedHeap__gcnew(&vm->heap, tp_slice, 3, 0);
+    VM* vm = pk_current_vm;
+    PyObject* obj = ManagedHeap__gcnew(&vm->heap, tp_slice, 3, 0);
     out->type = tp_slice;
     out->is_ptr = true;
     out->_obj = obj;

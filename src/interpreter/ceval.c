@@ -9,7 +9,7 @@
 #include "pocketpy/objects/error.h"
 #include <stdbool.h>
 
-static bool stack_unpack_sequence(pk_VM* self, uint16_t arg);
+static bool stack_unpack_sequence(VM* self, uint16_t arg);
 static bool format_object(py_Ref obj, c11_sv spec);
 
 #define DISPATCH()                                                                                 \
@@ -54,7 +54,7 @@ static bool format_object(py_Ref obj, c11_sv spec);
 
 #define vectorcall_opcall(argc, kwargc)                                                            \
     do {                                                                                           \
-        pk_FrameResult res = pk_VM__vectorcall(self, (argc), (kwargc), true);                      \
+        FrameResult res = VM__vectorcall(self, (argc), (kwargc), true);                      \
         switch(res) {                                                                              \
             case RES_RETURN: PUSH(&self->last_retval); break;                                      \
             case RES_CALL: frame = self->top_frame; goto __NEXT_FRAME;                             \
@@ -75,7 +75,7 @@ static bool unpack_dict_to_buffer(py_Ref key, py_Ref val, void* ctx) {
     return TypeError("keywords must be strings, not '%t'", key->type);
 }
 
-pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
+FrameResult VM__run_top_frame(VM* self) {
     Frame* frame = self->top_frame;
     const Frame* base_frame = frame;
 
@@ -139,7 +139,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     ud->closure = FastLocals__to_namedict(frame->locals, frame->locals_co);
                     py_Name name = py_namev(c11_string__sv(decl->code.name));
                     // capture itself to allow recursion
-                    pk_NameDict__set(ud->closure, name, *SP());
+                    NameDict__set(ud->closure, name, *SP());
                 }
                 SP()++;
                 DISPATCH();
@@ -619,7 +619,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 DISPATCH();
             }
             case OP_CALL: {
-                pk_ManagedHeap__collect_if_needed(&self->heap);
+                ManagedHeap__collect_if_needed(&self->heap);
                 vectorcall_opcall(byte.arg & 0xFF, byte.arg >> 8);
                 DISPATCH();
             }
@@ -684,7 +684,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                 } else {
                     py_newnone(&self->last_retval);
                 }
-                pk_VM__pop_frame(self);
+                VM__pop_frame(self);
                 if(frame == base_frame) {  // [ frameBase<- ]
                     return RES_RETURN;
                 } else {
@@ -770,8 +770,8 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_POP_IMPORT_STAR: {
                 // [module]
-                pk_NameDict* dict = PyObject__dict(TOP()->_obj);
-                py_Ref all = pk_NameDict__try_get(dict, __all__);
+                NameDict* dict = PyObject__dict(TOP()->_obj);
+                py_Ref all = NameDict__try_get(dict, __all__);
                 if(all) {
                     int length;
                     py_TValue* p = pk_arrayview(all, &length);
@@ -781,7 +781,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     }
                     for(int i = 0; i < length; i++) {
                         py_Name name = py_namev(py_tosv(p + i));
-                        py_Ref value = pk_NameDict__try_get(dict, name);
+                        py_Ref value = NameDict__try_get(dict, name);
                         if(value == NULL) {
                             ImportError("cannot import name '%n'", name);
                             goto __ERROR;
@@ -791,7 +791,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
                     }
                 } else {
                     for(int i = 0; i < dict->count; i++) {
-                        pk_NameDict_KV* kv = c11__at(pk_NameDict_KV, dict, i);
+                        NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
                         if(!kv->key) continue;
                         c11_sv name = py_name2sv(kv->key);
                         if(name.size == 0 || name.data[0] == '_') continue;
@@ -854,10 +854,10 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
 
                 if(py_istype(TOP(), tp_type)) {
                     // call on_end_subclass
-                    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, py_totype(TOP()));
+                    py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, py_totype(TOP()));
                     if(ti->base != tp_object) {
                         // PyTypeInfo* base_ti = &_all_types[ti->base];
-                        pk_TypeInfo* base_ti = c11__at(pk_TypeInfo, &self->types, ti->base);
+                        py_TypeInfo* base_ti = c11__at(py_TypeInfo, &self->types, ti->base);
                         if(base_ti->on_end_subclass) base_ti->on_end_subclass(ti);
                     }
                 }
@@ -877,7 +877,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_ADD_CLASS_ANNOTATION: {
                 py_Type type = py_totype(self->__curr_class);
-                pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, type);
+                py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, type);
                 c11_vector__push(py_Name, &ti->annotated_fields, byte.arg);
                 DISPATCH();
             }
@@ -970,7 +970,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
         } else {
             // 2. Exception need to be propagated to the upper frame
             bool is_base_frame_to_be_popped = frame == base_frame;
-            pk_VM__pop_frame(self);
+            VM__pop_frame(self);
             if(self->top_frame == NULL || is_base_frame_to_be_popped) {
                 // propagate to the top level
                 return RES_ERROR;
@@ -983,7 +983,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
     return RES_RETURN;
 }
 
-bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
+bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
     // [a, b]
     py_Ref magic = py_tpfindmagic(SECOND()->type, op);
     if(magic) {
@@ -1014,7 +1014,7 @@ bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop) {
 }
 
 bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
-    pk_VM* self = pk_current_vm;
+    VM* self = pk_current_vm;
     PUSH(lhs);
     PUSH(rhs);
     bool ok = pk_stack_binaryop(self, op, rop);
@@ -1022,7 +1022,7 @@ bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
     return ok;
 }
 
-static bool stack_unpack_sequence(pk_VM* self, uint16_t arg) {
+static bool stack_unpack_sequence(VM* self, uint16_t arg) {
     int length;
     py_TValue* p = pk_arrayview(TOP(), &length);
     if(!p) return TypeError("expected list or tuple to unpack, got '%t'", TOP()->type);

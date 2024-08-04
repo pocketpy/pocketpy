@@ -6,8 +6,8 @@
 #include "pocketpy/interpreter/vm.h"
 
 void py_newtuple(py_Ref out, int n) {
-    pk_VM* vm = pk_current_vm;
-    PyObject* obj = pk_ManagedHeap__gcnew(&vm->heap, tp_tuple, n, 0);
+    VM* vm = pk_current_vm;
+    PyObject* obj = ManagedHeap__gcnew(&vm->heap, tp_tuple, n, 0);
     out->type = tp_tuple;
     out->is_ptr = true;
     out->_obj = obj;

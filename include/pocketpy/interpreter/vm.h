@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-typedef struct pk_TypeInfo {
+typedef struct py_TypeInfo {
     py_Name name;
     py_Type base;
 
@@ -24,17 +24,17 @@ typedef struct pk_TypeInfo {
 
     c11_vector /*T=py_Name*/ annotated_fields;
 
-    void (*on_end_subclass)(struct pk_TypeInfo*);  // backdoor for enum module
+    void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
 
     /* Magic Slots */
     py_TValue magic[64];
-} pk_TypeInfo;
+} py_TypeInfo;
 
-typedef struct pk_VM {
+typedef struct VM {
     Frame* top_frame;
 
-    pk_NameDict modules;
-    c11_vector /*T=pk_TypeInfo*/ types;
+    NameDict modules;
+    c11_vector /*T=py_TypeInfo*/ types;
 
     py_TValue builtins;  // builtins module
     py_TValue main;      // __main__ module
@@ -53,15 +53,15 @@ typedef struct pk_VM {
     FuncDecl_ __dynamic_func_decl;
     py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
-    pk_ManagedHeap heap;
+    ManagedHeap heap;
     ValueStack stack;  // put `stack` at the end for better cache locality
-} pk_VM;
+} VM;
 
-void pk_VM__ctor(pk_VM* self);
-void pk_VM__dtor(pk_VM* self);
+void VM__ctor(VM* self);
+void VM__dtor(VM* self);
 
-void pk_VM__push_frame(pk_VM* self, Frame* frame);
-void pk_VM__pop_frame(pk_VM* self);
+void VM__push_frame(VM* self, Frame* frame);
+void VM__pop_frame(VM* self);
 
 bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* step);
 bool pk__normalize_index(int* index, int length);
@@ -69,14 +69,14 @@ bool pk__normalize_index(int* index, int length);
 void pk_list__mark(void* ud, void (*marker)(py_TValue*));
 void pk_dict__mark(void* ud, void (*marker)(py_TValue*));
 
-typedef enum pk_FrameResult {
+typedef enum FrameResult {
     RES_RETURN,
     RES_CALL,
     RES_YIELD,
     RES_ERROR,
-} pk_FrameResult;
+} FrameResult;
 
-pk_FrameResult pk_VM__run_top_frame(pk_VM* self);
+FrameResult VM__run_top_frame(VM* self);
 
 py_Type pk_newtype(const char* name,
                    py_Type base,
@@ -85,7 +85,7 @@ py_Type pk_newtype(const char* name,
                    bool is_python,
                    bool is_sealed);
 
-pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall);
+FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall);
 
 const char* pk_opname(Opcode op);
 
@@ -100,9 +100,9 @@ bool pk_callmagic(py_Name name, int argc, py_Ref argv);
 /// Assumes [a, b] are on the stack, performs a binary op.
 /// The result is stored in `self->last_retval`.
 /// The stack remains unchanged.
-bool pk_stack_binaryop(pk_VM* self, py_Name op, py_Name rop);
+bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop);
 
-void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte);
+void pk_print_stack(VM* self, Frame* frame, Bytecode byte);
 
 // type registration
 void pk_object__register();

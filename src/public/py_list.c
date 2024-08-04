@@ -354,7 +354,7 @@ static bool list__insert(int argc, py_Ref argv) {
 
 static int lt_with_key(py_TValue* a, py_TValue* b, py_TValue* key) {
     if(!key) return py_less(a, b);
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     // project a
     py_push(key);
     py_pushnil();

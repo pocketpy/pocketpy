@@ -25,19 +25,19 @@ static char* pk_default_import_file(const char* path) {
 
 static void pk_default_print(const char* data) { printf("%s", data); }
 
-static void pk_TypeInfo__ctor(pk_TypeInfo* self,
+static void py_TypeInfo__ctor(py_TypeInfo* self,
                               py_Name name,
                               py_Type index,
                               py_Type base,
                               py_TValue module) {
-    memset(self, 0, sizeof(pk_TypeInfo));
+    memset(self, 0, sizeof(py_TypeInfo));
 
     self->name = name;
     self->base = base;
 
     // create type object with __dict__
-    pk_ManagedHeap* heap = &pk_current_vm->heap;
-    PyObject* typeobj = pk_ManagedHeap__new(heap, tp_type, -1, sizeof(py_Type));
+    ManagedHeap* heap = &pk_current_vm->heap;
+    PyObject* typeobj = ManagedHeap__new(heap, tp_type, -1, sizeof(py_Type));
     *(py_Type*)PyObject__userdata(typeobj) = index;
     self->self = (py_TValue){
         .type = typeobj->type,
@@ -49,13 +49,13 @@ static void pk_TypeInfo__ctor(pk_TypeInfo* self,
     c11_vector__ctor(&self->annotated_fields, sizeof(py_Name));
 }
 
-static void pk_TypeInfo__dtor(pk_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
+static void py_TypeInfo__dtor(py_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
 
-void pk_VM__ctor(pk_VM* self) {
+void VM__ctor(VM* self) {
     self->top_frame = NULL;
 
-    pk_NameDict__ctor(&self->modules);
-    c11_vector__ctor(&self->types, sizeof(pk_TypeInfo));
+    NameDict__ctor(&self->modules);
+    c11_vector__ctor(&self->types, sizeof(py_TypeInfo));
 
     self->builtins = *py_NIL;
     self->main = *py_NIL;
@@ -71,13 +71,13 @@ void pk_VM__ctor(pk_VM* self) {
     self->__curr_class = NULL;
     self->__dynamic_func_decl = NULL;
 
-    pk_ManagedHeap__ctor(&self->heap, self);
+    ManagedHeap__ctor(&self->heap, self);
     ValueStack__ctor(&self->stack);
 
     /* Init Builtin Types */
     // 0: unused
     void* placeholder = c11_vector__emplace(&self->types);
-    memset(placeholder, 0, sizeof(pk_TypeInfo));
+    memset(placeholder, 0, sizeof(py_TypeInfo));
 
 #define validate(t, expr)                                                                          \
     if(t != (expr)) abort()
@@ -154,7 +154,7 @@ void pk_VM__ctor(pk_VM* self) {
 
     for(int i = 0; i < c11__count_array(public_types); i++) {
         py_Type t = public_types[i];
-        pk_TypeInfo* ti = c11__at(pk_TypeInfo, &self->types, t);
+        py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, t);
         py_setdict(&self->builtins, ti->name, py_tpobject(t));
     }
 
@@ -196,24 +196,24 @@ void pk_VM__ctor(pk_VM* self) {
     self->main = *py_newmodule("__main__");
 }
 
-void pk_VM__dtor(pk_VM* self) {
+void VM__dtor(VM* self) {
     if(self->__dynamic_func_decl) { PK_DECREF(self->__dynamic_func_decl); }
     // destroy all objects
-    pk_ManagedHeap__dtor(&self->heap);
+    ManagedHeap__dtor(&self->heap);
     // clear frames
     // ...
-    pk_NameDict__dtor(&self->modules);
-    c11__foreach(pk_TypeInfo, &self->types, ti) pk_TypeInfo__dtor(ti);
+    NameDict__dtor(&self->modules);
+    c11__foreach(py_TypeInfo, &self->types, ti) py_TypeInfo__dtor(ti);
     c11_vector__dtor(&self->types);
     ValueStack__clear(&self->stack);
 }
 
-void pk_VM__push_frame(pk_VM* self, Frame* frame) {
+void VM__push_frame(VM* self, Frame* frame) {
     frame->f_back = self->top_frame;
     self->top_frame = frame;
 }
 
-void pk_VM__pop_frame(pk_VM* self) {
+void VM__pop_frame(VM* self) {
     assert(self->top_frame);
     Frame* frame = self->top_frame;
     // reset stack pointer
@@ -293,9 +293,9 @@ py_Type pk_newtype(const char* name,
                    bool is_sealed) {
     c11_vector* types = &pk_current_vm->types;
     py_Type index = types->count;
-    pk_TypeInfo* ti = c11_vector__emplace(types);
-    pk_TypeInfo__ctor(ti, py_name(name), index, base, module ? *module : *py_NIL);
-    if(!dtor && base) { dtor = c11__at(pk_TypeInfo, types, base)->dtor; }
+    py_TypeInfo* ti = c11_vector__emplace(types);
+    py_TypeInfo__ctor(ti, py_name(name), index, base, module ? *module : *py_NIL);
+    if(!dtor && base) { dtor = c11__at(py_TypeInfo, types, base)->dtor; }
     ti->dtor = dtor;
     ti->is_python = is_python;
     ti->is_sealed = is_sealed;
@@ -373,7 +373,7 @@ static bool
     return true;
 }
 
-pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bool opcall) {
+FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall) {
     pk_print_stack(self, self->top_frame, (Bytecode){0});
 
     py_Ref p1 = self->stack.sp - kwargc * 2;
@@ -416,8 +416,8 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 // submit the call
                 if(!fn->cfunc) {
-                    pk_VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv, co));
-                    return opcall ? RES_CALL : pk_VM__run_top_frame(self);
+                    VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv, co));
+                    return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     bool ok = fn->cfunc(co->nlocals, argv);
                     self->stack.sp = p0;
@@ -440,8 +440,8 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
                 // initialize local variables to py_NIL
                 memset(p1, 0, (char*)self->stack.sp - (char*)p1);
                 // submit the call
-                pk_VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv, co));
-                return opcall ? RES_CALL : pk_VM__run_top_frame(self);
+                VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv, co));
+                return opcall ? RES_CALL : VM__run_top_frame(self);
             case FuncType_GENERATOR:
                 assert(false);
                 break;
@@ -476,7 +476,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
         memcpy(self->stack.sp, argv, span * sizeof(py_TValue));
         self->stack.sp += span;
         // [new_f, cls, args..., kwargs...]
-        if(pk_VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
+        if(VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
         // by recursively using vectorcall, args and kwargs are consumed
 
         // try __init__
@@ -489,7 +489,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
             *p0 = *init_f;              // __init__
             p0[1] = self->last_retval;  // self
             // [__init__, self, args..., kwargs...]
-            if(pk_VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
+            if(VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
             *py_retval() = p0[1];  // restore the new instance
         }
         // reset the stack
@@ -500,7 +500,7 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
     // handle `__call__` overload
     if(pk_pushmethod(p0, __call__)) {
         // [__call__, self, args..., kwargs...]
-        return pk_VM__vectorcall(self, argc, kwargc, opcall);
+        return VM__vectorcall(self, argc, kwargc, opcall);
     }
 
     TypeError("'%t' object is not callable", p0->type);
@@ -509,9 +509,9 @@ pk_FrameResult pk_VM__vectorcall(pk_VM* self, uint16_t argc, uint16_t kwargc, bo
 
 /****************************************/
 void PyObject__delete(PyObject* self) {
-    pk_TypeInfo* ti = c11__at(pk_TypeInfo, &pk_current_vm->types, self->type);
+    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, self->type);
     if(ti->dtor) ti->dtor(PyObject__userdata(self));
-    if(self->slots == -1) pk_NameDict__dtor(PyObject__dict(self));
+    if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
     if(self->gc_is_large) {
         free(self);
     } else {
@@ -537,9 +537,9 @@ static void mark_object(PyObject* obj) {
     }
 
     if(obj->slots == -1) {
-        pk_NameDict* dict = PyObject__dict(obj);
+        NameDict* dict = PyObject__dict(obj);
         for(int j = 0; j < dict->count; j++) {
-            pk_NameDict_KV* kv = c11__at(pk_NameDict_KV, dict, j);
+            NameDict_KV* kv = c11__at(NameDict_KV, dict, j);
             mark_value(&kv->value);
         }
         return;
@@ -552,8 +552,8 @@ static void mark_object(PyObject* obj) {
     }
 }
 
-void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
-    pk_VM* vm = self->vm;
+void ManagedHeap__mark(ManagedHeap* self) {
+    VM* vm = self->vm;
     // mark heap objects
     for(int i = 0; i < self->no_gc.count; i++) {
         PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
@@ -576,7 +576,7 @@ void pk_ManagedHeap__mark(pk_ManagedHeap* self) {
     }
 }
 
-void pk_print_stack(pk_VM* self, Frame* frame, Bytecode byte) {
+void pk_print_stack(VM* self, Frame* frame, Bytecode byte) {
     return;
     if(frame == NULL) return;
 

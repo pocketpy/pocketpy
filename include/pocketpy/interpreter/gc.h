@@ -5,29 +5,29 @@
 extern "C" {
 #endif
 
-typedef struct pk_ManagedHeap{
+typedef struct ManagedHeap{
     c11_vector no_gc;
     c11_vector gen;
 
     int gc_threshold;
     int gc_counter;
-    pk_VM* vm;
+    VM* vm;
 
-    void (*gc_on_delete)(pk_VM*, PyObject*);
-} pk_ManagedHeap;
+    void (*gc_on_delete)(VM*, PyObject*);
+} ManagedHeap;
 
-void pk_ManagedHeap__ctor(pk_ManagedHeap* self, pk_VM* vm);
-void pk_ManagedHeap__dtor(pk_ManagedHeap* self);
+void ManagedHeap__ctor(ManagedHeap* self, VM* vm);
+void ManagedHeap__dtor(ManagedHeap* self);
 
-void pk_ManagedHeap__collect_if_needed(pk_ManagedHeap* self);
-int pk_ManagedHeap__collect(pk_ManagedHeap* self);
-int pk_ManagedHeap__sweep(pk_ManagedHeap* self);
+void ManagedHeap__collect_if_needed(ManagedHeap* self);
+int ManagedHeap__collect(ManagedHeap* self);
+int ManagedHeap__sweep(ManagedHeap* self);
 
-PyObject* pk_ManagedHeap__new(pk_ManagedHeap* self, py_Type type, int slots, int udsize);
-PyObject* pk_ManagedHeap__gcnew(pk_ManagedHeap* self, py_Type type, int slots, int udsize);
+PyObject* ManagedHeap__new(ManagedHeap* self, py_Type type, int slots, int udsize);
+PyObject* ManagedHeap__gcnew(ManagedHeap* self, py_Type type, int slots, int udsize);
 
 // external implementation
-void pk_ManagedHeap__mark(pk_ManagedHeap* self);
+void ManagedHeap__mark(ManagedHeap* self);
 
 #ifdef __cplusplus
 }

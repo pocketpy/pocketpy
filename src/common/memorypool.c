@@ -242,13 +242,13 @@ static FixedMemoryPool PoolExpr;
 static FixedMemoryPool PoolFrame;
 static MemoryPool PoolObject;
 
-void pk_MemoryPools__initialize(){
+void MemoryPools__initialize(){
     FixedMemoryPool__ctor(&PoolExpr, kPoolExprBlockSize, 64);
     FixedMemoryPool__ctor(&PoolFrame, kPoolFrameBlockSize, 128);
     MemoryPool__ctor(&PoolObject);
 }
 
-void pk_MemoryPools__finalize(){
+void MemoryPools__finalize(){
     FixedMemoryPool__dtor(&PoolExpr);
     FixedMemoryPool__dtor(&PoolFrame);
     MemoryPool__dtor(&PoolObject);

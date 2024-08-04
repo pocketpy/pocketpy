@@ -11,7 +11,7 @@ void py_setreg(int i, py_Ref val) { pk_current_vm->reg[i] = *val; }
 py_Ref py_getdict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
     if(!py_ismagicname(name) || self->type != tp_type) {
-        return pk_NameDict__try_get(PyObject__dict(self->_obj), name);
+        return NameDict__try_get(PyObject__dict(self->_obj), name);
     } else {
         py_Type* ud = py_touserdata(self);
         py_Ref slot = py_tpmagic(*ud, name);
@@ -22,7 +22,7 @@ py_Ref py_getdict(py_Ref self, py_Name name) {
 void py_setdict(py_Ref self, py_Name name, py_Ref val) {
     assert(self && self->is_ptr);
     if(!py_ismagicname(name) || self->type != tp_type) {
-        pk_NameDict__set(PyObject__dict(self->_obj), name, *val);
+        NameDict__set(PyObject__dict(self->_obj), name, *val);
     } else {
         py_Type* ud = py_touserdata(self);
         *py_tpmagic(*ud, name) = *val;
@@ -37,7 +37,7 @@ py_TmpRef py_emplacedict(py_Ref self, py_Name name){
 bool py_deldict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
     if(!py_ismagicname(name) || self->type != tp_type) {
-        return pk_NameDict__del(PyObject__dict(self->_obj), name);
+        return NameDict__del(PyObject__dict(self->_obj), name);
 
     } else {
         py_Type* ud = py_touserdata(self);
@@ -67,27 +67,27 @@ py_Ref py_peek(int i) {
 }
 
 void py_pop() {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     vm->stack.sp--;
 }
 
 void py_shrink(int n) {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     vm->stack.sp -= n;
 }
 
 void py_push(py_Ref src) {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     *vm->stack.sp++ = *src;
 }
 
 void py_pushnil() {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     py_newnil(vm->stack.sp++);
 }
 
 py_Ref py_pushtmp() {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     py_newnil(vm->stack.sp++);
     return py_peek(-1);
 }

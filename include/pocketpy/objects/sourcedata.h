@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-struct pk_SourceData {
+struct SourceData {
     RefCounted rc;
     enum py_CompileMode mode;
     bool is_precompiled;
@@ -23,17 +23,17 @@ struct pk_SourceData {
     c11_vector /*T=c11_string* */ _precompiled_tokens;
 };
 
-typedef struct pk_SourceData* pk_SourceData_;
+typedef struct SourceData* SourceData_;
 
-pk_SourceData_ pk_SourceData__rcnew(const char* source,
+SourceData_ SourceData__rcnew(const char* source,
                                     const char* filename,
                                     enum py_CompileMode mode,
                                     bool is_dynamic);
-bool pk_SourceData__get_line(const struct pk_SourceData* self,
+bool SourceData__get_line(const struct SourceData* self,
                              int lineno,
                              const char** st,
                              const char** ed);
-void pk_SourceData__snapshot(const struct pk_SourceData* self,
+void SourceData__snapshot(const struct SourceData* self,
                              c11_sbuf* ss,
                              int lineno,
                              const char* cursor,

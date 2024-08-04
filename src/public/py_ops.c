@@ -45,7 +45,7 @@ int py_bool(py_Ref val) {
 
 bool py_hash(py_Ref val, int64_t* out) {
     py_Type t = val->type;
-    pk_TypeInfo* types = (pk_TypeInfo*)pk_current_vm->types.data;
+    py_TypeInfo* types = (py_TypeInfo*)pk_current_vm->types.data;
     do {
         py_Ref _hash = &types[t].magic[__hash__];
         if(py_isnone(_hash)) break;
@@ -68,7 +68,7 @@ bool py_iter(py_Ref val) {
 }
 
 int py_next(py_Ref val) {
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     vm->is_stopiteration = false;
     py_Ref tmp = py_tpfindmagic(val->type, __next__);
     if(!tmp) return TypeError("'%t' object is not an iterator", val->type);

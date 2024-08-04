@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-extern const char* pk_TokenSymbols[];
+extern const char* TokenSymbols[];
 
 typedef enum TokenIndex{
     TK_EOF, TK_EOL, TK_SOF,
@@ -88,11 +88,11 @@ enum Precedence {
     PREC_HIGHEST,
 };
 
-typedef c11_array pk_TokenArray;
+typedef c11_array TokenArray;
 
-Error* pk_Lexer__process(pk_SourceData_ src, pk_TokenArray* out_tokens);
-Error* pk_Lexer__process_and_dump(pk_SourceData_ src, c11_string** out_string);
-void pk_TokenArray__dtor(pk_TokenArray* self);
+Error* Lexer__process(SourceData_ src, TokenArray* out_tokens);
+Error* Lexer__process_and_dump(SourceData_ src, c11_string** out_string);
+void TokenArray__dtor(TokenArray* self);
 
 #define Token__sv(self) (c11_sv){(self)->start, (self)->length}
 

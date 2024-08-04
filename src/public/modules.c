@@ -7,13 +7,13 @@
 #include "pocketpy/common/_generated.h"
 
 py_Ref py_getmodule(const char* path) {
-    pk_VM* vm = pk_current_vm;
-    return pk_NameDict__try_get(&vm->modules, py_name(path));
+    VM* vm = pk_current_vm;
+    return NameDict__try_get(&vm->modules, py_name(path));
 }
 
 py_Ref py_newmodule(const char* path) {
-    pk_ManagedHeap* heap = &pk_current_vm->heap;
-    PyObject* obj = pk_ManagedHeap__new(heap, tp_module, -1, 0);
+    ManagedHeap* heap = &pk_current_vm->heap;
+    PyObject* obj = ManagedHeap__new(heap, tp_module, -1, 0);
 
     py_Ref r0 = py_pushtmp();
     py_Ref r1 = py_pushtmp();
@@ -44,9 +44,9 @@ py_Ref py_newmodule(const char* path) {
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
     py_Name path_name = py_name(path);
-    bool exists = pk_NameDict__contains(&pk_current_vm->modules, path_name);
+    bool exists = NameDict__contains(&pk_current_vm->modules, path_name);
     if(exists) c11__abort("module '%s' already exists", path);
-    pk_NameDict__set(&pk_current_vm->modules, path_name, *r0);
+    NameDict__set(&pk_current_vm->modules, path_name, *r0);
 
     py_shrink(2);
     return py_getmodule(path);
@@ -55,7 +55,7 @@ py_Ref py_newmodule(const char* path) {
 int py_import(const char* path_cstr) {
     // printf("importing %s\n", path_cstr);
 
-    pk_VM* vm = pk_current_vm;
+    VM* vm = pk_current_vm;
     c11_sv path = {path_cstr, strlen(path_cstr)};
     if(path.size == 0) return ValueError("empty module name");
 

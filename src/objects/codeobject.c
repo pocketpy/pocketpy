@@ -20,7 +20,7 @@ static void FuncDecl__dtor(FuncDecl* self) {
     c11_smallmap_n2i__dtor(&self->kw_to_index);
 }
 
-FuncDecl_ FuncDecl__rcnew(pk_SourceData_ src, c11_sv name) {
+FuncDecl_ FuncDecl__rcnew(SourceData_ src, c11_sv name) {
     FuncDecl* self = malloc(sizeof(FuncDecl));
     self->rc.count = 1;
     self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
@@ -94,7 +94,7 @@ FuncDecl_ FuncDecl__build(c11_sv name,
                           py_Ref kwdefaults,  // a tuple contains default values
                           c11_sv starred_kwarg,
                           const char* docstring) {
-    pk_SourceData_ source = pk_SourceData__rcnew("pass", "<bind>", EXEC_MODE, false);
+    SourceData_ source = SourceData__rcnew("pass", "<bind>", EXEC_MODE, false);
     FuncDecl_ decl = FuncDecl__rcnew(source, name);
     for(int i = 0; i < argc; i++) {
         FuncDecl__add_arg(decl, py_namev(args[i]));
@@ -111,7 +111,7 @@ FuncDecl_ FuncDecl__build(c11_sv name,
     return decl;
 }
 
-void CodeObject__ctor(CodeObject* self, pk_SourceData_ src, c11_sv name) {
+void CodeObject__ctor(CodeObject* self, SourceData_ src, c11_sv name) {
     self->src = src;
     PK_INCREF(src);
     self->name = c11_string__new2(name.data, name.size);
@@ -179,5 +179,5 @@ int CodeObject__add_varname(CodeObject* self, py_Name name) {
 
 void Function__dtor(Function* self) {
     PK_DECREF(self->decl);
-    if(self->closure) pk_NameDict__delete(self->closure);
+    if(self->closure) NameDict__delete(self->closure);
 }

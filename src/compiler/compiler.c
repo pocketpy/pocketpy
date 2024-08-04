@@ -1435,13 +1435,13 @@ typedef struct PrattRule {
 const static PrattRule rules[TK__COUNT__];
 
 typedef struct Compiler {
-    pk_SourceData_ src;  // weakref
-    pk_TokenArray tokens;
+    SourceData_ src;  // weakref
+    TokenArray tokens;
     int i;
     c11_vector /*T=CodeEmitContext*/ contexts;
 } Compiler;
 
-static void Compiler__ctor(Compiler* self, pk_SourceData_ src, pk_TokenArray tokens) {
+static void Compiler__ctor(Compiler* self, SourceData_ src, TokenArray tokens) {
     self->src = src;
     self->tokens = tokens;
     self->i = 0;
@@ -1449,7 +1449,7 @@ static void Compiler__ctor(Compiler* self, pk_SourceData_ src, pk_TokenArray tok
 }
 
 static void Compiler__dtor(Compiler* self) {
-    pk_TokenArray__dtor(&self->tokens);
+    TokenArray__dtor(&self->tokens);
     c11__foreach(Ctx, &self->contexts, ctx) Ctx__dtor(ctx);
     c11_vector__dtor(&self->contexts);
 }
@@ -1470,8 +1470,8 @@ static void Compiler__dtor(Compiler* self) {
     if(!match(expected))                                                                           \
         return SyntaxError(self,                                                                   \
                            "expected '%s', got '%s'",                                              \
-                           pk_TokenSymbols[expected],                                              \
-                           pk_TokenSymbols[curr()->type]);
+                           TokenSymbols[expected],                                              \
+                           TokenSymbols[curr()->type]);
 #define consume_end_stmt()                                                                         \
     if(!match_end_stmt(self)) return SyntaxError(self, "expected statement end")
 
@@ -1531,7 +1531,7 @@ static bool match_end_stmt(Compiler* self) {
 static Error* parse_expression(Compiler* self, int precedence, bool allow_slice) {
     PrattCallback prefix = rules[curr()->type].prefix;
     if(!prefix || (curr()->type == TK_COLON && !allow_slice)) {
-        return SyntaxError(self, "expected an expression, got %s", pk_TokenSymbols[curr()->type]);
+        return SyntaxError(self, "expected an expression, got %s", TokenSymbols[curr()->type]);
     }
     advance();
     Error* err;
@@ -2782,9 +2782,9 @@ Error* Compiler__compile(Compiler* self, CodeObject* out) {
     return NULL;
 }
 
-Error* pk_compile(pk_SourceData_ src, CodeObject* out) {
-    pk_TokenArray tokens;
-    Error* err = pk_Lexer__process(src, &tokens);
+Error* pk_compile(SourceData_ src, CodeObject* out) {
+    TokenArray tokens;
+    Error* err = Lexer__process(src, &tokens);
     if(err) return err;
 
     // Token* data = (Token*)tokens.data;
@@ -2792,7 +2792,7 @@ Error* pk_compile(pk_SourceData_ src, CodeObject* out) {
     // for(int i = 0; i < tokens.count; i++) {
     //     Token* t = data + i;
     //     c11_string* tmp = c11_string__new2(t->start, t->length);
-    //     printf("[%d] %s: %s\n", t->line, pk_TokenSymbols[t->type], tmp->data);
+    //     printf("[%d] %s: %s\n", t->line, TokenSymbols[t->type], tmp->data);
     //     c11_string__delete(tmp);
     // }
 

@@ -14,11 +14,11 @@ py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, 
     return &locals[index];
 }
 
-pk_NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co) {
-    pk_NameDict* dict = pk_NameDict__new();
+NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co) {
+    NameDict* dict = NameDict__new();
     c11__foreach(c11_smallmap_n2i_KV, &co->varnames_inv, entry) {
         py_TValue value = locals[entry->value];
-        if(!py_isnil(&value)) { pk_NameDict__set(dict, entry->key, value); }
+        if(!py_isnil(&value)) { NameDict__set(dict, entry->key, value); }
     }
     return dict;
 }
@@ -134,6 +134,6 @@ py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name) {
     // if(self->function == NULL) return NULL;
     // pkpy::Function* fn = PyObject__as(pkpy::Function, self->function);
     // if(fn->_closure == nullptr) return nullptr;
-    // return pk_NameDict__try_get(fn->_closure, name);
+    // return NameDict__try_get(fn->_closure, name);
     return NULL;
 }

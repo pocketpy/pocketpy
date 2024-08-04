@@ -11,8 +11,8 @@ extern "C" {
 #define kPoolObjectArenaSize    (256*1024)
 #define kPoolObjectMaxBlocks    (kPoolObjectArenaSize / kPoolObjectBlockSize)
 
-void pk_MemoryPools__initialize();
-void pk_MemoryPools__finalize();
+void MemoryPools__initialize();
+void MemoryPools__finalize();
 
 void* PoolExpr_alloc();
 void PoolExpr_dealloc(void*);
