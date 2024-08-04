@@ -23,7 +23,7 @@ class Task:
 
     def __next__(self):
         if self.i == self.n:
-            return StopIteration
+            raise StopIteration
         self.i += 1
         return self.i
 

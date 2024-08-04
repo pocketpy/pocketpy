@@ -19,6 +19,7 @@ const char kPythonLibs_this[] = "print(\"\"\"The Zen of Python, by Tim Peters\n\
 const char kPythonLibs_typing[] = "class _Placeholder:\n    def __init__(self, *args, **kwargs):\n        pass\n    def __getitem__(self, *args):\n        return self\n    def __call__(self, *args, **kwargs):\n        return self\n    def __and__(self, other):\n        return self\n    def __or__(self, other):\n        return self\n    def __xor__(self, other):\n        return self\n\n\n_PLACEHOLDER = _Placeholder()\n\nList = _PLACEHOLDER\nDict = _PLACEHOLDER\nTuple = _PLACEHOLDER\nSet = _PLACEHOLDER\nAny = _PLACEHOLDER\nUnion = _PLACEHOLDER\nOptional = _PLACEHOLDER\nCallable = _PLACEHOLDER\nType = _PLACEHOLDER\nProtocol = _PLACEHOLDER\n\nLiteral = _PLACEHOLDER\nLiteralString = _PLACEHOLDER\n\nIterable = _PLACEHOLDER\nGenerator = _PLACEHOLDER\n\nHashable = _PLACEHOLDER\n\nTypeVar = _PLACEHOLDER\nSelf = _PLACEHOLDER\n\nclass Generic:\n    pass\n\nTYPE_CHECKING = False\n\n# decorators\noverload = lambda x: x\nfinal = lambda x: x\n";
 
 const char* load_kPythonLib(const char* name) {
+    if (strchr(name, '.') != NULL) return NULL;
     if (strcmp(name, "bisect") == 0) return kPythonLibs_bisect;
     if (strcmp(name, "builtins") == 0) return kPythonLibs_builtins;
     if (strcmp(name, "cmath") == 0) return kPythonLibs_cmath;

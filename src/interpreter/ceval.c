@@ -920,7 +920,7 @@ pk_FrameResult pk_VM__run_top_frame(pk_VM* self) {
             }
             case OP_POP_EXCEPTION: {
                 assert(self->curr_exception.type);
-                self->curr_exception = *py_NIL;
+                py_clearexc(NULL);
                 DISPATCH();
             }
             //////////////////

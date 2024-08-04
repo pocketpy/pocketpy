@@ -72,7 +72,12 @@ int py_next(py_Ref val) {
     vm->is_stopiteration = false;
     py_Ref tmp = py_tpfindmagic(val->type, __next__);
     if(!tmp) return TypeError("'%t' object is not an iterator", val->type);
+    py_StackRef p0 = py_peek(0);
     if(py_call(tmp, 1, val)) return true;
+    if(vm->curr_exception.type == tp_StopIteration) {
+        py_clearexc(p0);
+        vm->is_stopiteration = true;
+    }
     return vm->is_stopiteration ? 0 : -1;
 }
 
@@ -200,12 +205,12 @@ bool py_delitem(py_Ref self, py_Ref key) {
     return ok;
 }
 
-int py_equal(py_Ref lhs, py_Ref rhs){
+int py_equal(py_Ref lhs, py_Ref rhs) {
     if(!py_eq(lhs, rhs)) return -1;
     return py_bool(py_retval());
 }
 
-int py_less(py_Ref lhs, py_Ref rhs){
+int py_less(py_Ref lhs, py_Ref rhs) {
     if(!py_lt(lhs, rhs)) return -1;
     return py_bool(py_retval());
 }

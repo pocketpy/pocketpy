@@ -2477,6 +2477,7 @@ __EAT_DOTS_END:
                OP_IMPORT_PATH,
                Ctx__add_const_string(ctx(), c11_string__sv(path)),
                prev()->line);
+    c11_string__delete(path);
     consume(TK_IMPORT);
 
     if(match(TK_MUL)) {

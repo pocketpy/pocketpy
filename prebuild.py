@@ -56,6 +56,7 @@ with open("src/common/_generated.c", "wt", encoding='utf-8', newline='\n') as f:
 
     f.write("\n")
     f.write("const char* load_kPythonLib(const char* name) {\n")
+    f.write("    if (strchr(name, '.') != NULL) return NULL;\n")
     for key in sorted(sources.keys()):
         if key.startswith('_'):
             continue

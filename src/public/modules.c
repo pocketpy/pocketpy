@@ -232,21 +232,29 @@ static bool _py_builtins__abs(int argc, py_Ref argv) {
 
 static bool _py_builtins__sum(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    int length;
-    py_TValue* p = pk_arrayview(argv, &length);
-    if(!p) return TypeError("sum() expects a list or tuple");
+
+    if(!py_iter(py_arg(0))) return false;
+    py_push(py_retval());  // iter
 
     py_i64 total_i64 = 0;
     py_f64 total_f64 = 0.0;
     bool is_float = false;
-    for(int i = 0; i < length; i++) {
-        switch(p[i].type) {
-            case tp_int: total_i64 += p[i]._i64; break;
+    while(true) {
+        int res = py_next(py_peek(-1));
+        if(res == -1) {
+            py_pop();
+            return false;
+        }
+        if(res == 0) break;
+
+        py_Ref item = py_retval();
+        switch(item->type) {
+            case tp_int: total_i64 += item->_i64; break;
             case tp_float:
                 is_float = true;
-                total_f64 += p[i]._f64;
+                total_f64 += item->_f64;
                 break;
-            default: return TypeError("sum() expects a list of numbers");
+            default: return TypeError("sum() expects an iterable of numbers");
         }
     }
 
@@ -255,6 +263,7 @@ static bool _py_builtins__sum(int argc, py_Ref argv) {
     } else {
         py_newint(py_retval(), total_i64);
     }
+    py_pop();
     return true;
 }
 

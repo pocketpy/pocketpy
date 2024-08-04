@@ -271,12 +271,14 @@ bool py_import(const char* path) PY_RAISE;
 bool py_exception(const char* name, const char* fmt, ...) PY_RAISE;
 /// Raise an expection object. Always returns false.
 bool py_raise(py_Ref) PY_RAISE;
-/// Print the last error to the console.
+/// Print the current exception.
 void py_printexc();
-/// Format the last error to a string.
+/// Format the current exception.
 char* py_formatexc();
 /// Check if an exception is raised.
 bool py_checkexc();
+/// Clear the current exception.
+void py_clearexc(py_StackRef p0);
 
 #define NameError(n) py_exception("NameError", "name '%n' is not defined", (n))
 #define TypeError(...) py_exception("TypeError", __VA_ARGS__)

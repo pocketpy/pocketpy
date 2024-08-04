@@ -115,6 +115,15 @@ bool py_checkexc() {
     return !py_isnil(&vm->curr_exception);
 }
 
+void py_clearexc(py_StackRef p0) {
+    pk_VM* vm = pk_current_vm;
+    vm->last_retval = *py_NIL;
+    vm->curr_exception = *py_NIL;
+    vm->is_stopiteration = false;
+    vm->__curr_class = NULL;
+    if(p0) vm->stack.sp = p0;
+}
+
 void py_printexc() {
     char* msg = py_formatexc();
     if(!msg) return;

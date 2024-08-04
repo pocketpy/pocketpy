@@ -57,7 +57,7 @@ void py_assign(py_Ref dst, py_Ref src) { *dst = *src; }
 
 /* Stack References */
 py_Ref py_peek(int i) {
-    assert(i < 0);
+    assert(i <= 0);
     return pk_current_vm->stack.sp + i;
 }
 
