@@ -13,7 +13,7 @@ void py_newslice(py_Ref out) {
     out->_obj = obj;
 }
 
-static bool _py_slice__new__(int argc, py_Ref argv) {
+static bool slice__new__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1 + 3);
     py_Ref slice = py_retval();
     py_newslice(slice);
@@ -23,7 +23,7 @@ static bool _py_slice__new__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_slice__repr__(int argc, py_Ref argv) {
+static bool slice__repr__(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     c11_sbuf__write_cstr(&buf, "slice(");
@@ -45,7 +45,7 @@ static bool _py_slice__repr__(int argc, py_Ref argv) {
 py_Type pk_slice__register() {
     py_Type type = pk_newtype("slice", tp_object, NULL, NULL, false, true);
 
-    py_bindmagic(type, __new__, _py_slice__new__);
-    py_bindmagic(type, __repr__, _py_slice__repr__);
+    py_bindmagic(type, __new__, slice__new__);
+    py_bindmagic(type, __repr__, slice__repr__);
     return type;
 }

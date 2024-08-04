@@ -22,12 +22,12 @@ void py_tuple__setitem(py_Ref self, int i, py_Ref val) { py_setslot(self, i, val
 int py_tuple__len(py_Ref self) { return self->_obj->slots; }
 
 //////////////
-static bool _py_tuple__len__(int argc, py_Ref argv) {
+static bool tuple__len__(int argc, py_Ref argv) {
     py_newint(py_retval(), py_tuple__len(argv));
     return true;
 }
 
-static bool _py_tuple__repr__(int argc, py_Ref argv) {
+static bool tuple__repr__(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     c11_sbuf__write_char(&buf, '(');
@@ -48,7 +48,7 @@ static bool _py_tuple__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_tuple__new__(int argc, py_Ref argv) {
+static bool tuple__new__(int argc, py_Ref argv) {
     if(argc == 1 + 0) {
         py_newtuple(py_retval(), 0);
         return true;
@@ -69,7 +69,7 @@ static bool _py_tuple__new__(int argc, py_Ref argv) {
     return TypeError("tuple() takes at most 1 argument");
 }
 
-static bool _py_tuple__getitem__(int argc, py_Ref argv) {
+static bool tuple__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     int length = py_tuple__len(argv);
     py_Ref _1 = py_arg(1);
@@ -97,7 +97,7 @@ static bool _py_tuple__getitem__(int argc, py_Ref argv) {
     }
 }
 
-static bool _py_tuple__eq__(int argc, py_Ref argv) {
+static bool tuple__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     if(py_istype(py_arg(1), tp_tuple)) {
         int length0, length1;
@@ -112,8 +112,8 @@ static bool _py_tuple__eq__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_tuple__ne__(int argc, py_Ref argv) {
-    if(!_py_tuple__eq__(argc, argv)) return false;
+static bool tuple__ne__(int argc, py_Ref argv) {
+    if(!tuple__eq__(argc, argv)) return false;
     if(py_isbool(py_retval())) {
         bool res = py_tobool(py_retval());
         py_newbool(py_retval(), !res);
@@ -121,12 +121,12 @@ static bool _py_tuple__ne__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_tuple__iter__(int argc, py_Ref argv) {
+static bool tuple__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     return pk_arrayiter(argv);
 }
 
-static bool _py_tuple__contains__(int argc, py_Ref argv) {
+static bool tuple__contains__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     return pk_arraycontains(py_arg(0), py_arg(1));
 }
@@ -134,13 +134,13 @@ static bool _py_tuple__contains__(int argc, py_Ref argv) {
 py_Type pk_tuple__register() {
     py_Type type = pk_newtype("tuple", tp_object, NULL, NULL, false, true);
 
-    py_bindmagic(type, __len__, _py_tuple__len__);
-    py_bindmagic(type, __repr__, _py_tuple__repr__);
-    py_bindmagic(type, __new__, _py_tuple__new__);
-    py_bindmagic(type, __getitem__, _py_tuple__getitem__);
-    py_bindmagic(type, __eq__, _py_tuple__eq__);
-    py_bindmagic(type, __ne__, _py_tuple__ne__);
-    py_bindmagic(type, __iter__, _py_tuple__iter__);
-    py_bindmagic(type, __contains__, _py_tuple__contains__);
+    py_bindmagic(type, __len__, tuple__len__);
+    py_bindmagic(type, __repr__, tuple__repr__);
+    py_bindmagic(type, __new__, tuple__new__);
+    py_bindmagic(type, __getitem__, tuple__getitem__);
+    py_bindmagic(type, __eq__, tuple__eq__);
+    py_bindmagic(type, __ne__, tuple__ne__);
+    py_bindmagic(type, __iter__, tuple__iter__);
+    py_bindmagic(type, __contains__, tuple__contains__);
     return type;
 }

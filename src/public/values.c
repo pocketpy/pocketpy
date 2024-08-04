@@ -60,17 +60,26 @@ void py_bindfunc(py_Ref obj, const char* name, py_CFunction f) {
     py_setdict(obj, py_name(name), &tmp);
 }
 
+void py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFunction setter) {
+    py_TValue tmp;
+    py_newobject(&tmp, tp_property, 2, 0);
+    py_newnativefunc(py_getslot(&tmp, 0), getter);
+    if(setter) {
+        py_newnativefunc(py_getslot(&tmp, 1), setter);
+    } else {
+        py_setslot(&tmp, 1, py_None);
+    }
+    py_setdict(py_tpobject(type), py_name(name), &tmp);
+}
+
 void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
     py_TValue tmp;
     py_Name name = py_newfunction(&tmp, sig, f, NULL, 0);
     py_setdict(obj, name, &tmp);
 }
 
-py_Name py_newfunction(py_Ref out,
-                       const char* sig,
-                       py_CFunction f,
-                       const char* docstring,
-                       int slots) {
+py_Name
+    py_newfunction(py_Ref out, const char* sig, py_CFunction f, const char* docstring, int slots) {
     char buffer[256];
     snprintf(buffer, sizeof(buffer), "def %s: pass", sig);
     // fn(a, b, *c, d=1) -> None

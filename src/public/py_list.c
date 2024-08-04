@@ -65,14 +65,14 @@ void py_list__reverse(py_Ref self) {
 }
 
 ////////////////////////////////
-static bool _py_list__len__(int argc, py_Ref argv) {
+static bool list__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 res = py_list__len(py_arg(0));
     py_newint(py_retval(), res);
     return true;
 }
 
-static bool _py_list__eq__(int argc, py_Ref argv) {
+static bool list__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     if(py_istype(py_arg(1), tp_list)) {
         int length0, length1;
@@ -87,8 +87,8 @@ static bool _py_list__eq__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__ne__(int argc, py_Ref argv) {
-    if(!_py_list__eq__(argc, argv)) return false;
+static bool list__ne__(int argc, py_Ref argv) {
+    if(!list__eq__(argc, argv)) return false;
     if(py_isbool(py_retval())) {
         bool res = py_tobool(py_retval());
         py_newbool(py_retval(), !res);
@@ -96,7 +96,7 @@ static bool _py_list__ne__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__new__(int argc, py_Ref argv) {
+static bool list__new__(int argc, py_Ref argv) {
     if(argc == 1) {
         py_newlist(py_retval());
         return true;
@@ -120,7 +120,7 @@ static bool _py_list__new__(int argc, py_Ref argv) {
         py_newlist(list);
         while(true) {
             int res = py_next(iter);
-            if(res == -1){
+            if(res == -1) {
                 py_shrink(2);
                 return false;
             }
@@ -134,7 +134,7 @@ static bool _py_list__new__(int argc, py_Ref argv) {
     return TypeError("list() takes at most 1 argument");
 }
 
-static bool _py_list__getitem__(int argc, py_Ref argv) {
+static bool list__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     List* self = py_touserdata(py_arg(0));
     py_Ref _1 = py_arg(1);
@@ -158,7 +158,7 @@ static bool _py_list__getitem__(int argc, py_Ref argv) {
     }
 }
 
-static bool _py_list__setitem__(int argc, py_Ref argv) {
+static bool list__setitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_int);
     List* self = py_touserdata(py_arg(0));
@@ -168,7 +168,7 @@ static bool _py_list__setitem__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__delitem__(int argc, py_Ref argv) {
+static bool list__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_int);
     List* self = py_touserdata(py_arg(0));
@@ -179,7 +179,7 @@ static bool _py_list__delitem__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__add__(int argc, py_Ref argv) {
+static bool list__add__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_Ref _0 = py_arg(0);
     py_Ref _1 = py_arg(1);
@@ -196,7 +196,7 @@ static bool _py_list__add__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__mul__(int argc, py_Ref argv) {
+static bool list__mul__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_Ref _0 = py_arg(0);
     py_Ref _1 = py_arg(1);
@@ -214,16 +214,16 @@ static bool _py_list__mul__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__rmul__(int argc, py_Ref argv) { return _py_list__mul__(argc, argv); }
+static bool list__rmul__(int argc, py_Ref argv) { return list__mul__(argc, argv); }
 
-static bool _py_list__append(int argc, py_Ref argv) {
+static bool list__append(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_list__append(py_arg(0), py_arg(1));
     py_newnone(py_retval());
     return true;
 }
 
-static bool _py_list__repr__(int argc, py_Ref argv) {
+static bool list__repr__(int argc, py_Ref argv) {
     List* self = py_touserdata(py_arg(0));
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
@@ -243,7 +243,7 @@ static bool _py_list__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__extend(int argc, py_Ref argv) {
+static bool list__extend(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     List* self = py_touserdata(py_arg(0));
     PY_CHECK_ARG_TYPE(1, tp_list);
@@ -253,7 +253,7 @@ static bool _py_list__extend(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__count(int argc, py_Ref argv) {
+static bool list__count(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     int count = 0;
     for(int i = 0; i < py_list__len(py_arg(0)); i++) {
@@ -265,14 +265,14 @@ static bool _py_list__count(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__clear(int argc, py_Ref argv) {
+static bool list__clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_list__clear(py_arg(0));
     py_newnone(py_retval());
     return true;
 }
 
-static bool _py_list__copy(int argc, py_Ref argv) {
+static bool list__copy(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_newlist(py_retval());
     List* self = py_touserdata(py_arg(0));
@@ -281,7 +281,7 @@ static bool _py_list__copy(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__index(int argc, py_Ref argv) {
+static bool list__index(int argc, py_Ref argv) {
     if(argc > 3) return TypeError("index() takes at most 3 arguments");
     int start = 0;
     if(argc == 3) {
@@ -299,7 +299,7 @@ static bool _py_list__index(int argc, py_Ref argv) {
     return ValueError("list.index(x): x not in list");
 }
 
-static bool _py_list__reverse(int argc, py_Ref argv) {
+static bool list__reverse(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     List* self = py_touserdata(py_arg(0));
     c11__reverse(py_TValue, self);
@@ -307,7 +307,7 @@ static bool _py_list__reverse(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__remove(int argc, py_Ref argv) {
+static bool list__remove(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     for(int i = 0; i < py_list__len(py_arg(0)); i++) {
         int res = py_equal(py_list__getitem(py_arg(0), i), py_arg(1));
@@ -321,7 +321,7 @@ static bool _py_list__remove(int argc, py_Ref argv) {
     return ValueError("list.remove(x): x not in list");
 }
 
-static bool _py_list__pop(int argc, py_Ref argv) {
+static bool list__pop(int argc, py_Ref argv) {
     int index;
     if(argc == 1) {
         index = -1;
@@ -339,7 +339,7 @@ static bool _py_list__pop(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__insert(int argc, py_Ref argv) {
+static bool list__insert(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_int);
     List* self = py_touserdata(py_arg(0));
@@ -352,7 +352,7 @@ static bool _py_list__insert(int argc, py_Ref argv) {
     return true;
 }
 
-static int _py_lt_with_key(py_TValue* a, py_TValue* b, py_TValue* key) {
+static int lt_with_key(py_TValue* a, py_TValue* b, py_TValue* key) {
     if(!key) return py_less(a, b);
     pk_VM* vm = pk_current_vm;
     // project a
@@ -375,7 +375,7 @@ static int _py_lt_with_key(py_TValue* a, py_TValue* b, py_TValue* key) {
 }
 
 // sort(self, key=None, reverse=False)
-static bool _py_list__sort(int argc, py_Ref argv) {
+static bool list__sort(int argc, py_Ref argv) {
     List* self = py_touserdata(py_arg(0));
 
     py_Ref key = py_arg(1);
@@ -384,7 +384,7 @@ static bool _py_list__sort(int argc, py_Ref argv) {
     bool ok = c11__stable_sort(self->data,
                                self->count,
                                sizeof(py_TValue),
-                               (int (*)(const void*, const void*, void*))_py_lt_with_key,
+                               (int (*)(const void*, const void*, void*))lt_with_key,
                                key);
     if(!ok) return false;
 
@@ -395,12 +395,12 @@ static bool _py_list__sort(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_list__iter__(int argc, py_Ref argv) {
+static bool list__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     return pk_arrayiter(argv);
 }
 
-static bool _py_list__contains__(int argc, py_Ref argv) {
+static bool list__contains__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     return pk_arraycontains(py_arg(0), py_arg(1));
 }
@@ -409,33 +409,33 @@ py_Type pk_list__register() {
     py_Type type =
         pk_newtype("list", tp_object, NULL, (void (*)(void*))c11_vector__dtor, false, true);
 
-    py_bindmagic(type, __len__, _py_list__len__);
-    py_bindmagic(type, __eq__, _py_list__eq__);
-    py_bindmagic(type, __ne__, _py_list__ne__);
-    py_bindmagic(type, __new__, _py_list__new__);
-    py_bindmagic(type, __getitem__, _py_list__getitem__);
-    py_bindmagic(type, __setitem__, _py_list__setitem__);
-    py_bindmagic(type, __delitem__, _py_list__delitem__);
-    py_bindmagic(type, __add__, _py_list__add__);
-    py_bindmagic(type, __mul__, _py_list__mul__);
-    py_bindmagic(type, __rmul__, _py_list__rmul__);
-    py_bindmagic(type, __repr__, _py_list__repr__);
-    py_bindmagic(type, __iter__, _py_list__iter__);
-    py_bindmagic(type, __contains__, _py_list__contains__);
+    py_bindmagic(type, __len__, list__len__);
+    py_bindmagic(type, __eq__, list__eq__);
+    py_bindmagic(type, __ne__, list__ne__);
+    py_bindmagic(type, __new__, list__new__);
+    py_bindmagic(type, __getitem__, list__getitem__);
+    py_bindmagic(type, __setitem__, list__setitem__);
+    py_bindmagic(type, __delitem__, list__delitem__);
+    py_bindmagic(type, __add__, list__add__);
+    py_bindmagic(type, __mul__, list__mul__);
+    py_bindmagic(type, __rmul__, list__rmul__);
+    py_bindmagic(type, __repr__, list__repr__);
+    py_bindmagic(type, __iter__, list__iter__);
+    py_bindmagic(type, __contains__, list__contains__);
 
-    py_bindmethod(type, "append", _py_list__append);
-    py_bindmethod(type, "extend", _py_list__extend);
-    py_bindmethod(type, "count", _py_list__count);
-    py_bindmethod(type, "clear", _py_list__clear);
-    py_bindmethod(type, "copy", _py_list__copy);
-    py_bindmethod(type, "index", _py_list__index);
-    py_bindmethod(type, "reverse", _py_list__reverse);
-    py_bindmethod(type, "remove", _py_list__remove);
-    py_bindmethod(type, "pop", _py_list__pop);
-    py_bindmethod(type, "insert", _py_list__insert);
-    py_bindmethod(type, "sort", _py_list__sort);
+    py_bindmethod(type, "append", list__append);
+    py_bindmethod(type, "extend", list__extend);
+    py_bindmethod(type, "count", list__count);
+    py_bindmethod(type, "clear", list__clear);
+    py_bindmethod(type, "copy", list__copy);
+    py_bindmethod(type, "index", list__index);
+    py_bindmethod(type, "reverse", list__reverse);
+    py_bindmethod(type, "remove", list__remove);
+    py_bindmethod(type, "pop", list__pop);
+    py_bindmethod(type, "insert", list__insert);
+    py_bindmethod(type, "sort", list__sort);
 
-    py_bind(py_tpobject(type), "sort(self, key=None, reverse=False)", _py_list__sort);
+    py_bind(py_tpobject(type), "sort(self, key=None, reverse=False)", list__sort);
 
     py_setdict(py_tpobject(type), __hash__, py_None);
     return type;

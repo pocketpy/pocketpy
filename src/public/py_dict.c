@@ -204,12 +204,12 @@ static DictEntry* DictIterator__next(DictIterator* self) {
 }
 
 ///////////////////////////////
-static bool _py_dict__new__(int argc, py_Ref argv) {
+static bool dict__new__(int argc, py_Ref argv) {
     py_newdict(py_retval());
     return true;
 }
 
-static bool _py_dict__init__(int argc, py_Ref argv) {
+static bool dict__init__(int argc, py_Ref argv) {
     if(argc > 2) return TypeError("dict.__init__() takes at most 2 arguments (%d given)", argc);
     if(argc == 1) return true;
     assert(argc == 2);
@@ -228,7 +228,7 @@ static bool _py_dict__init__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__getitem__(int argc, py_Ref argv) {
+static bool dict__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     Dict* self = py_touserdata(argv);
     DictEntry* entry;
@@ -240,20 +240,20 @@ static bool _py_dict__getitem__(int argc, py_Ref argv) {
     return KeyError(py_arg(1));
 }
 
-static bool _py_dict__setitem__(int argc, py_Ref argv) {
+static bool dict__setitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     Dict* self = py_touserdata(argv);
     return Dict__set(self, py_arg(1), py_arg(2));
 }
 
-static bool _py_dict__delitem__(int argc, py_Ref argv) {
+static bool dict__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     Dict* self = py_touserdata(argv);
     if(!Dict__pop(self, py_arg(1))) return false;
     return true;
 }
 
-static bool _py_dict__contains__(int argc, py_Ref argv) {
+static bool dict__contains__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     Dict* self = py_touserdata(argv);
     DictEntry* entry;
@@ -262,14 +262,14 @@ static bool _py_dict__contains__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__len__(int argc, py_Ref argv) {
+static bool dict__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     py_newint(py_retval(), self->length);
     return true;
 }
 
-static bool _py_dict__repr__(int argc, py_Ref argv) {
+static bool dict__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     c11_sbuf buf;
@@ -292,7 +292,7 @@ static bool _py_dict__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__eq__(int argc, py_Ref argv) {
+static bool dict__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     Dict* self = py_touserdata(py_arg(0));
     if(!py_isdict(py_arg(1))) {
@@ -326,8 +326,8 @@ static bool _py_dict__eq__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__ne__(int argc, py_Ref argv) {
-    if(!_py_dict__eq__(argc, argv)) return false;
+static bool dict__ne__(int argc, py_Ref argv) {
+    if(!dict__eq__(argc, argv)) return false;
     if(py_isbool(py_retval())) {
         bool res = py_tobool(py_retval());
         py_newbool(py_retval(), !res);
@@ -335,14 +335,14 @@ static bool _py_dict__ne__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__clear(int argc, py_Ref argv) {
+static bool dict__clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     Dict__clear(self);
     return true;
 }
 
-static bool _py_dict__copy(int argc, py_Ref argv) {
+static bool dict__copy(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     Dict* new_dict = py_newobject(py_retval(), tp_dict, 0, sizeof(Dict));
@@ -355,7 +355,7 @@ static bool _py_dict__copy(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__update(int argc, py_Ref argv) {
+static bool dict__update(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_dict);
     Dict* self = py_touserdata(argv);
@@ -368,7 +368,7 @@ static bool _py_dict__update(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__get(int argc, py_Ref argv) {
+static bool dict__get(int argc, py_Ref argv) {
     Dict* self = py_touserdata(argv);
     if(argc > 3) return TypeError("get() takes at most 3 arguments (%d given)", argc);
     py_Ref default_val = argc == 3 ? py_arg(2) : py_None;
@@ -378,7 +378,7 @@ static bool _py_dict__get(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__pop(int argc, py_Ref argv) {
+static bool dict__pop(int argc, py_Ref argv) {
     Dict* self = py_touserdata(argv);
     if(argc < 2 || argc > 3) return TypeError("pop() takes 2 or 3 arguments (%d given)", argc);
     py_Ref default_val = argc == 3 ? py_arg(2) : py_None;
@@ -387,7 +387,7 @@ static bool _py_dict__pop(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__items(int argc, py_Ref argv) {
+static bool dict__items(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     DictIterator* ud = py_newobject(py_retval(), tp_dict_items, 1, sizeof(DictIterator));
@@ -396,7 +396,7 @@ static bool _py_dict__items(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__keys(int argc, py_Ref argv) {
+static bool dict__keys(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     py_newtuple(py_retval(), self->length);
@@ -412,7 +412,7 @@ static bool _py_dict__keys(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_dict__values(int argc, py_Ref argv) {
+static bool dict__values(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     py_newtuple(py_retval(), self->length);
@@ -431,38 +431,38 @@ static bool _py_dict__values(int argc, py_Ref argv) {
 py_Type pk_dict__register() {
     py_Type type = pk_newtype("dict", tp_object, NULL, (void (*)(void*))Dict__dtor, false, false);
 
-    py_bindmagic(type, __new__, _py_dict__new__);
-    py_bindmagic(type, __init__, _py_dict__init__);
-    py_bindmagic(type, __getitem__, _py_dict__getitem__);
-    py_bindmagic(type, __setitem__, _py_dict__setitem__);
-    py_bindmagic(type, __delitem__, _py_dict__delitem__);
-    py_bindmagic(type, __contains__, _py_dict__contains__);
-    py_bindmagic(type, __len__, _py_dict__len__);
-    py_bindmagic(type, __repr__, _py_dict__repr__);
-    py_bindmagic(type, __eq__, _py_dict__eq__);
-    py_bindmagic(type, __ne__, _py_dict__ne__);
+    py_bindmagic(type, __new__, dict__new__);
+    py_bindmagic(type, __init__, dict__init__);
+    py_bindmagic(type, __getitem__, dict__getitem__);
+    py_bindmagic(type, __setitem__, dict__setitem__);
+    py_bindmagic(type, __delitem__, dict__delitem__);
+    py_bindmagic(type, __contains__, dict__contains__);
+    py_bindmagic(type, __len__, dict__len__);
+    py_bindmagic(type, __repr__, dict__repr__);
+    py_bindmagic(type, __eq__, dict__eq__);
+    py_bindmagic(type, __ne__, dict__ne__);
 
-    py_bindmethod(type, "clear", _py_dict__clear);
-    py_bindmethod(type, "copy", _py_dict__copy);
-    py_bindmethod(type, "update", _py_dict__update);
-    py_bindmethod(type, "get", _py_dict__get);
-    py_bindmethod(type, "pop", _py_dict__pop);
-    py_bindmethod(type, "items", _py_dict__items);
-    py_bindmethod(type, "keys", _py_dict__keys);
-    py_bindmethod(type, "values", _py_dict__values);
+    py_bindmethod(type, "clear", dict__clear);
+    py_bindmethod(type, "copy", dict__copy);
+    py_bindmethod(type, "update", dict__update);
+    py_bindmethod(type, "get", dict__get);
+    py_bindmethod(type, "pop", dict__pop);
+    py_bindmethod(type, "items", dict__items);
+    py_bindmethod(type, "keys", dict__keys);
+    py_bindmethod(type, "values", dict__values);
 
     py_setdict(py_tpobject(type), __hash__, py_None);
     return type;
 }
 
 //////////////////////////
-static bool _py_dict_items__iter__(int argc, py_Ref argv) {
+static bool dict_items__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     *py_retval() = *argv;
     return true;
 }
 
-static bool _py_dict_items__next__(int argc, py_Ref argv) {
+static bool dict_items__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     DictIterator* iter = py_touserdata(py_arg(0));
     DictEntry* entry = (DictIterator__next(iter));
@@ -477,8 +477,8 @@ static bool _py_dict_items__next__(int argc, py_Ref argv) {
 
 py_Type pk_dict_items__register() {
     py_Type type = pk_newtype("dict_items", tp_object, NULL, NULL, false, true);
-    py_bindmagic(type, __iter__, _py_dict_items__iter__);
-    py_bindmagic(type, __next__, _py_dict_items__next__);
+    py_bindmagic(type, __iter__, dict_items__iter__);
+    py_bindmagic(type, __next__, dict_items__next__);
     return type;
 }
 
@@ -524,7 +524,7 @@ int py_dict__len(py_Ref self) {
     return ud->length;
 }
 
-bool py_dict__apply(py_Ref self, bool (*f)(py_Ref, py_Ref, void *), void *ctx){
+bool py_dict__apply(py_Ref self, bool (*f)(py_Ref, py_Ref, void*), void* ctx) {
     Dict* ud = py_touserdata(self);
     for(int i = 0; i < ud->entries.count; i++) {
         DictEntry* entry = c11__at(DictEntry, &ud->entries, i);

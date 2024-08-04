@@ -58,7 +58,7 @@ unsigned char* py_tobytes(py_Ref self, int* size) {
 }
 
 ////////////////////////////////
-static bool _py_str__new__(int argc, py_Ref argv) {
+static bool str__new__(int argc, py_Ref argv) {
     assert(argc >= 1);
     if(argc == 1) {
         py_newstr(py_retval(), "");
@@ -68,7 +68,7 @@ static bool _py_str__new__(int argc, py_Ref argv) {
     return py_str(py_arg(1));
 }
 
-static bool _py_str__hash__(int argc, py_Ref argv) {
+static bool str__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int size;
     const char* data = py_tostrn(&argv[0], &size);
@@ -80,14 +80,14 @@ static bool _py_str__hash__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__len__(int argc, py_Ref argv) {
+static bool str__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_string* self = py_touserdata(&argv[0]);
     py_newint(py_retval(), c11_sv__u8_length((c11_sv){self->data, self->size}));
     return true;
 }
 
-static bool _py_str__add__(int argc, py_Ref argv) {
+static bool str__add__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
     if(py_arg(1)->type != tp_str) {
@@ -105,7 +105,7 @@ static bool _py_str__add__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__mul__(int argc, py_Ref argv) {
+static bool str__mul__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
     if(py_arg(1)->type != tp_int) {
@@ -128,9 +128,9 @@ static bool _py_str__mul__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__rmul__(int argc, py_Ref argv) { return _py_str__mul__(argc, argv); }
+static bool str__rmul__(int argc, py_Ref argv) { return str__mul__(argc, argv); }
 
-static bool _py_str__contains__(int argc, py_Ref argv) {
+static bool str__contains__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
     if(py_arg(1)->type != tp_str) {
@@ -143,13 +143,13 @@ static bool _py_str__contains__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__str__(int argc, py_Ref argv) {
+static bool str__str__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     *py_retval() = argv[0];
     return true;
 }
 
-static bool _py_str__repr__(int argc, py_Ref argv) {
+static bool str__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
@@ -158,7 +158,7 @@ static bool _py_str__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__iter__(int argc, py_Ref argv) {
+static bool str__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int* ud = py_newobject(py_retval(), tp_str_iterator, 1, sizeof(int));
     *ud = 0;
@@ -166,7 +166,7 @@ static bool _py_str__iter__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__getitem__(int argc, py_Ref argv) {
+static bool str__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     py_Ref _1 = py_arg(1);
@@ -190,7 +190,7 @@ static bool _py_str__getitem__(int argc, py_Ref argv) {
 }
 
 #define DEF_STR_CMP_OP(op, __f, __cond)                                                            \
-    static bool _py_str##op(int argc, py_Ref argv) {                                               \
+    static bool str##op(int argc, py_Ref argv) {                                               \
         PY_CHECK_ARGC(2);                                                                          \
         c11_string* self = py_touserdata(&argv[0]);                                                \
         if(py_arg(1)->type != tp_str) {                                                            \
@@ -212,7 +212,7 @@ DEF_STR_CMP_OP(__ge__, c11_sv__cmp, res >= 0)
 
 #undef DEF_STR_CMP_OP
 
-static bool _py_str__lower(int argc, py_Ref argv) {
+static bool str__lower(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_string* self = py_touserdata(&argv[0]);
     int total_size = sizeof(c11_string) + self->size + 1;
@@ -227,7 +227,7 @@ static bool _py_str__lower(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__upper(int argc, py_Ref argv) {
+static bool str__upper(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_string* self = py_touserdata(&argv[0]);
     int total_size = sizeof(c11_string) + self->size + 1;
@@ -242,7 +242,7 @@ static bool _py_str__upper(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__startswith(int argc, py_Ref argv) {
+static bool str__startswith(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -251,7 +251,7 @@ static bool _py_str__startswith(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__endswith(int argc, py_Ref argv) {
+static bool str__endswith(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -260,7 +260,7 @@ static bool _py_str__endswith(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__join(int argc, py_Ref argv) {
+static bool str__join(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     py_Ref _1 = py_arg(1);
@@ -292,7 +292,7 @@ static bool _py_str__join(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__replace(int argc, py_Ref argv) {
+static bool str__replace(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -306,7 +306,7 @@ static bool _py_str__replace(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__split(int argc, py_Ref argv) {
+static bool str__split(int argc, py_Ref argv) {
     c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     c11_vector res;
     if(argc > 2) return TypeError("split() takes at most 2 arguments");
@@ -329,7 +329,7 @@ static bool _py_str__split(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__count(int argc, py_Ref argv) {
+static bool str__count(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -339,7 +339,7 @@ static bool _py_str__count(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__strip_impl(bool left, bool right, int argc, py_Ref argv) {
+static bool str__strip_impl(bool left, bool right, int argc, py_Ref argv) {
     c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     c11_sv chars;
     if(argc == 1) {
@@ -355,19 +355,19 @@ static bool _py_str__strip_impl(bool left, bool right, int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__strip(int argc, py_Ref argv) {
-    return _py_str__strip_impl(true, true, argc, argv);
+static bool str__strip(int argc, py_Ref argv) {
+    return str__strip_impl(true, true, argc, argv);
 }
 
-static bool _py_str__lstrip(int argc, py_Ref argv) {
-    return _py_str__strip_impl(true, false, argc, argv);
+static bool str__lstrip(int argc, py_Ref argv) {
+    return str__strip_impl(true, false, argc, argv);
 }
 
-static bool _py_str__rstrip(int argc, py_Ref argv) {
-    return _py_str__strip_impl(false, true, argc, argv);
+static bool str__rstrip(int argc, py_Ref argv) {
+    return str__strip_impl(false, true, argc, argv);
 }
 
-static bool _py_str__zfill(int argc, py_Ref argv) {
+static bool str__zfill(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -387,7 +387,7 @@ static bool _py_str__zfill(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__widthjust_impl(bool left, int argc, py_Ref argv) {
+static bool str__widthjust_impl(bool left, int argc, py_Ref argv) {
     if(argc > 1 + 2) return TypeError("expected at most 2 arguments");
     char pad;
     if(argc == 1 + 1) {
@@ -423,15 +423,15 @@ static bool _py_str__widthjust_impl(bool left, int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__ljust(int argc, py_Ref argv) {
-    return _py_str__widthjust_impl(true, argc, argv);
+static bool str__ljust(int argc, py_Ref argv) {
+    return str__widthjust_impl(true, argc, argv);
 }
 
-static bool _py_str__rjust(int argc, py_Ref argv) {
-    return _py_str__widthjust_impl(false, argc, argv);
+static bool str__rjust(int argc, py_Ref argv) {
+    return str__widthjust_impl(false, argc, argv);
 }
 
-static bool _py_str__find(int argc, py_Ref argv) {
+static bool str__find(int argc, py_Ref argv) {
     if(argc > 3) return TypeError("find() takes at most 3 arguments");
     int start = 0;
     if(argc == 3) {
@@ -446,8 +446,8 @@ static bool _py_str__find(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_str__index(int argc, py_Ref argv) {
-    bool ok = _py_str__find(argc, argv);
+static bool str__index(int argc, py_Ref argv) {
+    bool ok = str__find(argc, argv);
     if(!ok) return false;
     if(py_toint(py_retval()) == -1) return ValueError("substring not found");
     return true;
@@ -457,51 +457,51 @@ py_Type pk_str__register() {
     py_Type type = pk_newtype("str", tp_object, NULL, NULL, false, true);
     // no need to dtor because the memory is controlled by the object
 
-    py_bindmagic(tp_str, __new__, _py_str__new__);
-    py_bindmagic(tp_str, __hash__, _py_str__hash__);
-    py_bindmagic(tp_str, __len__, _py_str__len__);
-    py_bindmagic(tp_str, __add__, _py_str__add__);
-    py_bindmagic(tp_str, __mul__, _py_str__mul__);
-    py_bindmagic(tp_str, __rmul__, _py_str__rmul__);
-    py_bindmagic(tp_str, __contains__, _py_str__contains__);
-    py_bindmagic(tp_str, __str__, _py_str__str__);
-    py_bindmagic(tp_str, __repr__, _py_str__repr__);
-    py_bindmagic(tp_str, __iter__, _py_str__iter__);
-    py_bindmagic(tp_str, __getitem__, _py_str__getitem__);
+    py_bindmagic(tp_str, __new__, str__new__);
+    py_bindmagic(tp_str, __hash__, str__hash__);
+    py_bindmagic(tp_str, __len__, str__len__);
+    py_bindmagic(tp_str, __add__, str__add__);
+    py_bindmagic(tp_str, __mul__, str__mul__);
+    py_bindmagic(tp_str, __rmul__, str__rmul__);
+    py_bindmagic(tp_str, __contains__, str__contains__);
+    py_bindmagic(tp_str, __str__, str__str__);
+    py_bindmagic(tp_str, __repr__, str__repr__);
+    py_bindmagic(tp_str, __iter__, str__iter__);
+    py_bindmagic(tp_str, __getitem__, str__getitem__);
 
-    py_bindmagic(tp_str, __eq__, _py_str__eq__);
-    py_bindmagic(tp_str, __ne__, _py_str__ne__);
-    py_bindmagic(tp_str, __lt__, _py_str__lt__);
-    py_bindmagic(tp_str, __le__, _py_str__le__);
-    py_bindmagic(tp_str, __gt__, _py_str__gt__);
-    py_bindmagic(tp_str, __ge__, _py_str__ge__);
+    py_bindmagic(tp_str, __eq__, str__eq__);
+    py_bindmagic(tp_str, __ne__, str__ne__);
+    py_bindmagic(tp_str, __lt__, str__lt__);
+    py_bindmagic(tp_str, __le__, str__le__);
+    py_bindmagic(tp_str, __gt__, str__gt__);
+    py_bindmagic(tp_str, __ge__, str__ge__);
 
-    py_bindmethod(tp_str, "lower", _py_str__lower);
-    py_bindmethod(tp_str, "upper", _py_str__upper);
-    py_bindmethod(tp_str, "startswith", _py_str__startswith);
-    py_bindmethod(tp_str, "endswith", _py_str__endswith);
-    py_bindmethod(tp_str, "join", _py_str__join);
-    py_bindmethod(tp_str, "replace", _py_str__replace);
-    py_bindmethod(tp_str, "split", _py_str__split);
-    py_bindmethod(tp_str, "count", _py_str__count);
-    py_bindmethod(tp_str, "strip", _py_str__strip);
-    py_bindmethod(tp_str, "lstrip", _py_str__lstrip);
-    py_bindmethod(tp_str, "rstrip", _py_str__rstrip);
-    py_bindmethod(tp_str, "zfill", _py_str__zfill);
-    py_bindmethod(tp_str, "ljust", _py_str__ljust);
-    py_bindmethod(tp_str, "rjust", _py_str__rjust);
-    py_bindmethod(tp_str, "find", _py_str__find);
-    py_bindmethod(tp_str, "index", _py_str__index);
+    py_bindmethod(tp_str, "lower", str__lower);
+    py_bindmethod(tp_str, "upper", str__upper);
+    py_bindmethod(tp_str, "startswith", str__startswith);
+    py_bindmethod(tp_str, "endswith", str__endswith);
+    py_bindmethod(tp_str, "join", str__join);
+    py_bindmethod(tp_str, "replace", str__replace);
+    py_bindmethod(tp_str, "split", str__split);
+    py_bindmethod(tp_str, "count", str__count);
+    py_bindmethod(tp_str, "strip", str__strip);
+    py_bindmethod(tp_str, "lstrip", str__lstrip);
+    py_bindmethod(tp_str, "rstrip", str__rstrip);
+    py_bindmethod(tp_str, "zfill", str__zfill);
+    py_bindmethod(tp_str, "ljust", str__ljust);
+    py_bindmethod(tp_str, "rjust", str__rjust);
+    py_bindmethod(tp_str, "find", str__find);
+    py_bindmethod(tp_str, "index", str__index);
     return type;
 }
 
-static bool _py_str_iterator__iter__(int argc, py_Ref argv) {
+static bool str_iterator__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     *py_retval() = argv[0];
     return true;
 }
 
-static bool _py_str_iterator__next__(int argc, py_Ref argv) {
+static bool str_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int* ud = py_touserdata(&argv[0]);
     int size;
@@ -517,8 +517,8 @@ static bool _py_str_iterator__next__(int argc, py_Ref argv) {
 py_Type pk_str_iterator__register() {
     py_Type type = pk_newtype("str_iterator", tp_object, NULL, NULL, false, true);
 
-    py_bindmagic(type, __iter__, _py_str_iterator__iter__);
-    py_bindmagic(type, __next__, _py_str_iterator__next__);
+    py_bindmagic(type, __iter__, str_iterator__iter__);
+    py_bindmagic(type, __next__, str_iterator__next__);
     return type;
 }
 

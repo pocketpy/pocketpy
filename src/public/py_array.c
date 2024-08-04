@@ -61,13 +61,13 @@ bool pk_arraycontains(py_Ref self, py_Ref val) {
     return true;
 }
 
-static bool _py_array_iterator__iter__(int argc, py_Ref argv) {
+static bool array_iterator__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     *py_retval() = *argv;
     return true;
 }
 
-static bool _py_array_iterator__next__(int argc, py_Ref argv) {
+static bool array_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     array_iterator* ud = py_touserdata(argv);
     if(ud->index < ud->length) {
@@ -79,7 +79,7 @@ static bool _py_array_iterator__next__(int argc, py_Ref argv) {
 
 py_Type pk_array_iterator__register() {
     py_Type type = pk_newtype("array_iterator", tp_object, NULL, NULL, false, true);
-    py_bindmagic(type, __iter__, _py_array_iterator__iter__);
-    py_bindmagic(type, __next__, _py_array_iterator__next__);
+    py_bindmagic(type, __iter__, array_iterator__iter__);
+    py_bindmagic(type, __next__, array_iterator__next__);
     return type;
 }

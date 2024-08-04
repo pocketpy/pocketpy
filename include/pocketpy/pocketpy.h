@@ -203,6 +203,7 @@ void py_bind(py_Ref obj, const char* sig, py_CFunction f);
 // old style argc-based bindings
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
 void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
+void py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFunction setter);
 
 #define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
 
