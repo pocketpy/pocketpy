@@ -286,7 +286,9 @@ void py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFu
 
 #define py_offset(p, i) ((py_Ref)((char*)p + ((i) << 4)))
 #define py_arg(i) py_offset(argv, i)
+
 /************* Python Equivalents *************/
+
 /// Python equivalent to `getattr(self, name)`.
 bool py_getattr(py_Ref self, py_Name name) PY_RAISE;
 /// Python equivalent to `setattr(self, name, val)`.
@@ -374,6 +376,7 @@ bool py_checkexc();
 /// Check if the exception is an instance of the given type.
 bool py_matchexc(py_Type type);
 /// Clear the current exception.
+/// @param p0 the unwinding point. Use `NULL` if not needed.
 void py_clearexc(py_StackRef p0);
 
 #define NameError(n) py_exception(tp_NameError, "name '%n' is not defined", (n))
@@ -393,9 +396,8 @@ bool KeyError(py_Ref key) PY_RAISE;
 
 /************* Operators *************/
 
-/// Equivalent to `bool(val)`.
-/// Returns 1 if `val` is truthy, otherwise 0.
-/// Returns -1 if an error occurred.
+/// Python equivalent to `bool(val)`.
+/// 1: true, 0: false, -1: error
 int py_bool(py_Ref val) PY_RAISE;
 
 /// Compare two objects.
