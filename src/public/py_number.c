@@ -5,7 +5,7 @@
 #include <math.h>
 
 #define DEF_NUM_BINARY_OP(name, op, rint, rfloat)                                                  \
-    static bool _py_int##name(int argc, py_Ref argv) {                                             \
+    static bool int##name(int argc, py_Ref argv) {                                             \
         PY_CHECK_ARGC(2);                                                                          \
         if(py_isint(&argv[1])) {                                                                   \
             py_i64 lhs = py_toint(&argv[0]);                                                       \
@@ -20,7 +20,7 @@
         }                                                                                          \
         return true;                                                                               \
     }                                                                                              \
-    static bool _py_float##name(int argc, py_Ref argv) {                                           \
+    static bool float##name(int argc, py_Ref argv) {                                           \
         PY_CHECK_ARGC(2);                                                                          \
         py_f64 lhs = py_tofloat(&argv[0]);                                                         \
         py_f64 rhs;                                                                                \
@@ -45,21 +45,21 @@ DEF_NUM_BINARY_OP(__ge__, >=, py_newbool, py_newbool)
 
 #undef DEF_NUM_BINARY_OP
 
-static bool _py_int__neg__(int argc, py_Ref argv) {
+static bool int__neg__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 val = py_toint(&argv[0]);
     py_newint(py_retval(), -val);
     return true;
 }
 
-static bool _py_float__neg__(int argc, py_Ref argv) {
+static bool float__neg__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 val = py_tofloat(&argv[0]);
     py_newfloat(py_retval(), -val);
     return true;
 }
 
-static bool _py_int__truediv__(int argc, py_Ref argv) {
+static bool int__truediv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_toint(&argv[0]);
     py_f64 rhs;
@@ -71,7 +71,7 @@ static bool _py_int__truediv__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_float__truediv__(int argc, py_Ref argv) {
+static bool float__truediv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_f64 lhs = py_tofloat(&argv[0]);
     py_f64 rhs;
@@ -85,7 +85,7 @@ static bool _py_float__truediv__(int argc, py_Ref argv) {
 
 #define ZeroDivisionError(msg) false
 
-static bool _py_number__pow__(int argc, py_Ref argv) {
+static bool number__pow__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     if(py_isint(&argv[0]) && py_isint(&argv[1])) {
         py_i64 lhs = py_toint(&argv[0]);
@@ -119,7 +119,7 @@ static bool _py_number__pow__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_int__floordiv__(int argc, py_Ref argv) {
+static bool int__floordiv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
@@ -132,7 +132,7 @@ static bool _py_int__floordiv__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_int__mod__(int argc, py_Ref argv) {
+static bool int__mod__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
@@ -145,14 +145,14 @@ static bool _py_int__mod__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_int__invert__(int argc, py_Ref argv) {
+static bool int__invert__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 val = py_toint(&argv[0]);
     py_newint(py_retval(), ~val);
     return true;
 }
 
-static bool _py_int__bit_length(int argc, py_Ref argv) {
+static bool int_bit_length(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 x = py_toint(py_arg(0));
     if(x < 0) x = -x;
@@ -166,7 +166,7 @@ static bool _py_int__bit_length(int argc, py_Ref argv) {
 }
 
 #define DEF_INT_BITWISE_OP(name, op)                                                               \
-    static bool _py_int##name(int argc, py_Ref argv) {                                             \
+    static bool int##name(int argc, py_Ref argv) {                                             \
         PY_CHECK_ARGC(2);                                                                          \
         py_i64 lhs = py_toint(&argv[0]);                                                           \
         if(py_isint(&argv[1])) {                                                                   \
@@ -186,7 +186,7 @@ DEF_INT_BITWISE_OP(__rshift__, >>)
 
 #undef DEF_INT_BITWISE_OP
 
-static bool _py_int__repr__(int argc, py_Ref argv) {
+static bool int__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 val = py_toint(&argv[0]);
     char buf[32];
@@ -195,7 +195,7 @@ static bool _py_int__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_float__repr__(int argc, py_Ref argv) {
+static bool float__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 val = py_tofloat(&argv[0]);
     c11_sbuf buf;
@@ -223,7 +223,7 @@ static py_i64 c11_8bytes__hash(union c11_8bytes u) {
     return u._i64;
 }
 
-static bool _py_int__hash__(int argc, py_Ref argv) {
+static bool int__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 val = py_toint(&argv[0]);
     union c11_8bytes u = {._i64 = val};
@@ -231,7 +231,7 @@ static bool _py_int__hash__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_float__hash__(int argc, py_Ref argv) {
+static bool float__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 val = py_tofloat(&argv[0]);
     union c11_8bytes u = {._f64 = val};
@@ -239,21 +239,21 @@ static bool _py_float__hash__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_int__abs__(int argc, py_Ref argv) {
+static bool int__abs__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 val = py_toint(&argv[0]);
     py_newint(py_retval(), val < 0 ? -val : val);
     return true;
 }
 
-static bool _py_float__abs__(int argc, py_Ref argv) {
+static bool float__abs__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 val = py_tofloat(&argv[0]);
     py_newfloat(py_retval(), val < 0 ? -val : val);
     return true;
 }
 
-static bool _py_int__new__(int argc, py_Ref argv) {
+static bool int__new__(int argc, py_Ref argv) {
     if(argc == 1 + 0) {
         // int() == 0
         py_newint(py_retval(), 0);
@@ -308,7 +308,7 @@ static bool _py_int__new__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_float__new__(int argc, py_Ref argv) {
+static bool float__new__(int argc, py_Ref argv) {
     if(argc == 1 + 0) {
         // float() == 0.0
         py_newfloat(py_retval(), 0.0);
@@ -356,7 +356,7 @@ static bool _py_float__new__(int argc, py_Ref argv) {
 }
 
 // tp_bool
-static bool _py_bool__new__(int argc, py_Ref argv) {
+static bool bool__new__(int argc, py_Ref argv) {
     assert(argc > 0);
     if(argc == 1){
         py_newbool(py_retval(), false);
@@ -371,21 +371,21 @@ static bool _py_bool__new__(int argc, py_Ref argv) {
     return TypeError("bool() takes at most 1 argument");
 }
 
-static bool _py_bool__hash__(int argc, py_Ref argv) {
+static bool bool__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     bool res = py_tobool(argv);
     py_newint(py_retval(), res);
     return true;
 }
 
-static bool _py_bool__repr__(int argc, py_Ref argv) {
+static bool bool__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     bool res = py_tobool(argv);
     py_newstr(py_retval(), res ? "True" : "False");
     return true;
 }
 
-static bool _py_bool__eq__(int argc, py_Ref argv) {
+static bool bool__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     bool lhs = py_tobool(&argv[0]);
     if(argv[1].type == tp_bool) {
@@ -397,7 +397,7 @@ static bool _py_bool__eq__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _py_bool__ne__(int argc, py_Ref argv) {
+static bool bool__ne__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     bool lhs = py_tobool(&argv[0]);
     if(argv[1].type == tp_bool) {
@@ -411,74 +411,74 @@ static bool _py_bool__ne__(int argc, py_Ref argv) {
 
 void pk_number__register() {
     /****** tp_int & tp_float ******/
-    py_bindmagic(tp_int, __add__, _py_int__add__);
-    py_bindmagic(tp_float, __add__, _py_float__add__);
-    py_bindmagic(tp_int, __sub__, _py_int__sub__);
-    py_bindmagic(tp_float, __sub__, _py_float__sub__);
-    py_bindmagic(tp_int, __mul__, _py_int__mul__);
-    py_bindmagic(tp_float, __mul__, _py_float__mul__);
+    py_bindmagic(tp_int, __add__, int__add__);
+    py_bindmagic(tp_float, __add__, float__add__);
+    py_bindmagic(tp_int, __sub__, int__sub__);
+    py_bindmagic(tp_float, __sub__, float__sub__);
+    py_bindmagic(tp_int, __mul__, int__mul__);
+    py_bindmagic(tp_float, __mul__, float__mul__);
 
-    py_bindmagic(tp_int, __eq__, _py_int__eq__);
-    py_bindmagic(tp_float, __eq__, _py_float__eq__);
-    py_bindmagic(tp_int, __ne__, _py_int__ne__);
-    py_bindmagic(tp_float, __ne__, _py_float__ne__);
-    py_bindmagic(tp_int, __lt__, _py_int__lt__);
-    py_bindmagic(tp_float, __lt__, _py_float__lt__);
-    py_bindmagic(tp_int, __le__, _py_int__le__);
-    py_bindmagic(tp_float, __le__, _py_float__le__);
-    py_bindmagic(tp_int, __gt__, _py_int__gt__);
-    py_bindmagic(tp_float, __gt__, _py_float__gt__);
-    py_bindmagic(tp_int, __ge__, _py_int__ge__);
-    py_bindmagic(tp_float, __ge__, _py_float__ge__);
+    py_bindmagic(tp_int, __eq__, int__eq__);
+    py_bindmagic(tp_float, __eq__, float__eq__);
+    py_bindmagic(tp_int, __ne__, int__ne__);
+    py_bindmagic(tp_float, __ne__, float__ne__);
+    py_bindmagic(tp_int, __lt__, int__lt__);
+    py_bindmagic(tp_float, __lt__, float__lt__);
+    py_bindmagic(tp_int, __le__, int__le__);
+    py_bindmagic(tp_float, __le__, float__le__);
+    py_bindmagic(tp_int, __gt__, int__gt__);
+    py_bindmagic(tp_float, __gt__, float__gt__);
+    py_bindmagic(tp_int, __ge__, int__ge__);
+    py_bindmagic(tp_float, __ge__, float__ge__);
 
     // __neg__
-    py_bindmagic(tp_int, __neg__, _py_int__neg__);
-    py_bindmagic(tp_float, __neg__, _py_float__neg__);
+    py_bindmagic(tp_int, __neg__, int__neg__);
+    py_bindmagic(tp_float, __neg__, float__neg__);
 
     // __repr__
-    py_bindmagic(tp_int, __repr__, _py_int__repr__);
-    py_bindmagic(tp_float, __repr__, _py_float__repr__);
+    py_bindmagic(tp_int, __repr__, int__repr__);
+    py_bindmagic(tp_float, __repr__, float__repr__);
 
     // __hash__
-    py_bindmagic(tp_int, __hash__, _py_int__hash__);
-    py_bindmagic(tp_float, __hash__, _py_float__hash__);
+    py_bindmagic(tp_int, __hash__, int__hash__);
+    py_bindmagic(tp_float, __hash__, float__hash__);
 
     // __abs__
-    py_bindmagic(tp_int, __abs__, _py_int__abs__);
-    py_bindmagic(tp_float, __abs__, _py_float__abs__);
+    py_bindmagic(tp_int, __abs__, int__abs__);
+    py_bindmagic(tp_float, __abs__, float__abs__);
 
     // __new__
-    py_bindmagic(tp_int, __new__, _py_int__new__);
-    py_bindmagic(tp_float, __new__, _py_float__new__);
+    py_bindmagic(tp_int, __new__, int__new__);
+    py_bindmagic(tp_float, __new__, float__new__);
 
     // __truediv__
-    py_bindmagic(tp_int, __truediv__, _py_int__truediv__);
-    py_bindmagic(tp_float, __truediv__, _py_float__truediv__);
+    py_bindmagic(tp_int, __truediv__, int__truediv__);
+    py_bindmagic(tp_float, __truediv__, float__truediv__);
 
     // __pow__
-    py_bindmagic(tp_int, __pow__, _py_number__pow__);
-    py_bindmagic(tp_float, __pow__, _py_number__pow__);
+    py_bindmagic(tp_int, __pow__, number__pow__);
+    py_bindmagic(tp_float, __pow__, number__pow__);
 
     // __floordiv__ & __mod__
-    py_bindmagic(tp_int, __floordiv__, _py_int__floordiv__);
-    py_bindmagic(tp_int, __mod__, _py_int__mod__);
+    py_bindmagic(tp_int, __floordiv__, int__floordiv__);
+    py_bindmagic(tp_int, __mod__, int__mod__);
 
     // int.__invert__ & int.<BITWISE OP>
-    py_bindmagic(tp_int, __invert__, _py_int__invert__);
+    py_bindmagic(tp_int, __invert__, int__invert__);
 
-    py_bindmagic(tp_int, __and__, _py_int__and__);
-    py_bindmagic(tp_int, __or__, _py_int__or__);
-    py_bindmagic(tp_int, __xor__, _py_int__xor__);
-    py_bindmagic(tp_int, __lshift__, _py_int__lshift__);
-    py_bindmagic(tp_int, __rshift__, _py_int__rshift__);
+    py_bindmagic(tp_int, __and__, int__and__);
+    py_bindmagic(tp_int, __or__, int__or__);
+    py_bindmagic(tp_int, __xor__, int__xor__);
+    py_bindmagic(tp_int, __lshift__, int__lshift__);
+    py_bindmagic(tp_int, __rshift__, int__rshift__);
 
     // int.bit_length
-    py_bindmethod(tp_int, "bit_length", _py_int__bit_length);
+    py_bindmethod(tp_int, "bit_length", int_bit_length);
 
     /* tp_bool */
-    py_bindmagic(tp_bool, __new__, _py_bool__new__);
-    py_bindmagic(tp_bool, __hash__, _py_bool__hash__);
-    py_bindmagic(tp_bool, __repr__, _py_bool__repr__);
-    py_bindmagic(tp_bool, __eq__, _py_bool__eq__);
-    py_bindmagic(tp_bool, __ne__, _py_bool__ne__);
+    py_bindmagic(tp_bool, __new__, bool__new__);
+    py_bindmagic(tp_bool, __hash__, bool__hash__);
+    py_bindmagic(tp_bool, __repr__, bool__repr__);
+    py_bindmagic(tp_bool, __eq__, bool__eq__);
+    py_bindmagic(tp_bool, __ne__, bool__ne__);
 }

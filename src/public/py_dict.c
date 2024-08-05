@@ -336,14 +336,14 @@ static bool dict__ne__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool dict__clear(int argc, py_Ref argv) {
+static bool dict_clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     Dict__clear(self);
     return true;
 }
 
-static bool dict__copy(int argc, py_Ref argv) {
+static bool dict_copy(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     Dict* new_dict = py_newobject(py_retval(), tp_dict, 0, sizeof(Dict));
@@ -356,7 +356,7 @@ static bool dict__copy(int argc, py_Ref argv) {
     return true;
 }
 
-static bool dict__update(int argc, py_Ref argv) {
+static bool dict_update(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_dict);
     Dict* self = py_touserdata(argv);
@@ -369,7 +369,7 @@ static bool dict__update(int argc, py_Ref argv) {
     return true;
 }
 
-static bool dict__get(int argc, py_Ref argv) {
+static bool dict_get(int argc, py_Ref argv) {
     Dict* self = py_touserdata(argv);
     if(argc > 3) return TypeError("get() takes at most 3 arguments (%d given)", argc);
     py_Ref default_val = argc == 3 ? py_arg(2) : py_None;
@@ -379,7 +379,7 @@ static bool dict__get(int argc, py_Ref argv) {
     return true;
 }
 
-static bool dict__pop(int argc, py_Ref argv) {
+static bool dict_pop(int argc, py_Ref argv) {
     Dict* self = py_touserdata(argv);
     if(argc < 2 || argc > 3) return TypeError("pop() takes 2 or 3 arguments (%d given)", argc);
     py_Ref default_val = argc == 3 ? py_arg(2) : py_None;
@@ -388,7 +388,7 @@ static bool dict__pop(int argc, py_Ref argv) {
     return true;
 }
 
-static bool dict__items(int argc, py_Ref argv) {
+static bool dict_items(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     DictIterator* ud = py_newobject(py_retval(), tp_dict_items, 1, sizeof(DictIterator));
@@ -397,7 +397,7 @@ static bool dict__items(int argc, py_Ref argv) {
     return true;
 }
 
-static bool dict__keys(int argc, py_Ref argv) {
+static bool dict_keys(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     py_newtuple(py_retval(), self->length);
@@ -413,7 +413,7 @@ static bool dict__keys(int argc, py_Ref argv) {
     return true;
 }
 
-static bool dict__values(int argc, py_Ref argv) {
+static bool dict_values(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     py_newtuple(py_retval(), self->length);
@@ -443,14 +443,14 @@ py_Type pk_dict__register() {
     py_bindmagic(type, __eq__, dict__eq__);
     py_bindmagic(type, __ne__, dict__ne__);
 
-    py_bindmethod(type, "clear", dict__clear);
-    py_bindmethod(type, "copy", dict__copy);
-    py_bindmethod(type, "update", dict__update);
-    py_bindmethod(type, "get", dict__get);
-    py_bindmethod(type, "pop", dict__pop);
-    py_bindmethod(type, "items", dict__items);
-    py_bindmethod(type, "keys", dict__keys);
-    py_bindmethod(type, "values", dict__values);
+    py_bindmethod(type, "clear", dict_clear);
+    py_bindmethod(type, "copy", dict_copy);
+    py_bindmethod(type, "update", dict_update);
+    py_bindmethod(type, "get", dict_get);
+    py_bindmethod(type, "pop", dict_pop);
+    py_bindmethod(type, "items", dict_items);
+    py_bindmethod(type, "keys", dict_keys);
+    py_bindmethod(type, "values", dict_values);
 
     py_setdict(py_tpobject(type), __hash__, py_None);
     return type;

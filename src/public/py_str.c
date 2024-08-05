@@ -212,7 +212,7 @@ DEF_STR_CMP_OP(__ge__, c11_sv__cmp, res >= 0)
 
 #undef DEF_STR_CMP_OP
 
-static bool str__lower(int argc, py_Ref argv) {
+static bool str_lower(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_string* self = py_touserdata(&argv[0]);
     int total_size = sizeof(c11_string) + self->size + 1;
@@ -227,7 +227,7 @@ static bool str__lower(int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__upper(int argc, py_Ref argv) {
+static bool str_upper(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_string* self = py_touserdata(&argv[0]);
     int total_size = sizeof(c11_string) + self->size + 1;
@@ -242,7 +242,7 @@ static bool str__upper(int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__startswith(int argc, py_Ref argv) {
+static bool str_startswith(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -251,7 +251,7 @@ static bool str__startswith(int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__endswith(int argc, py_Ref argv) {
+static bool str_endswith(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -260,7 +260,7 @@ static bool str__endswith(int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__join(int argc, py_Ref argv) {
+static bool str_join(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     py_Ref _1 = py_arg(1);
@@ -292,7 +292,7 @@ static bool str__join(int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__replace(int argc, py_Ref argv) {
+static bool str_replace(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -306,7 +306,7 @@ static bool str__replace(int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__split(int argc, py_Ref argv) {
+static bool str_split(int argc, py_Ref argv) {
     c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     c11_vector res;
     if(argc > 2) return TypeError("split() takes at most 2 arguments");
@@ -329,7 +329,7 @@ static bool str__split(int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__count(int argc, py_Ref argv) {
+static bool str_count(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = py_touserdata(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -355,19 +355,19 @@ static bool str__strip_impl(bool left, bool right, int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__strip(int argc, py_Ref argv) {
+static bool str_strip(int argc, py_Ref argv) {
     return str__strip_impl(true, true, argc, argv);
 }
 
-static bool str__lstrip(int argc, py_Ref argv) {
+static bool str_lstrip(int argc, py_Ref argv) {
     return str__strip_impl(true, false, argc, argv);
 }
 
-static bool str__rstrip(int argc, py_Ref argv) {
+static bool str_rstrip(int argc, py_Ref argv) {
     return str__strip_impl(false, true, argc, argv);
 }
 
-static bool str__zfill(int argc, py_Ref argv) {
+static bool str_zfill(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -423,15 +423,15 @@ static bool str__widthjust_impl(bool left, int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__ljust(int argc, py_Ref argv) {
+static bool str_ljust(int argc, py_Ref argv) {
     return str__widthjust_impl(true, argc, argv);
 }
 
-static bool str__rjust(int argc, py_Ref argv) {
+static bool str_rjust(int argc, py_Ref argv) {
     return str__widthjust_impl(false, argc, argv);
 }
 
-static bool str__find(int argc, py_Ref argv) {
+static bool str_find(int argc, py_Ref argv) {
     if(argc > 3) return TypeError("find() takes at most 3 arguments");
     int start = 0;
     if(argc == 3) {
@@ -446,8 +446,8 @@ static bool str__find(int argc, py_Ref argv) {
     return true;
 }
 
-static bool str__index(int argc, py_Ref argv) {
-    bool ok = str__find(argc, argv);
+static bool str_index(int argc, py_Ref argv) {
+    bool ok = str_find(argc, argv);
     if(!ok) return false;
     if(py_toint(py_retval()) == -1) return ValueError("substring not found");
     return true;
@@ -476,22 +476,22 @@ py_Type pk_str__register() {
     py_bindmagic(tp_str, __gt__, str__gt__);
     py_bindmagic(tp_str, __ge__, str__ge__);
 
-    py_bindmethod(tp_str, "lower", str__lower);
-    py_bindmethod(tp_str, "upper", str__upper);
-    py_bindmethod(tp_str, "startswith", str__startswith);
-    py_bindmethod(tp_str, "endswith", str__endswith);
-    py_bindmethod(tp_str, "join", str__join);
-    py_bindmethod(tp_str, "replace", str__replace);
-    py_bindmethod(tp_str, "split", str__split);
-    py_bindmethod(tp_str, "count", str__count);
-    py_bindmethod(tp_str, "strip", str__strip);
-    py_bindmethod(tp_str, "lstrip", str__lstrip);
-    py_bindmethod(tp_str, "rstrip", str__rstrip);
-    py_bindmethod(tp_str, "zfill", str__zfill);
-    py_bindmethod(tp_str, "ljust", str__ljust);
-    py_bindmethod(tp_str, "rjust", str__rjust);
-    py_bindmethod(tp_str, "find", str__find);
-    py_bindmethod(tp_str, "index", str__index);
+    py_bindmethod(tp_str, "lower", str_lower);
+    py_bindmethod(tp_str, "upper", str_upper);
+    py_bindmethod(tp_str, "startswith", str_startswith);
+    py_bindmethod(tp_str, "endswith", str_endswith);
+    py_bindmethod(tp_str, "join", str_join);
+    py_bindmethod(tp_str, "replace", str_replace);
+    py_bindmethod(tp_str, "split", str_split);
+    py_bindmethod(tp_str, "count", str_count);
+    py_bindmethod(tp_str, "strip", str_strip);
+    py_bindmethod(tp_str, "lstrip", str_lstrip);
+    py_bindmethod(tp_str, "rstrip", str_rstrip);
+    py_bindmethod(tp_str, "zfill", str_zfill);
+    py_bindmethod(tp_str, "ljust", str_ljust);
+    py_bindmethod(tp_str, "rjust", str_rjust);
+    py_bindmethod(tp_str, "find", str_find);
+    py_bindmethod(tp_str, "index", str_index);
     return type;
 }
 
