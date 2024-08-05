@@ -476,7 +476,10 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_push(py_retval());  // empty set
                 py_Name id_add = py_name("add");
                 for(int i = 0; i < byte.arg; i++) {
-                    if(!py_callmethod(TOP(), id_add, 1, begin + i)) goto __ERROR;
+                    py_push(TOP());
+                    py_pushmethod(id_add);
+                    py_push(begin + i);
+                    if(!py_vectorcall(1, 0)) goto __ERROR;
                 }
                 py_TValue tmp = *TOP();
                 SP() = begin;

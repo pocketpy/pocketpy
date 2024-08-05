@@ -339,11 +339,6 @@ bool py_isidentical(py_Ref, py_Ref);
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE;
-/// Call a non-magic method.
-/// It prepares the stack and then performs a `vectorcall(argc+1, 0, false)`.
-/// The result will be set to `py_retval()`.
-/// The stack remains unchanged after the operation.
-bool py_callmethod(py_Ref self, py_Name name, int argc, py_Ref argv) PY_RAISE;
 
 bool py_str(py_Ref val) PY_RAISE;
 bool py_repr(py_Ref val) PY_RAISE;
