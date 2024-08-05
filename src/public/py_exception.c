@@ -52,8 +52,10 @@ static void BaseException__dtor(void* ud) {
 
 static bool _py_BaseException__new__(int argc, py_Ref argv) {
     py_Type cls = py_totype(argv);
-    BaseException* ud = py_newobject(py_retval(), cls, 1, sizeof(BaseException));
+    BaseException* ud = py_newobject(py_retval(), cls, 2, sizeof(BaseException));
     c11_vector__ctor(&ud->stacktrace, sizeof(BaseExceptionFrame));
+    py_setslot(py_retval(), 0, py_NIL);
+    py_setslot(py_retval(), 1, py_NIL);
     ud->lineno_backup = -1;
     ud->code_backup = NULL;
     return true;
@@ -138,34 +140,45 @@ void py_printexc() {
     free(msg);
 }
 
+static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc){
+    if(true) { c11_sbuf__write_cstr(self, "Traceback (most recent call last):\n"); }
+
+    BaseException* ud = py_touserdata(exc);
+
+    for(int i = ud->stacktrace.count - 1; i >= 0; i--) {
+        BaseExceptionFrame* frame = c11__at(BaseExceptionFrame, &ud->stacktrace, i);
+        SourceData__snapshot(frame->src,
+                             self,
+                             frame->lineno,
+                             NULL,
+                             frame->name ? frame->name->data : NULL);
+        c11_sbuf__write_char(self, '\n');
+    }
+
+    const char* name = py_tpname(exc->type);
+    bool ok = py_str(exc);
+    if(!ok) c11__abort("py_printexc(): failed to convert exception to string");
+    const char* message = py_tostr(py_retval());
+
+    c11_sbuf__write_cstr(self, name);
+    c11_sbuf__write_cstr(self, ": ");
+    c11_sbuf__write_cstr(self, message);
+}
+
 char* py_formatexc() {
     VM* vm = pk_current_vm;
     if(py_isnil(&vm->curr_exception)) return NULL;
     c11_sbuf ss;
     c11_sbuf__ctor(&ss);
 
-    if(true) { c11_sbuf__write_cstr(&ss, "Traceback (most recent call last):\n"); }
-
-    BaseException* ud = py_touserdata(&vm->curr_exception);
-
-    for(int i = ud->stacktrace.count - 1; i >= 0; i--) {
-        BaseExceptionFrame* frame = c11__at(BaseExceptionFrame, &ud->stacktrace, i);
-        SourceData__snapshot(frame->src,
-                             &ss,
-                             frame->lineno,
-                             NULL,
-                             frame->name ? frame->name->data : NULL);
-        c11_sbuf__write_char(&ss, '\n');
+    py_Ref inner = py_getslot(&vm->curr_exception, 1);
+    if(py_isnil(inner)) {
+        c11_sbuf__write_exc(&ss, &vm->curr_exception);
+    } else {
+        c11_sbuf__write_exc(&ss, inner);
+        c11_sbuf__write_cstr(&ss, "\n\nDuring handling of the above exception, another exception occurred:\n\n");
+        c11_sbuf__write_exc(&ss, &vm->curr_exception);
     }
-
-    const char* name = py_tpname(vm->curr_exception.type);
-    bool ok = py_str(&vm->curr_exception);
-    if(!ok) c11__abort("py_printexc(): failed to convert exception to string");
-    const char* message = py_tostr(py_retval());
-
-    c11_sbuf__write_cstr(&ss, name);
-    c11_sbuf__write_cstr(&ss, ": ");
-    c11_sbuf__write_cstr(&ss, message);
 
     c11_string* res = c11_sbuf__submit(&ss);
     char* dup = malloc(res->size + 1);
@@ -196,6 +209,10 @@ bool py_exception(py_Type type, const char* fmt, ...) {
 bool py_raise(py_Ref exc) {
     assert(py_isinstance(exc, tp_BaseException));
     VM* vm = pk_current_vm;
+    if(!py_isnil(&vm->curr_exception)){
+        // inner exception
+        py_setslot(exc, 1, &vm->curr_exception);
+    }
     vm->curr_exception = *exc;
     return false;
 }

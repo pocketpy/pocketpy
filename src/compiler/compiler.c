@@ -2544,9 +2544,9 @@ static Error* compile_try_except(Compiler* self) {
             Ctx__emit_(ctx(), OP_PUSH_EXCEPTION, BC_NOARG, BC_KEEPLINE);
             Ctx__emit_store_name(ctx(), name_scope(self), as_name, BC_KEEPLINE);
         }
+        check(compile_block_body(self, compile_stmt));
         // pop the exception
         Ctx__emit_(ctx(), OP_POP_EXCEPTION, BC_NOARG, BC_KEEPLINE);
-        check(compile_block_body(self, compile_stmt));
         patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
         Ctx__patch_jump(ctx(), patch);
     } while(curr()->type == TK_EXCEPT);
