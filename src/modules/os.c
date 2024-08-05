@@ -31,13 +31,13 @@ static bool os_chdir(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_str);
     const char* path = py_tostr(py_arg(0));
     int code = platform_chdir(path);
-    if(code != 0) return OSError("chdir() failed: %d", code);
+    if(code != 0) return py_exception(tp_OSError, "chdir() failed: %d", code);
     return true;
 }
 
 static bool os_getcwd(int argc, py_Ref argv) {
     char buf[1024];
-    if(!platform_getcwd(buf, sizeof(buf))) return OSError("getcwd() failed");
+    if(!platform_getcwd(buf, sizeof(buf))) return py_exception(tp_OSError, "getcwd() failed");
     py_newstr(py_retval(), buf);
     return true;
 }

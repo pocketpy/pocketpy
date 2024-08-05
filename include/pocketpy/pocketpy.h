@@ -295,8 +295,6 @@ bool py_matchexc(py_Type type);
 /// Clear the current exception.
 void py_clearexc(py_StackRef p0);
 
-#define IOError(...) py_exception(tp_IOError, __VA_ARGS__)
-#define OSError(...) py_exception(tp_OSError, __VA_ARGS__)
 #define NameError(n) py_exception(tp_NameError, "name '%n' is not defined", (n))
 #define TypeError(...) py_exception(tp_TypeError, __VA_ARGS__)
 #define RuntimeError(...) py_exception(tp_RuntimeError, __VA_ARGS__)
