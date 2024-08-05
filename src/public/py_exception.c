@@ -115,6 +115,12 @@ bool py_checkexc() {
     return !py_isnil(&vm->curr_exception);
 }
 
+bool py_matchexc(py_Type type) {
+    VM* vm = pk_current_vm;
+    if(py_isnil(&vm->curr_exception)) return false;
+    return py_issubclass(vm->curr_exception.type, type);
+}
+
 void py_clearexc(py_StackRef p0) {
     VM* vm = pk_current_vm;
     vm->last_retval = *py_NIL;
@@ -145,10 +151,10 @@ char* py_formatexc() {
     for(int i = ud->stacktrace.count - 1; i >= 0; i--) {
         BaseExceptionFrame* frame = c11__at(BaseExceptionFrame, &ud->stacktrace, i);
         SourceData__snapshot(frame->src,
-                                &ss,
-                                frame->lineno,
-                                NULL,
-                                frame->name ? frame->name->data : NULL);
+                             &ss,
+                             frame->lineno,
+                             NULL,
+                             frame->name ? frame->name->data : NULL);
         c11_sbuf__write_char(&ss, '\n');
     }
 
@@ -169,7 +175,7 @@ char* py_formatexc() {
     return dup;
 }
 
-bool py_exception(const char* name, const char* fmt, ...) {
+bool py_exception(py_Type type, const char* fmt, ...) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     va_list args;
@@ -180,9 +186,7 @@ bool py_exception(const char* name, const char* fmt, ...) {
     py_Ref message = py_pushtmp();
     c11_sbuf__py_submit(&buf, message);
 
-    py_Ref exc_type = py_getdict(&pk_current_vm->builtins, py_name(name));
-    if(exc_type == NULL) c11__abort("py_exception(): '%s' not found", name);
-    bool ok = py_call(exc_type, 1, message);
+    bool ok = py_tpcall(type, 1, message);
     if(!ok) c11__abort("py_exception(): failed to create exception object");
     py_pop();
 
@@ -197,8 +201,7 @@ bool py_raise(py_Ref exc) {
 }
 
 bool KeyError(py_Ref key) {
-    py_Ref cls = py_getdict(&pk_current_vm->builtins, py_name("KeyError"));
-    bool ok = py_call(cls, 1, key);
+    bool ok = py_tpcall(tp_KeyError, 1, key);
     if(!ok) return false;
     return py_raise(py_retval());
 }

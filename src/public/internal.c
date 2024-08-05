@@ -83,7 +83,7 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
     SourceData_ src = SourceData__rcnew(source, filename, mode, false);
     Error* err = pk_compile(src, &co);
     if(err) {
-        py_exception("SyntaxError", err->msg);
+        py_exception(tp_SyntaxError, err->msg);
         py_BaseException__stpush(&vm->curr_exception, src, err->lineno, NULL);
 
         PK_DECREF(src);

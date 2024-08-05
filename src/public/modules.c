@@ -218,7 +218,7 @@ static bool builtins__next(int argc, py_Ref argv) {
     int res = py_next(argv);
     if(res == -1) return false;
     if(res) return true;
-    return py_exception("StopIteration", "");
+    return py_exception(tp_StopIteration, "");
 }
 
 static bool builtins__sorted(int argc, py_Ref argv) {
@@ -355,6 +355,25 @@ static bool builtins__issubclass(int argc, py_Ref argv) {
     return true;
 }
 
+static bool builtins__getattr(int argc, py_Ref argv) {
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    py_Name name = py_namev(py_tosv(py_arg(1)));
+    if(argc == 2) {
+        return py_getattr(py_arg(0), name);
+    } else if(argc == 3) {
+        py_StackRef p0 = py_peek(0);
+        bool ok = py_getattr(py_arg(0), name);
+        if(!ok && py_matchexc(tp_AttributeError)) {
+            py_clearexc(p0);
+            return py_arg(2);  // default value
+        }
+        return ok;
+    } else {
+        return TypeError("getattr() expected 2 or 3 arguments");
+    }
+    return true;
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins");
     py_bindfunc(builtins, "repr", builtins__repr);
@@ -376,6 +395,8 @@ py_TValue pk_builtins__register() {
 
     py_bindfunc(builtins, "isinstance", builtins__isinstance);
     py_bindfunc(builtins, "issubclass", builtins__issubclass);
+
+    py_bindfunc(builtins, "getattr", builtins__getattr);
 
     // None __repr__
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);

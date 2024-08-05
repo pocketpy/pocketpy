@@ -129,9 +129,35 @@ void VM__ctor(VM* self) {
 
     validate(tp_SyntaxError, pk_newtype("SyntaxError", tp_Exception, NULL, NULL, false, true));
     validate(tp_StopIteration, pk_newtype("StopIteration", tp_Exception, NULL, NULL, false, true));
-#undef validate
 
     self->builtins = pk_builtins__register();
+
+    // inject some builtin expections
+#define INJECT_BUILTIN_EXC(name)                                                                   \
+    do {                                                                                           \
+        py_Type type = pk_newtype(#name, tp_Exception, &self->builtins, NULL, false, true);         \
+        py_setdict(&self->builtins, py_name(#name), py_tpobject(type));                             \
+        validate(tp_##name, type);                                                                 \
+    } while(0)
+
+    INJECT_BUILTIN_EXC(StackOverflowError);
+    INJECT_BUILTIN_EXC(IOError);
+    INJECT_BUILTIN_EXC(OSError);
+    INJECT_BUILTIN_EXC(NotImplementedError);
+    INJECT_BUILTIN_EXC(TypeError);
+    INJECT_BUILTIN_EXC(IndexError);
+    INJECT_BUILTIN_EXC(ValueError);
+    INJECT_BUILTIN_EXC(RuntimeError);
+    INJECT_BUILTIN_EXC(ZeroDivisionError);
+    INJECT_BUILTIN_EXC(NameError);
+    INJECT_BUILTIN_EXC(UnboundLocalError);
+    INJECT_BUILTIN_EXC(AttributeError);
+    INJECT_BUILTIN_EXC(ImportError);
+    INJECT_BUILTIN_EXC(AssertionError);
+    INJECT_BUILTIN_EXC(KeyError);
+
+#undef INJECT_BUILTIN_EXC
+#undef validate
 
     /* Setup Public Builtin Types */
     py_Type public_types[] = {tp_object,        tp_type,         tp_int,           tp_float,
@@ -146,35 +172,7 @@ void VM__ctor(VM* self) {
         py_setdict(&self->builtins, ti->name, py_tpobject(t));
     }
 
-    // inject some builtin expections
-    const char** builtin_exceptions = (const char*[]){
-        "StackOverflowError",
-        "IOError",
-        "OSError",
-        "NotImplementedError",
-        "TypeError",
-        "IndexError",
-        "ValueError",
-        "RuntimeError",
-        "ZeroDivisionError",
-        "NameError",
-        "UnboundLocalError",
-        "AttributeError",
-        "ImportError",
-        "AssertionError",
-        "KeyError",
-        NULL,  // sentinel
-    };
-    const char** it = builtin_exceptions;
-    while(*it) {
-        py_Type type = pk_newtype(*it, tp_Exception, &self->builtins, NULL, false, true);
-        py_setdict(&self->builtins, py_name(*it), py_tpobject(type));
-        it++;
-    }
-
-    py_TValue tmp;
-    py_newnotimplemented(&tmp);
-    py_setdict(&self->builtins, py_name("NotImplemented"), &tmp);
+    py_newnotimplemented(py_emplacedict(&self->builtins, py_name("NotImplemented")));
 
     // add modules
     pk__add_module_pkpy();
@@ -387,7 +385,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         /*****************_py_call*****************/
         // check stack overflow
         if(self->stack.sp > self->stack.end) {
-            py_exception("StackOverflowError", "");
+            py_exception(tp_StackOverflowError, "");
             return RES_ERROR;
         }
 

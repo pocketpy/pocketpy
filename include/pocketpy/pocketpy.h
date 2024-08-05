@@ -281,7 +281,7 @@ int py_import(const char* path) PY_RAISE;
 
 /************* Errors *************/
 /// Raise an exception by name and message. Always returns false.
-bool py_exception(const char* name, const char* fmt, ...) PY_RAISE;
+bool py_exception(py_Type type, const char* fmt, ...) PY_RAISE;
 /// Raise an expection object. Always returns false.
 bool py_raise(py_Ref) PY_RAISE;
 /// Print the current exception.
@@ -290,22 +290,24 @@ void py_printexc();
 char* py_formatexc();
 /// Check if an exception is raised.
 bool py_checkexc();
+/// Check if the exception is an instance of the given type.
+bool py_matchexc(py_Type type);
 /// Clear the current exception.
 void py_clearexc(py_StackRef p0);
 
-#define IOError(...) py_exception("IOError", __VA_ARGS__)
-#define OSError(...) py_exception("OSError", __VA_ARGS__)
-#define NameError(n) py_exception("NameError", "name '%n' is not defined", (n))
-#define TypeError(...) py_exception("TypeError", __VA_ARGS__)
-#define RuntimeError(...) py_exception("RuntimeError", __VA_ARGS__)
-#define ValueError(...) py_exception("ValueError", __VA_ARGS__)
-#define IndexError(...) py_exception("IndexError", __VA_ARGS__)
-#define ImportError(...) py_exception("ImportError", __VA_ARGS__)
-#define NotImplementedError() py_exception("NotImplementedError", "")
+#define IOError(...) py_exception(tp_IOError, __VA_ARGS__)
+#define OSError(...) py_exception(tp_OSError, __VA_ARGS__)
+#define NameError(n) py_exception(tp_NameError, "name '%n' is not defined", (n))
+#define TypeError(...) py_exception(tp_TypeError, __VA_ARGS__)
+#define RuntimeError(...) py_exception(tp_RuntimeError, __VA_ARGS__)
+#define ValueError(...) py_exception(tp_ValueError, __VA_ARGS__)
+#define IndexError(...) py_exception(tp_IndexError, __VA_ARGS__)
+#define ImportError(...) py_exception(tp_ImportError, __VA_ARGS__)
+#define NotImplementedError() py_exception(tp_NotImplementedError, "")
 #define AttributeError(self, n)                                                                    \
-    py_exception("AttributeError", "'%t' object has no attribute '%n'", (self)->type, (n))
+    py_exception(tp_AttributeError, "'%t' object has no attribute '%n'", (self)->type, (n))
 #define UnboundLocalError(n)                                                                       \
-    py_exception("UnboundLocalError", "local variable '%n' referenced before assignment", (n))
+    py_exception(tp_UnboundLocalError, "local variable '%n' referenced before assignment", (n))
 
 bool StopIteration();
 bool KeyError(py_Ref key) PY_RAISE;
@@ -429,6 +431,22 @@ enum py_PredefinedTypes {
     tp_ellipsis,
     tp_SyntaxError,
     tp_StopIteration,
+    /* builtin exceptions */
+    tp_StackOverflowError,
+    tp_IOError,
+    tp_OSError,
+    tp_NotImplementedError,
+    tp_TypeError,
+    tp_IndexError,
+    tp_ValueError,
+    tp_RuntimeError,
+    tp_ZeroDivisionError,
+    tp_NameError,
+    tp_UnboundLocalError,
+    tp_AttributeError,
+    tp_ImportError,
+    tp_AssertionError,
+    tp_KeyError,
 };
 
 #ifdef __cplusplus

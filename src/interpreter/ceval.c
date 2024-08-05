@@ -909,9 +909,9 @@ FrameResult VM__run_top_frame(VM* self) {
                 if(byte.arg) {
                     if(!py_str(TOP())) goto __ERROR;
                     POP();
-                    py_exception("AssertionError", "%s", py_tostr(py_retval()));
+                    py_exception(tp_AssertionError, "%s", py_tostr(py_retval()));
                 } else {
-                    py_exception("AssertionError", "");
+                    py_exception(tp_AssertionError, "");
                 }
                 goto __ERROR;
             }
@@ -1010,7 +1010,7 @@ bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
         py_newbool(py_retval(), res);
         return true;
     }
-    return py_exception("TypeError", "unsupported operand type(s) for '%n'", op);
+    return TypeError("unsupported operand type(s) for '%n'", op);
 }
 
 bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
