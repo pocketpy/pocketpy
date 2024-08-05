@@ -5,14 +5,14 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 
-#if _WIN32
+#if PY_SYS_PLATFORM == 0
 #include <direct.h>
 
 int platform_chdir(const char* path) { return _chdir(path); }
 
 bool platform_getcwd(char* buf, size_t size) { return _getcwd(buf, size) != NULL; }
 
-#elif __linux__
+#elif PY_SYS_PLATFORM == 3 || PY_SYS_PLATFORM == 5
 #include <unistd.h>
 
 int platform_chdir(const char* path) { return chdir(path); }
