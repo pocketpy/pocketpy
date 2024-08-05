@@ -58,6 +58,12 @@ void py_setslot(py_Ref self, int i, py_Ref val) {
     PyObject__slots(self->_obj)[i] = *val;
 }
 
+py_StackRef py_inspect_currentfunction(){
+    Frame* frame = pk_current_vm->top_frame;
+    if(!frame) return NULL;
+    return frame->function;
+}
+
 void py_assign(py_Ref dst, py_Ref src) { *dst = *src; }
 
 /* Stack References */

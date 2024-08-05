@@ -491,8 +491,7 @@ static bool super__new__(int argc, py_Ref argv) {
     if(argc == 1) {
         // super()
         if(frame->function) {
-            // class_arg = PK_OBJ_GET(Function, frame->_callable)._class;
-            Function* func = PyObject__userdata(frame->function);
+            Function* func = py_touserdata(frame->function);
             *class_arg = *(py_Type*)PyObject__userdata(func->clazz);
             if(frame->locals_co->nlocals > 0) self_arg = &frame->locals[0];
         }

@@ -246,6 +246,12 @@ py_ObjectRef py_getslot(py_Ref self, int i);
 /// Set the i-th slot of the object.
 void py_setslot(py_Ref self, int i, py_Ref val);
 
+/************* Inspection *************/
+
+/// Get the current `function` object from the stack.
+/// Return `NULL` if not available.
+py_StackRef py_inspect_currentfunction();
+
 /************* Bindings *************/
 
 /// Bind a function to the object via "decl-based" style.

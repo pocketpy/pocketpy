@@ -36,9 +36,9 @@ void UnwindTarget__delete(UnwindTarget* self) { free(self); }
 
 Frame* Frame__new(const CodeObject* co,
                   py_TValue* module,
-                  const py_TValue* function,
-                  py_TValue* p0,
-                  py_TValue* locals,
+                  py_StackRef function,
+                  py_StackRef p0,
+                  py_StackRef locals,
                   const CodeObject* locals_co) {
     static_assert(sizeof(Frame) <= kPoolFrameBlockSize, "!(sizeof(Frame) <= kPoolFrameBlockSize)");
     Frame* self = PoolFrame_alloc();
@@ -46,7 +46,7 @@ Frame* Frame__new(const CodeObject* co,
     self->ip = (Bytecode*)co->codes.data - 1;
     self->co = co;
     self->module = *module;
-    self->function = function ? function->_obj : NULL;
+    self->function = function;
     self->p0 = p0;
     self->locals = locals;
     self->locals_co = locals_co;
@@ -133,7 +133,23 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
 
 py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name) {
     if(self->function == NULL) return NULL;
-    Function* ud = PyObject__userdata(self->function);
+    Function* ud = py_touserdata(self->function);
     if(ud->closure == NULL) return NULL;
     return NameDict__try_get(ud->closure, name);
+}
+
+int Frame__ip(const Frame* self) { return self->ip - (Bytecode*)self->co->codes.data; }
+
+int Frame__lineno(const Frame* self) {
+    int ip = Frame__ip(self);
+    return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).lineno;
+}
+
+int Frame__iblock(const Frame* self) {
+    int ip = Frame__ip(self);
+    return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).iblock;
+}
+
+py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name) {
+    return FastLocals__try_get_by_name(self->locals, self->locals_co, name);
 }

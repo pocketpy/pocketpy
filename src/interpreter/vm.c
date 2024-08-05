@@ -559,7 +559,6 @@ void ManagedHeap__mark(ManagedHeap* self) {
     // mark frame
     for(Frame* frame = vm->top_frame; frame; frame = frame->f_back) {
         mark_value(&frame->module);
-        if(frame->function) mark_object(frame->function);
     }
     // mark vm's registers
     mark_value(&vm->last_retval);

@@ -38,38 +38,26 @@ typedef struct Frame {
     struct Frame* f_back;
     const Bytecode* ip;
     const CodeObject* co;
-    py_TValue module;    // weak ref
-    PyObject* function;  // a function object or NULL (global scope)
-    py_TValue* p0;       // unwinding base
-    py_TValue* locals;   // locals base
+    py_TValue module;      // weak ref
+    py_StackRef function;  // a function object or NULL (global scope)
+    py_StackRef p0;        // unwinding base
+    py_StackRef locals;    // locals base
     const CodeObject* locals_co;
     UnwindTarget* uw_list;
 } Frame;
 
 Frame* Frame__new(const CodeObject* co,
                   py_TValue* module,
-                  const py_TValue* function,
-                  py_TValue* p0,
-                  py_TValue* locals,
+                  py_StackRef function,
+                  py_StackRef p0,
+                  py_StackRef locals,
                   const CodeObject* locals_co);
 void Frame__delete(Frame* self);
 
-PK_INLINE int Frame__ip(const Frame* self) { return self->ip - (Bytecode*)self->co->codes.data; }
-
-PK_INLINE int Frame__lineno(const Frame* self) {
-    int ip = Frame__ip(self);
-    return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).lineno;
-}
-
-PK_INLINE int Frame__iblock(const Frame* self) {
-    int ip = Frame__ip(self);
-    return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).iblock;
-}
-
-PK_INLINE py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name) {
-    return FastLocals__try_get_by_name(self->locals, self->locals_co, name);
-}
-
+int Frame__ip(const Frame* self);
+int Frame__lineno(const Frame* self);
+int Frame__iblock(const Frame* self);
+py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name);
 py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name);
 
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack*);
