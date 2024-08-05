@@ -136,7 +136,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 Function* ud = py_newobject(SP(), tp_function, 0, sizeof(Function));
                 Function__ctor(ud, decl, &frame->module);
                 if(decl->nested) {
-                    ud->closure = FastLocals__to_namedict(frame->locals, frame->locals_co);
+                    ud->closure = FastLocals__to_namedict(frame->locals, frame->co);
                     py_Name name = py_name(decl->code.name->data);
                     // capture itself to allow recursion
                     NameDict__set(ud->closure, name, *SP());

@@ -409,7 +409,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 // submit the call
                 if(!fn->cfunc) {
-                    VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv, co));
+                    VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     bool ok = fn->cfunc(co->nlocals, argv);
@@ -433,7 +433,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // initialize local variables to py_NIL
                 memset(p1, 0, (char*)self->stack.sp - (char*)p1);
                 // submit the call
-                VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv, co));
+                VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv));
                 return opcall ? RES_CALL : VM__run_top_frame(self);
             case FuncType_GENERATOR:
                 assert(false);

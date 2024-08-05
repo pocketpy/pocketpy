@@ -317,13 +317,15 @@ static bool NoneType__repr__(int argc, py_Ref argv) {
 static bool builtins_exec(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
-    return py_exec(py_tostr(argv), "<exec>", EXEC_MODE, NULL);
+    Frame* frame = pk_current_vm->top_frame;
+    return py_exec(py_tostr(argv), "<exec>", EXEC_MODE, &frame->module);
 }
 
 static bool builtins_eval(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
-    return py_exec(py_tostr(argv), "<eval>", EVAL_MODE, NULL);
+    Frame* frame = pk_current_vm->top_frame;
+    return py_exec(py_tostr(argv), "<eval>", EVAL_MODE, &frame->module);
 }
 
 static bool builtins_isinstance(int argc, py_Ref argv) {
@@ -493,7 +495,7 @@ static bool super__new__(int argc, py_Ref argv) {
         if(frame->function) {
             Function* func = py_touserdata(frame->function);
             *class_arg = *(py_Type*)PyObject__userdata(func->clazz);
-            if(frame->locals_co->nlocals > 0) self_arg = &frame->locals[0];
+            if(frame->co->nlocals > 0) self_arg = &frame->locals[0];
         }
         if(class_arg == 0 || self_arg == NULL) return RuntimeError("super(): no arguments");
     } else if(argc == 3) {

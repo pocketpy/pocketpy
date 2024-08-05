@@ -38,8 +38,7 @@ Frame* Frame__new(const CodeObject* co,
                   py_TValue* module,
                   py_StackRef function,
                   py_StackRef p0,
-                  py_StackRef locals,
-                  const CodeObject* locals_co) {
+                  py_StackRef locals) {
     static_assert(sizeof(Frame) <= kPoolFrameBlockSize, "!(sizeof(Frame) <= kPoolFrameBlockSize)");
     Frame* self = PoolFrame_alloc();
     self->f_back = NULL;
@@ -49,7 +48,6 @@ Frame* Frame__new(const CodeObject* co,
     self->function = function;
     self->p0 = p0;
     self->locals = locals;
-    self->locals_co = locals_co;
     self->uw_list = NULL;
     return self;
 }
@@ -151,5 +149,5 @@ int Frame__iblock(const Frame* self) {
 }
 
 py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name) {
-    return FastLocals__try_get_by_name(self->locals, self->locals_co, name);
+    return FastLocals__try_get_by_name(self->locals, self->co, name);
 }

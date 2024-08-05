@@ -42,7 +42,6 @@ typedef struct Frame {
     py_StackRef function;  // a function object or NULL (global scope)
     py_StackRef p0;        // unwinding base
     py_StackRef locals;    // locals base
-    const CodeObject* locals_co;
     UnwindTarget* uw_list;
 } Frame;
 
@@ -50,8 +49,7 @@ Frame* Frame__new(const CodeObject* co,
                   py_TValue* module,
                   py_StackRef function,
                   py_StackRef p0,
-                  py_StackRef locals,
-                  const CodeObject* locals_co);
+                  py_StackRef locals);
 void Frame__delete(Frame* self);
 
 int Frame__ip(const Frame* self);
