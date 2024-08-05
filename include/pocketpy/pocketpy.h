@@ -353,6 +353,7 @@ py_TmpRef py_getmodule(const char* path);
 int py_import(const char* path) PY_RAISE;
 
 /************* Errors *************/
+
 /// Raise an exception by type and message. Always return false.
 bool py_exception(py_Type type, const char* fmt, ...) PY_RAISE;
 /// Raise an expection object. Always return false.
