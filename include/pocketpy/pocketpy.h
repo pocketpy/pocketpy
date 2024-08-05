@@ -155,7 +155,7 @@ py_i64 py_toint(py_Ref);
 py_f64 py_tofloat(py_Ref);
 /// Cast a `int` or `float` object in python to `double`.
 /// If successful, returns true and set the value to `out`.
-/// Otherwise, return false and raises a `TypeError`.
+/// Otherwise, return false and raise `TypeError`.
 bool py_castfloat(py_Ref, py_f64* out) PY_RAISE;
 /// Convert a `bool` object in python to `bool`.
 bool py_tobool(py_Ref);
@@ -248,9 +248,26 @@ void py_setslot(py_Ref self, int i, py_Ref val);
 
 /************* Bindings *************/
 
+/// Bind a function to the object via "decl-based" style.
+/// @param obj the target object.
+/// @param sig signature of the function. e.g. `add(x, y)`.
+/// @param f function to bind.
 void py_bind(py_Ref obj, const char* sig, py_CFunction f);
+/// Bind a method to type via "argc-based" style.
+/// @param type the target type.
+/// @param name name of the method.
+/// @param f function to bind.
 void py_bindmethod(py_Type type, const char* name, py_CFunction f);
+/// Bind a function to the object via "argc-based" style.
+/// @param obj the target object.
+/// @param name name of the function.
+/// @param f function to bind.
 void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
+/// Bind a property to type.
+/// @param type the target type.
+/// @param name name of the property.
+/// @param getter getter function.
+/// @param setter setter function. Use `NULL` if not needed.
 void py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFunction setter);
 
 #define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
@@ -278,8 +295,8 @@ bool py_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
 bool py_delitem(py_Ref self, py_Ref key) PY_RAISE;
 
 /// Perform a binary operation on the stack.
-/// It assumes `lhs` and `rhs` are already pushed to the stack.
 /// The result will be set to `py_retval()`.
+/// The stack remains unchanged after the operation.
 bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) PY_RAISE;
 
 #define py_binaryadd(lhs, rhs) py_binaryop(lhs, rhs, __add__, __radd__)
@@ -298,6 +315,7 @@ bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) PY_RAISE;
 #define py_binarymatmul(lhs, rhs) py_binaryop(lhs, rhs, __matmul__, 0)
 
 /************* Stack Operations *************/
+
 /// Get the i-th object from the top of the stack.
 /// `i` should be negative, e.g. (-1) means TOS.
 py_StackRef py_peek(int i);
@@ -341,7 +359,8 @@ bool py_exception(py_Type type, const char* fmt, ...) PY_RAISE;
 bool py_raise(py_Ref) PY_RAISE;
 /// Print the current exception.
 void py_printexc();
-/// Format the current exception.
+/// Format the current exception and return a null-terminated string.
+/// The result should be freed by the caller.
 char* py_formatexc();
 /// Check if an exception is raised.
 bool py_checkexc();
