@@ -180,6 +180,7 @@ void VM__ctor(VM* self) {
     pk__add_module_pkpy();
     pk__add_module_os();
     pk__add_module_math();
+    pk__add_module_dis();
 
     self->main = *py_newmodule("__main__");
 }

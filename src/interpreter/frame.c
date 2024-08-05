@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/frame.h"
+#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/object.h"
 
 void ValueStack__ctor(ValueStack* self) {
@@ -131,9 +132,8 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
 }
 
 py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name) {
-    // if(self->function == NULL) return NULL;
-    // pkpy::Function* fn = PyObject__as(pkpy::Function, self->function);
-    // if(fn->_closure == nullptr) return nullptr;
-    // return NameDict__try_get(fn->_closure, name);
-    return NULL;
+    if(self->function == NULL) return NULL;
+    Function* ud = PyObject__userdata(self->function);
+    if(ud->closure == NULL) return NULL;
+    return NameDict__try_get(ud->closure, name);
 }
