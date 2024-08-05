@@ -382,9 +382,35 @@ py_TValue pk_builtins__register() {
     return *builtins;
 }
 
+static bool function__closure__getter(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Function* ud = py_touserdata(argv);
+    if(!ud->closure) {
+        py_newnone(py_retval());
+        return true;
+    }
+    py_Ref r0 = py_pushtmp();
+    py_Ref retval = py_pushtmp();
+    py_newdict(retval);
+    c11__foreach(NameDict_KV, ud->closure, it) {
+        // printf("%s -> %s\n", py_name2str(it->key), py_tpname(it->value.type));
+        py_newstr(r0, py_name2str(it->key));
+        py_dict__setitem(retval, r0, &it->value);
+        if(py_checkexc()) {
+            py_shrink(2);
+            return false;
+        }
+    }
+    py_assign(py_retval(), retval);
+    py_shrink(2);
+    return true;
+}
+
 py_Type pk_function__register() {
     py_Type type =
         pk_newtype("function", tp_object, NULL, (void (*)(void*))Function__dtor, false, true);
+
+    py_bindproperty(type, "__closure__", function__closure__getter, NULL);
     return type;
 }
 
