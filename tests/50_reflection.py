@@ -13,7 +13,11 @@ assert getattr(1, '__add__')(2) == 3
 a = object()
 setattr(a, 'b', 1)
 assert a.b == 1
+assert hasattr(a, 'b')
 assert getattr(a, 'b') == 1
+assert getattr(a, 'c', ...) == ...
+delattr(a, 'b')
+assert not hasattr(a, 'b')
 
 try:
     getattr(a, 'xxx')

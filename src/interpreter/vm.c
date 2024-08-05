@@ -167,9 +167,8 @@ void VM__ctor(VM* self) {
                               tp_BaseException, tp_Exception,    tp_StopIteration, tp_SyntaxError};
 
     for(int i = 0; i < c11__count_array(public_types); i++) {
-        py_Type t = public_types[i];
-        py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, t);
-        py_setdict(&self->builtins, ti->name, py_tpobject(t));
+        py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, public_types[i]);
+        py_setdict(&self->builtins, ti->name, &ti->self);
     }
 
     py_newnotimplemented(py_emplacedict(&self->builtins, py_name("NotImplemented")));

@@ -64,7 +64,11 @@ static bool type__base__getter(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Type type = py_totype(argv);
     py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
-    py_assign(py_retval(), py_tpobject(ti->base));
+    if(ti->base){
+        py_assign(py_retval(), py_tpobject(ti->base));
+    }else{
+        py_newnone(py_retval());
+    }
     return true;
 }
 
