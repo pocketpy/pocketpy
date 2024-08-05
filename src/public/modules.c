@@ -386,12 +386,14 @@ static bool builtins_hasattr(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
     py_Name name = py_namev(py_tosv(py_arg(1)));
+    py_StackRef p0 = py_peek(0);
     bool ok = py_getattr(py_arg(0), name);
     if(ok) {
         py_newbool(py_retval(), true);
         return true;
     }
     if(py_matchexc(tp_AttributeError)) {
+        py_clearexc(p0);
         py_newbool(py_retval(), false);
         return true;
     }
