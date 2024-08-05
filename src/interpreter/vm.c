@@ -135,8 +135,8 @@ void VM__ctor(VM* self) {
     // inject some builtin expections
 #define INJECT_BUILTIN_EXC(name)                                                                   \
     do {                                                                                           \
-        py_Type type = pk_newtype(#name, tp_Exception, &self->builtins, NULL, false, true);         \
-        py_setdict(&self->builtins, py_name(#name), py_tpobject(type));                             \
+        py_Type type = pk_newtype(#name, tp_Exception, &self->builtins, NULL, false, true);        \
+        py_setdict(&self->builtins, py_name(#name), py_tpobject(type));                            \
         validate(tp_##name, type);                                                                 \
     } while(0)
 
@@ -178,6 +178,15 @@ void VM__ctor(VM* self) {
     pk__add_module_os();
     pk__add_module_math();
     pk__add_module_dis();
+
+    // add python builtins
+    do {
+        bool ok = py_exec(kPythonLibs__set, "<builtins>", EXEC_MODE, &self->builtins);
+        if(!ok) {
+            py_printexc();
+            c11__abort("failed to load python builtins!");
+        }
+    } while(0);
 
     self->main = *py_newmodule("__main__");
 }
@@ -562,7 +571,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
 
 void pk_print_stack(VM* self, Frame* frame, Bytecode byte) {
     return;
-    if(frame == NULL) return;
+    if(frame == NULL || py_isnil(&self->main)) return;
 
     py_TValue* sp = self->stack.sp;
     c11_sbuf buf;

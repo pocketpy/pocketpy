@@ -54,7 +54,7 @@ static bool format_object(py_Ref obj, c11_sv spec);
 
 #define vectorcall_opcall(argc, kwargc)                                                            \
     do {                                                                                           \
-        FrameResult res = VM__vectorcall(self, (argc), (kwargc), true);                      \
+        FrameResult res = VM__vectorcall(self, (argc), (kwargc), true);                            \
         switch(res) {                                                                              \
             case RES_RETURN: PUSH(&self->last_retval); break;                                      \
             case RES_CALL: frame = self->top_frame; goto __NEXT_FRAME;                             \
@@ -271,12 +271,12 @@ FrameResult VM__run_top_frame(VM* self) {
                     if(magic->type == tp_nativefunc) {
                         if(!magic->_cfunc(2, SECOND())) goto __ERROR;
                         POP();
-                        *TOP() = self->last_retval;
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__getitem__, a, b]
                         if(!py_vectorcall(1, 0)) goto __ERROR;
                     }
+                    *TOP() = self->last_retval;
                     DISPATCH();
                 }
                 TypeError("'%t' object is not subscriptable", SECOND()->type);
@@ -423,6 +423,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_newint(SP()++, 0);  // [complex, NULL, 0]
                 *SP()++ = tmp;         // [complex, NULL, 0, x]
                 if(!py_vectorcall(2, 0)) goto __ERROR;
+                PUSH(py_retval());
                 DISPATCH();
             }
             case OP_BUILD_BYTES: {
@@ -477,7 +478,9 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Name id_add = py_name("add");
                 for(int i = 0; i < byte.arg; i++) {
                     py_push(TOP());
-                    py_pushmethod(id_add);
+                    if(!py_pushmethod(id_add)) {
+                        c11__abort("OP_BUILD_SET: failed to load method 'add'");
+                    }
                     py_push(begin + i);
                     if(!py_vectorcall(1, 0)) goto __ERROR;
                 }
@@ -532,14 +535,14 @@ FrameResult VM__run_top_frame(VM* self) {
                     if(magic->type == tp_nativefunc) {
                         if(!magic->_cfunc(2, SECOND())) goto __ERROR;
                         POP();
-                        *TOP() = self->last_retval;
                     } else {
                         INSERT_THIRD();     // [?, b, a]
                         *THIRD() = *magic;  // [__contains__, a, b]
                         if(!py_vectorcall(1, 0)) goto __ERROR;
                     }
-                    bool res = py_tobool(TOP());
-                    if(byte.arg) py_newbool(TOP(), !res);
+                    bool res = py_tobool(py_retval());
+                    if(byte.arg) res = !res;
+                    py_newbool(SP()++, res);
                     DISPATCH();
                 }
                 TypeError("'%t' type does not support '__contains__'", SECOND()->type);
@@ -715,6 +718,14 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_SET_ADD: {
+                // [set, iter, value]
+                py_push(THIRD());  // [| set]
+                if(!py_pushmethod(py_name("add"))) {
+                    c11__abort("OP_SET_ADD: failed to load method 'add'");
+                }  // [|add() set]
+                py_push(THIRD());
+                if(!py_vectorcall(1, 0)) goto __ERROR;
+                POP();
                 DISPATCH();
             }
             /////////

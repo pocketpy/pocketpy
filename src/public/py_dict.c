@@ -35,6 +35,7 @@ static void Dict__ctor(Dict* self, int capacity) {
     self->indices = malloc(self->capacity * sizeof(DictIndex));
     memset(self->indices, -1, self->capacity * sizeof(DictIndex));
     c11_vector__ctor(&self->entries, sizeof(DictEntry));
+    c11_vector__reserve(&self->entries, capacity);
 }
 
 static void Dict__dtor(Dict* self) {

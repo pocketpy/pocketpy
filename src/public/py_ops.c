@@ -71,7 +71,10 @@ int py_next(py_Ref val) {
     VM* vm = pk_current_vm;
     vm->is_stopiteration = false;
     py_Ref tmp = py_tpfindmagic(val->type, __next__);
-    if(!tmp) return TypeError("'%t' object is not an iterator", val->type);
+    if(!tmp) {
+        TypeError("'%t' object is not an iterator", val->type);
+        return -1;
+    }
     py_StackRef p0 = py_peek(0);
     if(py_call(tmp, 1, val)) return true;
     if(vm->curr_exception.type == tp_StopIteration) {

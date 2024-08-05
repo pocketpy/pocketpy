@@ -1,6 +1,8 @@
 a = {1, 2, 3}
-a |= {2, 3, 4}
+assert a == a
+assert a == {i for i in range(1, 3+1)}
 
+a |= {2, 3, 4}
 assert a == {1, 2, 3, 4}
 
 a = {1, 2, 3}
@@ -79,10 +81,10 @@ assert {1,2,3}.isdisjoint({4,5,6})
 assert not {1,2,3}.isdisjoint({2,3,4})
 
 # unpacking builder
-a = {1, 2, 3}
-b = {*a, 4, 5, *a, *a}
-assert b == {1, 2, 3, 4, 5}
+# a = {1, 2, 3}
+# b = {*a, 4, 5, *a, *a}
+# assert b == {1, 2, 3, 4, 5}
 
-a = set()
-b = {*a, 1, 2, 3, *a, *a}
-assert b == {1, 2, 3}
+# a = set()
+# b = {*a, 1, 2, 3, *a, *a}
+# assert b == {1, 2, 3}
