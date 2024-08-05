@@ -160,8 +160,8 @@ void pk__add_module_math() {
 
     py_newfloat(py_emplacedict(mod, py_name("pi")), 3.1415926535897932384);
     py_newfloat(py_emplacedict(mod, py_name("e")), 2.7182818284590452354);
-    py_newfloat(py_emplacedict(mod, py_name("inf")), 1.0 / 0.0);
-    py_newfloat(py_emplacedict(mod, py_name("nan")), 0.0 / 0.0);
+    py_newfloat(py_emplacedict(mod, py_name("inf")), INFINITY);
+    py_newfloat(py_emplacedict(mod, py_name("nan")), NAN);
 
     py_bindfunc(mod, "ceil", math_ceil);
     py_bindfunc(mod, "fabs", math_fabs);
