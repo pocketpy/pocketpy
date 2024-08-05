@@ -174,7 +174,7 @@ static bool builtins_reversed(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     // convert _0 to list object
     if(!py_tpcall(tp_list, 1, argv)) return false;
-    py_list__reverse(py_retval());
+    py_list_reverse(py_retval());
     return true;
 }
 
@@ -329,9 +329,9 @@ static bool builtins_eval(int argc, py_Ref argv) {
 static bool builtins_isinstance(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     if(py_istuple(py_arg(1))) {
-        int length = py_tuple__len(py_arg(1));
+        int length = py_tuple_len(py_arg(1));
         for(int i = 0; i < length; i++) {
-            py_Ref item = py_tuple__getitem(py_arg(1), i);
+            py_Ref item = py_tuple_getitem(py_arg(1), i);
             if(!py_checktype(item, tp_type)) return false;
             if(py_isinstance(py_arg(0), py_totype(item))) {
                 py_newbool(py_retval(), true);
@@ -452,7 +452,7 @@ static bool function__closure__getter(int argc, py_Ref argv) {
     c11__foreach(NameDict_KV, ud->closure, it) {
         // printf("%s -> %s\n", py_name2str(it->key), py_tpname(it->value.type));
         py_newstr(r0, py_name2str(it->key));
-        py_dict__setitem(retval, r0, &it->value);
+        py_dict_setitem(retval, r0, &it->value);
         if(py_checkexc()) {
             py_shrink(2);
             return false;

@@ -19,47 +19,47 @@ void py_newlistn(py_Ref out, int n) {
     userdata->count = n;
 }
 
-py_Ref py_list__data(py_Ref self) {
+py_Ref py_list_data(py_Ref self) {
     List* userdata = py_touserdata(self);
     return userdata->data;
 }
 
-py_Ref py_list__getitem(py_Ref self, int i) {
+py_Ref py_list_getitem(py_Ref self, int i) {
     List* userdata = py_touserdata(self);
     return c11__at(py_TValue, userdata, i);
 }
 
-void py_list__setitem(py_Ref self, int i, py_Ref val) {
+void py_list_setitem(py_Ref self, int i, py_Ref val) {
     List* userdata = py_touserdata(self);
     c11__setitem(py_TValue, userdata, i, *val);
 }
 
-void py_list__delitem(py_Ref self, int i) {
+void py_list_delitem(py_Ref self, int i) {
     List* userdata = py_touserdata(self);
     c11_vector__erase(py_TValue, userdata, i);
 }
 
-int py_list__len(py_Ref self) {
+int py_list_len(py_Ref self) {
     List* userdata = py_touserdata(self);
     return userdata->count;
 }
 
-void py_list__append(py_Ref self, py_Ref val) {
+void py_list_append(py_Ref self, py_Ref val) {
     List* userdata = py_touserdata(self);
     c11_vector__push(py_TValue, userdata, *val);
 }
 
-void py_list__clear(py_Ref self) {
+void py_list_clear(py_Ref self) {
     List* userdata = py_touserdata(self);
     c11_vector__clear(userdata);
 }
 
-void py_list__insert(py_Ref self, int i, py_Ref val) {
+void py_list_insert(py_Ref self, int i, py_Ref val) {
     List* userdata = py_touserdata(self);
     c11_vector__insert(py_TValue, userdata, i, *val);
 }
 
-void py_list__reverse(py_Ref self) {
+void py_list_reverse(py_Ref self) {
     List* userdata = py_touserdata(self);
     c11__reverse(py_TValue, userdata);
 }
@@ -67,7 +67,7 @@ void py_list__reverse(py_Ref self) {
 ////////////////////////////////
 static bool list__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_i64 res = py_list__len(py_arg(0));
+    py_i64 res = py_list_len(py_arg(0));
     py_newint(py_retval(), res);
     return true;
 }
@@ -107,7 +107,7 @@ static bool list__new__(int argc, py_Ref argv) {
         if(p) {
             py_newlistn(py_retval(), length);
             for(int i = 0; i < length; i++) {
-                py_list__setitem(py_retval(), i, p + i);
+                py_list_setitem(py_retval(), i, p + i);
             }
             return true;
         }
@@ -125,7 +125,7 @@ static bool list__new__(int argc, py_Ref argv) {
                 return false;
             }
             if(!res) break;
-            py_list__append(list, py_retval());
+            py_list_append(list, py_retval());
         }
         *py_retval() = *list;
         py_shrink(2);
@@ -218,7 +218,7 @@ static bool list__rmul__(int argc, py_Ref argv) { return list__mul__(argc, argv)
 
 static bool list_append(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    py_list__append(py_arg(0), py_arg(1));
+    py_list_append(py_arg(0), py_arg(1));
     py_newnone(py_retval());
     return true;
 }
@@ -256,8 +256,8 @@ static bool list_extend(int argc, py_Ref argv) {
 static bool list_count(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     int count = 0;
-    for(int i = 0; i < py_list__len(py_arg(0)); i++) {
-        int res = py_equal(py_list__getitem(py_arg(0), i), py_arg(1));
+    for(int i = 0; i < py_list_len(py_arg(0)); i++) {
+        int res = py_equal(py_list_getitem(py_arg(0), i), py_arg(1));
         if(res == -1) return false;
         if(res) count++;
     }
@@ -267,7 +267,7 @@ static bool list_count(int argc, py_Ref argv) {
 
 static bool list_clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_list__clear(py_arg(0));
+    py_list_clear(py_arg(0));
     py_newnone(py_retval());
     return true;
 }
@@ -288,8 +288,8 @@ static bool list_index(int argc, py_Ref argv) {
         PY_CHECK_ARG_TYPE(2, tp_int);
         start = py_toint(py_arg(2));
     }
-    for(int i = start; i < py_list__len(py_arg(0)); i++) {
-        int res = py_equal(py_list__getitem(py_arg(0), i), py_arg(1));
+    for(int i = start; i < py_list_len(py_arg(0)); i++) {
+        int res = py_equal(py_list_getitem(py_arg(0), i), py_arg(1));
         if(res == -1) return false;
         if(res) {
             py_newint(py_retval(), i);
@@ -309,11 +309,11 @@ static bool list_reverse(int argc, py_Ref argv) {
 
 static bool list_remove(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    for(int i = 0; i < py_list__len(py_arg(0)); i++) {
-        int res = py_equal(py_list__getitem(py_arg(0), i), py_arg(1));
+    for(int i = 0; i < py_list_len(py_arg(0)); i++) {
+        int res = py_equal(py_list_getitem(py_arg(0), i), py_arg(1));
         if(res == -1) return false;
         if(res) {
-            py_list__delitem(py_arg(0), i);
+            py_list_delitem(py_arg(0), i);
             py_newnone(py_retval());
             return true;
         }

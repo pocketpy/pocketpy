@@ -438,7 +438,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_newtuple(&tmp, byte.arg);
                 py_TValue* begin = SP() - byte.arg;
                 for(int i = 0; i < byte.arg; i++) {
-                    py_tuple__setitem(&tmp, i, begin + i);
+                    py_tuple_setitem(&tmp, i, begin + i);
                 }
                 SP() = begin;
                 PUSH(&tmp);
@@ -449,7 +449,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_newlistn(&tmp, byte.arg);
                 py_TValue* begin = SP() - byte.arg;
                 for(int i = 0; i < byte.arg; i++) {
-                    py_list__setitem(&tmp, i, begin + i);
+                    py_list_setitem(&tmp, i, begin + i);
                 }
                 SP() = begin;
                 PUSH(&tmp);
@@ -460,7 +460,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Ref tmp = py_pushtmp();
                 py_newdict(tmp);
                 for(int i = 0; i < byte.arg * 2; i += 2) {
-                    py_dict__setitem(tmp, begin + i, begin + i + 1);
+                    py_dict_setitem(tmp, begin + i, begin + i + 1);
                     if(py_checkexc()) goto __ERROR;
                 }
                 SP() = begin;
@@ -668,9 +668,9 @@ FrameResult VM__run_top_frame(VM* self) {
                         py_TValue* kwargs = py_getslot(&curr[1], 0);
                         if(kwargs->type == tp_dict) {
                             py_TValue* p = buf + n;
-                            if(!py_dict__apply(kwargs, unpack_dict_to_buffer, &p)) goto __ERROR;
+                            if(!py_dict_apply(kwargs, unpack_dict_to_buffer, &p)) goto __ERROR;
                             n = p - buf;
-                            kwargc += py_dict__len(kwargs) - 1;
+                            kwargc += py_dict_len(kwargs) - 1;
                         } else {
                             TypeError("**kwargs must be a dict, got '%t'", kwargs->type);
                             goto __ERROR;
@@ -706,13 +706,13 @@ FrameResult VM__run_top_frame(VM* self) {
             /////////
             case OP_LIST_APPEND: {
                 // [list, iter, value]
-                py_list__append(THIRD(), TOP());
+                py_list_append(THIRD(), TOP());
                 POP();
                 DISPATCH();
             }
             case OP_DICT_ADD: {
                 // [dict, iter, key, value]
-                py_dict__setitem(FOURTH(), SECOND(), TOP());
+                py_dict_setitem(FOURTH(), SECOND(), TOP());
                 if(py_checkexc()) goto __ERROR;
                 STACK_SHRINK(2);
                 DISPATCH();
@@ -838,7 +838,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
                 py_newlistn(SP()++, exceed);
                 for(int i = 0; i < exceed; i++) {
-                    py_list__setitem(TOP(), i, p + byte.arg + i);
+                    py_list_setitem(TOP(), i, p + byte.arg + i);
                 }
                 DISPATCH();
             }

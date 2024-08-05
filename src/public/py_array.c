@@ -13,11 +13,11 @@ typedef struct array_iterator {
 
 py_TValue* pk_arrayview(py_Ref self, int* length) {
     if(self->type == tp_list) {
-        *length = py_list__len(self);
-        return py_list__data(self);
+        *length = py_list_len(self);
+        return py_list_data(self);
     }
     if(self->type == tp_tuple) {
-        *length = py_tuple__len(self);
+        *length = py_tuple_len(self);
         return PyObject__slots(self->_obj);
     }
     return NULL;

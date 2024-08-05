@@ -13,17 +13,17 @@ void py_newtuple(py_Ref out, int n) {
     out->_obj = obj;
 }
 
-py_Ref py_tuple__getitem(py_Ref self, int i) { return py_getslot(self, i); }
+py_Ref py_tuple_getitem(py_Ref self, int i) { return py_getslot(self, i); }
 
-py_Ref py_tuple__data(py_Ref self) { return PyObject__slots(self->_obj); }
+py_Ref py_tuple_data(py_Ref self) { return PyObject__slots(self->_obj); }
 
-void py_tuple__setitem(py_Ref self, int i, py_Ref val) { py_setslot(self, i, val); }
+void py_tuple_setitem(py_Ref self, int i, py_Ref val) { py_setslot(self, i, val); }
 
-int py_tuple__len(py_Ref self) { return self->_obj->slots; }
+int py_tuple_len(py_Ref self) { return self->_obj->slots; }
 
 //////////////
 static bool tuple__len__(int argc, py_Ref argv) {
-    py_newint(py_retval(), py_tuple__len(argv));
+    py_newint(py_retval(), py_tuple_len(argv));
     return true;
 }
 
@@ -31,7 +31,7 @@ static bool tuple__repr__(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     c11_sbuf__write_char(&buf, '(');
-    int length = py_tuple__len(argv);
+    int length = py_tuple_len(argv);
     for(int i = 0; i < length; i++) {
         py_TValue* val = py_getslot(argv, i);
         bool ok = py_repr(val);
@@ -58,10 +58,10 @@ static bool tuple__new__(int argc, py_Ref argv) {
         if(!ok) return false;
         py_Ref tmp = py_pushtmp();
         *tmp = *py_retval();  // backup the list
-        int length = py_list__len(tmp);
+        int length = py_list_len(tmp);
         py_newtuple(py_retval(), length);
-        for(int i = 0; i < py_tuple__len(py_retval()); i++) {
-            py_tuple__setitem(py_retval(), i, py_list__getitem(tmp, i));
+        for(int i = 0; i < py_tuple_len(py_retval()); i++) {
+            py_tuple_setitem(py_retval(), i, py_list_getitem(tmp, i));
         }
         py_pop();
         return true;
@@ -71,7 +71,7 @@ static bool tuple__new__(int argc, py_Ref argv) {
 
 static bool tuple__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    int length = py_tuple__len(argv);
+    int length = py_tuple_len(argv);
     py_Ref _1 = py_arg(1);
     if(_1->type == tp_int) {
         int index = py_toint(py_arg(1));
@@ -84,11 +84,11 @@ static bool tuple__getitem__(int argc, py_Ref argv) {
         if(!ok) return false;
         py_Ref tmp = py_pushtmp();
         py_newlist(tmp);
-        PK_SLICE_LOOP(i, start, stop, step) py_list__append(tmp, py_getslot(argv, i));
+        PK_SLICE_LOOP(i, start, stop, step) py_list_append(tmp, py_getslot(argv, i));
         // convert list to tuple
-        py_newtuple(py_retval(), py_list__len(tmp));
-        for(int i = 0; i < py_tuple__len(py_retval()); i++) {
-            py_tuple__setitem(py_retval(), i, py_list__getitem(tmp, i));
+        py_newtuple(py_retval(), py_list_len(tmp));
+        for(int i = 0; i < py_tuple_len(py_retval()); i++) {
+            py_tuple_setitem(py_retval(), i, py_list_getitem(tmp, i));
         }
         py_pop();
         return true;
@@ -133,8 +133,8 @@ static bool tuple__contains__(int argc, py_Ref argv) {
 
 static bool tuple__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    int length = py_tuple__len(argv);
-    py_TValue* data = py_tuple__data(argv);
+    int length = py_tuple_len(argv);
+    py_TValue* data = py_tuple_data(argv);
     uint64_t x = 1000003;
     for(int i = 0; i < length; i++) {
         py_i64 y;

@@ -37,8 +37,8 @@ static bool math_fsum(int argc, py_Ref argv) {
     py_Ref list = py_arg(0);
     double sum = 0;
     double c = 0;
-    for(int i = 0; i < py_list__len(list); i++) {
-        py_Ref item = py_list__getitem(list, i);
+    for(int i = 0; i < py_list_len(list); i++) {
+        py_Ref item = py_list_getitem(list, i);
         double x;
         if(!py_castfloat(item, &x)) return false;
         double y = x - c;
@@ -136,8 +136,8 @@ static bool math_modf(int argc, py_Ref argv) {
     double i;
     double f = modf(py_tofloat(py_arg(0)), &i);
     py_newtuple(py_retval(), 2);
-    py_Ref _0 = py_tuple__getitem(py_retval(), 0);
-    py_Ref _1 = py_tuple__getitem(py_retval(), 1);
+    py_Ref _0 = py_tuple_getitem(py_retval(), 0);
+    py_Ref _1 = py_tuple_getitem(py_retval(), 1);
     py_newfloat(_0, f);
     py_newfloat(_1, i);
     return true;

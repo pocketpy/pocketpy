@@ -268,11 +268,11 @@ static bool str_join(int argc, py_Ref argv) {
     py_TValue* p;
     int length;
     if(py_istype(_1, tp_list)) {
-        p = py_list__getitem(_1, 0);
-        length = py_list__len(_1);
+        p = py_list_getitem(_1, 0);
+        length = py_list_len(_1);
     } else if(py_istype(_1, tp_tuple)) {
-        p = py_tuple__getitem(_1, 0);
-        length = py_tuple__len(_1);
+        p = py_tuple_getitem(_1, 0);
+        length = py_tuple_len(_1);
     } else {
         return TypeError("join() argument must be a list or tuple");
     }
@@ -323,7 +323,7 @@ static bool str_split(int argc, py_Ref argv) {
     py_newlistn(py_retval(), res.count);
     for(int i = 0; i < res.count; i++) {
         c11_sv item = c11__getitem(c11_sv, &res, i);
-        py_newstrn(py_list__getitem(py_retval(), i), item.data, item.size);
+        py_newstrn(py_list_getitem(py_retval(), i), item.data, item.size);
     }
     c11_vector__dtor(&res);
     return true;

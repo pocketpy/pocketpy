@@ -430,27 +430,27 @@ bool py_len(py_Ref val) PY_RAISE;
 
 /************* Unchecked Functions *************/
 
-py_ObjectRef py_tuple__data(py_Ref self);
-py_ObjectRef py_tuple__getitem(py_Ref self, int i);
-void py_tuple__setitem(py_Ref self, int i, py_Ref val);
-int py_tuple__len(py_Ref self);
+py_ObjectRef py_tuple_data(py_Ref self);
+py_ObjectRef py_tuple_getitem(py_Ref self, int i);
+void py_tuple_setitem(py_Ref self, int i, py_Ref val);
+int py_tuple_len(py_Ref self);
 
-py_TmpRef py_list__data(py_Ref self);
-py_TmpRef py_list__getitem(py_Ref self, int i);
-void py_list__setitem(py_Ref self, int i, py_Ref val);
-void py_list__delitem(py_Ref self, int i);
-int py_list__len(py_Ref self);
-void py_list__append(py_Ref self, py_Ref val);
-void py_list__clear(py_Ref self);
-void py_list__insert(py_Ref self, int i, py_Ref val);
-void py_list__reverse(py_Ref self);
+py_TmpRef py_list_data(py_Ref self);
+py_TmpRef py_list_getitem(py_Ref self, int i);
+void py_list_setitem(py_Ref self, int i, py_Ref val);
+void py_list_delitem(py_Ref self, int i);
+int py_list_len(py_Ref self);
+void py_list_append(py_Ref self, py_Ref val);
+void py_list_clear(py_Ref self);
+void py_list_insert(py_Ref self, int i, py_Ref val);
+void py_list_reverse(py_Ref self);
 
-py_TmpRef py_dict__getitem(py_Ref self, py_Ref key) PY_RAISE;
-void py_dict__setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
-void py_dict__delitem(py_Ref self, py_Ref key) PY_RAISE;
-bool py_dict__contains(py_Ref self, py_Ref key) PY_RAISE;
-int py_dict__len(py_Ref self);
-bool py_dict__apply(py_Ref self, bool (*f)(py_Ref key, py_Ref val, void* ctx), void* ctx) PY_RAISE;
+py_TmpRef py_dict_getitem(py_Ref self, py_Ref key) PY_RAISE;
+void py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
+void py_dict_delitem(py_Ref self, py_Ref key) PY_RAISE;
+bool py_dict_contains(py_Ref self, py_Ref key) PY_RAISE;
+int py_dict_len(py_Ref self);
+bool py_dict_apply(py_Ref self, bool (*f)(py_Ref key, py_Ref val, void* ctx), void* ctx) PY_RAISE;
 
 /************* Others *************/
 

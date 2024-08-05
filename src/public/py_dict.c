@@ -217,13 +217,13 @@ static bool dict__init__(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_list);
     Dict* self = py_touserdata(argv);
     py_Ref list = py_arg(1);
-    for(int i = 0; i < py_list__len(list); i++) {
-        py_Ref tuple = py_list__getitem(list, i);
-        if(!py_istuple(tuple) || py_tuple__len(tuple) != 2) {
+    for(int i = 0; i < py_list_len(list); i++) {
+        py_Ref tuple = py_list_getitem(list, i);
+        if(!py_istuple(tuple) || py_tuple_len(tuple) != 2) {
             return TypeError("dict.__init__() argument must be a list of tuple-2");
         }
-        py_Ref key = py_tuple__getitem(tuple, 0);
-        py_Ref val = py_tuple__getitem(tuple, 1);
+        py_Ref key = py_tuple_getitem(tuple, 0);
+        py_Ref val = py_tuple_getitem(tuple, 1);
         if(!Dict__set(self, key, val)) return false;
     }
     return true;
@@ -407,7 +407,7 @@ static bool dict_keys(int argc, py_Ref argv) {
     while(1) {
         DictEntry* entry = DictIterator__next(&iter);
         if(!entry) break;
-        py_tuple__setitem(py_retval(), i++, &entry->key);
+        py_tuple_setitem(py_retval(), i++, &entry->key);
     }
     assert(i == self->length);
     return true;
@@ -423,7 +423,7 @@ static bool dict_values(int argc, py_Ref argv) {
     while(1) {
         DictEntry* entry = DictIterator__next(&iter);
         if(!entry) break;
-        py_tuple__setitem(py_retval(), i++, &entry->val);
+        py_tuple_setitem(py_retval(), i++, &entry->val);
     }
     assert(i == self->length);
     return true;
@@ -469,8 +469,8 @@ static bool dict_items__next__(int argc, py_Ref argv) {
     DictEntry* entry = (DictIterator__next(iter));
     if(entry) {
         py_newtuple(py_retval(), 2);
-        py_tuple__setitem(py_retval(), 0, &entry->key);
-        py_tuple__setitem(py_retval(), 1, &entry->val);
+        py_tuple_setitem(py_retval(), 0, &entry->key);
+        py_tuple_setitem(py_retval(), 1, &entry->val);
         return true;
     }
     return StopIteration();
@@ -490,7 +490,7 @@ void py_newdict(py_Ref out) {
     Dict__ctor(ud, 8);
 }
 
-py_Ref py_dict__getitem(py_Ref self, py_Ref key) {
+py_Ref py_dict_getitem(py_Ref self, py_Ref key) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     DictEntry* entry;
@@ -499,19 +499,19 @@ py_Ref py_dict__getitem(py_Ref self, py_Ref key) {
     return NULL;
 }
 
-void py_dict__delitem(py_Ref self, py_Ref key) {
+void py_dict_delitem(py_Ref self, py_Ref key) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     Dict__pop(ud, key);
 }
 
-void py_dict__setitem(py_Ref self, py_Ref key, py_Ref val) {
+void py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     Dict__set(ud, key, val);
 }
 
-bool py_dict__contains(py_Ref self, py_Ref key) {
+bool py_dict_contains(py_Ref self, py_Ref key) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     DictEntry* entry;
@@ -519,13 +519,13 @@ bool py_dict__contains(py_Ref self, py_Ref key) {
     return ok && entry != NULL;
 }
 
-int py_dict__len(py_Ref self) {
+int py_dict_len(py_Ref self) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     return ud->length;
 }
 
-bool py_dict__apply(py_Ref self, bool (*f)(py_Ref, py_Ref, void*), void* ctx) {
+bool py_dict_apply(py_Ref self, bool (*f)(py_Ref, py_Ref, void*), void* ctx) {
     Dict* ud = py_touserdata(self);
     for(int i = 0; i < ud->entries.count; i++) {
         DictEntry* entry = c11__at(DictEntry, &ud->entries, i);

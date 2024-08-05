@@ -2262,7 +2262,7 @@ static Error* read_literal(Compiler* self, py_Ref out) {
             consume(TK_RPAREN);
             py_newtuple(out, count);
             for(int i = 0; i < count; i++) {
-                py_tuple__setitem(out, i, &cpnts[i]);
+                py_tuple_setitem(out, i, &cpnts[i]);
             }
             return NULL;
         }

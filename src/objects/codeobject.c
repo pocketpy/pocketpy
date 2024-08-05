@@ -101,9 +101,9 @@ FuncDecl_ FuncDecl__build(c11_sv name,
     }
     if(starred_arg.size) { FuncDecl__add_starred_arg(decl, py_namev(starred_arg)); }
     assert(py_istype(kwdefaults, tp_tuple));
-    assert(py_tuple__len(kwdefaults) == kwargc);
+    assert(py_tuple_len(kwdefaults) == kwargc);
     for(int i = 0; i < kwargc; i++) {
-        FuncDecl__add_kwarg(decl, py_namev(kwargs[i]), py_tuple__getitem(kwdefaults, i));
+        FuncDecl__add_kwarg(decl, py_namev(kwargs[i]), py_tuple_getitem(kwdefaults, i));
     }
     if(starred_kwarg.size) FuncDecl__add_starred_kwarg(decl, py_namev(starred_kwarg));
     decl->docstring = docstring;

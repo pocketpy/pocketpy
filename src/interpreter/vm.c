@@ -328,7 +328,7 @@ static bool
         py_Ref vargs = &buffer[decl->starred_arg];
         py_newtuple(vargs, exceed_argc);
         for(int j = 0; j < exceed_argc; j++) {
-            py_tuple__setitem(vargs, j, t++);
+            py_tuple_setitem(vargs, j, t++);
         }
     } else {
         // kwdefaults override
@@ -361,7 +361,7 @@ static bool
                 py_Ref tmp = py_pushtmp();
                 c11_sv key_sv = py_name2sv(key);
                 py_newstrn(tmp, key_sv.data, key_sv.size);
-                py_dict__setitem(&buffer[decl->starred_kwarg], tmp, &p1[2 * j + 1]);
+                py_dict_setitem(&buffer[decl->starred_kwarg], tmp, &p1[2 * j + 1]);
                 py_pop();
                 if(py_checkexc()) return false;
             }
@@ -584,11 +584,11 @@ void pk_print_stack(VM* self, Frame* frame, Bytecode byte) {
             case tp_bool: c11_sbuf__write_cstr(&buf, p->_bool ? "True" : "False"); break;
             case tp_NoneType: c11_sbuf__write_cstr(&buf, "None"); break;
             case tp_list: {
-                pk_sprintf(&buf, "list(%d)", py_list__len(p));
+                pk_sprintf(&buf, "list(%d)", py_list_len(p));
                 break;
             }
             case tp_tuple: {
-                pk_sprintf(&buf, "tuple(%d)", py_tuple__len(p));
+                pk_sprintf(&buf, "tuple(%d)", py_tuple_len(p));
                 break;
             }
             case tp_function: {
