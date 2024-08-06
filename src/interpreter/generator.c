@@ -1,16 +1,63 @@
 #include "pocketpy/interpreter/generator.h"
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
+#include <stdbool.h>
 
-void pk_newgenerator(py_Ref out, Frame* frame, int slots) {
-    Generator* ud = py_newobject(out, tp_generator, slots, sizeof(Generator));
+void pk_newgenerator(py_Ref out, Frame* frame) {
+    Generator* ud = py_newobject(out, tp_generator, 1, sizeof(Generator));
     ud->frame = frame;
     ud->state = 0;
+    py_newlist(py_getslot(out, 0));
 }
 
-static bool generator__next__(int argc, py_Ref argv){
-    return true;
+static bool generator__next__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Generator* ud = py_touserdata(argv);
+    py_StackRef p0 = py_peek(0);
+    VM* vm = pk_current_vm;
+    if(ud->state == 2) return StopIteration();
+
+    // reset frame->p0
+    ud->frame->p0 = py_peek(0);
+    ud->frame->locals = py_peek(0);
+
+    // restore the context
+    py_Ref backup = py_getslot(argv, 0);
+    int length = py_list_len(backup);
+    py_TValue* p = py_list_data(backup);
+    for(int i = 0; i < length; i++)
+        py_push(&p[i]);
+    py_list_clear(backup);
+
+    // push frame
+    VM__push_frame(vm, ud->frame);
+
+    FrameResult res = VM__run_top_frame(vm);
+
+    if(res == RES_ERROR) {
+        ud->state = 2;  // end this generator immediately on error
+        if(py_matchexc(tp_StopIteration)) {
+            py_clearexc(p0);
+            return true;
+        }
+        return false;
+    }
+
+    if(res == RES_YIELD) {
+        // backup the context
+        ud->frame = vm->top_frame;
+        for(py_StackRef p = ud->frame->p0; p != vm->stack.sp; p++) {
+            py_list_append(backup, p);
+        }
+        vm->top_frame = vm->top_frame->f_back;
+        ud->state = 1;
+        return true;
+    } else {
+        ud->state = 2;
+        return StopIteration();
+    }
 }
 
 py_Type pk_generator__register() {

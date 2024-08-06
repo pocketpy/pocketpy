@@ -7,4 +7,4 @@ typedef struct Generator{
     int state;
 } Generator;
 
-void pk_newgenerator(py_Ref out, Frame* frame, int slots);
+void pk_newgenerator(py_Ref out, Frame* frame);

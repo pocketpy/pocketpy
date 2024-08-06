@@ -54,8 +54,6 @@ static bool _py_BaseException__new__(int argc, py_Ref argv) {
     py_Type cls = py_totype(argv);
     BaseException* ud = py_newobject(py_retval(), cls, 2, sizeof(BaseException));
     c11_vector__ctor(&ud->stacktrace, sizeof(BaseExceptionFrame));
-    py_setslot(py_retval(), 0, py_NIL);
-    py_setslot(py_retval(), 1, py_NIL);
     ud->lineno_backup = -1;
     ud->code_backup = NULL;
     return true;

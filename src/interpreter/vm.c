@@ -457,7 +457,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
                 Frame* frame = Frame__new(co, &fn->module, p0, p0, argv);
-                pk_newgenerator(py_retval(), frame, 0);
+                pk_newgenerator(py_retval(), frame);
                 self->stack.sp = p0;
                 return RES_RETURN;
             }
@@ -592,7 +592,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
 }
 
 void pk_print_stack(VM* self, Frame* frame, Bytecode byte) {
-    return;
+    // return;
     if(frame == NULL || py_isnil(&self->main)) return;
 
     py_TValue* sp = self->stack.sp;
