@@ -385,6 +385,7 @@ void py_clearexc(py_StackRef p0);
 #define ValueError(...) py_exception(tp_ValueError, __VA_ARGS__)
 #define IndexError(...) py_exception(tp_IndexError, __VA_ARGS__)
 #define ImportError(...) py_exception(tp_ImportError, __VA_ARGS__)
+#define ZeroDivisionError(...) py_exception(tp_ZeroDivisionError, __VA_ARGS__)
 #define NotImplementedError() py_exception(tp_NotImplementedError, "")
 #define AttributeError(self, n)                                                                    \
     py_exception(tp_AttributeError, "'%t' object has no attribute '%n'", (self)->type, (n))

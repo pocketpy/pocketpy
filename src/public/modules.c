@@ -288,6 +288,11 @@ static bool builtins_sum(int argc, py_Ref argv) {
     return true;
 }
 
+static bool builtins_divmod(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    return pk_callmagic(__divmod__, 2, argv);
+}
+
 static bool builtins_print(int argc, py_Ref argv) {
     int length;
     py_TValue* args = pk_arrayview(argv, &length);
@@ -443,6 +448,7 @@ py_TValue pk_builtins__register() {
     py_bindfunc(builtins, "hash", builtins_hash);
     py_bindfunc(builtins, "abs", builtins_abs);
     py_bindfunc(builtins, "sum", builtins_sum);
+    py_bindfunc(builtins, "divmod", builtins_divmod);
 
     py_bindfunc(builtins, "exec", builtins_exec);
     py_bindfunc(builtins, "eval", builtins_eval);

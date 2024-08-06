@@ -83,8 +83,6 @@ static bool float__truediv__(int argc, py_Ref argv) {
     return true;
 }
 
-#define ZeroDivisionError(msg) false
-
 static bool number__pow__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     if(py_isint(&argv[0]) && py_isint(&argv[1])) {
@@ -124,7 +122,7 @@ static bool int__floordiv__(int argc, py_Ref argv) {
     py_i64 lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
         py_i64 rhs = py_toint(&argv[1]);
-        if(rhs == 0) return -1;
+        if(rhs == 0) return ZeroDivisionError("integer division or modulo by zero");
         py_newint(py_retval(), lhs / rhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -142,6 +140,19 @@ static bool int__mod__(int argc, py_Ref argv) {
     } else {
         py_newnotimplemented(py_retval());
     }
+    return true;
+}
+
+static bool int__divmod__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    py_i64 lhs = py_toint(&argv[0]);
+    py_i64 rhs = py_toint(&argv[1]);
+    if(rhs == 0) return ZeroDivisionError("integer division or modulo by zero");
+    py_newtuple(py_retval(), 2);
+    ldiv_t res = ldiv(lhs, rhs);
+    py_newint(py_getslot(py_retval(), 0), res.quot);
+    py_newint(py_getslot(py_retval(), 1), res.rem);
     return true;
 }
 
@@ -459,9 +470,10 @@ void pk_number__register() {
     py_bindmagic(tp_int, __pow__, number__pow__);
     py_bindmagic(tp_float, __pow__, number__pow__);
 
-    // __floordiv__ & __mod__
+    // __floordiv__ & __mod__ & __divmod__
     py_bindmagic(tp_int, __floordiv__, int__floordiv__);
     py_bindmagic(tp_int, __mod__, int__mod__);
+    py_bindmagic(tp_int, __divmod__, int__divmod__);
 
     // int.__invert__ & int.<BITWISE OP>
     py_bindmagic(tp_int, __invert__, int__invert__);
