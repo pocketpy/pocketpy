@@ -452,7 +452,6 @@ int py_list_len(py_Ref self);
 void py_list_append(py_Ref self, py_Ref val);
 void py_list_clear(py_Ref self);
 void py_list_insert(py_Ref self, int i, py_Ref val);
-void py_list_reverse(py_Ref self);
 
 py_TmpRef py_dict_getitem(py_Ref self, py_Ref key) PY_RAISE;
 void py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;

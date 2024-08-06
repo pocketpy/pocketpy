@@ -1,4 +1,4 @@
-from pkpy import next as __builtins_next
+from pkpy import next as __pkpy_next
 
 def all(iterable):
     for i in iterable:
@@ -37,8 +37,8 @@ def zip(a, b):
     a = iter(a)
     b = iter(b)
     while True:
-        ai = __builtins_next(a)
-        bi = __builtins_next(b)
+        ai = __pkpy_next(a)
+        bi = __pkpy_next(b)
         if ai is StopIteration or bi is StopIteration:
             break
         yield ai, bi
@@ -181,37 +181,3 @@ def complex(*args, **kwargs):
 def long(*args, **kwargs):
     import _long
     return _long.long(*args, **kwargs)
-
-
-# builtin exceptions
-class StackOverflowError(Exception): pass
-class IOError(Exception): pass
-class NotImplementedError(Exception): pass
-class TypeError(Exception): pass
-class IndexError(Exception): pass
-class ValueError(Exception): pass
-class RuntimeError(Exception): pass
-class ZeroDivisionError(Exception): pass
-class NameError(Exception): pass
-class UnboundLocalError(Exception): pass
-class AttributeError(Exception): pass
-class ImportError(Exception): pass
-class AssertionError(Exception): pass
-
-class KeyError(Exception):
-    def __init__(self, key=...):
-        self.key = key
-        if key is ...:
-            super().__init__()
-        else:
-            super().__init__(repr(key))
-
-    def __str__(self):
-        if self.key is ...:
-            return ''
-        return str(self.key)
-    
-    def __repr__(self):
-        if self.key is ...:
-            return 'KeyError()'
-        return f'KeyError({self.key!r})'

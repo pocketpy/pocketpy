@@ -170,14 +170,6 @@ static bool builtins_len(int argc, py_Ref argv) {
     return py_len(argv);
 }
 
-static bool builtins_reversed(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    // convert _0 to list object
-    if(!py_tpcall(tp_list, 1, argv)) return false;
-    py_list_reverse(py_retval());
-    return true;
-}
-
 static bool builtins_hex(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -221,23 +213,6 @@ static bool builtins_next(int argc, py_Ref argv) {
     return py_exception(tp_StopIteration, "");
 }
 
-static bool builtins_sorted(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(3);
-    // convert _0 to list object
-    if(!py_tpcall(tp_list, 1, py_arg(0))) return false;
-    py_push(py_retval());                      // duptop
-    py_push(py_retval());                      // [| <list>]
-    bool ok = py_pushmethod(py_name("sort"));  // [| list.sort, <list>]
-    if(!ok) return false;
-    py_push(py_arg(1));        // [| list.sort, <list>, key]
-    py_push(py_arg(2));        // [| list.sort, <list>, key, reverse]
-    ok = py_vectorcall(2, 0);  // [| ]
-    if(!ok) return false;
-    py_assign(py_retval(), py_peek(-1));
-    py_pop();
-    return true;
-}
-
 static bool builtins_hash(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 val;
@@ -249,43 +224,6 @@ static bool builtins_hash(int argc, py_Ref argv) {
 static bool builtins_abs(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     return pk_callmagic(__abs__, 1, argv);
-}
-
-static bool builtins_sum(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-
-    if(!py_iter(py_arg(0))) return false;
-    py_push(py_retval());  // iter
-
-    py_i64 total_i64 = 0;
-    py_f64 total_f64 = 0.0;
-    bool is_float = false;
-    while(true) {
-        int res = py_next(py_peek(-1));
-        if(res == -1) {
-            py_pop();
-            return false;
-        }
-        if(res == 0) break;
-
-        py_Ref item = py_retval();
-        switch(item->type) {
-            case tp_int: total_i64 += item->_i64; break;
-            case tp_float:
-                is_float = true;
-                total_f64 += item->_f64;
-                break;
-            default: return TypeError("sum() expects an iterable of numbers");
-        }
-    }
-
-    if(is_float) {
-        py_newfloat(py_retval(), total_f64 + total_i64);
-    } else {
-        py_newint(py_retval(), total_i64);
-    }
-    py_pop();
-    return true;
 }
 
 static bool builtins_divmod(int argc, py_Ref argv) {
@@ -439,20 +377,17 @@ py_TValue pk_builtins__register() {
     py_bindfunc(builtins, "repr", builtins_repr);
     py_bindfunc(builtins, "exit", builtins_exit);
     py_bindfunc(builtins, "len", builtins_len);
-    py_bindfunc(builtins, "reversed", builtins_reversed);
     py_bindfunc(builtins, "hex", builtins_hex);
     py_bindfunc(builtins, "iter", builtins_iter);
     py_bindfunc(builtins, "next", builtins_next);
     py_bindfunc(builtins, "hash", builtins_hash);
     py_bindfunc(builtins, "abs", builtins_abs);
-    py_bindfunc(builtins, "sum", builtins_sum);
     py_bindfunc(builtins, "divmod", builtins_divmod);
 
     py_bindfunc(builtins, "exec", builtins_exec);
     py_bindfunc(builtins, "eval", builtins_eval);
 
     py_bind(builtins, "print(*args, sep=' ', end='\\n')", builtins_print);
-    py_bind(builtins, "sorted(iterable, key=None, reverse=False)", builtins_sorted);
 
     py_bindfunc(builtins, "isinstance", builtins_isinstance);
     py_bindfunc(builtins, "issubclass", builtins_issubclass);

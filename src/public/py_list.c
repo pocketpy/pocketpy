@@ -59,11 +59,6 @@ void py_list_insert(py_Ref self, int i, py_Ref val) {
     c11_vector__insert(py_TValue, userdata, i, *val);
 }
 
-void py_list_reverse(py_Ref self) {
-    List* userdata = py_touserdata(self);
-    c11__reverse(py_TValue, userdata);
-}
-
 ////////////////////////////////
 static bool list__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);

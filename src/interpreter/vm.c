@@ -197,11 +197,15 @@ void VM__ctor(VM* self) {
 
     // add python builtins
     do {
-        bool ok = py_exec(kPythonLibs__set, "<builtins>", EXEC_MODE, &self->builtins);
-        if(!ok) {
-            py_printexc();
-            c11__abort("failed to load python builtins!");
-        }
+        bool ok;
+        ok = py_exec(kPythonLibs_builtins, "<builtins>", EXEC_MODE, &self->builtins);
+        if(!ok) goto __ABORT;
+        ok = py_exec(kPythonLibs__set, "<builtins>", EXEC_MODE, &self->builtins);
+        if(!ok) goto __ABORT;
+        break;
+    __ABORT:
+        py_printexc();
+        c11__abort("failed to load python builtins!");
     } while(0);
 
     self->main = *py_newmodule("__main__");
