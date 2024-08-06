@@ -1,3 +1,5 @@
+set -e
+
 # if no $1 default arm64-v8a
 if [ -z $1 ]; then
     $1=arm64-v8a
