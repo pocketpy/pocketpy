@@ -68,12 +68,6 @@ static bool range_iterator__new__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool range_iterator__iter__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    *py_retval() = *py_arg(0);
-    return true;
-}
-
 static bool range_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     RangeIterator* ud = py_touserdata(py_arg(0));
@@ -91,7 +85,7 @@ py_Type pk_range_iterator__register() {
     py_Type type = pk_newtype("range_iterator", tp_object, NULL, NULL, false, true);
 
     py_bindmagic(type, __new__, range_iterator__new__);
-    py_bindmagic(type, __iter__, range_iterator__iter__);
+    py_bindmagic(type, __iter__, pk_wrapper__self);
     py_bindmagic(type, __next__, range_iterator__next__);
     return type;
 }

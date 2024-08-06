@@ -252,11 +252,6 @@ static bool builtins_print(int argc, py_Ref argv) {
     return true;
 }
 
-static bool NoneType__repr__(int argc, py_Ref argv) {
-    py_newstr(py_retval(), "None");
-    return true;
-}
-
 static bool builtins_exec(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
@@ -372,6 +367,21 @@ static bool builtins_ord(int argc, py_Ref argv) {
     return true;
 }
 
+static bool NoneType__repr__(int argc, py_Ref argv) {
+    py_newstr(py_retval(), "None");
+    return true;
+}
+
+static bool ellipsis__repr__(int argc, py_Ref argv) {
+    py_newstr(py_retval(), "Ellipsis");
+    return true;
+}
+
+static bool NotImplementedType__repr__(int argc, py_Ref argv) {
+    py_newstr(py_retval(), "NotImplemented");
+    return true;
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins");
     py_bindfunc(builtins, "repr", builtins_repr);
@@ -400,8 +410,10 @@ py_TValue pk_builtins__register() {
     py_bindfunc(builtins, "chr", builtins_chr);
     py_bindfunc(builtins, "ord", builtins_ord);
 
-    // None __repr__
+    // some patches
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);
+    py_bindmagic(tp_ellipsis, __repr__, ellipsis__repr__);
+    py_bindmagic(tp_NotImplementedType, __repr__, NotImplementedType__repr__);
     return *builtins;
 }
 

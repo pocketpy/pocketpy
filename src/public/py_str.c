@@ -495,12 +495,6 @@ py_Type pk_str__register() {
     return type;
 }
 
-static bool str_iterator__iter__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    *py_retval() = argv[0];
-    return true;
-}
-
 static bool str_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int* ud = py_touserdata(&argv[0]);
@@ -517,7 +511,7 @@ static bool str_iterator__next__(int argc, py_Ref argv) {
 py_Type pk_str_iterator__register() {
     py_Type type = pk_newtype("str_iterator", tp_object, NULL, NULL, false, true);
 
-    py_bindmagic(type, __iter__, str_iterator__iter__);
+    py_bindmagic(type, __iter__, pk_wrapper__self);
     py_bindmagic(type, __next__, str_iterator__next__);
     return type;
 }

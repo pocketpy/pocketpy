@@ -36,10 +36,6 @@ py_Type pk_classmethod__register(){
 }
 
 /* boundmethod */
-static bool boundmethod__new__(int argc, py_Ref argv) {
-    return NotImplementedError();
-}
-
 static bool boundmethod__self__getter(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_assign(py_retval(), py_getslot(argv, 0));
@@ -55,7 +51,6 @@ static bool boundmethod__func__getter(int argc, py_Ref argv) {
 py_Type pk_boundmethod__register(){
     py_Type type = pk_newtype("boundmethod", tp_object, NULL, NULL, false, true);
 
-    py_bindmagic(type, __new__, boundmethod__new__);
     py_bindproperty(type, "__self__", boundmethod__self__getter, NULL);
     py_bindproperty(type, "__func__", boundmethod__func__getter, NULL);
     return type;

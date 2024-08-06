@@ -65,6 +65,9 @@ bool pk__normalize_index(int* index, int length);
 void pk_list__mark(void* ud, void (*marker)(py_TValue*));
 void pk_dict__mark(void* ud, void (*marker)(py_TValue*));
 
+bool pk_wrapper__self(int argc, py_Ref argv);
+bool pk_wrapper__NotImplementedError(int argc, py_Ref argv);
+
 typedef enum FrameResult {
     RES_RETURN,
     RES_CALL,
@@ -122,5 +125,6 @@ py_Type pk_super__register();
 py_Type pk_property__register();
 py_Type pk_staticmethod__register();
 py_Type pk_classmethod__register();
+py_Type pk_generator__register();
 
 py_TValue pk_builtins__register();

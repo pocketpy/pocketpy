@@ -127,7 +127,7 @@ void VM__ctor(VM* self) {
     validate(tp_NotImplementedType,
              pk_newtype("NotImplementedType", tp_object, NULL, NULL, false, true));
     validate(tp_ellipsis, pk_newtype("ellipsis", tp_object, NULL, NULL, false, true));
-    validate(tp_generator, pk_newtype("generator", tp_object, NULL, NULL, false, true));
+    validate(tp_generator, pk_generator__register());
 
     self->builtins = pk_builtins__register();
 
@@ -647,4 +647,14 @@ void pk_print_stack(VM* self, Frame* frame, Bytecode byte) {
            byte.arg,
            stack_str->data);
     c11_string__delete(stack_str);
+}
+
+bool pk_wrapper__self(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_assign(py_retval(), argv);
+    return true;
+}
+
+bool pk_wrapper__NotImplementedError(int argc, py_Ref argv){
+    return py_exception(tp_NotImplementedError, "");
 }

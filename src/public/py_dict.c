@@ -457,12 +457,6 @@ py_Type pk_dict__register() {
 }
 
 //////////////////////////
-static bool dict_items__iter__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    *py_retval() = *argv;
-    return true;
-}
-
 static bool dict_items__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     DictIterator* iter = py_touserdata(py_arg(0));
@@ -478,7 +472,7 @@ static bool dict_items__next__(int argc, py_Ref argv) {
 
 py_Type pk_dict_items__register() {
     py_Type type = pk_newtype("dict_items", tp_object, NULL, NULL, false, true);
-    py_bindmagic(type, __iter__, dict_items__iter__);
+    py_bindmagic(type, __iter__, pk_wrapper__self);
     py_bindmagic(type, __next__, dict_items__next__);
     return type;
 }
