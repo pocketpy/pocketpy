@@ -5,7 +5,6 @@ const char* load_kPythonLib(const char* name);
 
 extern const char kPythonLibs__enum[];
 extern const char kPythonLibs__long[];
-extern const char kPythonLibs__set[];
 extern const char kPythonLibs_bisect[];
 extern const char kPythonLibs_builtins[];
 extern const char kPythonLibs_cmath[];

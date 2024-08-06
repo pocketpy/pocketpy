@@ -200,8 +200,6 @@ void VM__ctor(VM* self) {
         bool ok;
         ok = py_exec(kPythonLibs_builtins, "<builtins>", EXEC_MODE, &self->builtins);
         if(!ok) goto __ABORT;
-        ok = py_exec(kPythonLibs__set, "<builtins>", EXEC_MODE, &self->builtins);
-        if(!ok) goto __ABORT;
         break;
     __ABORT:
         py_printexc();
