@@ -1,10 +1,10 @@
+set -e
+
 python prebuild.py
 
-SRC_C=$(find src/ -name "*.c")
-SRC_CPP=$(find src/ -name "*.cpp")
-SRC="$SRC_C $SRC_CPP"
+SRC=$(find src/ -name "*.c")
 
-g++ -pg -Og -std=c++17 -frtti -Wfatal-errors -o main $SRC src2/main.cpp -Iinclude
+gcc -pg -Og -std=c11 -Wfatal-errors -o main $SRC src2/main.c -Iinclude
 ./main benchmarks/fib.py
 gprof main gmon.out > gprof.txt
 rm gmon.out
