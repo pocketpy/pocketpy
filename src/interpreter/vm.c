@@ -435,9 +435,11 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // submit the call
                 VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv));
                 return opcall ? RES_CALL : VM__run_top_frame(self);
-            case FuncType_GENERATOR:
-                assert(false);
-                break;
+            case FuncType_GENERATOR: {
+                bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
+                if(!ok) return RES_ERROR;
+                return RES_RETURN;
+            }
                 // prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
                 // s_data.reset(p0);
                 // callstack.emplace(nullptr, co, fn._module, callable.get(), nullptr);

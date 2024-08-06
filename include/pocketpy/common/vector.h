@@ -7,10 +7,6 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct c11_array {
     void* data;
     int count;
@@ -92,7 +88,3 @@ c11_array c11_vector__submit(c11_vector* self);
 // NOTE: here we do an extra NULL check for it to avoid UB
 #define c11__foreach(T, self, it)                                                                  \
     for(T* it = (self)->data; it && it != (T*)(self)->data + (self)->count; it++)
-
-#ifdef __cplusplus
-}
-#endif

@@ -4,10 +4,6 @@
 #include "pocketpy/common/str.h"
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define SMALLMAP_T__HEADER
 #define K uint16_t
 #define V int
@@ -24,7 +20,3 @@ extern "C" {
 #define equal(a, b)     (c11_sv__cmp((a), (b)) == 0)
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__HEADER
-
-#ifdef __cplusplus
-}
-#endif

@@ -7,10 +7,6 @@
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/strname.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, py_Name name);
 NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co);
 
@@ -66,7 +62,3 @@ int Frame__exit_block(Frame* self, ValueStack*, int);
 void Frame__gc_mark(Frame* self);
 UnwindTarget* Frame__find_unwind_target(Frame* self, int iblock);
 void Frame__set_unwind_target(Frame* self, py_TValue* sp);
-
-#ifdef __cplusplus
-}
-#endif

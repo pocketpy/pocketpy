@@ -2,10 +2,6 @@
 
 #include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define c11__less(a, b) ((a) < (b))
 
 #define c11__lower_bound(T, ptr, count, key, less, out_index)                                      \
@@ -42,8 +38,3 @@ bool c11__stable_sort(void* ptr,
                       int elem_size,
                       int (*f_lt)(const void* a, const void* b, void* extra),
                       void* extra);
-
-#ifdef __cplusplus
-}
-
-#endif

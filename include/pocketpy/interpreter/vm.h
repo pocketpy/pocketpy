@@ -6,10 +6,6 @@
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/modules.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct py_TypeInfo {
     py_Name name;
     py_Type base;
@@ -128,7 +124,3 @@ py_Type pk_staticmethod__register();
 py_Type pk_classmethod__register();
 
 py_TValue pk_builtins__register();
-
-#ifdef __cplusplus
-}
-#endif

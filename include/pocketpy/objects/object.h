@@ -3,10 +3,6 @@
 #include "pocketpy/objects/namedict.h"
 #include "pocketpy/objects/base.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct PyObject {
     py_Type type;  // we have a duplicated type here for convenience
     bool gc_is_large;
@@ -29,7 +25,3 @@ void* PyObject__userdata(PyObject* self);
 
 PyObject* PyObject__new(py_Type type, int slots, int size);
 void PyObject__delete(PyObject* self);
-
-#ifdef __cplusplus
-}
-#endif

@@ -6,10 +6,6 @@
 #include "pocketpy/objects/error.h"
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern const char* TokenSymbols[];
 
 typedef enum TokenIndex{
@@ -95,7 +91,3 @@ Error* Lexer__process_and_dump(SourceData_ src, c11_string** out_string);
 void TokenArray__dtor(TokenArray* self);
 
 #define Token__sv(self) (c11_sv){(self)->start, (self)->length}
-
-#ifdef __cplusplus
-}
-#endif

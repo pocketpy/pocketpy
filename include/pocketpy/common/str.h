@@ -4,10 +4,6 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/pocketpy.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* string */
 typedef struct c11_string{
     // int size | char[] | '\0'
@@ -74,7 +70,3 @@ typedef enum IntParsingResult{
 } IntParsingResult;
 
 IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base);
-
-#ifdef __cplusplus
-}
-#endif

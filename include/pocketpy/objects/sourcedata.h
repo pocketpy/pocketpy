@@ -6,10 +6,6 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/vector.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct SourceData {
     RefCounted rc;
     enum py_CompileMode mode;
@@ -38,7 +34,3 @@ void SourceData__snapshot(const struct SourceData* self,
                              int lineno,
                              const char* cursor,
                              const char* name);
-
-#ifdef __cplusplus
-}
-#endif

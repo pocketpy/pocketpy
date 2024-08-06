@@ -1,10 +1,6 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct ManagedHeap{
     c11_vector no_gc;
     c11_vector gen;
@@ -28,7 +24,3 @@ PyObject* ManagedHeap__gcnew(ManagedHeap* self, py_Type type, int slots, int uds
 
 // external implementation
 void ManagedHeap__mark(ManagedHeap* self);
-
-#ifdef __cplusplus
-}
-#endif

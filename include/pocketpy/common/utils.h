@@ -3,10 +3,6 @@
 #include "stdio.h"
 #include "stdlib.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define PK_REGION(name) 1
 
 #define PK_SLICE_LOOP(i, start, stop, step)                                                        \
@@ -52,7 +48,3 @@ typedef struct RefCounted {
             free(obj);                                                                             \
         }                                                                                          \
     } while(0)
-
-#ifdef __cplusplus
-}
-#endif

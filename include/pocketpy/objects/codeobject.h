@@ -10,10 +10,6 @@
 #include "pocketpy/objects/namedict.h"
 #include "pocketpy/pocketpy.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define BC_NOARG 0
 #define BC_KEEPLINE -1
 
@@ -145,7 +141,3 @@ typedef struct Function {
 
 void Function__ctor(Function* self, FuncDecl_ decl, py_TValue* module);
 void Function__dtor(Function* self);
-
-#ifdef __cplusplus
-}
-#endif

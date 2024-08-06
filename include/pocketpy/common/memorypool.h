@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define kPoolExprBlockSize      128
 #define kPoolFrameBlockSize     80
 #define kPoolObjectBlockSize    80
@@ -24,8 +20,3 @@ void PoolObject_dealloc(void* p);
 void PoolObject_shrink_to_fit();
 
 void Pools_debug_info(char* buffer, int size);
-
-#ifdef __cplusplus
-}
-#endif
-

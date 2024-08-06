@@ -9,10 +9,6 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/pocketpy.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct PyObject PyObject;
 typedef struct VM VM;
 extern VM* pk_current_vm;
@@ -35,7 +31,3 @@ typedef struct py_TValue {
 // 16 bytes to make py_arg() macro work
 static_assert(sizeof(py_CFunction) <= 8, "sizeof(py_CFunction) > 8");
 static_assert(sizeof(py_TValue) == 16, "sizeof(py_TValue) != 16");
-
-#ifdef __cplusplus
-}
-#endif

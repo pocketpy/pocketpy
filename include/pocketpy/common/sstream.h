@@ -6,10 +6,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct c11_sbuf {
     c11_vector data;
 } c11_sbuf;
@@ -34,7 +30,3 @@ void c11_sbuf__py_submit(c11_sbuf* self, py_Ref out);
 
 void pk_vsprintf(c11_sbuf* ss, const char* fmt, va_list args);
 void pk_sprintf(c11_sbuf* ss, const char* fmt, ...);
-
-#ifdef __cplusplus
-}
-#endif

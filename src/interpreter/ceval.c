@@ -701,7 +701,9 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_YIELD_VALUE: {
-                assert(false);
+                py_assign(py_retval(), TOP());
+                POP();
+                return RES_YIELD;
             }
             /////////
             case OP_LIST_APPEND: {
