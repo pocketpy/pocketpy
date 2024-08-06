@@ -14,7 +14,6 @@ extern const char kPythonLibs_bisect[];
 extern const char kPythonLibs_builtins[];
 extern const char kPythonLibs_cmath[];
 extern const char kPythonLibs_collections[];
-extern const char kPythonLibs_colorsys[];
 extern const char kPythonLibs_datetime[];
 extern const char kPythonLibs_functools[];
 extern const char kPythonLibs_heapq[];
