@@ -10,7 +10,7 @@ def get_all_files(root: str):
                 continue
             if file.startswith('_'):
                 continue
-            if not file.endswith('.cpp') and not file.endswith('.h') and not file.endswith('.hpp'):
+            if not file.endswith('.c') and not file.endswith('.h') and not file.endswith('.hpp'):
                 continue
             yield fullpath
 
