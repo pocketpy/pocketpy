@@ -232,6 +232,10 @@ int c11__byte_index_to_unicode(const char* data, int n) {
 }
 
 //////////////
+bool c11_bytes__eq(c11_bytes* self, c11_bytes* other) {
+    if(self->size != other->size) return false;
+    return memcmp(self->data, other->data, self->size) == 0;
+}
 
 int c11_sv__cmp(c11_sv self, c11_sv other) {
     int res = strncmp(self.data, other.data, c11__min(self.size, other.size));

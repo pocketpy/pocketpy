@@ -409,6 +409,28 @@ static bool builtins_delattr(int argc, py_Ref argv) {
     return py_delattr(py_arg(0), name);
 }
 
+static bool builtins_chr(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    py_i64 val = py_toint(py_arg(0));
+    if(val < 0 || val > 128) {
+        return ValueError("chr() arg not in range(128)");
+    }
+    py_newstrn(py_retval(), (const char*)&val, 1);
+    return true;
+}
+
+static bool builtins_ord(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    c11_sv sv = py_tosv(py_arg(0));
+    if(sv.size != 1) {
+        return TypeError("ord() expected a character, but string of length %d found", sv.size);
+    }
+    py_newint(py_retval(), sv.data[0]);
+    return true;
+}
+
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins");
     py_bindfunc(builtins, "repr", builtins_repr);
@@ -435,6 +457,9 @@ py_TValue pk_builtins__register() {
     py_bindfunc(builtins, "setattr", builtins_setattr);
     py_bindfunc(builtins, "hasattr", builtins_hasattr);
     py_bindfunc(builtins, "delattr", builtins_delattr);
+
+    py_bindfunc(builtins, "chr", builtins_chr);
+    py_bindfunc(builtins, "ord", builtins_ord);
 
     // None __repr__
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);

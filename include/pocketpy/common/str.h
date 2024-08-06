@@ -21,6 +21,8 @@ typedef struct c11_bytes{
     unsigned char data[];   // flexible array member
 } c11_bytes;
 
+bool c11_bytes__eq(c11_bytes* self, c11_bytes* other);
+
 int c11_sv__cmp(c11_sv self, c11_sv other);
 int c11_sv__cmp2(c11_sv self, const char* other);
 

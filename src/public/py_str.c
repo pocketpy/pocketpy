@@ -190,7 +190,7 @@ static bool str__getitem__(int argc, py_Ref argv) {
 }
 
 #define DEF_STR_CMP_OP(op, __f, __cond)                                                            \
-    static bool str##op(int argc, py_Ref argv) {                                               \
+    static bool str##op(int argc, py_Ref argv) {                                                   \
         PY_CHECK_ARGC(2);                                                                          \
         c11_string* self = py_touserdata(&argv[0]);                                                \
         if(py_arg(1)->type != tp_str) {                                                            \
@@ -355,17 +355,11 @@ static bool str__strip_impl(bool left, bool right, int argc, py_Ref argv) {
     return true;
 }
 
-static bool str_strip(int argc, py_Ref argv) {
-    return str__strip_impl(true, true, argc, argv);
-}
+static bool str_strip(int argc, py_Ref argv) { return str__strip_impl(true, true, argc, argv); }
 
-static bool str_lstrip(int argc, py_Ref argv) {
-    return str__strip_impl(true, false, argc, argv);
-}
+static bool str_lstrip(int argc, py_Ref argv) { return str__strip_impl(true, false, argc, argv); }
 
-static bool str_rstrip(int argc, py_Ref argv) {
-    return str__strip_impl(false, true, argc, argv);
-}
+static bool str_rstrip(int argc, py_Ref argv) { return str__strip_impl(false, true, argc, argv); }
 
 static bool str_zfill(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
@@ -423,13 +417,9 @@ static bool str__widthjust_impl(bool left, int argc, py_Ref argv) {
     return true;
 }
 
-static bool str_ljust(int argc, py_Ref argv) {
-    return str__widthjust_impl(true, argc, argv);
-}
+static bool str_ljust(int argc, py_Ref argv) { return str__widthjust_impl(true, argc, argv); }
 
-static bool str_rjust(int argc, py_Ref argv) {
-    return str__widthjust_impl(false, argc, argv);
-}
+static bool str_rjust(int argc, py_Ref argv) { return str__widthjust_impl(false, argc, argv); }
 
 static bool str_find(int argc, py_Ref argv) {
     if(argc > 3) return TypeError("find() takes at most 3 arguments");
@@ -450,6 +440,15 @@ static bool str_index(int argc, py_Ref argv) {
     bool ok = str_find(argc, argv);
     if(!ok) return false;
     if(py_toint(py_retval()) == -1) return ValueError("substring not found");
+    return true;
+}
+
+static bool str_encode(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    int size;
+    const char* data = py_tostrn(argv, &size);
+    unsigned char* p = py_newbytes(py_retval(), size);
+    memcpy(p, data, size);
     return true;
 }
 
@@ -492,6 +491,7 @@ py_Type pk_str__register() {
     py_bindmethod(tp_str, "rjust", str_rjust);
     py_bindmethod(tp_str, "find", str_find);
     py_bindmethod(tp_str, "index", str_index);
+    py_bindmethod(tp_str, "encode", str_encode);
     return type;
 }
 
@@ -522,9 +522,102 @@ py_Type pk_str_iterator__register() {
     return type;
 }
 
+static bool bytes__repr__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_bytes* self = py_touserdata(&argv[0]);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    c11_sbuf__write_char(&buf, 'b');
+    c11_sbuf__write_quoted(&buf, (c11_sv){(const char*)self->data, self->size}, '\'');
+    c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
+static bool bytes__getitem__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    int size;
+    unsigned char* data = py_tobytes(&argv[0], &size);
+    py_Ref _1 = py_arg(1);
+    if(_1->type == tp_int) {
+        int index = py_toint(_1);
+        if(!pk__normalize_index(&index, size)) return false;
+        py_newint(py_retval(), data[index]);
+        return true;
+    } else if(_1->type == tp_slice) {
+        int start, stop, step;
+        bool ok = pk__parse_int_slice(_1, size, &start, &stop, &step);
+        if(!ok) return false;
+        c11_vector res;
+        c11_vector__ctor(&res, sizeof(unsigned char));
+        for(int i = start; step > 0 ? i < stop : i > stop; i += step) {
+            c11_vector__push(unsigned char, &res, data[i]);
+        }
+        unsigned char* p = py_newbytes(py_retval(), res.count);
+        memcpy(p, res.data, res.count);
+        c11_vector__dtor(&res);
+        return true;
+    } else {
+        return TypeError("bytes indices must be integers");
+    }
+}
+
+static bool bytes__eq__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_bytes* self = py_touserdata(&argv[0]);
+    if(!py_istype(&argv[1], tp_bytes)) {
+        py_newnotimplemented(py_retval());
+    } else {
+        c11_bytes* other = py_touserdata(&argv[1]);
+        py_newbool(py_retval(), c11_bytes__eq(self, other));
+    }
+    return true;
+}
+
+static bool bytes__ne__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_bytes* self = py_touserdata(&argv[0]);
+    if(!py_istype(&argv[1], tp_bytes)) {
+        py_newnotimplemented(py_retval());
+    } else {
+        c11_bytes* other = py_touserdata(&argv[1]);
+        py_newbool(py_retval(), !c11_bytes__eq(self, other));
+    }
+    return true;
+}
+
+static bool bytes__add__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_bytes* self = py_touserdata(&argv[0]);
+    if(py_arg(1)->type != tp_bytes) {
+        py_newnotimplemented(py_retval());
+    } else {
+        c11_bytes* other = py_touserdata(&argv[1]);
+        unsigned char* p = py_newbytes(py_retval(), self->size + other->size);
+        memcpy(p, self->data, self->size);
+        memcpy(p + self->size, other->data, other->size);
+    }
+    return true;
+}
+
+static bool bytes_decode(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    int size;
+    unsigned char* data = py_tobytes(&argv[0], &size);
+    py_newstrn(py_retval(), (const char*)data, size);
+    return true;
+}
+
 py_Type pk_bytes__register() {
     py_Type type = pk_newtype("bytes", tp_object, NULL, NULL, false, true);
     // no need to dtor because the memory is controlled by the object
+
+    py_bindmagic(tp_bytes, __repr__, bytes__repr__);
+    py_bindmagic(tp_bytes, __getitem__, bytes__getitem__);
+    py_bindmagic(tp_bytes, __eq__, bytes__eq__);
+    py_bindmagic(tp_bytes, __ne__, bytes__ne__);
+    py_bindmagic(tp_bytes, __add__, bytes__add__);
+
+    py_bindmethod(tp_bytes, "decode", bytes_decode);
     return type;
 }
 

@@ -13,7 +13,8 @@ assert b'\xff\xee' == b'\xff\xee'
 a = '测试123'
 assert a == a.encode().decode()
 
-
+assert chr(0) == '\x00'
+assert ord('\x00') == 0
 
 # test slice
 s = b"football"
