@@ -35,3 +35,7 @@ assert a[::2] == b"Hlo ol!"
 assert a[2:5:2] == b"lo"
 assert a[5:2:-1] == b",ol"
 assert a[5:2:-2] == b",l"
+
+assert bytes() == b''
+assert bytes((65,)) == b'A'
+assert bytes([0, 1, 2, 3]) == b'\x00\x01\x02\x03'

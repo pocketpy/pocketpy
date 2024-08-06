@@ -522,6 +522,25 @@ py_Type pk_str_iterator__register() {
     return type;
 }
 
+static bool bytes__new__(int argc, py_Ref argv){
+    if(argc == 1){
+        py_newbytes(py_retval(), 0);
+        return true;
+    }
+    if(argc > 2) return TypeError("bytes() takes at most 1 argument");
+    int length;
+    py_TValue* p = pk_arrayview(&argv[1], &length);
+    if(!p) return TypeError("bytes() argument must be a list or tuple");
+    unsigned char* data = py_newbytes(py_retval(), length);
+    for(int i = 0; i < length; i++){
+        if(!py_checktype(&p[i], tp_int)) return false;
+        py_i64 v = py_toint(&p[i]);
+        if(v < 0 || v > 255) return ValueError("bytes must be in range(0, 256)");
+        data[i] = v;
+    }
+    return true;
+}
+
 static bool bytes__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_bytes* self = py_touserdata(&argv[0]);
@@ -611,6 +630,7 @@ py_Type pk_bytes__register() {
     py_Type type = pk_newtype("bytes", tp_object, NULL, NULL, false, true);
     // no need to dtor because the memory is controlled by the object
 
+    py_bindmagic(tp_bytes, __new__, bytes__new__);
     py_bindmagic(tp_bytes, __repr__, bytes__repr__);
     py_bindmagic(tp_bytes, __getitem__, bytes__getitem__);
     py_bindmagic(tp_bytes, __eq__, bytes__eq__);
