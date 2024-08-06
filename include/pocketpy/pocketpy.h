@@ -518,9 +518,10 @@ enum py_PredefinedTypes {
     tp_NoneType,
     tp_NotImplementedType,
     tp_ellipsis,
-    tp_SyntaxError,
-    tp_StopIteration,
+    tp_generator,
     /* builtin exceptions */
+    tp_StopIteration,
+    tp_SyntaxError,
     tp_StackOverflowError,
     tp_IOError,
     tp_OSError,

@@ -2,6 +2,7 @@
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
+#include "pocketpy/interpreter/generator.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/common/_generated.h"
 #include "pocketpy/pocketpy.h"
@@ -126,9 +127,7 @@ void VM__ctor(VM* self) {
     validate(tp_NotImplementedType,
              pk_newtype("NotImplementedType", tp_object, NULL, NULL, false, true));
     validate(tp_ellipsis, pk_newtype("ellipsis", tp_object, NULL, NULL, false, true));
-
-    validate(tp_SyntaxError, pk_newtype("SyntaxError", tp_Exception, NULL, NULL, false, true));
-    validate(tp_StopIteration, pk_newtype("StopIteration", tp_Exception, NULL, NULL, false, true));
+    validate(tp_generator, pk_newtype("generator", tp_object, NULL, NULL, false, true));
 
     self->builtins = pk_builtins__register();
 
@@ -140,6 +139,8 @@ void VM__ctor(VM* self) {
         validate(tp_##name, type);                                                                 \
     } while(0)
 
+    INJECT_BUILTIN_EXC(StopIteration);
+    INJECT_BUILTIN_EXC(SyntaxError);
     INJECT_BUILTIN_EXC(StackOverflowError);
     INJECT_BUILTIN_EXC(IOError);
     INJECT_BUILTIN_EXC(OSError);
@@ -160,11 +161,26 @@ void VM__ctor(VM* self) {
 #undef validate
 
     /* Setup Public Builtin Types */
-    py_Type public_types[] = {tp_object,        tp_type,         tp_int,           tp_float,
-                              tp_bool,          tp_str,          tp_list,          tp_tuple,
-                              tp_slice,         tp_range,        tp_bytes,         tp_dict,
-                              tp_property,      tp_staticmethod, tp_classmethod,   tp_super,
-                              tp_BaseException, tp_Exception,    tp_StopIteration, tp_SyntaxError};
+    py_Type public_types[] = {
+        tp_object,
+        tp_type,
+        tp_int,
+        tp_float,
+        tp_bool,
+        tp_str,
+        tp_list,
+        tp_tuple,
+        tp_slice,
+        tp_range,
+        tp_bytes,
+        tp_dict,
+        tp_property,
+        tp_staticmethod,
+        tp_classmethod,
+        tp_super,
+        tp_BaseException,
+        tp_Exception,
+    };
 
     for(int i = 0; i < c11__count_array(public_types); i++) {
         py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, public_types[i]);
@@ -438,6 +454,9 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
             case FuncType_GENERATOR: {
                 bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
+                Frame* frame = Frame__new(co, &fn->module, p0, p0, argv);
+                pk_newgenerator(py_retval(), frame, 0);
+                self->stack.sp = p0;
                 return RES_RETURN;
             }
                 // prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
@@ -560,7 +579,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
     }
     // mark frame
     for(Frame* frame = vm->top_frame; frame; frame = frame->f_back) {
-        mark_value(&frame->module);
+        mark_value(frame->module);
     }
     // mark vm's registers
     mark_value(&vm->last_retval);

@@ -6,6 +6,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/strname.h"
+#include "pocketpy/pocketpy.h"
 
 py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, py_Name name);
 NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co);
@@ -34,7 +35,7 @@ typedef struct Frame {
     struct Frame* f_back;
     const Bytecode* ip;
     const CodeObject* co;
-    py_TValue module;      // weak ref
+    py_GlobalRef module;
     py_StackRef function;  // a function object or NULL (global scope)
     py_StackRef p0;        // unwinding base
     py_StackRef locals;    // locals base
@@ -42,7 +43,7 @@ typedef struct Frame {
 } Frame;
 
 Frame* Frame__new(const CodeObject* co,
-                  py_TValue* module,
+                  py_GlobalRef module,
                   py_StackRef function,
                   py_StackRef p0,
                   py_StackRef locals);

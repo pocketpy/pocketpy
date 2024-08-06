@@ -1,6 +1,7 @@
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/object.h"
+#include "pocketpy/pocketpy.h"
 
 void ValueStack__ctor(ValueStack* self) {
     self->sp = self->begin;
@@ -35,7 +36,7 @@ UnwindTarget* UnwindTarget__new(UnwindTarget* next, int iblock, int offset) {
 void UnwindTarget__delete(UnwindTarget* self) { free(self); }
 
 Frame* Frame__new(const CodeObject* co,
-                  py_TValue* module,
+                  py_GlobalRef module,
                   py_StackRef function,
                   py_StackRef p0,
                   py_StackRef locals) {
@@ -44,7 +45,7 @@ Frame* Frame__new(const CodeObject* co,
     self->f_back = NULL;
     self->ip = (Bytecode*)co->codes.data - 1;
     self->co = co;
-    self->module = *module;
+    self->module = module;
     self->function = function;
     self->p0 = p0;
     self->locals = locals;

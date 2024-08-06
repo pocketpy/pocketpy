@@ -134,7 +134,7 @@ FrameResult VM__run_top_frame(VM* self) {
             case OP_LOAD_FUNCTION: {
                 FuncDecl_ decl = c11__getitem(FuncDecl_, &frame->co->func_decls, byte.arg);
                 Function* ud = py_newobject(SP(), tp_function, 0, sizeof(Function));
-                Function__ctor(ud, decl, &frame->module);
+                Function__ctor(ud, decl, frame->module);
                 if(decl->nested) {
                     ud->closure = FastLocals__to_namedict(frame->locals, frame->co);
                     py_Name name = py_name(decl->code.name->data);
@@ -173,7 +173,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     PUSH(tmp);
                     DISPATCH();
                 }
-                tmp = py_getdict(&frame->module, name);
+                tmp = py_getdict(frame->module, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -193,7 +193,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     PUSH(tmp);
                     DISPATCH();
                 }
-                tmp = py_getdict(&frame->module, name);
+                tmp = py_getdict(frame->module, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -208,7 +208,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_LOAD_GLOBAL: {
                 py_Name name = byte.arg;
-                py_Ref tmp = py_getdict(&frame->module, name);
+                py_Ref tmp = py_getdict(frame->module, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -237,7 +237,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     DISPATCH();
                 }
                 // load global if attribute not found
-                tmp = py_getdict(&frame->module, name);
+                tmp = py_getdict(frame->module, name);
                 if(tmp) {
                     PUSH(tmp);
                     DISPATCH();
@@ -300,13 +300,13 @@ FrameResult VM__run_top_frame(VM* self) {
                         // }
                     }
                 } else {
-                    py_setdict(&frame->module, name, TOP());
+                    py_setdict(frame->module, name, TOP());
                 }
                 POP();
                 DISPATCH();
             }
             case OP_STORE_GLOBAL: {
-                py_setdict(&frame->module, byte.arg, TOP());
+                py_setdict(frame->module, byte.arg, TOP());
                 POP();
                 DISPATCH();
             }
@@ -361,7 +361,7 @@ FrameResult VM__run_top_frame(VM* self) {
                         // }
                     }
                 } else {
-                    bool ok = py_deldict(&frame->module, name);
+                    bool ok = py_deldict(frame->module, name);
                     if(!ok) {
                         NameError(name);
                         goto __ERROR;
@@ -371,7 +371,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_DELETE_GLOBAL: {
                 py_Name name = byte.arg;
-                bool ok = py_deldict(&frame->module, name);
+                bool ok = py_deldict(frame->module, name);
                 if(!ok) {
                     NameError(name);
                     goto __ERROR;
@@ -802,7 +802,7 @@ FrameResult VM__run_top_frame(VM* self) {
                             ImportError("cannot import name '%n'", name);
                             goto __ERROR;
                         } else {
-                            py_setdict(&frame->module, name, value);
+                            py_setdict(frame->module, name, value);
                         }
                     }
                 } else {
@@ -811,7 +811,7 @@ FrameResult VM__run_top_frame(VM* self) {
                         if(!kv->key) continue;
                         c11_sv name = py_name2sv(kv->key);
                         if(name.size == 0 || name.data[0] == '_') continue;
-                        py_setdict(&frame->module, kv->key, &kv->value);
+                        py_setdict(frame->module, kv->key, &kv->value);
                     }
                 }
                 POP();
@@ -857,7 +857,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
                 POP();
                 py_Type type =
-                    pk_newtype(py_name2str(name), base, &frame->module, NULL, true, false);
+                    pk_newtype(py_name2str(name), base, frame->module, NULL, true, false);
                 PUSH(py_tpobject(type));
                 self->__curr_class = TOP();
                 DISPATCH();
@@ -866,7 +866,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 // [cls or decorated]
                 py_Name name = byte.arg;
                 // set into f_globals
-                py_setdict(&frame->module, name, TOP());
+                py_setdict(frame->module, name, TOP());
 
                 if(py_istype(TOP(), tp_type)) {
                     // call on_end_subclass
@@ -950,7 +950,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_TValue* tmp = c11__at(py_TValue, &frame->co->consts, byte.arg);
                 const char* string = py_tostr(tmp);
                 // TODO: optimize this
-                if(!py_exec(string, "<eval>", EVAL_MODE, &frame->module)) goto __ERROR;
+                if(!py_exec(string, "<eval>", EVAL_MODE, frame->module)) goto __ERROR;
                 PUSH(py_retval());
                 DISPATCH();
             }

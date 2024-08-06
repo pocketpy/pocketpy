@@ -68,7 +68,7 @@ int py_import(const char* path_cstr) {
         c11_sv top_filename = c11_string__sv(vm->top_frame->co->src->filename);
         int is_init = c11_sv__endswith(top_filename, (c11_sv){"__init__.py", 11});
 
-        py_Ref package = py_getdict(&vm->top_frame->module, __path__);
+        py_Ref package = py_getdict(vm->top_frame->module, __path__);
         c11_sv package_sv = py_tosv(package);
         if(package_sv.size == 0) {
             return ImportError("attempted relative import with no known parent package");
@@ -323,14 +323,14 @@ static bool builtins_exec(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
     Frame* frame = pk_current_vm->top_frame;
-    return py_exec(py_tostr(argv), "<exec>", EXEC_MODE, &frame->module);
+    return py_exec(py_tostr(argv), "<exec>", EXEC_MODE, frame->module);
 }
 
 static bool builtins_eval(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
     Frame* frame = pk_current_vm->top_frame;
-    return py_exec(py_tostr(argv), "<eval>", EVAL_MODE, &frame->module);
+    return py_exec(py_tostr(argv), "<eval>", EVAL_MODE, frame->module);
 }
 
 static bool builtins_isinstance(int argc, py_Ref argv) {
@@ -418,9 +418,7 @@ static bool builtins_chr(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_int);
     py_i64 val = py_toint(py_arg(0));
-    if(val < 0 || val > 128) {
-        return ValueError("chr() arg not in range(128)");
-    }
+    if(val < 0 || val > 128) { return ValueError("chr() arg not in range(128)"); }
     py_newstrn(py_retval(), (const char*)&val, 1);
     return true;
 }
