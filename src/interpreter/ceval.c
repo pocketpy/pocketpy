@@ -898,6 +898,28 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             ///////////
+            case OP_WITH_ENTER: {
+                // [expr]
+                py_push(TOP());
+                if(!py_pushmethod(__enter__)){
+                    TypeError("'%t' object does not support the context manager protocol", TOP()->type);
+                    goto __ERROR;
+                }
+                if(!py_vectorcall(0, 0)) goto __ERROR;
+                PUSH(py_retval());
+                DISPATCH();
+            }
+            case OP_WITH_EXIT: {
+                // [expr]
+                py_push(TOP());
+                if(!py_pushmethod(__exit__)){
+                    TypeError("'%t' object does not support the context manager protocol", TOP()->type);
+                    goto __ERROR;
+                }
+                if(!py_vectorcall(0, 0)) goto __ERROR;
+                DISPATCH();
+            }
+            ///////////
             case OP_TRY_ENTER: {
                 Frame__set_unwind_target(frame, SP());
                 DISPATCH();

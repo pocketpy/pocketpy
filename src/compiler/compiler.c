@@ -2664,28 +2664,29 @@ static Error* compile_stmt(Compiler* self) {
             Ctx__s_pop(ctx());
             consume_end_stmt();
         } break;
-        // case TK_WITH: {
-        //     check(EXPR(self));  // [ <expr> ]
-        //     Ctx__s_emit_top(ctx());
-        //     Ctx__enter_block(ctx(), CodeBlockType_CONTEXT_MANAGER);
-        //     Expr* as_name = nullptr;
-        //     if(match(TK_AS)) {
-        //         consume(TK_ID);
-        //         as_name = make_expr<NameExpr>(prev().str(), name_scope());
-        //     }
-        //     Ctx__emit_(ctx(), OP_WITH_ENTER, BC_NOARG, prev().line);
-        //     // [ <expr> <expr>.__enter__() ]
-        //     if(as_name) {
-        //         bool ok = as_name->emit_store(ctx());
-        //         delete_expr(as_name);
-        //         if(!ok) return SyntaxError(self, );
-        //     } else {
-        //         Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
-        //     }
-        //     check(compile_block_body());
-        //     Ctx__emit_(ctx(), OP_WITH_EXIT, BC_NOARG, prev().line);
-        //     Ctx__exit_block(ctx());
-        // } break;
+        case TK_WITH: {
+            check(EXPR(self));  // [ <expr> ]
+            Ctx__s_emit_top(ctx());
+            Ctx__enter_block(ctx(), CodeBlockType_CONTEXT_MANAGER);
+            NameExpr* as_name = NULL;
+            if(match(TK_AS)) {
+                consume(TK_ID);
+                py_Name name = py_namev(Token__sv(prev()));
+                as_name = NameExpr__new(prev()->line, name, name_scope(self));
+            }
+            Ctx__emit_(ctx(), OP_WITH_ENTER, BC_NOARG, prev()->line);
+            // [ <expr> <expr>.__enter__() ]
+            if(as_name) {
+                bool ok = vtemit_store((Expr*)as_name, ctx());
+                vtdelete((Expr*)as_name);
+                if(!ok) return SyntaxError(self, "invalid syntax");
+            } else {
+                Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+            }
+            check(compile_block_body(self, compile_stmt));
+            Ctx__emit_(ctx(), OP_WITH_EXIT, BC_NOARG, prev()->line);
+            Ctx__exit_block(ctx());
+        } break;
         /*************************************************/
         case TK_EQ: {
             consume(TK_ID);
