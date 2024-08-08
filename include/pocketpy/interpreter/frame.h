@@ -36,17 +36,19 @@ typedef struct Frame {
     const Bytecode* ip;
     const CodeObject* co;
     py_GlobalRef module;
-    bool has_function;     // is p0 a function?
-    py_StackRef p0;        // unwinding base
-    py_StackRef locals;    // locals base
+    py_StackRef p0;      // unwinding base
+    py_StackRef locals;  // locals base
+    bool has_function;   // is p0 a function?
+    bool is_dynamic;     // is dynamic frame?
     UnwindTarget* uw_list;
 } Frame;
 
 Frame* Frame__new(const CodeObject* co,
                   py_GlobalRef module,
-                  bool has_function,
                   py_StackRef p0,
-                  py_StackRef locals);
+                  py_StackRef locals,
+                  bool has_function,
+                  bool is_dynamic);
 void Frame__delete(Frame* self);
 
 int Frame__ip(const Frame* self);

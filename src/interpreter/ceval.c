@@ -159,28 +159,65 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_LOAD_NAME: {
                 py_Name name = byte.arg;
-                py_Ref tmp = Frame__f_locals_try_get(frame, name);
-                if(tmp != NULL) {
-                    if(py_isnil(tmp)) {
-                        UnboundLocalError(name);
-                        goto __ERROR;
+                py_TValue* tmp;
+                if(!frame->is_dynamic) {
+                    // locals
+                    tmp = Frame__f_locals_try_get(frame, name);
+                    if(tmp != NULL) {
+                        if(py_isnil(tmp)) {
+                            UnboundLocalError(name);
+                            goto __ERROR;
+                        }
+                        PUSH(tmp);
+                        DISPATCH();
                     }
-                    PUSH(tmp);
-                    DISPATCH();
+                    // closure
+                    tmp = Frame__f_closure_try_get(frame, name);
+                    if(tmp != NULL) {
+                        PUSH(tmp);
+                        DISPATCH();
+                    }
+                    // globals
+                    tmp = py_getdict(frame->module, name);
+                    if(tmp != NULL) {
+                        PUSH(tmp);
+                        DISPATCH();
+                    }
+                } else {
+                    py_newstr(SP()++, py_name2str(name));
+                    // locals
+                    if(py_getitem(&frame->p0[1], TOP())) {
+                        py_assign(TOP(), py_retval());
+                        DISPATCH();
+                    } else {
+                        if(py_matchexc(tp_KeyError)) {
+                            py_clearexc(NULL);
+                        } else {
+                            goto __ERROR;
+                        }
+                    }
+                    // closure
+                    tmp = Frame__f_closure_try_get(frame, name);
+                    if(tmp != NULL) {
+                        py_assign(TOP(), tmp);
+                        DISPATCH();
+                    }
+                    // globals
+                    if(py_getitem(&frame->p0[0], TOP())) {
+                        py_assign(TOP(), py_retval());
+                        DISPATCH();
+                    } else {
+                        if(py_matchexc(tp_KeyError)) {
+                            py_clearexc(NULL);
+                        } else {
+                            goto __ERROR;
+                        }
+                    }
                 }
-                tmp = Frame__f_closure_try_get(frame, name);
-                if(tmp != NULL) {
-                    PUSH(tmp);
-                    DISPATCH();
-                }
-                tmp = py_getdict(frame->module, name);
-                if(tmp != NULL) {
-                    PUSH(tmp);
-                    DISPATCH();
-                }
+                // builtins
                 tmp = py_getdict(&self->builtins, name);
                 if(tmp != NULL) {
-                    PUSH(tmp);
+                    py_assign(TOP(), tmp);
                     DISPATCH();
                 }
                 NameError(name);
@@ -284,19 +321,35 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_STORE_FAST: frame->locals[byte.arg] = POPX(); DISPATCH();
             case OP_STORE_NAME: {
+                assert(frame->is_dynamic);
                 py_Name name = byte.arg;
-                if(frame->has_function) {
-                    py_Ref slot = Frame__f_locals_try_get(frame, name);
-                    if(slot != NULL) {
-                        *slot = *TOP();  // store in locals if possible
+                py_newstr(SP()++, py_name2str(name));
+                // [value, name]
+                if(!py_isnone(&frame->p0[1])){
+                    // locals
+                    if(py_setitem(&frame->p0[1], TOP(), SECOND())) {
+                        STACK_SHRINK(2);
+                        DISPATCH();
                     } else {
-                        NameError(name);
+                        if(py_matchexc(tp_KeyError)) {
+                            py_clearexc(NULL);
+                            NameError(name);
+                        }
                         goto __ERROR;
                     }
-                } else {
-                    py_setdict(frame->module, name, TOP());
+                }else{
+                    // globals
+                    if(py_setitem(&frame->p0[0], TOP(), SECOND())) {
+                        STACK_SHRINK(2);
+                        DISPATCH();
+                    } else {
+                        if(py_matchexc(tp_KeyError)) {
+                            py_clearexc(NULL);
+                            NameError(name);
+                        }
+                        goto __ERROR;
+                    }
                 }
-                POP();
                 DISPATCH();
             }
             case OP_STORE_GLOBAL: {
@@ -339,19 +392,31 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_DELETE_NAME: {
+                assert(frame->is_dynamic);
                 py_Name name = byte.arg;
-                if(frame->has_function) {
-                    py_TValue* slot = Frame__f_locals_try_get(frame, name);
-                    if(slot) {
-                        py_newnil(slot);
+                py_newstr(SP()++, py_name2str(name));
+                if(!py_isnone(&frame->p0[1])){
+                    // locals
+                    if(py_delitem(&frame->p0[1], TOP())) {
+                        POP();
+                        DISPATCH();
                     } else {
-                        NameError(name);
+                        if(py_matchexc(tp_KeyError)) {
+                            py_clearexc(NULL);
+                            NameError(name);
+                        }
                         goto __ERROR;
                     }
-                } else {
-                    bool ok = py_deldict(frame->module, name);
-                    if(!ok) {
-                        NameError(name);
+                }else{
+                    // globals
+                    if(py_delitem(&frame->p0[0], TOP())) {
+                        POP();
+                        DISPATCH();
+                    } else {
+                        if(py_matchexc(tp_KeyError)) {
+                            py_clearexc(NULL);
+                            NameError(name);
+                        }
                         goto __ERROR;
                     }
                 }
@@ -889,8 +954,9 @@ FrameResult VM__run_top_frame(VM* self) {
             case OP_WITH_ENTER: {
                 // [expr]
                 py_push(TOP());
-                if(!py_pushmethod(__enter__)){
-                    TypeError("'%t' object does not support the context manager protocol", TOP()->type);
+                if(!py_pushmethod(__enter__)) {
+                    TypeError("'%t' object does not support the context manager protocol",
+                              TOP()->type);
                     goto __ERROR;
                 }
                 if(!py_vectorcall(0, 0)) goto __ERROR;
@@ -900,8 +966,9 @@ FrameResult VM__run_top_frame(VM* self) {
             case OP_WITH_EXIT: {
                 // [expr]
                 py_push(TOP());
-                if(!py_pushmethod(__exit__)){
-                    TypeError("'%t' object does not support the context manager protocol", TOP()->type);
+                if(!py_pushmethod(__exit__)) {
+                    TypeError("'%t' object does not support the context manager protocol",
+                              TOP()->type);
                     goto __ERROR;
                 }
                 if(!py_vectorcall(0, 0)) goto __ERROR;

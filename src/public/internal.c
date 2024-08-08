@@ -7,6 +7,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/compiler/compiler.h"
+#include <stdbool.h>
 #include <stdint.h>
 
 VM* pk_current_vm;
@@ -103,7 +104,7 @@ static bool _py_exec(const char* source,
         sp -= 2;
     }
 
-    Frame* frame = Frame__new(&co, module, false, sp, sp);
+    Frame* frame = Frame__new(&co, module, sp, sp, false, is_dynamic);
     VM__push_frame(vm, frame);
     FrameResult res = VM__run_top_frame(vm);
     CodeObject__dtor(&co);
@@ -117,10 +118,7 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
     return _py_exec(source, filename, mode, module, false);
 }
 
-bool py_execdynamic(const char* source,
-                    const char* filename,
-                    enum py_CompileMode mode,
-                    py_Ref module) {
+bool py_execdyn(const char* source, const char* filename, enum py_CompileMode mode, py_Ref module) {
     return _py_exec(source, filename, mode, module, true);
 }
 
@@ -128,11 +126,14 @@ bool py_call(py_Ref f, int argc, py_Ref argv) {
     if(f->type == tp_nativefunc) {
         return py_callcfunc(f->_cfunc, argc, argv);
     } else {
+        py_StackRef p0 = py_peek(0);
         py_push(f);
         py_pushnil();
         for(int i = 0; i < argc; i++)
             py_push(py_offset(argv, i));
-        return py_vectorcall(argc, 0);
+        bool ok = py_vectorcall(argc, 0);
+        pk_current_vm->stack.sp = p0;
+        return ok;
     }
 }
 
@@ -150,8 +151,7 @@ bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
 }
 
 bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
-    VM* vm = pk_current_vm;
-    return VM__vectorcall(vm, argc, kwargc, false) != RES_ERROR;
+    return VM__vectorcall(pk_current_vm, argc, kwargc, false) != RES_ERROR;
 }
 
 py_Ref py_retval() { return &pk_current_vm->last_retval; }

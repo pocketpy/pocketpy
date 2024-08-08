@@ -44,6 +44,16 @@ static bool object__repr__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool object__dict__getter(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    if(argv->is_ptr && argv->_obj->slots == -1){
+        pk_mappingproxy__namedict(py_retval(), argv);
+    }else{
+        py_newnone(py_retval());
+    }
+    return true;
+}
+
 static bool type__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_sbuf buf;
@@ -88,6 +98,7 @@ void pk_object__register() {
     py_bindmagic(tp_object, __eq__, object__eq__);
     py_bindmagic(tp_object, __ne__, object__ne__);
     py_bindmagic(tp_object, __repr__, object__repr__);
+    py_bindproperty(tp_object, "__dict__", object__dict__getter, NULL);
 
     py_bindmagic(tp_type, __repr__, type__repr__);
     py_bindmagic(tp_type, __new__, type__new__);

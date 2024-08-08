@@ -327,8 +327,8 @@ assert s.step == 3
 # test slice.__repr__
 assert type(repr(slice(1,1,1))) is str
 
-# /************ mappingproxy ************/
-# test mappingproxy.keys:
+# /************ namedict ************/
+# test namedict.keys:
 class A():
     def __init__(self):
         self.a = 10
@@ -336,12 +336,12 @@ class A():
         pass
 
 
-my_mappingproxy = A().__dict__
-assert type(my_mappingproxy.keys()) is list
+my_namedict = A().__dict__
+assert type(my_namedict.keys()) is list
 
 
 # 未完全测试准确性-----------------------------------------------
-# test mappingproxy.values:
+# test namedict.values:
 class A():
     def __init__(self):
         self.a = 10
@@ -349,19 +349,8 @@ class A():
         pass
 
 
-my_mappingproxy = A().__dict__
-assert type(my_mappingproxy.values()) is list
-
-
-class A():
-    def __init__(self):
-        self.a = 10
-    def method(self):
-        pass
-
-
-my_mappingproxy = A().__dict__
-assert type(len(my_mappingproxy)) is int
+my_namedict = A().__dict__
+assert type(my_namedict.values()) is list
 
 
 class A():
@@ -371,11 +360,22 @@ class A():
         pass
 
 
-my_mappingproxy = A().__dict__
+my_namedict = A().__dict__
+assert type(len(my_namedict)) is int
+
+
+class A():
+    def __init__(self):
+        self.a = 10
+    def method(self):
+        pass
+
+
+my_namedict = A().__dict__
 
 try:
-    hash(my_mappingproxy)
-    print('未能拦截错误, 在测试 mappingproxy.__hash__')
+    hash(my_namedict)
+    print('未能拦截错误, 在测试 namedict.__hash__')
     exit(1)
 except TypeError:
     pass
@@ -393,7 +393,7 @@ except TypeError:
     pass
 
 # 未完全测试准确性-----------------------------------------------
-# test mappingproxy.__repr__:
+# test namedict.__repr__:
 class A():
     def __init__(self):
         self.a = 10
@@ -401,8 +401,8 @@ class A():
         pass
 
 
-my_mappingproxy = A().__dict__
-assert type(repr(my_mappingproxy)) is str
+my_namedict = A().__dict__
+assert type(repr(my_namedict)) is str
 
 
 # /************ dict ************/

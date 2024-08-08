@@ -252,20 +252,6 @@ static bool builtins_print(int argc, py_Ref argv) {
     return true;
 }
 
-static bool builtins_exec(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    PY_CHECK_ARG_TYPE(0, tp_str);
-    Frame* frame = pk_current_vm->top_frame;
-    return py_exec(py_tostr(argv), "<exec>", EXEC_MODE, frame->module);
-}
-
-static bool builtins_eval(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    PY_CHECK_ARG_TYPE(0, tp_str);
-    Frame* frame = pk_current_vm->top_frame;
-    return py_exec(py_tostr(argv), "<eval>", EVAL_MODE, frame->module);
-}
-
 static bool builtins_isinstance(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     if(py_istuple(py_arg(1))) {
@@ -301,10 +287,9 @@ static bool builtins_getattr(int argc, py_Ref argv) {
     if(argc == 2) {
         return py_getattr(py_arg(0), name);
     } else if(argc == 3) {
-        py_StackRef p0 = py_peek(0);
         bool ok = py_getattr(py_arg(0), name);
         if(!ok && py_matchexc(tp_AttributeError)) {
-            py_clearexc(p0);
+            py_clearexc(NULL);
             py_assign(py_retval(), py_arg(2));
             return true;  // default value
         }
@@ -327,14 +312,13 @@ static bool builtins_hasattr(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
     py_Name name = py_namev(py_tosv(py_arg(1)));
-    py_StackRef p0 = py_peek(0);
     bool ok = py_getattr(py_arg(0), name);
     if(ok) {
         py_newbool(py_retval(), true);
         return true;
     }
     if(py_matchexc(tp_AttributeError)) {
-        py_clearexc(p0);
+        py_clearexc(NULL);
         py_newbool(py_retval(), false);
         return true;
     }
@@ -369,6 +353,64 @@ static bool builtins_ord(int argc, py_Ref argv) {
     return true;
 }
 
+static bool builtins_globals(int argc, py_Ref argv) {
+    Frame* frame = pk_current_vm->top_frame;
+    if(frame->is_dynamic){
+        py_assign(py_retval(), &frame->p0[0]);
+        return true;
+    }
+    pk_mappingproxy__namedict(py_retval(), frame->module);
+    return true;
+}
+
+static bool builtins_locals(int argc, py_Ref argv){
+    Frame* frame = pk_current_vm->top_frame;
+    if(frame->is_dynamic){
+        py_assign(py_retval(), &frame->p0[1]);
+        return true;
+    }
+    if(!frame->has_function) return builtins_globals(argc, argv);
+    pk_mappingproxy__locals(py_retval(), frame);
+    return true;
+}
+
+static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_CompileMode mode) {
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    Frame* frame = pk_current_vm->top_frame;
+    switch(argc){
+        case 1: {
+            // system globals + system locals
+            if(!builtins_globals(0, NULL)) return false;
+            py_push(py_retval());
+            if(!builtins_locals(0, NULL)) return false;
+            py_push(py_retval());
+            break;
+        }
+        case 2: {
+            // user globals + user globals
+            py_push(py_arg(1));
+            py_push(py_arg(1));
+            break;
+        }
+        case 3: {
+            // user globals + user locals
+            py_push(py_arg(1));
+            py_push(py_arg(2));
+            break;
+        }
+        default: return TypeError("%s() takes at most 3 arguments", title);
+    }
+    return py_execdyn(py_tostr(argv), "<string>", mode, frame->module);
+}
+
+static bool builtins_exec(int argc, py_Ref argv){
+    return _builtins_execdyn("exec", argc, argv, EXEC_MODE);
+}
+
+static bool builtins_eval(int argc, py_Ref argv) {
+    return _builtins_execdyn("eval", argc, argv, EVAL_MODE);
+}
+
 static bool NoneType__repr__(int argc, py_Ref argv) {
     py_newstr(py_retval(), "None");
     return true;
@@ -396,9 +438,6 @@ py_TValue pk_builtins__register() {
     py_bindfunc(builtins, "abs", builtins_abs);
     py_bindfunc(builtins, "divmod", builtins_divmod);
 
-    py_bindfunc(builtins, "exec", builtins_exec);
-    py_bindfunc(builtins, "eval", builtins_eval);
-
     py_bind(builtins, "print(*args, sep=' ', end='\\n')", builtins_print);
 
     py_bindfunc(builtins, "isinstance", builtins_isinstance);
@@ -411,6 +450,11 @@ py_TValue pk_builtins__register() {
 
     py_bindfunc(builtins, "chr", builtins_chr);
     py_bindfunc(builtins, "ord", builtins_ord);
+
+    py_bindfunc(builtins, "globals", builtins_globals);
+    py_bindfunc(builtins, "locals", builtins_locals);
+    py_bindfunc(builtins, "exec", builtins_exec);
+    py_bindfunc(builtins, "eval", builtins_eval);
 
     // some patches
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);

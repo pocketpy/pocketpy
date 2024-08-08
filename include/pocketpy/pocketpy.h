@@ -79,7 +79,7 @@ bool py_exec(const char* source,
 /// Assume `globals()` and `locals()` are pushed to the stack.
 /// After the execution, the result will be set to `py_retval()`.
 /// The stack size will be reduced by 2.
-bool py_execdynamic(const char* source,
+bool py_execdyn(const char* source,
                     const char* filename,
                     enum py_CompileMode mode,
                     py_Ref module) PY_RAISE;
@@ -526,7 +526,8 @@ enum py_PredefinedTypes {
     tp_BaseException,  // 2 slots (arg + inner exc)
     tp_Exception,
     tp_bytes,
-    tp_mappingproxy,
+    tp_namedict,
+    tp_locals,
     tp_dict,
     tp_dict_items,    // 1 slot
     tp_property,      // 2 slots (getter + setter)

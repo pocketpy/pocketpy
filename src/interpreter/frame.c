@@ -2,6 +2,7 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/pocketpy.h"
+#include <stdbool.h>
 
 void ValueStack__ctor(ValueStack* self) {
     self->sp = self->begin;
@@ -37,18 +38,20 @@ void UnwindTarget__delete(UnwindTarget* self) { free(self); }
 
 Frame* Frame__new(const CodeObject* co,
                   py_GlobalRef module,
-                  bool has_function,
                   py_StackRef p0,
-                  py_StackRef locals) {
+                  py_StackRef locals,
+                  bool has_function,
+                  bool is_dynamic) {
     static_assert(sizeof(Frame) <= kPoolFrameBlockSize, "!(sizeof(Frame) <= kPoolFrameBlockSize)");
     Frame* self = PoolFrame_alloc();
     self->f_back = NULL;
     self->ip = (Bytecode*)co->codes.data - 1;
     self->co = co;
     self->module = module;
-    self->has_function = has_function;
     self->p0 = p0;
     self->locals = locals;
+    self->has_function = has_function;
+    self->is_dynamic = is_dynamic;
     self->uw_list = NULL;
     return self;
 }
@@ -150,5 +153,6 @@ int Frame__iblock(const Frame* self) {
 }
 
 py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name) {
+    assert(!self->is_dynamic);
     return FastLocals__try_get_by_name(self->locals, self->co, name);
 }

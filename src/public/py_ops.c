@@ -75,10 +75,9 @@ int py_next(py_Ref val) {
         TypeError("'%t' object is not an iterator", val->type);
         return -1;
     }
-    py_StackRef p0 = py_peek(0);
     if(py_call(tmp, 1, val)) return true;
     if(vm->curr_exception.type == tp_StopIteration) {
-        py_clearexc(p0);
+        py_clearexc(NULL);
         vm->is_stopiteration = true;
     }
     int retval = vm->is_stopiteration ? 0 : -1;

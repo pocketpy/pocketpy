@@ -7,6 +7,7 @@
 #include "pocketpy/objects/base.h"
 #include "pocketpy/common/_generated.h"
 #include "pocketpy/pocketpy.h"
+#include <stdbool.h>
 
 static char* pk_default_import_file(const char* path) {
 #if PK_ENABLE_OS
@@ -112,7 +113,8 @@ void VM__ctor(VM* self) {
     validate(tp_BaseException, pk_BaseException__register());
     validate(tp_Exception, pk_Exception__register());
     validate(tp_bytes, pk_bytes__register());
-    validate(tp_mappingproxy, pk_newtype("mappingproxy", tp_object, NULL, NULL, false, true));
+    validate(tp_namedict, pk_namedict__register());
+    validate(tp_locals, pk_locals__register());
 
     validate(tp_dict, pk_dict__register());
     validate(tp_dict_items, pk_dict_items__register());
@@ -427,10 +429,10 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 // submit the call
                 if(!fn->cfunc) {
-                    VM__push_frame(self, Frame__new(co, &fn->module, true, p0, argv));
+                    VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true, false));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
-                    bool ok = fn->cfunc(co->nlocals, argv);
+                    bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
                     self->stack.sp = p0;
                     return ok ? RES_RETURN : RES_ERROR;
                 }
@@ -451,22 +453,16 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // initialize local variables to py_NIL
                 memset(p1, 0, (char*)self->stack.sp - (char*)p1);
                 // submit the call
-                VM__push_frame(self, Frame__new(co, &fn->module, true, p0, argv));
+                VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true, false));
                 return opcall ? RES_CALL : VM__run_top_frame(self);
             case FuncType_GENERATOR: {
                 bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
-                Frame* frame = Frame__new(co, &fn->module, false, p0, argv);
+                Frame* frame = Frame__new(co, &fn->module, p0, argv, false, false);
                 pk_newgenerator(py_retval(), frame, self->__vectorcall_buffer, co->nlocals);
                 self->stack.sp = p0;
                 return RES_RETURN;
             }
-                // prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
-                // s_data.reset(p0);
-                // callstack.emplace(nullptr, co, fn._module, callable.get(), nullptr);
-                // return __py_generator(
-                //     callstack.popx(),
-                //     ArgsView(__vectorcall_buffer, __vectorcall_buffer + co->nlocals));
             default: c11__unreachedable();
         };
 
