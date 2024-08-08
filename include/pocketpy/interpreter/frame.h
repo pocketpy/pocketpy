@@ -60,6 +60,5 @@ void Frame__prepare_jump_break(Frame* self, ValueStack*, int);
 int Frame__prepare_loop_break(Frame* self, ValueStack*);
 int Frame__exit_block(Frame* self, ValueStack*, int);
 
-void Frame__gc_mark(Frame* self);
 UnwindTarget* Frame__find_unwind_target(Frame* self, int iblock);
 void Frame__set_unwind_target(Frame* self, py_TValue* sp);
