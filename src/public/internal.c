@@ -120,8 +120,8 @@ bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
     py_newnil(py_retval());
     bool ok = f(argc, argv);
     if(!ok) return false;
-    if(py_peek(0) != p0) c11__abort("py_CFunction must not change the stack!");
-    if(py_isnil(py_retval())) c11__abort("py_CFunction must set the return value!");
+    if(py_peek(0) != p0) c11__abort("py_CFunction corrupts the stack! Did you forget to call `py_pop()`?");
+    if(py_isnil(py_retval())) c11__abort("py_CFunction returns nothing! Did you forget to call `py_newnone(py_retval())`?");
     return true;
 }
 
