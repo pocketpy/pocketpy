@@ -93,7 +93,7 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
 
     if(!module) module = &vm->main;
 
-    Frame* frame = Frame__new(&co, module, NULL, vm->stack.sp, vm->stack.sp);
+    Frame* frame = Frame__new(&co, module, false, vm->stack.sp, vm->stack.sp);
     VM__push_frame(vm, frame);
     FrameResult res = VM__run_top_frame(vm);
     CodeObject__dtor(&co);

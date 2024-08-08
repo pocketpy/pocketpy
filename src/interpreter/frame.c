@@ -37,7 +37,7 @@ void UnwindTarget__delete(UnwindTarget* self) { free(self); }
 
 Frame* Frame__new(const CodeObject* co,
                   py_GlobalRef module,
-                  py_StackRef function,
+                  bool has_function,
                   py_StackRef p0,
                   py_StackRef locals) {
     static_assert(sizeof(Frame) <= kPoolFrameBlockSize, "!(sizeof(Frame) <= kPoolFrameBlockSize)");
@@ -46,7 +46,7 @@ Frame* Frame__new(const CodeObject* co,
     self->ip = (Bytecode*)co->codes.data - 1;
     self->co = co;
     self->module = module;
-    self->function = function;
+    self->has_function = has_function;
     self->p0 = p0;
     self->locals = locals;
     self->uw_list = NULL;
@@ -131,8 +131,8 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
 }
 
 py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name) {
-    if(self->function == NULL) return NULL;
-    Function* ud = py_touserdata(self->function);
+    if(!self->has_function) return NULL;
+    Function* ud = py_touserdata(self->p0);
     if(ud->closure == NULL) return NULL;
     return NameDict__try_get(ud->closure, name);
 }

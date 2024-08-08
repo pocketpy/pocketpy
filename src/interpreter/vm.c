@@ -427,7 +427,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 // submit the call
                 if(!fn->cfunc) {
-                    VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv));
+                    VM__push_frame(self, Frame__new(co, &fn->module, true, p0, argv));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     bool ok = fn->cfunc(co->nlocals, argv);
@@ -451,13 +451,13 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // initialize local variables to py_NIL
                 memset(p1, 0, (char*)self->stack.sp - (char*)p1);
                 // submit the call
-                VM__push_frame(self, Frame__new(co, &fn->module, p0, p0, argv));
+                VM__push_frame(self, Frame__new(co, &fn->module, true, p0, argv));
                 return opcall ? RES_CALL : VM__run_top_frame(self);
             case FuncType_GENERATOR: {
                 bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
-                Frame* frame = Frame__new(co, &fn->module, p0, p0, argv);
-                pk_newgenerator(py_retval(), frame);
+                Frame* frame = Frame__new(co, &fn->module, false, p0, argv);
+                pk_newgenerator(py_retval(), frame, self->__vectorcall_buffer, co->nlocals);
                 self->stack.sp = p0;
                 return RES_RETURN;
             }
@@ -592,7 +592,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
 }
 
 void pk_print_stack(VM* self, Frame* frame, Bytecode byte) {
-    // return;
+    return;
     if(frame == NULL || py_isnil(&self->main)) return;
 
     py_TValue* sp = self->stack.sp;

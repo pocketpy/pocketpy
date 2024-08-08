@@ -19,6 +19,8 @@ typedef int16_t py_Type;
 typedef int64_t py_i64;
 typedef double py_f64;
 
+typedef void (*py_Dtor)(void*);
+
 #define PY_RAISE  // mark a function that can raise an exception
 
 typedef struct c11_sv {
@@ -137,7 +139,7 @@ c11_sv py_name2sv(py_Name);
 /// @param base base type.
 /// @param module module where the type is defined. Use `NULL` for built-in types.
 /// @param dtor destructor function. Use `NULL` if not needed.
-py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, void (*dtor)(void*));
+py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, py_Dtor dtor);
 
 /// Create a new object.
 /// @param out output reference.

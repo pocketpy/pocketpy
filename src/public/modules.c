@@ -468,8 +468,8 @@ static bool super__new__(int argc, py_Ref argv) {
     py_Ref self_arg = NULL;
     if(argc == 1) {
         // super()
-        if(frame->function) {
-            Function* func = py_touserdata(frame->function);
+        if(frame->has_function) {
+            Function* func = py_touserdata(frame->p0);
             *class_arg = *(py_Type*)PyObject__userdata(func->clazz);
             if(frame->co->nlocals > 0) self_arg = &frame->locals[0];
         }

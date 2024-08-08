@@ -81,7 +81,9 @@ int py_next(py_Ref val) {
         py_clearexc(p0);
         vm->is_stopiteration = true;
     }
-    return vm->is_stopiteration ? 0 : -1;
+    int retval = vm->is_stopiteration ? 0 : -1;
+    vm->is_stopiteration = false;
+    return retval;
 }
 
 bool py_getattr(py_Ref self, py_Name name) {

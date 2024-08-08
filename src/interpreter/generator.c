@@ -5,11 +5,19 @@
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
 
-void pk_newgenerator(py_Ref out, Frame* frame) {
+void pk_newgenerator(py_Ref out, Frame* frame, py_TValue* backup, int backup_length) {
     Generator* ud = py_newobject(out, tp_generator, 1, sizeof(Generator));
     ud->frame = frame;
     ud->state = 0;
-    py_newlist(py_getslot(out, 0));
+    py_Ref tmp = py_getslot(out, 0);
+    py_newlist(tmp);
+    for(int i = 0; i < backup_length; i++) {
+        py_list_append(tmp, &backup[i]);
+    }
+}
+
+void Generator__dtor(Generator* ud) {
+    if(ud->frame) { Frame__delete(ud->frame); }
 }
 
 static bool generator__next__(int argc, py_Ref argv) {
@@ -33,6 +41,7 @@ static bool generator__next__(int argc, py_Ref argv) {
 
     // push frame
     VM__push_frame(vm, ud->frame);
+    ud->frame = NULL;
 
     FrameResult res = VM__run_top_frame(vm);
 
@@ -51,17 +60,19 @@ static bool generator__next__(int argc, py_Ref argv) {
         for(py_StackRef p = ud->frame->p0; p != vm->stack.sp; p++) {
             py_list_append(backup, p);
         }
+        vm->stack.sp = ud->frame->p0;
         vm->top_frame = vm->top_frame->f_back;
         ud->state = 1;
         return true;
     } else {
+        assert(res == RES_RETURN);
         ud->state = 2;
         return StopIteration();
     }
 }
 
 py_Type pk_generator__register() {
-    py_Type type = pk_newtype("generator", tp_object, NULL, NULL, false, true);
+    py_Type type = pk_newtype("generator", tp_object, NULL, (py_Dtor)Generator__dtor, false, true);
 
     py_bindmagic(type, __iter__, pk_wrapper__self);
     py_bindmagic(type, __next__, generator__next__);

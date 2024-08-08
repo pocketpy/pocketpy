@@ -285,7 +285,7 @@ FrameResult VM__run_top_frame(VM* self) {
             case OP_STORE_FAST: frame->locals[byte.arg] = POPX(); DISPATCH();
             case OP_STORE_NAME: {
                 py_Name name = byte.arg;
-                if(frame->function) {
+                if(frame->has_function) {
                     py_Ref slot = Frame__f_locals_try_get(frame, name);
                     if(slot != NULL) {
                         *slot = *TOP();  // store in locals if possible
@@ -346,7 +346,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_DELETE_NAME: {
                 py_Name name = byte.arg;
-                if(frame->function) {
+                if(frame->has_function) {
                     py_TValue* slot = Frame__f_locals_try_get(frame, name);
                     if(slot) {
                         py_newnil(slot);
@@ -977,7 +977,7 @@ FrameResult VM__run_top_frame(VM* self) {
         py_BaseException__stpush(&self->curr_exception,
                                  frame->co->src,
                                  lineno < 0 ? Frame__lineno(frame) : lineno,
-                                 frame->function ? frame->co->name->data : NULL);
+                                 frame->has_function ? frame->co->name->data : NULL);
 
         int target = Frame__prepare_jump_exception_handler(frame, &self->stack);
         if(target >= 0) {

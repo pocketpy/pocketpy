@@ -36,7 +36,7 @@ typedef struct Frame {
     const Bytecode* ip;
     const CodeObject* co;
     py_GlobalRef module;
-    py_StackRef function;  // a function object or NULL (global scope)
+    bool has_function;     // is p0 a function?
     py_StackRef p0;        // unwinding base
     py_StackRef locals;    // locals base
     UnwindTarget* uw_list;
@@ -44,7 +44,7 @@ typedef struct Frame {
 
 Frame* Frame__new(const CodeObject* co,
                   py_GlobalRef module,
-                  py_StackRef function,
+                  bool has_function,
                   py_StackRef p0,
                   py_StackRef locals);
 void Frame__delete(Frame* self);
