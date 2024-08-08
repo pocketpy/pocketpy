@@ -1,4 +1,3 @@
-from pkpy import _enable_instance_dict
 from typing import Generic, TypeVar, Iterable
 
 T = TypeVar('T')

@@ -5,6 +5,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/_generated.h"
+#include <math.h>
 
 py_Ref py_getmodule(const char* path) {
     VM* vm = pk_current_vm;
@@ -231,6 +232,37 @@ static bool builtins_divmod(int argc, py_Ref argv) {
     return pk_callmagic(__divmod__, 2, argv);
 }
 
+static bool builtins_round(int argc, py_Ref argv) {
+    py_i64 ndigits;
+
+    if(argc == 1) {
+        ndigits = -1;
+    } else if(argc == 2) {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        ndigits = py_toint(py_arg(1));
+        if(ndigits < 0) return ValueError("ndigits should be non-negative");
+    } else {
+        return TypeError("round() takes 1 or 2 arguments");
+    }
+
+    if(py_isint(py_arg(0))) {
+        py_assign(py_retval(), py_arg(0));
+        return true;
+    }
+
+    PY_CHECK_ARG_TYPE(0, tp_float);
+    py_f64 x = py_tofloat(py_arg(0));
+    py_f64 offset = x >= 0 ? 0.5 : -0.5;
+    if(ndigits == -1) {
+        py_newint(py_retval(), (py_i64)(x + offset));
+        return true;
+    }
+
+    py_f64 factor = pow(10, ndigits);
+    py_newfloat(py_retval(), (py_i64)(x * factor + offset) / factor);
+    return true;
+}
+
 static bool builtins_print(int argc, py_Ref argv) {
     int length;
     py_TValue* args = pk_arrayview(argv, &length);
@@ -355,7 +387,7 @@ static bool builtins_ord(int argc, py_Ref argv) {
 
 static bool builtins_globals(int argc, py_Ref argv) {
     Frame* frame = pk_current_vm->top_frame;
-    if(frame->is_dynamic){
+    if(frame->is_dynamic) {
         py_assign(py_retval(), &frame->p0[0]);
         return true;
     }
@@ -363,9 +395,9 @@ static bool builtins_globals(int argc, py_Ref argv) {
     return true;
 }
 
-static bool builtins_locals(int argc, py_Ref argv){
+static bool builtins_locals(int argc, py_Ref argv) {
     Frame* frame = pk_current_vm->top_frame;
-    if(frame->is_dynamic){
+    if(frame->is_dynamic) {
         py_assign(py_retval(), &frame->p0[1]);
         return true;
     }
@@ -377,7 +409,7 @@ static bool builtins_locals(int argc, py_Ref argv){
 static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_CompileMode mode) {
     PY_CHECK_ARG_TYPE(0, tp_str);
     Frame* frame = pk_current_vm->top_frame;
-    switch(argc){
+    switch(argc) {
         case 1: {
             // system globals + system locals
             if(!builtins_globals(0, NULL)) return false;
@@ -403,7 +435,7 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
     return py_execdyn(py_tostr(argv), "<string>", mode, frame->module);
 }
 
-static bool builtins_exec(int argc, py_Ref argv){
+static bool builtins_exec(int argc, py_Ref argv) {
     return _builtins_execdyn("exec", argc, argv, EXEC_MODE);
 }
 
@@ -437,6 +469,7 @@ py_TValue pk_builtins__register() {
     py_bindfunc(builtins, "hash", builtins_hash);
     py_bindfunc(builtins, "abs", builtins_abs);
     py_bindfunc(builtins, "divmod", builtins_divmod);
+    py_bindfunc(builtins, "round", builtins_round);
 
     py_bind(builtins, "print(*args, sep=' ', end='\\n')", builtins_print);
 

@@ -1833,7 +1833,10 @@ static Error* exprName(Compiler* self) {
     py_Name name = py_namev(Token__sv(prev()));
     NameScope scope = name_scope(self);
     // promote this name to global scope if needed
-    if(c11_smallmap_n2i__contains(&ctx()->global_names, name)) { scope = NAME_GLOBAL; }
+    if(c11_smallmap_n2i__contains(&ctx()->global_names, name)) {
+        if(scope == NAME_GLOBAL_UNKNOWN) return SyntaxError(self, "cannot use global keyword here");
+        scope = NAME_GLOBAL;
+    }
     NameExpr* e = NameExpr__new(prev()->line, name, scope);
     Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
