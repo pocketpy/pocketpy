@@ -71,7 +71,6 @@ void VM__ctor(VM* self) {
     self->is_stopiteration = false;
 
     self->__curr_class = NULL;
-    self->__dynamic_func_decl = NULL;
 
     ManagedHeap__ctor(&self->heap, self);
     ValueStack__ctor(&self->stack);
@@ -212,7 +211,6 @@ void VM__ctor(VM* self) {
 }
 
 void VM__dtor(VM* self) {
-    if(self->__dynamic_func_decl) { PK_DECREF(self->__dynamic_func_decl); }
     // destroy all objects
     ManagedHeap__dtor(&self->heap);
     // clear frames

@@ -77,10 +77,14 @@ const char* pk_opname(Opcode op) {
     return OP_NAMES[op];
 }
 
-bool py_exec(const char* source, const char* filename, enum py_CompileMode mode, py_Ref module) {
+static bool _py_exec(const char* source,
+                     const char* filename,
+                     enum py_CompileMode mode,
+                     py_Ref module,
+                     bool is_dynamic) {
     VM* vm = pk_current_vm;
     CodeObject co;
-    SourceData_ src = SourceData__rcnew(source, filename, mode, false);
+    SourceData_ src = SourceData__rcnew(source, filename, mode, is_dynamic);
     Error* err = pk_compile(src, &co);
     if(err) {
         py_exception(tp_SyntaxError, err->msg);
@@ -93,7 +97,13 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
 
     if(!module) module = &vm->main;
 
-    Frame* frame = Frame__new(&co, module, false, vm->stack.sp, vm->stack.sp);
+    py_StackRef sp = vm->stack.sp;
+    if(is_dynamic) {
+        // [globals, locals]
+        sp -= 2;
+    }
+
+    Frame* frame = Frame__new(&co, module, false, sp, sp);
     VM__push_frame(vm, frame);
     FrameResult res = VM__run_top_frame(vm);
     CodeObject__dtor(&co);
@@ -101,6 +111,17 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
     if(res == RES_ERROR) return false;
     if(res == RES_RETURN) return true;
     c11__unreachedable();
+}
+
+bool py_exec(const char* source, const char* filename, enum py_CompileMode mode, py_Ref module) {
+    return _py_exec(source, filename, mode, module, false);
+}
+
+bool py_execdynamic(const char* source,
+                    const char* filename,
+                    enum py_CompileMode mode,
+                    py_Ref module) {
+    return _py_exec(source, filename, mode, module, true);
 }
 
 bool py_call(py_Ref f, int argc, py_Ref argv) {
@@ -120,8 +141,11 @@ bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
     py_newnil(py_retval());
     bool ok = f(argc, argv);
     if(!ok) return false;
-    if(py_peek(0) != p0) c11__abort("py_CFunction corrupts the stack! Did you forget to call `py_pop()`?");
-    if(py_isnil(py_retval())) c11__abort("py_CFunction returns nothing! Did you forget to call `py_newnone(py_retval())`?");
+    if(py_peek(0) != p0)
+        c11__abort("py_CFunction corrupts the stack! Did you forget to call `py_pop()`?");
+    if(py_isnil(py_retval()))
+        c11__abort(
+            "py_CFunction returns nothing! Did you forget to call `py_newnone(py_retval())`?");
     return true;
 }
 

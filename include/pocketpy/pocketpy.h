@@ -75,6 +75,15 @@ bool py_exec(const char* source,
              enum py_CompileMode mode,
              py_Ref module) PY_RAISE;
 
+/// Run a source string in dynamic mode.
+/// Assume `globals()` and `locals()` are pushed to the stack.
+/// After the execution, the result will be set to `py_retval()`.
+/// The stack size will be reduced by 2.
+bool py_execdynamic(const char* source,
+                    const char* filename,
+                    enum py_CompileMode mode,
+                    py_Ref module) PY_RAISE;
+
 /************* Values Creation *************/
 
 /// Create an `int` object.

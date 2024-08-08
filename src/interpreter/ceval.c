@@ -290,14 +290,8 @@ FrameResult VM__run_top_frame(VM* self) {
                     if(slot != NULL) {
                         *slot = *TOP();  // store in locals if possible
                     } else {
-                        // Function& func = frame->_callable->as<Function>();
-                        // if(func.decl == __dynamic_func_decl) {
-                        //     assert(func._closure != nullptr);
-                        //     func._closure->set(_name, _0);
-                        // } else {
-                        //     NameError(_name);
-                        //     goto __ERROR;
-                        // }
+                        NameError(name);
+                        goto __ERROR;
                     }
                 } else {
                     py_setdict(frame->module, name, TOP());
@@ -351,14 +345,8 @@ FrameResult VM__run_top_frame(VM* self) {
                     if(slot) {
                         py_newnil(slot);
                     } else {
-                        // Function& func = frame->_callable->as<Function>();
-                        // if(func.decl == __dynamic_func_decl) {
-                        //     assert(func._closure != nullptr);
-                        //     bool ok = func._closure->del(_name);
-                        //     if(!ok) vm->NameError(_name);
-                        // } else {
-                        //     vm->NameError(_name);
-                        // }
+                        NameError(name);
+                        goto __ERROR;
                     }
                 } else {
                     bool ok = py_deldict(frame->module, name);
