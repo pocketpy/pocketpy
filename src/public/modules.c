@@ -319,6 +319,7 @@ static bool builtins_setattr(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_str);
     py_Name name = py_namev(py_tosv(py_arg(1)));
+    py_newnone(py_retval());
     return py_setattr(py_arg(0), name, py_arg(2));
 }
 
@@ -344,6 +345,7 @@ static bool builtins_delattr(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
     py_Name name = py_namev(py_tosv(py_arg(1)));
+    py_newnone(py_retval());
     return py_delattr(py_arg(0), name);
 }
 

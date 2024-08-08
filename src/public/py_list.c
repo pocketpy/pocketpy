@@ -167,6 +167,7 @@ static bool list__setitem__(int argc, py_Ref argv) {
     int index = py_toint(py_arg(1));
     if(!pk__normalize_index(&index, self->count)) return false;
     c11__setitem(py_TValue, self, index, *py_arg(2));
+    py_newnone(py_retval());
     return true;
 }
 

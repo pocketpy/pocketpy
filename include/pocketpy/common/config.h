@@ -50,3 +50,9 @@
 #else
     #define PK_PLATFORM_SEP '/'
 #endif
+
+#ifdef NDEBUG
+    #define PK_DEBUG 0
+#else
+    #define PK_DEBUG 1
+#endif

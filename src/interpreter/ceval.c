@@ -269,7 +269,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __getitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        if(!magic->_cfunc(2, SECOND())) goto __ERROR;
+                        if(!py_callcfunc(magic->_cfunc, 2, SECOND())) goto __ERROR;
                         POP();
                     } else {
                         INSERT_THIRD();     // [?, a, b]
@@ -322,7 +322,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 if(magic) {
                     PUSH(THIRD());  // [val, a, b, val]
                     if(magic->type == tp_nativefunc) {
-                        if(!magic->_cfunc(3, THIRD())) goto __ERROR;
+                        if(!py_callcfunc(magic->_cfunc, 3, THIRD())) goto __ERROR;
                         STACK_SHRINK(4);
                     } else {
                         *FOURTH() = *magic;  // [__selitem__, a, b, val]
@@ -389,7 +389,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __delitem__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        if(!magic->_cfunc(2, SECOND())) goto __ERROR;
+                        if(!py_callcfunc(magic->_cfunc, 2, SECOND())) goto __ERROR;
                         STACK_SHRINK(2);
                     } else {
                         INSERT_THIRD();     // [?, a, b]
@@ -533,7 +533,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Ref magic = py_tpfindmagic(SECOND()->type, __contains__);
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
-                        if(!magic->_cfunc(2, SECOND())) goto __ERROR;
+                        if(!py_callcfunc(magic->_cfunc, 2, SECOND())) goto __ERROR;
                         STACK_SHRINK(2);
                     } else {
                         INSERT_THIRD();     // [?, b, a]

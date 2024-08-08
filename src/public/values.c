@@ -101,7 +101,7 @@ py_Name
     return py_name(ud->decl->code.name->data);
 }
 
-void py_newboundmethod(py_Ref out, py_Ref self, py_Ref func){
+void py_newboundmethod(py_Ref out, py_Ref self, py_Ref func) {
     py_newobject(out, tp_boundmethod, 2, 0);
     py_setslot(out, 0, self);
     py_setslot(out, 1, func);

@@ -304,7 +304,7 @@ bool py_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
 /// Python equivalent to `del self[key]`.
 bool py_delitem(py_Ref self, py_Ref key) PY_RAISE;
 
-/// Perform a binary operation on the stack.
+/// Perform a binary operation.
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) PY_RAISE;
@@ -430,6 +430,14 @@ bool py_isidentical(py_Ref, py_Ref);
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE;
+
+#if PK_DEBUG
+/// Call a py_CFunction in a safe way.
+/// This function does extra checks to help you debug `py_CFunction`.
+bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) PY_RAISE;
+#else
+#define py_callcfunc(f, argc, argv) f(argc, argv)
+#endif
 
 /// Python equivalent to `str(val)`.
 bool py_str(py_Ref val) PY_RAISE;

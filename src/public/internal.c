@@ -105,7 +105,7 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
 
 bool py_call(py_Ref f, int argc, py_Ref argv) {
     if(f->type == tp_nativefunc) {
-        return f->_cfunc(argc, argv);
+        return py_callcfunc(f->_cfunc, argc, argv);
     } else {
         py_push(f);
         py_pushnil();
@@ -113,6 +113,16 @@ bool py_call(py_Ref f, int argc, py_Ref argv) {
             py_push(py_offset(argv, i));
         return py_vectorcall(argc, 0);
     }
+}
+
+bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
+    py_StackRef p0 = py_peek(0);
+    py_newnil(py_retval());
+    bool ok = f(argc, argv);
+    if(!ok) return false;
+    if(py_peek(0) != p0) c11__abort("py_CFunction must not change the stack!");
+    if(py_isnil(py_retval())) c11__abort("py_CFunction must set the return value!");
+    return true;
 }
 
 bool py_vectorcall(uint16_t argc, uint16_t kwargc) {

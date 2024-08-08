@@ -211,6 +211,7 @@ static bool dict__new__(int argc, py_Ref argv) {
 }
 
 static bool dict__init__(int argc, py_Ref argv) {
+    py_newnone(py_retval());
     if(argc > 2) return TypeError("dict.__init__() takes at most 2 arguments (%d given)", argc);
     if(argc == 1) return true;
     assert(argc == 2);
@@ -324,6 +325,7 @@ static bool dict__eq__(int argc, py_Ref argv) {
             return true;
         }
     }
+    py_newbool(py_retval(), true);
     return true;
 }
 
@@ -340,6 +342,7 @@ static bool dict_clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
     Dict__clear(self);
+    py_newnone(py_retval());
     return true;
 }
 
@@ -366,6 +369,7 @@ static bool dict_update(int argc, py_Ref argv) {
         if(py_isnil(&entry->key)) continue;
         if(!Dict__set(self, &entry->key, &entry->val)) return false;
     }
+    py_newnone(py_retval());
     return true;
 }
 

@@ -32,6 +32,7 @@ static bool os_chdir(int argc, py_Ref argv) {
     const char* path = py_tostr(py_arg(0));
     int code = platform_chdir(path);
     if(code != 0) return py_exception(tp_OSError, "chdir() failed: %d", code);
+    py_newnone(py_retval());
     return true;
 }
 

@@ -60,7 +60,8 @@ static bool _py_BaseException__new__(int argc, py_Ref argv) {
 }
 
 static bool _py_BaseException__init__(int argc, py_Ref argv) {
-    if(argc == 1 + 0) { return true; }
+    py_newnone(py_retval());
+    if(argc == 1 + 0) return true;
     if(argc == 1 + 1) {
         py_setslot(py_arg(0), 0, py_arg(1));
         return true;
@@ -138,7 +139,7 @@ void py_printexc() {
     free(msg);
 }
 
-static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc){
+static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
     if(true) { c11_sbuf__write_cstr(self, "Traceback (most recent call last):\n"); }
 
     BaseException* ud = py_touserdata(exc);
@@ -174,7 +175,9 @@ char* py_formatexc() {
         c11_sbuf__write_exc(&ss, &vm->curr_exception);
     } else {
         c11_sbuf__write_exc(&ss, inner);
-        c11_sbuf__write_cstr(&ss, "\n\nDuring handling of the above exception, another exception occurred:\n\n");
+        c11_sbuf__write_cstr(
+            &ss,
+            "\n\nDuring handling of the above exception, another exception occurred:\n\n");
         c11_sbuf__write_exc(&ss, &vm->curr_exception);
     }
 
@@ -207,7 +210,7 @@ bool py_exception(py_Type type, const char* fmt, ...) {
 bool py_raise(py_Ref exc) {
     assert(py_isinstance(exc, tp_BaseException));
     VM* vm = pk_current_vm;
-    if(!py_isnil(&vm->curr_exception)){
+    if(!py_isnil(&vm->curr_exception)) {
         // inner exception
         py_setslot(exc, 1, &vm->curr_exception);
     }

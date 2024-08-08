@@ -477,7 +477,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
     }
 
     if(p0->type == tp_nativefunc) {
-        bool ok = p0->_cfunc(p1 - argv, argv);
+        bool ok = py_callcfunc(p0->_cfunc, p1 - argv, argv);
         self->stack.sp = p0;
         return ok ? RES_RETURN : RES_ERROR;
     }
@@ -657,6 +657,6 @@ bool pk_wrapper__self(int argc, py_Ref argv) {
     return true;
 }
 
-bool pk_wrapper__NotImplementedError(int argc, py_Ref argv){
+bool pk_wrapper__NotImplementedError(int argc, py_Ref argv) {
     return py_exception(tp_NotImplementedError, "");
 }
