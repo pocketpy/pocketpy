@@ -450,6 +450,7 @@ py_TmpRef py_list_getitem(py_Ref self, int i);
 void py_list_setitem(py_Ref self, int i, py_Ref val);
 void py_list_delitem(py_Ref self, int i);
 int py_list_len(py_Ref self);
+void py_list_swap(py_Ref self, int i, int j);
 void py_list_append(py_Ref self, py_Ref val);
 void py_list_clear(py_Ref self);
 void py_list_insert(py_Ref self, int i, py_Ref val);

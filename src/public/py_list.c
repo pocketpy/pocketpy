@@ -44,6 +44,13 @@ int py_list_len(py_Ref self) {
     return userdata->count;
 }
 
+void py_list_swap(py_Ref self, int i, int j){
+    py_TValue* data = py_list_data(self);
+    py_TValue tmp = data[i];
+    data[i] = data[j];
+    data[j] = tmp;
+}
+
 void py_list_append(py_Ref self, py_Ref val) {
     List* userdata = py_touserdata(self);
     c11_vector__push(py_TValue, userdata, *val);

@@ -1,4 +1,4 @@
-import random as r, sys as s
+import random as r
 
 r.seed(10)
 

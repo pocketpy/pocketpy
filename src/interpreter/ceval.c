@@ -534,7 +534,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 if(magic) {
                     if(magic->type == tp_nativefunc) {
                         if(!magic->_cfunc(2, SECOND())) goto __ERROR;
-                        POP();
+                        STACK_SHRINK(2);
                     } else {
                         INSERT_THIRD();     // [?, b, a]
                         *THIRD() = *magic;  // [__contains__, a, b]

@@ -3,6 +3,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/generator.h"
+#include "pocketpy/interpreter/modules.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/common/_generated.h"
 #include "pocketpy/pocketpy.h"
@@ -194,6 +195,7 @@ void VM__ctor(VM* self) {
     pk__add_module_os();
     pk__add_module_math();
     pk__add_module_dis();
+    pk__add_module_random();
 
     // add python builtins
     do {
