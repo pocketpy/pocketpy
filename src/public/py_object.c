@@ -46,9 +46,9 @@ static bool object__repr__(int argc, py_Ref argv) {
 
 static bool object__dict__getter(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    if(argv->is_ptr && argv->_obj->slots == -1){
+    if(argv->is_ptr && argv->_obj->slots == -1) {
         pk_mappingproxy__namedict(py_retval(), argv);
-    }else{
+    } else {
         py_newnone(py_retval());
     }
     return true;
@@ -74,9 +74,9 @@ static bool type__base__getter(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Type type = py_totype(argv);
     py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
-    if(ti->base){
+    if(ti->base) {
         py_assign(py_retval(), py_tpobject(ti->base));
-    }else{
+    } else {
         py_newnone(py_retval());
     }
     return true;
@@ -87,6 +87,11 @@ static bool type__name__getter(int argc, py_Ref argv) {
     py_Type type = py_totype(argv);
     py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
     py_newstr(py_retval(), py_name2str(ti->name));
+    return true;
+}
+
+static bool type__getitem__(int argc, py_Ref argv) {
+    py_assign(py_retval(), argv);
     return true;
 }
 
@@ -102,6 +107,7 @@ void pk_object__register() {
 
     py_bindmagic(tp_type, __repr__, type__repr__);
     py_bindmagic(tp_type, __new__, type__new__);
+    py_bindmagic(tp_type, __getitem__, type__getitem__);
 
     py_bindproperty(tp_type, "__base__", type__base__getter, NULL);
     py_bindproperty(tp_type, "__name__", type__name__getter, NULL);
