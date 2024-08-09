@@ -7,8 +7,6 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/compiler/compiler.h"
-#include <stdbool.h>
-#include <stdint.h>
 
 VM* pk_current_vm;
 
@@ -76,50 +74,6 @@ const char* pk_opname(Opcode op) {
 #undef OPCODE
     };
     return OP_NAMES[op];
-}
-
-static bool _py_exec(const char* source,
-                     const char* filename,
-                     enum py_CompileMode mode,
-                     py_Ref module,
-                     bool is_dynamic) {
-    VM* vm = pk_current_vm;
-    CodeObject co;
-    SourceData_ src = SourceData__rcnew(source, filename, mode, is_dynamic);
-    Error* err = pk_compile(src, &co);
-    if(err) {
-        py_exception(tp_SyntaxError, err->msg);
-        py_BaseException__stpush(&vm->curr_exception, src, err->lineno, NULL);
-
-        PK_DECREF(src);
-        free(err);
-        return false;
-    }
-
-    if(!module) module = &vm->main;
-
-    py_StackRef sp = vm->stack.sp;
-    if(is_dynamic) {
-        // [globals, locals]
-        sp -= 2;
-    }
-
-    Frame* frame = Frame__new(&co, module, sp, sp, false, is_dynamic);
-    VM__push_frame(vm, frame);
-    FrameResult res = VM__run_top_frame(vm);
-    CodeObject__dtor(&co);
-    PK_DECREF(src);
-    if(res == RES_ERROR) return false;
-    if(res == RES_RETURN) return true;
-    c11__unreachedable();
-}
-
-bool py_exec(const char* source, const char* filename, enum py_CompileMode mode, py_Ref module) {
-    return _py_exec(source, filename, mode, module, false);
-}
-
-bool py_execdyn(const char* source, const char* filename, enum py_CompileMode mode, py_Ref module) {
-    return _py_exec(source, filename, mode, module, true);
 }
 
 bool py_call(py_Ref f, int argc, py_Ref argv) {
@@ -220,7 +174,7 @@ py_Ref py_tpfindname(py_Type t, py_Name name) {
     return NULL;
 }
 
-py_Ref py_tpmagic(py_Type type, py_Name name) {
+py_Ref py_tpgetmagic(py_Type type, py_Name name) {
     assert(py_ismagicname(name));
     VM* vm = pk_current_vm;
     return &c11__at(py_TypeInfo, &vm->types, type)->magic[name];

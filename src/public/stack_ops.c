@@ -14,7 +14,7 @@ py_Ref py_getdict(py_Ref self, py_Name name) {
         return NameDict__try_get(PyObject__dict(self->_obj), name);
     } else {
         py_Type* ud = py_touserdata(self);
-        py_Ref slot = py_tpmagic(*ud, name);
+        py_Ref slot = py_tpgetmagic(*ud, name);
         return py_isnil(slot) ? NULL : slot;
     }
 }
@@ -25,7 +25,7 @@ void py_setdict(py_Ref self, py_Name name, py_Ref val) {
         NameDict__set(PyObject__dict(self->_obj), name, *val);
     } else {
         py_Type* ud = py_touserdata(self);
-        *py_tpmagic(*ud, name) = *val;
+        *py_tpgetmagic(*ud, name) = *val;
     }
 }
 
@@ -41,7 +41,7 @@ bool py_deldict(py_Ref self, py_Name name) {
 
     } else {
         py_Type* ud = py_touserdata(self);
-        py_newnil(py_tpmagic(*ud, name));
+        py_newnil(py_tpgetmagic(*ud, name));
         return true;
     }
 }

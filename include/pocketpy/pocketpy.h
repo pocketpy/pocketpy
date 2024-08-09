@@ -209,15 +209,16 @@ py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
 /// Search the name from the given type to the base type.
 /// Return `NULL` if not found.
 py_GlobalRef py_tpfindname(py_Type, py_Name name);
+/// Get the magic method from the given type only.
+/// The returned reference is always valid. However, its value may be `nil`.
+py_GlobalRef py_tpgetmagic(py_Type type, py_Name name);
+
 /// Get the type object of the given type.
 py_GlobalRef py_tpobject(py_Type type);
 /// Get the type name.
 const char* py_tpname(py_Type type);
 /// Call a type to create a new instance.
 bool py_tpcall(py_Type type, int argc, py_Ref argv) PY_RAISE;
-/// Get the magic method from the given type only.
-/// The returned reference is always valid. However, its value may be `nil`.
-py_GlobalRef py_tpmagic(py_Type type, py_Name name);
 
 /// Check if the object is an instance of the given type.
 /// Raise `TypeError` if the check fails.
@@ -287,7 +288,7 @@ void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
 /// @param setter setter function. Use `NULL` if not needed.
 void py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFunction setter);
 
-#define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpmagic((type), __magic__), (f))
+#define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpgetmagic((type), __magic__), (f))
 
 #define PY_CHECK_ARGC(n)                                                                           \
     if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
