@@ -387,6 +387,7 @@ static bool builtins_ord(int argc, py_Ref argv) {
 }
 
 static bool builtins_globals(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
     Frame* frame = pk_current_vm->top_frame;
     if(frame->is_dynamic) {
         py_assign(py_retval(), &frame->p0[0]);
@@ -397,6 +398,7 @@ static bool builtins_globals(int argc, py_Ref argv) {
 }
 
 static bool builtins_locals(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
     Frame* frame = pk_current_vm->top_frame;
     if(frame->is_dynamic) {
         py_assign(py_retval(), &frame->p0[1]);
