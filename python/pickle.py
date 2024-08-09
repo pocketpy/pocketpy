@@ -1,5 +1,4 @@
 import json
-from c import struct
 import builtins
 
 _BASIC_TYPES = [int, float, str, bool, type(None)]
@@ -142,7 +141,8 @@ class _Unpickler:
         
         # generic object
         cls = _find_class(o[0])
-        if getattr(cls, '__struct__', False):
+        # if getattr(cls, '__struct__', False):
+        if False:
             inst = cls.fromstruct(struct.fromhex(o[1]))
             self.tag(index, inst)
             return inst

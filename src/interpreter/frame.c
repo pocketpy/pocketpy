@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/frame.h"
+#include "pocketpy/interpreter/vm.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/pocketpy.h"
@@ -131,6 +132,11 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
         UnwindTarget* prev = self->uw_list;
         self->uw_list = UnwindTarget__new(prev, iblock, sp - self->locals);
     }
+}
+
+void Frame__gc_mark(Frame *self){
+    pk__mark_value(self->module);
+    CodeObject__gc_mark(self->co);
 }
 
 py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name) {

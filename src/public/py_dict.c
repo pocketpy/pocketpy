@@ -433,8 +433,20 @@ static bool dict_values(int argc, py_Ref argv) {
     return true;
 }
 
+static void dict__gc_mark(void* ud) {
+    Dict* self = ud;
+    for(int i = 0; i < self->entries.count; i++) {
+        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+        if(py_isnil(&entry->key)) continue;
+        pk__mark_value(&entry->key);
+        pk__mark_value(&entry->val);
+    }
+}
+
 py_Type pk_dict__register() {
     py_Type type = pk_newtype("dict", tp_object, NULL, (void (*)(void*))Dict__dtor, false, false);
+
+    pk__tp_set_marker(type, dict__gc_mark);
 
     py_bindmagic(type, __new__, dict__new__);
     py_bindmagic(type, __init__, dict__init__);
@@ -531,14 +543,4 @@ bool py_dict_apply(py_Ref self, bool (*f)(py_Ref, py_Ref, void*), void* ctx) {
         if(!f(&entry->key, &entry->val, ctx)) return false;
     }
     return true;
-}
-
-void pk_dict__mark(void* ud, void (*marker)(py_TValue*)) {
-    Dict* self = ud;
-    for(int i = 0; i < self->entries.count; i++) {
-        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
-        if(py_isnil(&entry->key)) continue;
-        marker(&entry->key);
-        marker(&entry->val);
-    }
 }

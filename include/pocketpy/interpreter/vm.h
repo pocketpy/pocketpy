@@ -21,6 +21,7 @@ typedef struct py_TypeInfo {
     c11_vector /*T=py_Name*/ annotated_fields;
 
     void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
+    void (*gc_mark)(void* ud);
 
     /* Magic Slots */
     py_TValue magic[64];
@@ -61,8 +62,9 @@ void VM__pop_frame(VM* self);
 bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* step);
 bool pk__normalize_index(int* index, int length);
 
-void pk_list__mark(void* ud, void (*marker)(py_TValue*));
-void pk_dict__mark(void* ud, void (*marker)(py_TValue*));
+void pk__mark_value(py_TValue*);
+void pk__mark_namedict(NameDict*);
+void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*));
 
 bool pk_wrapper__self(int argc, py_Ref argv);
 bool pk_wrapper__NotImplementedError(int argc, py_Ref argv);

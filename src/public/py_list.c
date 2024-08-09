@@ -44,7 +44,7 @@ int py_list_len(py_Ref self) {
     return userdata->count;
 }
 
-void py_list_swap(py_Ref self, int i, int j){
+void py_list_swap(py_Ref self, int i, int j) {
     py_TValue* data = py_list_data(self);
     py_TValue tmp = data[i];
     data[i] = data[j];
@@ -408,9 +408,18 @@ static bool list__contains__(int argc, py_Ref argv) {
     return pk_arraycontains(py_arg(0), py_arg(1));
 }
 
+static void list__gc_mark(void* ud) {
+    List* self = ud;
+    for(int i = 0; i < self->count; i++) {
+        pk__mark_value(c11__at(py_TValue, self, i));
+    }
+}
+
 py_Type pk_list__register() {
     py_Type type =
         pk_newtype("list", tp_object, NULL, (void (*)(void*))c11_vector__dtor, false, true);
+
+    pk__tp_set_marker(type, list__gc_mark);
 
     py_bindmagic(type, __len__, list__len__);
     py_bindmagic(type, __eq__, list__eq__);
@@ -442,11 +451,4 @@ py_Type pk_list__register() {
 
     py_setdict(py_tpobject(type), __hash__, py_None);
     return type;
-}
-
-void pk_list__mark(void* ud, void (*marker)(py_TValue*)) {
-    List* self = ud;
-    for(int i = 0; i < self->count; i++) {
-        marker(c11__at(py_TValue, self, i));
-    }
 }

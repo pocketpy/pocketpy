@@ -1,5 +1,6 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/common/utils.h"
+#include "pocketpy/pocketpy.h"
 #include <stdint.h>
 
 void Bytecode__set_signed_arg(Bytecode* self, int arg) {

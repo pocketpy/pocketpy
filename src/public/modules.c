@@ -1,3 +1,4 @@
+#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
@@ -501,7 +502,6 @@ static bool function__closure__getter(int argc, py_Ref argv) {
     Function* ud = py_touserdata(argv);
     if(!ud->closure) {
         py_newnone(py_retval());
-        return true;
     }
     py_Ref r0 = py_pushtmp();
     py_Ref retval = py_pushtmp();
@@ -520,9 +520,17 @@ static bool function__closure__getter(int argc, py_Ref argv) {
     return true;
 }
 
+static void function__gc_mark(void* ud) {
+    Function* func = ud;
+    if(func->closure) pk__mark_namedict(func->closure);
+    CodeObject__gc_mark(&func->decl->code);
+}
+
 py_Type pk_function__register() {
     py_Type type =
         pk_newtype("function", tp_object, NULL, (void (*)(void*))Function__dtor, false, true);
+
+    pk__tp_set_marker(type, function__gc_mark);
 
     py_bindproperty(type, "__closure__", function__closure__getter, NULL);
     return type;

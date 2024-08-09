@@ -534,8 +534,21 @@ void PyObject__delete(PyObject* self) {
 
 static void mark_object(PyObject* obj);
 
-static void mark_value(py_TValue* val) {
+void pk__mark_value(py_TValue* val) {
     if(val->is_ptr) mark_object(val->_obj);
+}
+
+void pk__mark_namedict(NameDict* dict) {
+    for(int i = 0; i < dict->count; i++) {
+        NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
+        pk__mark_value(&kv->value);
+    }
+}
+
+void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*)) {
+    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
+    assert(ti->gc_mark == NULL);
+    ti->gc_mark = gc_mark;
 }
 
 static void mark_object(PyObject* obj) {
@@ -545,24 +558,19 @@ static void mark_object(PyObject* obj) {
     if(obj->slots > 0) {
         py_TValue* p = PyObject__slots(obj);
         for(int i = 0; i < obj->slots; i++)
-            mark_value(p + i);
-        return;
-    }
-
-    if(obj->slots == -1) {
+            pk__mark_value(p + i);
+    } else if(obj->slots == -1) {
         NameDict* dict = PyObject__dict(obj);
-        for(int j = 0; j < dict->count; j++) {
-            NameDict_KV* kv = c11__at(NameDict_KV, dict, j);
-            mark_value(&kv->value);
-        }
-        return;
+        pk__mark_namedict(dict);
     }
 
-    if(obj->type == tp_list) {
-        pk_list__mark(PyObject__userdata(obj), mark_value);
-    } else if(obj->type == tp_dict) {
-        pk_dict__mark(PyObject__userdata(obj), mark_value);
-    }
+    py_TypeInfo* types = c11__at(py_TypeInfo, &pk_current_vm->types, obj->type);
+    if(types->gc_mark) { types->gc_mark(PyObject__userdata(obj)); }
+}
+
+void CodeObject__gc_mark(const CodeObject* self) {
+    c11__foreach(py_TValue, &self->consts, i) { pk__mark_value(i); }
+    c11__foreach(FuncDecl_, &self->func_decls, i) { CodeObject__gc_mark(&(*i)->code); }
 }
 
 void ManagedHeap__mark(ManagedHeap* self) {
@@ -574,17 +582,17 @@ void ManagedHeap__mark(ManagedHeap* self) {
     }
     // mark value stack
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
-        mark_value(p);
+        pk__mark_value(p);
     }
     // mark frame
     for(Frame* frame = vm->top_frame; frame; frame = frame->f_back) {
-        mark_value(frame->module);
+        Frame__gc_mark(frame);
     }
     // mark vm's registers
-    mark_value(&vm->last_retval);
-    mark_value(&vm->curr_exception);
+    pk__mark_value(&vm->last_retval);
+    pk__mark_value(&vm->curr_exception);
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
-        mark_value(&vm->reg[i]);
+        pk__mark_value(&vm->reg[i]);
     }
 }
 

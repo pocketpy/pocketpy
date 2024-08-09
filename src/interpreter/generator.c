@@ -71,8 +71,15 @@ static bool generator__next__(int argc, py_Ref argv) {
     }
 }
 
+static void generator__gc_mark(void* ud){
+    Generator* gen = ud;
+    if(gen->frame) Frame__gc_mark(gen->frame);
+}
+
 py_Type pk_generator__register() {
     py_Type type = pk_newtype("generator", tp_object, NULL, (py_Dtor)Generator__dtor, false, true);
+
+    pk__tp_set_marker(type, generator__gc_mark);
 
     py_bindmagic(type, __iter__, pk_wrapper__self);
     py_bindmagic(type, __next__, generator__next__);

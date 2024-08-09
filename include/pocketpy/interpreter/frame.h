@@ -64,3 +64,5 @@ int Frame__exit_block(Frame* self, ValueStack*, int);
 
 UnwindTarget* Frame__find_unwind_target(Frame* self, int iblock);
 void Frame__set_unwind_target(Frame* self, py_TValue* sp);
+
+void Frame__gc_mark(Frame* self);
