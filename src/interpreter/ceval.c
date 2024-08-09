@@ -1027,7 +1027,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_TValue* tmp = c11__at(py_TValue, &frame->co->consts, byte.arg);
                 const char* string = py_tostr(tmp);
                 // TODO: optimize this
-                if(!py_exec(string, "<eval>", EVAL_MODE, frame->module)) goto __ERROR;
+                if(!py_exec(string, "<f-string>", EVAL_MODE, frame->module)) goto __ERROR;
                 PUSH(py_retval());
                 DISPATCH();
             }
