@@ -313,8 +313,12 @@ py_Type pk_newtype(const char* name,
     c11_vector* types = &pk_current_vm->types;
     py_Type index = types->count;
     py_TypeInfo* ti = c11_vector__emplace(types);
+    py_TypeInfo* base_ti = base ? c11__at(py_TypeInfo, types, base) : NULL;
+    if(base_ti && base_ti->is_sealed){
+        c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
+    }
     py_TypeInfo__ctor(ti, py_name(name), index, base, module ? *module : *py_NIL);
-    if(!dtor && base) { dtor = c11__at(py_TypeInfo, types, base)->dtor; }
+    if(!dtor && base) dtor = base_ti->dtor;
     ti->dtor = dtor;
     ti->is_python = is_python;
     ti->is_sealed = is_sealed;

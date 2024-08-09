@@ -106,7 +106,7 @@ py_Type pk_BaseException__register() {
 }
 
 py_Type pk_Exception__register() {
-    py_Type type = pk_newtype("Exception", tp_BaseException, NULL, NULL, false, true);
+    py_Type type = pk_newtype("Exception", tp_BaseException, NULL, NULL, false, false);
     return type;
 }
 

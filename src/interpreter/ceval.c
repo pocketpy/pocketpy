@@ -909,6 +909,13 @@ FrameResult VM__run_top_frame(VM* self) {
                     base = py_totype(TOP());
                 }
                 POP();
+
+                py_TypeInfo* base_ti = c11__at(py_TypeInfo, &self->types, base);
+                if(base_ti->is_sealed){
+                    TypeError("type '%t' is not an acceptable base type", base);
+                    goto __ERROR;
+                }
+
                 py_Type type =
                     pk_newtype(py_name2str(name), base, frame->module, NULL, true, false);
                 PUSH(py_tpobject(type));
