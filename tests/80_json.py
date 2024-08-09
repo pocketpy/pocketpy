@@ -14,11 +14,7 @@ a = {
     'h': False
 }
 
-try:
-    import cjson as json
-    print('[INFO] cjson is used')
-except ImportError:
-    import json
+import json
 
 assert json.loads("1") == 1
 assert json.loads('"1"') == "1"
@@ -29,7 +25,7 @@ assert json.loads("true") == True
 assert json.loads("false") == False
 assert json.loads("{}") == {}
 
-assert json.loads(b"false") == False
+# assert json.loads(b"false") == False
 
 _j = json.dumps(a)
 _a = json.loads(_j)

@@ -454,6 +454,8 @@ bool py_str(py_Ref val) PY_RAISE;
 bool py_repr(py_Ref val) PY_RAISE;
 /// Python equivalent to `len(val)`.
 bool py_len(py_Ref val) PY_RAISE;
+/// Python equivalent to `json.dumps(val)`.
+bool py_json(py_Ref val) PY_RAISE;
 
 /************* Unchecked Functions *************/
 

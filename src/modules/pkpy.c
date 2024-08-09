@@ -5,7 +5,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 
-static bool _py_pkpy__next(int argc, py_Ref argv) {
+static bool pkpy_next(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int res = py_next(argv);
     if(res == -1) return false;
@@ -17,5 +17,5 @@ static bool _py_pkpy__next(int argc, py_Ref argv) {
 void pk__add_module_pkpy() {
     py_Ref mod = py_newmodule("pkpy");
 
-    py_bindfunc(mod, "next", _py_pkpy__next);
+    py_bindfunc(mod, "next", pkpy_next);
 }

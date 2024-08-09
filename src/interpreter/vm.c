@@ -197,6 +197,7 @@ void VM__ctor(VM* self) {
     pk__add_module_math();
     pk__add_module_dis();
     pk__add_module_random();
+    pk__add_module_json();
 
     // add python builtins
     do {
