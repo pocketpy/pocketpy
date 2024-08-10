@@ -1470,7 +1470,7 @@ static void Compiler__dtor(Compiler* self) {
     if(!match(expected))                                                                           \
         return SyntaxError(self,                                                                   \
                            "expected '%s', got '%s'",                                              \
-                           TokenSymbols[expected],                                              \
+                           TokenSymbols[expected],                                                 \
                            TokenSymbols[curr()->type]);
 #define consume_end_stmt()                                                                         \
     if(!match_end_stmt(self)) return SyntaxError(self, "expected statement end")
@@ -1641,13 +1641,18 @@ static Error* pop_context(Compiler* self) {
     FuncDecl* func = ctx()->func;
     if(func) {
         // check generator
-        c11__foreach(Bytecode, &func->code.codes, bc) {
-            if(bc->op == OP_YIELD_VALUE) {
+        Bytecode* codes = func->code.codes.data;
+        int codes_length = func->code.codes.count;
+
+        for(int i = 0; i < codes_length; i++) {
+            if(codes[i].op == OP_YIELD_VALUE) {
                 func->type = FuncType_GENERATOR;
-                c11__foreach(Bytecode, &func->code.codes, bc) {
-                    if(bc->op == OP_RETURN_VALUE && bc->arg == BC_NOARG) {
-                        return SyntaxError(self,
-                                           "'return' with argument inside generator function");
+                for(int j = 0; j < codes_length; j++) {
+                    if(codes[j].op == OP_RETURN_VALUE && codes[j].arg == BC_NOARG) {
+                        Error* err =
+                            SyntaxError(self, "'return' with argument inside generator function");
+                        err->lineno = c11__at(BytecodeEx, &func->code.codes_ex, j)->lineno;
+                        return err;
                     }
                 }
                 break;
