@@ -463,7 +463,11 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
 
     // [globals, locals, code]
     CodeObject* co = py_touserdata(code);
-    if(!co->src->is_dynamic) py_shrink(3);
+    if(!co->src->is_dynamic) {
+        if(argc != 1)
+            return ValueError("code object is not dynamic, so globals and locals must be None");
+        py_shrink(3);
+    }
     Frame* frame = pk_current_vm->top_frame;
     return pk_exec(co, frame ? frame->module : NULL);
 }

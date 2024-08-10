@@ -75,6 +75,8 @@ bool py_exec(const char* source,
              enum py_CompileMode mode,
              py_Ref module) PY_RAISE;
 
+/// Compile a source string into a code object.
+/// Use python's `exec()` or `eval()` to execute it.
 bool py_compile(const char* source,
                 const char* filename,
                 enum py_CompileMode mode,
