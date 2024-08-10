@@ -89,6 +89,13 @@ FrameResult VM__run_top_frame(VM* self) {
 
         pk_print_stack(self, frame, byte);
 
+        // #if PK_DEBUG
+        //         if(py_checkexc()) {
+        //             py_printexc();
+        //             c11__abort("unhandled exception!");
+        //         }
+        // #endif
+
         switch((Opcode)byte.op) {
             case OP_NO_OP: DISPATCH();
             /*****************************************/
@@ -451,17 +458,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 TypeError("'%t' object does not support item deletion", SECOND()->type);
                 goto __ERROR;
             }
-                /*****************************************/
-
-            case OP_BUILD_LONG: {
-                // [x]
-                py_Ref f = py_getdict(&self->builtins, py_name("long"));
-                assert(f != NULL);
-                if(!py_call(f, 1, TOP())) goto __ERROR;
-                *TOP() = self->last_retval;
-                DISPATCH();
-            }
-
+            /*****************************************/
             case OP_BUILD_IMAG: {
                 // [x]
                 py_Ref f = py_getdict(&self->builtins, py_name("complex"));
@@ -694,9 +691,9 @@ FrameResult VM__run_top_frame(VM* self) {
                         buf[n++] = *curr;
                     } else {
                         py_TValue* args = py_getslot(curr, 0);
-                        int length;
-                        py_TValue* p = pk_arrayview(args, &length);
-                        if(p) {
+                        py_TValue* p;
+                        int length = pk_arrayview(args, &p);
+                        if(length != -1) {
                             for(int j = 0; j < length; j++) {
                                 buf[n++] = p[j];
                             }
@@ -827,7 +824,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 int res = py_import(path);
                 if(res == -1) goto __ERROR;
                 if(res == 0) {
-                    ImportError("module '%s' not found", path);
+                    ImportError("No module named '%s'", path);
                     goto __ERROR;
                 }
                 PUSH(py_retval());
@@ -838,9 +835,9 @@ FrameResult VM__run_top_frame(VM* self) {
                 NameDict* dict = PyObject__dict(TOP()->_obj);
                 py_Ref all = NameDict__try_get(dict, __all__);
                 if(all) {
-                    int length;
-                    py_TValue* p = pk_arrayview(all, &length);
-                    if(!p) {
+                    py_TValue* p;
+                    int length = pk_arrayview(all, &p);
+                    if(length == -1) {
                         TypeError("'__all__' must be a list or tuple, got '%t'", all->type);
                         goto __ERROR;
                     }
@@ -872,10 +869,10 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_UNPACK_EX: {
-                int length;
-                py_TValue* p = pk_arrayview(TOP(), &length);
-                if(!p) {
-                    TypeError("expected list or tuple to unpack, got '%t'", TOP()->type);
+                py_TValue* p;
+                int length = pk_arrayview(TOP(), &p);
+                if(length == -1) {
+                    TypeError("expected list or tuple to unpack, got %t", TOP()->type);
                     goto __ERROR;
                 }
                 int exceed = length - byte.arg;
@@ -1027,9 +1024,12 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             //////////////////
             case OP_FSTRING_EVAL: {
-                py_TValue* tmp = c11__at(py_TValue, &frame->co->consts, byte.arg);
-                assert(py_istype(tmp, tp_code));
-                if(!pk_exec(py_touserdata(tmp), frame->module)) goto __ERROR;
+                py_TValue* code = c11__at(py_TValue, &frame->co->consts, byte.arg);
+                assert(py_istype(code, tp_code));
+                py_newglobals(SP()++);
+                py_newlocals(SP()++);
+                PUSH(code);
+                if(!pk_exec(py_touserdata(code), frame->module)) goto __ERROR;
                 PUSH(py_retval());
                 DISPATCH();
             }
@@ -1100,9 +1100,13 @@ bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
         }
     }
     // eq/ne op never fails
-    if(op == __eq__ || op == __ne__) {
-        bool res = py_isidentical(SECOND(), TOP());
+    bool res = py_isidentical(SECOND(), TOP());
+    if(op == __eq__) {
         py_newbool(py_retval(), res);
+        return true;
+    }
+    if(op == __ne__) {
+        py_newbool(py_retval(), !res);
         return true;
     }
     return TypeError("unsupported operand type(s) for '%n'", op);
@@ -1118,9 +1122,9 @@ bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
 }
 
 static bool stack_unpack_sequence(VM* self, uint16_t arg) {
-    int length;
-    py_TValue* p = pk_arrayview(TOP(), &length);
-    if(!p) return TypeError("expected list or tuple to unpack, got '%t'", TOP()->type);
+    py_TValue* p;
+    int length = pk_arrayview(TOP(), &p);
+    if(length == -1) return TypeError("expected list or tuple to unpack, got %t", TOP()->type);
     if(length != arg) return ValueError("expected %d values to unpack, got %d", arg, length);
     POP();
     for(int i = 0; i < length; i++) {

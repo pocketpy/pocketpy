@@ -262,32 +262,30 @@ static bool str_endswith(int argc, py_Ref argv) {
 
 static bool str_join(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
-    py_Ref _1 = py_arg(1);
-    // join a list or tuple
-    py_TValue* p;
-    int length;
-    if(py_istype(_1, tp_list)) {
-        p = py_list_getitem(_1, 0);
-        length = py_list_len(_1);
-    } else if(py_istype(_1, tp_tuple)) {
-        p = py_tuple_getitem(_1, 0);
-        length = py_tuple_len(_1);
-    } else {
-        return TypeError("join() argument must be a list or tuple");
-    }
+    c11_sv self = c11_string__sv(py_touserdata(argv));
+
+    if(!py_iter(py_arg(1))) return false;
+    py_push(py_retval());  // iter
 
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
-    for(int i = 0; i < length; i++) {
-        if(i > 0) c11_sbuf__write_sv(&buf, self);
-        if(!py_checkstr(&p[i])) {
+    bool first = true;
+    while(true) {
+        int res = py_next(py_peek(-1));
+        if(res == -1) return false;
+        if(res == 0) break;
+
+        if(!first) c11_sbuf__write_sv(&buf, self);
+        if(!py_checkstr(py_retval())) {
             c11_sbuf__dtor(&buf);
             return false;
         }
-        c11_string* item = py_touserdata(&p[i]);
+        c11_string* item = py_touserdata(py_retval());
         c11_sbuf__write_cstrn(&buf, item->data, item->size);
+        first = false;
     }
+
+    py_pop();  // iter
     c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
@@ -516,17 +514,17 @@ py_Type pk_str_iterator__register() {
     return type;
 }
 
-static bool bytes__new__(int argc, py_Ref argv){
-    if(argc == 1){
+static bool bytes__new__(int argc, py_Ref argv) {
+    if(argc == 1) {
         py_newbytes(py_retval(), 0);
         return true;
     }
     if(argc > 2) return TypeError("bytes() takes at most 1 argument");
-    int length;
-    py_TValue* p = pk_arrayview(&argv[1], &length);
-    if(!p) return TypeError("bytes() argument must be a list or tuple");
+    py_TValue* p;
+    int length = pk_arrayview(&argv[1], &p);
+    if(length == -1) return TypeError("bytes() argument must be a list or tuple");
     unsigned char* data = py_newbytes(py_retval(), length);
-    for(int i = 0; i < length; i++){
+    for(int i = 0; i < length; i++) {
         if(!py_checktype(&p[i], tp_int)) return false;
         py_i64 v = py_toint(&p[i]);
         if(v < 0 || v > 255) return ValueError("bytes must be in range(0, 256)");

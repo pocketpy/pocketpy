@@ -174,13 +174,10 @@ def help(obj):
     if obj.__doc__:
         print(obj.__doc__)
 
-def complex(*args, **kwargs):
+def complex(real, imag=0):
     import cmath
-    return cmath.complex(*args, **kwargs)
+    return cmath.complex(real, imag)
 
-def long(*args, **kwargs):
-    import _long
-    return _long.long(*args, **kwargs)
 
 class set:
     def __init__(self, iterable=None):

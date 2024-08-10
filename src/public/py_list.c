@@ -75,18 +75,7 @@ static bool list__len__(int argc, py_Ref argv) {
 }
 
 static bool list__eq__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    if(py_istype(py_arg(1), tp_list)) {
-        int length0, length1;
-        py_TValue* a0 = pk_arrayview(py_arg(0), &length0);
-        py_TValue* a1 = pk_arrayview(py_arg(1), &length1);
-        int res = pk_arrayequal(a0, length0, a1, length1);
-        if(res == -1) return false;
-        py_newbool(py_retval(), res);
-    } else {
-        py_newnotimplemented(py_retval());
-    }
-    return true;
+    return pk_wrapper__arrayequal(tp_list, argc, argv);
 }
 
 static bool list__ne__(int argc, py_Ref argv) {
@@ -104,9 +93,9 @@ static bool list__new__(int argc, py_Ref argv) {
         return true;
     }
     if(argc == 2) {
-        int length;
-        py_TValue* p = pk_arrayview(py_arg(1), &length);
-        if(p) {
+        py_TValue* p;
+        int length = pk_arrayview(py_arg(1), &p);
+        if(length != -1) {
             py_newlistn(py_retval(), length);
             for(int i = 0; i < length; i++) {
                 py_list_setitem(py_retval(), i, p + i);

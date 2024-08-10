@@ -195,9 +195,9 @@ static bool Random_randint(int argc, py_Ref argv) {
 static bool Random_choice(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     mt19937* ud = py_touserdata(py_arg(0));
-    int length;
-    py_TValue* p = pk_arrayview(py_arg(1), &length);
-    if(!p) return TypeError("choice(): argument must be a list or tuple");
+    py_TValue* p;
+    int length = pk_arrayview(py_arg(1), &p);
+    if(length == -1) return TypeError("choice(): argument must be a list or tuple");
     if(length == 0) return IndexError("cannot choose from an empty sequence");
     int index = mt19937__randint(ud, 0, length - 1);
     py_assign(py_retval(), p + index);
@@ -206,9 +206,9 @@ static bool Random_choice(int argc, py_Ref argv) {
 
 static bool Random_choices(int argc, py_Ref argv) {
     mt19937* ud = py_touserdata(py_arg(0));
-    int length;
-    py_TValue* p = pk_arrayview(py_arg(1), &length);
-    if(!p) return TypeError("choices(): argument must be a list or tuple");
+    py_TValue* p;
+    int length = pk_arrayview(py_arg(1), &p);
+    if(length == -1) return TypeError("choices(): argument must be a list or tuple");
     if(length == 0) return IndexError("cannot choose from an empty sequence");
     py_Ref weights = py_arg(2);
     if(!py_checktype(py_arg(3), tp_int)) return false;
@@ -219,9 +219,9 @@ static bool Random_choices(int argc, py_Ref argv) {
         for(int i = 0; i < length; i++)
             cum_weights[i] = i + 1;
     } else {
-        int wlen;
-        py_TValue* w = pk_arrayview(weights, &wlen);
-        if(!w) {
+        py_TValue* w;
+        int wlen = pk_arrayview(weights, &w);
+        if(wlen == -1) {
             free(cum_weights);
             return TypeError("choices(): weights must be a list or tuple");
         }

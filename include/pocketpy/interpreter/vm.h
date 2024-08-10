@@ -6,6 +6,11 @@
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/modules.h"
 
+// TODO:
+// 1. __eq__ and __ne__ fallbacks
+// 2. un-cleared exception detection
+// 3. super()
+
 typedef struct py_TypeInfo {
     py_Name name;
     py_Type base;
@@ -89,8 +94,8 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
 
 const char* pk_opname(Opcode op);
 
-py_TValue* pk_arrayview(py_Ref self, int* length);
-int pk_arrayequal(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length);
+int pk_arrayview(py_Ref self, py_TValue** p);
+bool pk_wrapper__arrayequal(py_Type type, int argc, py_Ref argv);
 bool pk_arrayiter(py_Ref val);
 bool pk_arraycontains(py_Ref self, py_Ref val);
 

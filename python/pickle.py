@@ -22,7 +22,7 @@ class _Pickler:
         name = t.__name__
         mod = t.__module__
         if mod is not None:
-            name = mod.__path__ + _MOD_T_SEP + name
+            name = mod + _MOD_T_SEP + name
         return name
 
     def wrap(self, o):

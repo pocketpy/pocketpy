@@ -15,7 +15,6 @@ def Counter(iterable: Iterable[T]):
 class defaultdict(dict):
     def __init__(self, default_factory, *args):
         super().__init__(*args)
-        _enable_instance_dict(self)
         self.default_factory = default_factory
 
     def __missing__(self, key):
@@ -133,13 +132,18 @@ class deque(Generic[T]):
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, deque):
-            return False
+            return NotImplemented
         if len(self) != len(other):
             return False
         for x, y in zip(self, other):
             if x != y:
                 return False
         return True
+    
+    def __ne__(self, other: object) -> bool:
+        if not isinstance(other, deque):
+            return NotImplemented
+        return not self == other
     
     def __repr__(self) -> str:
         return f"deque({list(self)!r})"

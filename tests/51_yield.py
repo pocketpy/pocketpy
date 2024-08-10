@@ -56,7 +56,7 @@ assert a == [1, 2, 3]
 def f():
     for i in range(5):
         yield str(i)
-assert '|'.join(list(f())) == '0|1|2|3|4'
+assert '|'.join(f()) == '0|1|2|3|4'
 
 
 def f(n):

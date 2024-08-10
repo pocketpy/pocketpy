@@ -95,6 +95,19 @@ static bool type__getitem__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool type__module__getter(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_Type type = py_totype(argv);
+    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
+    if(py_isnil(&ti->module)) {
+        py_newnone(py_retval());
+    } else {
+        py_Ref path = py_getdict(&ti->module, __path__);
+        py_assign(py_retval(), path);
+    }
+    return true;
+}
+
 void pk_object__register() {
     // TODO: use staticmethod
     py_bindmagic(tp_object, __new__, object__new__);
@@ -108,6 +121,7 @@ void pk_object__register() {
     py_bindmagic(tp_type, __repr__, type__repr__);
     py_bindmagic(tp_type, __new__, type__new__);
     py_bindmagic(tp_type, __getitem__, type__getitem__);
+    py_bindproperty(tp_type, "__module__", type__module__getter, NULL);
 
     py_bindproperty(tp_type, "__base__", type__base__getter, NULL);
     py_bindproperty(tp_type, "__name__", type__name__getter, NULL);

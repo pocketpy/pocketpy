@@ -11,32 +11,48 @@ typedef struct array_iterator {
     int index;
 } array_iterator;
 
-py_TValue* pk_arrayview(py_Ref self, int* length) {
+int pk_arrayview(py_Ref self, py_TValue** p) {
     if(self->type == tp_list) {
-        *length = py_list_len(self);
-        return py_list_data(self);
+        *p = py_list_data(self);
+        return py_list_len(self);
     }
     if(self->type == tp_tuple) {
-        *length = py_tuple_len(self);
-        return PyObject__slots(self->_obj);
+        *p = PyObject__slots(self->_obj);
+        return py_tuple_len(self);
     }
-    return NULL;
+    return -1;
 }
 
-int pk_arrayequal(py_TValue* lhs, int lhs_length, py_TValue* rhs, int rhs_length) {
-    if(lhs_length != rhs_length) return false;
-    for(int i = 0; i < lhs_length; i++) {
-        int res = py_equal(lhs + i, rhs + i);
-        if(res == -1) return -1;
-        if(!res) return false;
+bool pk_wrapper__arrayequal(py_Type type, int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(!py_istype(py_arg(1), type)) {
+        py_newnotimplemented(py_retval());
+        return true;
     }
+    py_TValue *p0, *p1;
+    int lhs_length = pk_arrayview(py_arg(0), &p0);
+    int rhs_length = pk_arrayview(py_arg(1), &p1);
+    assert(lhs_length != -1 && rhs_length != -1);
+    if(lhs_length != rhs_length) {
+        py_newbool(py_retval(), false);
+        return true;
+    }
+    for(int i = 0; i < lhs_length; i++) {
+        int res = py_equal(p0 + i, p1 + i);
+        if(res == -1) return false;
+        if(!res) {
+            py_newbool(py_retval(), false);
+            return true;
+        }
+    }
+    py_newbool(py_retval(), true);
     return true;
 }
 
 bool pk_arrayiter(py_Ref val) {
-    int length;
-    py_TValue* p = pk_arrayview(val, &length);
-    if(!p) return TypeError("expected list or tuple, got %t", val->type);
+    py_TValue* p;
+    int length = pk_arrayview(val, &p);
+    if(length == -1) return TypeError("expected list or tuple, got %t", val->type);
     array_iterator* ud = py_newobject(py_retval(), tp_array_iterator, 1, sizeof(array_iterator));
     ud->p = p;
     ud->length = length;
@@ -46,9 +62,9 @@ bool pk_arrayiter(py_Ref val) {
 }
 
 bool pk_arraycontains(py_Ref self, py_Ref val) {
-    int length;
-    py_TValue* p = pk_arrayview(self, &length);
-    if(!p) return TypeError("expected list or tuple, got %t", self->type);
+    py_TValue* p;
+    int length = pk_arrayview(self, &p);
+    if(length == -1) return TypeError("expected list or tuple, got %t", self->type);
     for(int i = 0; i < length; i++) {
         int res = py_equal(p + i, val);
         if(res == -1) return false;

@@ -647,8 +647,8 @@ static void _load_expr(Ctx* ctx, c11_sv expr, int line) {
     }
 
     c11_string* source = c11_string__new2(expr.data, expr.size);
-    bool ok = py_compile(source->data, "<f-string>", EVAL_MODE, false);
-    if(!ok){
+    bool ok = py_compile(source->data, "<f-string>", EVAL_MODE, true);
+    if(!ok) {
         py_printexc();
         c11__abort("f-string: invalid expression");
     }
@@ -1659,12 +1659,6 @@ static Error* pop_context(Compiler* self) {
 static Error* exprLiteral(Compiler* self) {
     LiteralExpr* e = LiteralExpr__new(prev()->line, &prev()->value);
     Ctx__s_push(ctx(), (Expr*)e);
-    return NULL;
-}
-
-static Error* exprLong(Compiler* self) {
-    c11_sv sv = Token__sv(prev());
-    Ctx__s_push(ctx(), (Expr*)RawStringExpr__new(prev()->line, sv, OP_BUILD_LONG));
     return NULL;
 }
 
@@ -2836,7 +2830,6 @@ const static PrattRule rules[TK__COUNT__] = {
     [TK_NUM] =         { exprLiteral, },
     [TK_STR] =         { exprLiteral, },
     [TK_FSTR] =        { exprFString, },
-    [TK_LONG] =        { exprLong,    },
     [TK_IMAG] =        { exprImag,    },
     [TK_BYTES] =       { exprBytes,   },
     [TK_LBRACE] =      { exprMap      },

@@ -144,11 +144,11 @@ int py_import(const char* path_cstr) {
     return 0;
 
 __SUCCESS:
-    py_push(py_newmodule(path_cstr));
-    py_Ref mod = py_peek(-1);
+    do {
+    } while(0);
+    py_GlobalRef mod = py_newmodule(path_cstr);
     bool ok = py_exec((const char*)data, filename->data, EXEC_MODE, mod);
     py_assign(py_retval(), mod);
-    py_pop();
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
@@ -273,9 +273,9 @@ static bool builtins_round(int argc, py_Ref argv) {
 }
 
 static bool builtins_print(int argc, py_Ref argv) {
-    int length;
-    py_TValue* args = pk_arrayview(argv, &length);
-    assert(args != NULL);
+    py_TValue* args;
+    int length = pk_arrayview(argv, &args);
+    assert(length != -1);
     c11_sv sep = py_tosv(py_arg(1));
     c11_sv end = py_tosv(py_arg(2));
     c11_sbuf buf;
@@ -391,6 +391,16 @@ static bool builtins_ord(int argc, py_Ref argv) {
         return TypeError("ord() expected a character, but string of length %d found", sv.size);
     }
     py_newint(py_retval(), sv.data[0]);
+    return true;
+}
+
+static bool builtins_id(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    if(argv->is_ptr) {
+        py_newint(py_retval(), (py_i64)argv->_obj);
+    } else {
+        py_newnone(py_retval());
+    }
     return true;
 }
 
@@ -512,6 +522,15 @@ static bool builtins_compile(int argc, py_Ref argv) {
     return py_compile(source, filename, compile_mode, true);
 }
 
+static bool builtins__import__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    int res = py_import(py_tostr(argv));
+    if(res == -1) return false;
+    if(res) return true;
+    return ImportError("No module named '%s'", py_tostr(argv));
+}
+
 static bool NoneType__repr__(int argc, py_Ref argv) {
     py_newstr(py_retval(), "None");
     return true;
@@ -552,12 +571,15 @@ py_TValue pk_builtins__register() {
 
     py_bindfunc(builtins, "chr", builtins_chr);
     py_bindfunc(builtins, "ord", builtins_ord);
+    py_bindfunc(builtins, "id", builtins_id);
 
     py_bindfunc(builtins, "globals", builtins_globals);
     py_bindfunc(builtins, "locals", builtins_locals);
     py_bindfunc(builtins, "exec", builtins_exec);
     py_bindfunc(builtins, "eval", builtins_eval);
     py_bindfunc(builtins, "compile", builtins_compile);
+
+    py_bindfunc(builtins, "__import__", builtins__import__);
 
     // some patches
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);

@@ -115,6 +115,8 @@ class ArithmeticError(Exception): pass
 class BadCompare:
     def __eq__(self, other):
         raise ArithmeticError
+    def __ne__(self, other):
+        raise ArithmeticError
 
 
 d = deque([1, 2, BadCompare(), 3])

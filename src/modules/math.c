@@ -83,7 +83,6 @@ static bool math_isclose(int argc, py_Ref argv) {
 ONE_ARG_FUNC(exp, exp)
 
 static bool math_log(int argc, py_Ref argv) {
-    PY_CHECK_ARG_TYPE(0, tp_float);
     double x;
     if(!py_castfloat(py_arg(0), &x)) return false;
     if(argc == 1) {

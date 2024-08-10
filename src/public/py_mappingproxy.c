@@ -5,14 +5,13 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 
-
-void pk_mappingproxy__namedict(py_Ref out, py_Ref object){
+void pk_mappingproxy__namedict(py_Ref out, py_Ref object) {
     py_newobject(out, tp_namedict, 1, 0);
     assert(object->is_ptr && object->_obj->slots == -1);
     py_setslot(out, 0, object);
 }
 
-static bool namedict__getitem__(int argc, py_Ref argv){
+static bool namedict__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
     py_Name name = py_namev(py_tosv(py_arg(1)));
@@ -22,7 +21,7 @@ static bool namedict__getitem__(int argc, py_Ref argv){
     return true;
 }
 
-static bool namedict__setitem__(int argc, py_Ref argv){
+static bool namedict__setitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_str);
     py_Name name = py_namev(py_tosv(py_arg(1)));
@@ -31,7 +30,7 @@ static bool namedict__setitem__(int argc, py_Ref argv){
     return true;
 }
 
-static bool namedict__delitem__(int argc, py_Ref argv){
+static bool namedict__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
     py_Name name = py_namev(py_tosv(py_arg(1)));
@@ -40,12 +39,27 @@ static bool namedict__delitem__(int argc, py_Ref argv){
     return true;
 }
 
-static bool namedict__contains__(int argc, py_Ref argv){
+static bool namedict__contains__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
     py_Name name = py_namev(py_tosv(py_arg(1)));
     py_Ref res = py_getdict(py_getslot(argv, 0), name);
     py_newbool(py_retval(), res != NULL);
+    return true;
+}
+
+static bool namedict_items(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_Ref object = py_getslot(argv, 0);
+    NameDict* dict = PyObject__dict(object->_obj);
+    py_newtuple(py_retval(), dict->count);
+    for(int i = 0; i < dict->count; i++) {
+        py_Ref slot = py_tuple_getitem(py_retval(), i);
+        py_newtuple(slot, 2);
+        NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
+        py_newstr(py_tuple_getitem(slot, 0), py_name2str(kv->key));
+        py_assign(py_tuple_getitem(slot, 1), &kv->value);
+    }
     return true;
 }
 
@@ -56,18 +70,19 @@ py_Type pk_namedict__register() {
     py_bindmagic(type, __setitem__, namedict__setitem__);
     py_bindmagic(type, __delitem__, namedict__delitem__);
     py_bindmagic(type, __contains__, namedict__contains__);
+    py_bindmethod(type, "items", namedict_items);
     return type;
 }
 
 //////////////////////
 
-void pk_mappingproxy__locals(py_Ref out, Frame* frame){
+void pk_mappingproxy__locals(py_Ref out, Frame* frame) {
     assert(frame->has_function && !frame->is_dynamic);
     Frame** ud = py_newobject(out, tp_locals, 0, sizeof(Frame*));
     *ud = frame;
 }
 
-static bool locals__getitem__(int argc, py_Ref argv){
+static bool locals__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
     Frame** ud = py_touserdata(argv);
@@ -78,7 +93,7 @@ static bool locals__getitem__(int argc, py_Ref argv){
     return true;
 }
 
-static bool locals__setitem__(int argc, py_Ref argv){
+static bool locals__setitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_str);
     Frame** ud = py_touserdata(argv);
@@ -90,7 +105,7 @@ static bool locals__setitem__(int argc, py_Ref argv){
     return true;
 }
 
-static bool locals__delitem__(int argc, py_Ref argv){
+static bool locals__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
     Frame** ud = py_touserdata(argv);
@@ -102,7 +117,7 @@ static bool locals__delitem__(int argc, py_Ref argv){
     return true;
 }
 
-static bool locals__contains__(int argc, py_Ref argv){
+static bool locals__contains__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
     Frame** ud = py_touserdata(argv);

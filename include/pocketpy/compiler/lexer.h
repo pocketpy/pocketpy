@@ -10,7 +10,7 @@ extern const char* TokenSymbols[];
 
 typedef enum TokenIndex{
     TK_EOF, TK_EOL, TK_SOF,
-    TK_ID, TK_NUM, TK_STR, TK_FSTR, TK_LONG, TK_BYTES, TK_IMAG,
+    TK_ID, TK_NUM, TK_STR, TK_FSTR, TK_BYTES, TK_IMAG,
     TK_INDENT, TK_DEDENT,
     /***************/
     TK_IS_NOT, TK_NOT_IN, TK_YIELD_FROM,

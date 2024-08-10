@@ -8,17 +8,17 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#define is_raw_string_used(t) ((t) == TK_ID || (t) == TK_LONG)
+#define is_raw_string_used(t) ((t) == TK_ID)
 
-typedef struct Lexer{
+typedef struct Lexer {
     SourceData_ src;
     const char* token_start;
     const char* curr_char;
     int current_line;
     int brackets_level;
 
-    c11_vector/*T=Token*/ nexts;
-    c11_vector/*T=int*/ indents;
+    c11_vector /*T=Token*/ nexts;
+    c11_vector /*T=int*/ indents;
 } Lexer;
 
 typedef struct TokenDeserializer {
@@ -34,10 +34,9 @@ int TokenDeserializer__read_count(TokenDeserializer* self);
 int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c);
 double TokenDeserializer__read_float(TokenDeserializer* self, char c);
 
-
 const static TokenValue EmptyTokenValue;
 
-static void Lexer__ctor(Lexer* self, SourceData_ src){
+static void Lexer__ctor(Lexer* self, SourceData_ src) {
     PK_INCREF(src);
     self->src = src;
     self->curr_char = self->token_start = src->source->data;
@@ -47,20 +46,20 @@ static void Lexer__ctor(Lexer* self, SourceData_ src){
     c11_vector__ctor(&self->indents, sizeof(int));
 }
 
-static void Lexer__dtor(Lexer* self){
+static void Lexer__dtor(Lexer* self) {
     PK_DECREF(self->src);
     c11_vector__dtor(&self->nexts);
     c11_vector__dtor(&self->indents);
 }
 
-static char eatchar(Lexer* self){
+static char eatchar(Lexer* self) {
     char c = *self->curr_char;
     assert(c != '\n');  // eatchar() cannot consume a newline
     self->curr_char++;
     return c;
 }
 
-static char eatchar_include_newline(Lexer* self){
+static char eatchar_include_newline(Lexer* self) {
     char c = *self->curr_char;
     self->curr_char++;
     if(c == '\n') {
@@ -70,7 +69,7 @@ static char eatchar_include_newline(Lexer* self){
     return c;
 }
 
-static int eat_spaces(Lexer* self){
+static int eat_spaces(Lexer* self) {
     int count = 0;
     while(true) {
         switch(*self->curr_char) {
@@ -82,13 +81,13 @@ static int eat_spaces(Lexer* self){
     }
 }
 
-static bool matchchar(Lexer* self, char c){
+static bool matchchar(Lexer* self, char c) {
     if(*self->curr_char != c) return false;
     eatchar_include_newline(self);
     return true;
 }
 
-static bool match_n_chars(Lexer* self, int n, char c0){
+static bool match_n_chars(Lexer* self, int n, char c0) {
     const char* c = self->curr_char;
     for(int i = 0; i < n; i++) {
         if(*c == '\0') return false;
@@ -100,14 +99,14 @@ static bool match_n_chars(Lexer* self, int n, char c0){
     return true;
 }
 
-static void skip_line_comment(Lexer* self){
+static void skip_line_comment(Lexer* self) {
     while(*self->curr_char) {
         if(*self->curr_char == '\n') return;
         eatchar(self);
     }
 }
 
-static void add_token_with_value(Lexer* self, TokenIndex type, TokenValue value){
+static void add_token_with_value(Lexer* self, TokenIndex type, TokenValue value) {
     switch(type) {
         case TK_LBRACE:
         case TK_LBRACKET:
@@ -118,11 +117,11 @@ static void add_token_with_value(Lexer* self, TokenIndex type, TokenValue value)
         default: break;
     }
     Token token = {type,
-                       self->token_start,
-                       (int)(self->curr_char - self->token_start),
-                       self->current_line - ((type == TK_EOL) ? 1 : 0),
-                       self->brackets_level,
-                       value};
+                   self->token_start,
+                   (int)(self->curr_char - self->token_start),
+                   self->current_line - ((type == TK_EOL) ? 1 : 0),
+                   self->brackets_level,
+                   value};
     // handle "not in", "is not", "yield from"
     if(self->nexts.count > 0) {
         Token* back = &c11_vector__back(Token, &self->nexts);
@@ -142,34 +141,42 @@ static void add_token_with_value(Lexer* self, TokenIndex type, TokenValue value)
     }
 }
 
-static void add_token(Lexer* self, TokenIndex type){
+static void add_token(Lexer* self, TokenIndex type) {
     add_token_with_value(self, type, EmptyTokenValue);
 }
 
-static void add_token_2(Lexer* self, char c, TokenIndex one, TokenIndex two){
+static void add_token_2(Lexer* self, char c, TokenIndex one, TokenIndex two) {
     if(matchchar(self, c))
         add_token(self, two);
     else
         add_token(self, one);
 }
 
-static bool eat_indentation(Lexer* self){
+static bool eat_indentation(Lexer* self) {
     if(self->brackets_level > 0) return true;
     int spaces = eat_spaces(self);
     if(*self->curr_char == '#') skip_line_comment(self);
-    if(*self->curr_char == '\0' || *self->curr_char == '\n'){
-        return true;
-    }
+    if(*self->curr_char == '\0' || *self->curr_char == '\n') { return true; }
     // https://docs.python.org/3/reference/lexical_analysis.html#indentation
     int indents_back = c11_vector__back(int, &self->indents);
     if(spaces > indents_back) {
         c11_vector__push(int, &self->indents, spaces);
-        Token t = {TK_INDENT, self->token_start, 0, self->current_line, self->brackets_level, EmptyTokenValue};
+        Token t = {TK_INDENT,
+                   self->token_start,
+                   0,
+                   self->current_line,
+                   self->brackets_level,
+                   EmptyTokenValue};
         c11_vector__push(Token, &self->nexts, t);
     } else if(spaces < indents_back) {
         do {
             c11_vector__pop(&self->indents);
-            Token t = {TK_DEDENT, self->token_start, 0, self->current_line, self->brackets_level, EmptyTokenValue};
+            Token t = {TK_DEDENT,
+                       self->token_start,
+                       0,
+                       self->current_line,
+                       self->brackets_level,
+                       EmptyTokenValue};
             c11_vector__push(Token, &self->nexts, t);
             indents_back = c11_vector__back(int, &self->indents);
         } while(spaces < indents_back);
@@ -178,28 +185,26 @@ static bool eat_indentation(Lexer* self){
     return true;
 }
 
-static bool is_possible_number_char(char c){
+static bool is_possible_number_char(char c) {
     switch(c) {
         // clang-format off
         case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
         case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-        case '.': case 'L': case 'x': case 'o': case 'j':
+        case '.': case 'x': case 'o': case 'j':
         return true;
         default: return false;
-        // clang-format on
+            // clang-format on
     }
 }
 
 /******************************/
-static Error* SyntaxError(Lexer* self, const char* fmt, ...){
+static Error* SyntaxError(Lexer* self, const char* fmt, ...) {
     Error* err = malloc(sizeof(Error));
     err->src = self->src;
     PK_INCREF(self->src);
     err->lineno = self->current_line;
-    if(*self->curr_char == '\n') {
-        err->lineno--;
-    }
+    if(*self->curr_char == '\n') { err->lineno--; }
     va_list args;
     va_start(args, fmt);
     vsnprintf(err->msg, sizeof(err->msg), fmt, args);
@@ -207,7 +212,7 @@ static Error* SyntaxError(Lexer* self, const char* fmt, ...){
     return err;
 }
 
-static Error* eat_name(Lexer* self){
+static Error* eat_name(Lexer* self) {
     self->curr_char--;
     while(true) {
         unsigned char c = *self->curr_char;
@@ -236,9 +241,9 @@ static Error* eat_name(Lexer* self){
                 value |= (b & 0b00111111) << (6 * (u8bytes - k - 1));
             }
         }
-        if(c11__is_unicode_Lo_char(value)){
+        if(c11__is_unicode_Lo_char(value)) {
             self->curr_char += u8bytes;
-        }else{
+        } else {
             break;
         }
     }
@@ -249,10 +254,10 @@ static Error* eat_name(Lexer* self){
 
     const char** KW_BEGIN = TokenSymbols + TK_FALSE;
     int KW_COUNT = TK__COUNT__ - TK_FALSE;
-    #define less(a, b) (c11_sv__cmp2(b, a) > 0)
+#define less(a, b) (c11_sv__cmp2(b, a) > 0)
     int out;
     c11__lower_bound(const char*, KW_BEGIN, KW_COUNT, name, less, &out);
-    #undef less
+#undef less
 
     if(out != KW_COUNT && c11__sveq2(name, KW_BEGIN[out])) {
         add_token(self, (TokenIndex)(out + TK_FALSE));
@@ -276,9 +281,7 @@ static Error* eat_string_until(Lexer* self, char quote, bool raw, c11_string** o
             }
             break;
         }
-        if(c == '\0') {
-            return SyntaxError(self, "EOL while scanning string literal");
-        }
+        if(c == '\0') { return SyntaxError(self, "EOL while scanning string literal"); }
         if(c == '\n') {
             if(!quote3)
                 return SyntaxError(self, "EOL while scanning string literal");
@@ -314,36 +317,33 @@ static Error* eat_string_until(Lexer* self, char quote, bool raw, c11_string** o
     return NULL;
 }
 
-enum StringType {
-    NORMAL_STRING,
-    RAW_STRING,
-    F_STRING,
-    NORMAL_BYTES
-};
+enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
 
-static Error* eat_string(Lexer* self, char quote, enum StringType type){
+static Error* eat_string(Lexer* self, char quote, enum StringType type) {
     c11_string* s;
     Error* err = eat_string_until(self, quote, type == RAW_STRING, &s);
     if(err) return err;
     TokenValue value = {TokenValue_STR, ._str = s};
     if(type == F_STRING) {
         add_token_with_value(self, TK_FSTR, value);
-    }else if(type == NORMAL_BYTES) {
+    } else if(type == NORMAL_BYTES) {
         add_token_with_value(self, TK_BYTES, value);
-    }else{
+    } else {
         add_token_with_value(self, TK_STR, value);
     }
     return NULL;
 }
 
-static Error* eat_number(Lexer* self){
+static Error* eat_number(Lexer* self) {
     const char* i = self->token_start;
-    while(is_possible_number_char(*i)) i++;
+    while(is_possible_number_char(*i))
+        i++;
 
     bool is_scientific_notation = false;
     if(*(i - 1) == 'e' && (*i == '+' || *i == '-')) {
         i++;
-        while(isdigit(*i) || *i == 'j') i++;
+        while(isdigit(*i) || *i == 'j')
+            i++;
         is_scientific_notation = true;
     }
 
@@ -351,21 +351,12 @@ static Error* eat_number(Lexer* self){
     self->curr_char = i;
 
     if(text.data[0] != '.' && !is_scientific_notation) {
-        // try long
-        if(i[-1] == 'L') {
-            add_token(self, TK_LONG);
-            return NULL;
-        }
         // try integer
         TokenValue value = {.index = TokenValue_I64};
         switch(c11__parse_uint(text, &value._i64, -1)) {
-            case IntParsing_SUCCESS:
-                add_token_with_value(self, TK_NUM, value);
-                return NULL;
-            case IntParsing_OVERFLOW:
-                return SyntaxError(self, "int literal is too large");
-            case IntParsing_FAILURE:
-                break;  // do nothing
+            case IntParsing_SUCCESS: add_token_with_value(self, TK_NUM, value); return NULL;
+            case IntParsing_OVERFLOW: return SyntaxError(self, "int literal is too large");
+            case IntParsing_FAILURE: break;  // do nothing
         }
     }
 
@@ -374,7 +365,7 @@ static Error* eat_number(Lexer* self){
     char* p_end;
     float_out = strtod(text.data, &p_end);
 
-    if(p_end == text.data + text.size){
+    if(p_end == text.data + text.size) {
         TokenValue value = {.index = TokenValue_F64, ._f64 = float_out};
         add_token_with_value(self, TK_NUM, value);
         return NULL;
@@ -389,7 +380,7 @@ static Error* eat_number(Lexer* self){
     return SyntaxError(self, "invalid number literal");
 }
 
-static Error* lex_one_token(Lexer* self, bool* eof){
+static Error* lex_one_token(Lexer* self, bool* eof) {
     *eof = false;
     while(*self->curr_char) {
         self->token_start = self->curr_char;
@@ -474,9 +465,9 @@ static Error* lex_one_token(Lexer* self, bool* eof){
                 return NULL;
             }
             case '!':
-                if(matchchar(self, '=')){
+                if(matchchar(self, '=')) {
                     add_token(self, TK_NE);
-                }else{
+                } else {
                     Error* err = SyntaxError(self, "expected '=' after '!'");
                     if(err) return err;
                 }
@@ -499,7 +490,7 @@ static Error* lex_one_token(Lexer* self, bool* eof){
             case '\t': eat_spaces(self); break;
             case '\n': {
                 add_token(self, TK_EOL);
-                if(!eat_indentation(self)){
+                if(!eat_indentation(self)) {
                     return SyntaxError(self, "unindent does not match any outer indentation level");
                 }
                 return NULL;
@@ -542,7 +533,7 @@ static Error* from_precompiled(Lexer* self) {
     if(c11_sv__cmp2(version, PK_VERSION) != 0) {
         return SyntaxError(self, "precompiled version mismatch");
     }
-    if(TokenDeserializer__read_uint(&deserializer, '\n') != (int64_t)self->src->mode){
+    if(TokenDeserializer__read_uint(&deserializer, '\n') != (int64_t)self->src->mode) {
         return SyntaxError(self, "precompiled mode mismatch");
     }
 
@@ -580,7 +571,7 @@ static Error* from_precompiled(Lexer* self) {
             t.brackets_level = (int)TokenDeserializer__read_uint(&deserializer, ',');
         }
 
-        char type = (*deserializer.curr++);      // read_char
+        char type = (*deserializer.curr++);  // read_char
         switch(type) {
             case 'I': {
                 int64_t res = TokenDeserializer__read_uint(&deserializer, '\n');
@@ -594,16 +585,14 @@ static Error* from_precompiled(Lexer* self) {
                 c11_string* res = TokenDeserializer__read_string_from_hex(&deserializer, '\n');
                 t.value = (TokenValue){TokenValue_STR, ._str = res};
             } break;
-            default:
-                t.value = EmptyTokenValue;
-                break;
+            default: t.value = EmptyTokenValue; break;
         }
         c11_vector__push(Token, &self->nexts, t);
     }
     return NULL;
 }
 
-Error* Lexer__process(SourceData_ src, TokenArray* out_tokens){
+Error* Lexer__process(SourceData_ src, TokenArray* out_tokens) {
     Lexer lexer;
     Lexer__ctor(&lexer, src);
 
@@ -614,14 +603,15 @@ Error* Lexer__process(SourceData_ src, TokenArray* out_tokens){
         return err;
     }
     // push initial tokens
-    Token sof = {TK_SOF, lexer.token_start, 0, lexer.current_line, lexer.brackets_level, EmptyTokenValue};
+    Token sof =
+        {TK_SOF, lexer.token_start, 0, lexer.current_line, lexer.brackets_level, EmptyTokenValue};
     c11_vector__push(Token, &lexer.nexts, sof);
     c11_vector__push(int, &lexer.indents, 0);
 
     bool eof = false;
     while(!eof) {
         void* err = lex_one_token(&lexer, &eof);
-        if(err){
+        if(err) {
             Lexer__dtor(&lexer);
             return err;
         }
@@ -635,7 +625,7 @@ Error* Lexer__process(SourceData_ src, TokenArray* out_tokens){
 
 Error* Lexer__process_and_dump(SourceData_ src, c11_string** out) {
     assert(!src->is_precompiled);
-    TokenArray nexts;    // output tokens
+    TokenArray nexts;  // output tokens
     Error* err = Lexer__process(src, &nexts);
     if(err) return err;
 
@@ -665,7 +655,7 @@ Error* Lexer__process_and_dump(SourceData_ src, c11_string** out) {
     c11_sbuf__write_char(&ss, '\n');
 
     uint16_t index = 0;
-    for(int i=0; i<token_indices.count; i++){
+    for(int i = 0; i < token_indices.count; i++) {
         c11_smallmap_s2n_KV* kv = c11__at(c11_smallmap_s2n_KV, &token_indices, i);
         // L4: raw strings
         c11_sbuf__write_cstrn(&ss, kv->key.data, kv->key.size);
@@ -683,27 +673,27 @@ Error* Lexer__process_and_dump(SourceData_ src, c11_string** out) {
         c11_sbuf__write_char(&ss, ',');
 
         if(is_raw_string_used(token->type)) {
-            uint16_t *p = c11_smallmap_s2n__try_get(
-                &token_indices, (c11_sv){token->start, token->length});
+            uint16_t* p =
+                c11_smallmap_s2n__try_get(&token_indices, (c11_sv){token->start, token->length});
             assert(p != NULL);
             c11_sbuf__write_int(&ss, (int)*p);
             c11_sbuf__write_char(&ss, ',');
         }
-        if(i > 0 && c11__getitem(Token, &nexts, i-1).line == token->line){
+        if(i > 0 && c11__getitem(Token, &nexts, i - 1).line == token->line) {
             c11_sbuf__write_char(&ss, ',');
-        }else{
+        } else {
             c11_sbuf__write_int(&ss, token->line);
             c11_sbuf__write_char(&ss, ',');
         }
-            
-        if(i > 0 && c11__getitem(Token, &nexts, i-1).brackets_level == token->brackets_level){
+
+        if(i > 0 && c11__getitem(Token, &nexts, i - 1).brackets_level == token->brackets_level) {
             c11_sbuf__write_char(&ss, ',');
-        }else{
+        } else {
             c11_sbuf__write_int(&ss, token->brackets_level);
             c11_sbuf__write_char(&ss, ',');
         }
         // visit token value
-        switch(token->value.index){
+        switch(token->value.index) {
             case TokenValue_EMPTY: break;
             case TokenValue_I64:
                 c11_sbuf__write_char(&ss, 'I');
@@ -716,7 +706,7 @@ Error* Lexer__process_and_dump(SourceData_ src, c11_string** out) {
             case TokenValue_STR: {
                 c11_sbuf__write_char(&ss, 'S');
                 c11_sv sv = c11_string__sv(token->value._str);
-                for(int i=0; i<sv.size; i++){
+                for(int i = 0; i < sv.size; i++) {
                     c11_sbuf__write_hex(&ss, sv.data[i], false);
                 }
                 break;
@@ -729,46 +719,120 @@ Error* Lexer__process_and_dump(SourceData_ src, c11_string** out) {
     return NULL;
 }
 
-void TokenArray__dtor(TokenArray *self){
+void TokenArray__dtor(TokenArray* self) {
     Token* data = self->data;
-    for(int i=0; i<self->count; i++){
-        if(data[i].value.index == TokenValue_STR){
-            c11_string__delete(data[i].value._str);
-        }
+    for(int i = 0; i < self->count; i++) {
+        if(data[i].value.index == TokenValue_STR) { c11_string__delete(data[i].value._str); }
     }
     c11_array__dtor(self);
 }
 
 const char* TokenSymbols[] = {
-    "@eof", "@eol", "@sof",
-    "@id", "@num", "@str", "@fstr", "@long", "@bytes", "@imag",
-    "@indent", "@dedent",
+    "@eof",
+    "@eol",
+    "@sof",
+    "@id",
+    "@num",
+    "@str",
+    "@fstr",
+    "@bytes",
+    "@imag",
+    "@indent",
+    "@dedent",
     // These 3 are compound keywords which are generated on the fly
-    "is not", "not in", "yield from",
+    "is not",
+    "not in",
+    "yield from",
     /*****************************************/
-    "+", "+=", "-", "-=",   // (INPLACE_OP - 1) can get '=' removed
-    "*", "*=", "/", "/=", "//", "//=", "%", "%=",
-    "&", "&=", "|", "|=", "^", "^=", 
-    "<<", "<<=", ">>", ">>=",
+    "+",
+    "+=",
+    "-",
+    "-=",  // (INPLACE_OP - 1) can get '=' removed
+    "*",
+    "*=",
+    "/",
+    "/=",
+    "//",
+    "//=",
+    "%",
+    "%=",
+    "&",
+    "&=",
+    "|",
+    "|=",
+    "^",
+    "^=",
+    "<<",
+    "<<=",
+    ">>",
+    ">>=",
     /*****************************************/
-    "(", ")", "[", "]", "{", "}",
-    ".", "..", "...", ",", ":", ";",
-    "**", "->", "#", "@",
-    ">", "<", "=", "==", "!=", ">=", "<=", "~",
+    "(",
+    ")",
+    "[",
+    "]",
+    "{",
+    "}",
+    ".",
+    "..",
+    "...",
+    ",",
+    ":",
+    ";",
+    "**",
+    "->",
+    "#",
+    "@",
+    ">",
+    "<",
+    "=",
+    "==",
+    "!=",
+    ">=",
+    "<=",
+    "~",
     /** KW_BEGIN **/
     // NOTE: These keywords should be sorted in ascending order!!
-    "False", "None", "True", "and", "as", "assert", "break", "class", "continue",
-    "def", "del", "elif", "else", "except", "finally", "for", "from", "global",
-    "if", "import", "in", "is", "lambda", "not", "or", "pass", "raise", "return",
-    "try", "while", "with", "yield",
+    "False",
+    "None",
+    "True",
+    "and",
+    "as",
+    "assert",
+    "break",
+    "class",
+    "continue",
+    "def",
+    "del",
+    "elif",
+    "else",
+    "except",
+    "finally",
+    "for",
+    "from",
+    "global",
+    "if",
+    "import",
+    "in",
+    "is",
+    "lambda",
+    "not",
+    "or",
+    "pass",
+    "raise",
+    "return",
+    "try",
+    "while",
+    "with",
+    "yield",
 };
 
-void TokenDeserializer__ctor(TokenDeserializer* self, const char* source){
+void TokenDeserializer__ctor(TokenDeserializer* self, const char* source) {
     self->curr = source;
     self->source = source;
 }
 
-bool TokenDeserializer__match_char(TokenDeserializer* self, char c){
+bool TokenDeserializer__match_char(TokenDeserializer* self, char c) {
     if(*self->curr == c) {
         self->curr++;
         return true;
@@ -776,16 +840,16 @@ bool TokenDeserializer__match_char(TokenDeserializer* self, char c){
     return false;
 }
 
-c11_sv TokenDeserializer__read_string(TokenDeserializer* self, char c){
+c11_sv TokenDeserializer__read_string(TokenDeserializer* self, char c) {
     const char* start = self->curr;
     while(*self->curr != c)
         self->curr++;
-    c11_sv retval = {start, (int)(self->curr-start)};
+    c11_sv retval = {start, (int)(self->curr - start)};
     self->curr++;  // skip the delimiter
     return retval;
 }
 
-c11_string* TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c){
+c11_string* TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c) {
     c11_sv sv = TokenDeserializer__read_string(self, c);
     const char* s = sv.data;
     c11_sbuf ss;
@@ -810,13 +874,13 @@ c11_string* TokenDeserializer__read_string_from_hex(TokenDeserializer* self, cha
     return c11_sbuf__submit(&ss);
 }
 
-int TokenDeserializer__read_count(TokenDeserializer* self){
+int TokenDeserializer__read_count(TokenDeserializer* self) {
     assert(*self->curr == '=');
     self->curr++;
     return TokenDeserializer__read_uint(self, '\n');
 }
 
-int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c){
+int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c) {
     int64_t out = 0;
     while(*self->curr != c) {
         out = out * 10 + (*self->curr - '0');
@@ -826,7 +890,7 @@ int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c){
     return out;
 }
 
-double TokenDeserializer__read_float(TokenDeserializer* self, char c){
+double TokenDeserializer__read_float(TokenDeserializer* self, char c) {
     c11_sv sv = TokenDeserializer__read_string(self, c);
     // TODO: optimize this
     c11_string* nullterm = c11_string__new2(sv.data, sv.size);

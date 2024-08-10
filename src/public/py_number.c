@@ -4,8 +4,16 @@
 
 #include <math.h>
 
+static bool try_castfloat(py_Ref self, double* out) {
+    switch(self->type) {
+        case tp_int: *out = (double)self->_i64; return true;
+        case tp_float: *out = self->_f64; return true;
+        default: return false;
+    }
+}
+
 #define DEF_NUM_BINARY_OP(name, op, rint, rfloat)                                                  \
-    static bool int##name(int argc, py_Ref argv) {                                             \
+    static bool int##name(int argc, py_Ref argv) {                                                 \
         PY_CHECK_ARGC(2);                                                                          \
         if(py_isint(&argv[1])) {                                                                   \
             py_i64 lhs = py_toint(&argv[0]);                                                       \
@@ -20,11 +28,11 @@
         }                                                                                          \
         return true;                                                                               \
     }                                                                                              \
-    static bool float##name(int argc, py_Ref argv) {                                           \
+    static bool float##name(int argc, py_Ref argv) {                                               \
         PY_CHECK_ARGC(2);                                                                          \
         py_f64 lhs = py_tofloat(&argv[0]);                                                         \
         py_f64 rhs;                                                                                \
-        if(py_castfloat(&argv[1], &rhs)) {                                                         \
+        if(try_castfloat(&argv[1], &rhs)) {                                                        \
             rfloat(py_retval(), lhs op rhs);                                                       \
         } else {                                                                                   \
             py_newnotimplemented(py_retval());                                                     \
@@ -63,7 +71,7 @@ static bool int__truediv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_toint(&argv[0]);
     py_f64 rhs;
-    if(py_castfloat(&argv[1], &rhs)) {
+    if(try_castfloat(&argv[1], &rhs)) {
         py_newfloat(py_retval(), lhs / rhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -75,7 +83,7 @@ static bool float__truediv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_f64 lhs = py_tofloat(&argv[0]);
     py_f64 rhs;
-    if(py_castfloat(&argv[1], &rhs)) {
+    if(try_castfloat(&argv[1], &rhs)) {
         py_newfloat(py_retval(), lhs / rhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -107,8 +115,8 @@ static bool number__pow__(int argc, py_Ref argv) {
         }
     } else {
         py_f64 lhs, rhs;
-        py_castfloat(&argv[0], &lhs);
-        if(py_castfloat(&argv[1], &rhs)) {
+        if(!py_castfloat(&argv[0], &lhs)) return false;
+        if(try_castfloat(&argv[1], &rhs)) {
             py_newfloat(py_retval(), pow(lhs, rhs));
         } else {
             py_newnotimplemented(py_retval());
@@ -177,7 +185,7 @@ static bool int_bit_length(int argc, py_Ref argv) {
 }
 
 #define DEF_INT_BITWISE_OP(name, op)                                                               \
-    static bool int##name(int argc, py_Ref argv) {                                             \
+    static bool int##name(int argc, py_Ref argv) {                                                 \
         PY_CHECK_ARGC(2);                                                                          \
         py_i64 lhs = py_toint(&argv[0]);                                                           \
         if(py_isint(&argv[1])) {                                                                   \
@@ -369,11 +377,11 @@ static bool float__new__(int argc, py_Ref argv) {
 // tp_bool
 static bool bool__new__(int argc, py_Ref argv) {
     assert(argc > 0);
-    if(argc == 1){
+    if(argc == 1) {
         py_newbool(py_retval(), false);
         return true;
     }
-    if(argc == 2){
+    if(argc == 2) {
         int res = py_bool(py_arg(1));
         if(res == -1) return false;
         py_newbool(py_retval(), res);

@@ -571,7 +571,7 @@ static void mark_object(PyObject* obj) {
     }
 
     py_TypeInfo* types = c11__at(py_TypeInfo, &pk_current_vm->types, obj->type);
-    if(types->gc_mark) { types->gc_mark(PyObject__userdata(obj)); }
+    if(types->gc_mark) types->gc_mark(PyObject__userdata(obj));
 }
 
 void CodeObject__gc_mark(const CodeObject* self) {
@@ -589,6 +589,17 @@ void ManagedHeap__mark(ManagedHeap* self) {
     // mark value stack
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
         pk__mark_value(p);
+    }
+    // mark magic slots
+    py_TypeInfo* types = vm->types.data;
+    int types_length = vm->types.count;
+    // 0-th type is placeholder
+    for(int i = 1; i < types_length; i++) {
+        for(int j = 0; j <= __missing__; j++) {
+            py_TValue* slot = types[i].magic + j;
+            if(py_isnil(slot)) continue;
+            pk__mark_value(slot);
+        }
     }
     // mark frame
     for(Frame* frame = vm->top_frame; frame; frame = frame->f_back) {
@@ -652,7 +663,8 @@ void pk_print_stack(VM* self, Frame* frame, Bytecode byte) {
     }
     c11_string* stack_str = c11_sbuf__submit(&buf);
 
-    printf("L%-3d: %-25s %-6d [%s]\n",
+    printf("%s:%-3d: %-25s %-6d [%s]\n",
+           frame->co->src->filename->data,
            Frame__lineno(frame),
            pk_opname(byte.op),
            byte.arg,

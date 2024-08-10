@@ -206,8 +206,16 @@ static DictEntry* DictIterator__next(DictIterator* self) {
 
 ///////////////////////////////
 static bool dict__new__(int argc, py_Ref argv) {
-    py_newdict(py_retval());
+    py_Type cls = py_totype(argv);
+    int slots = cls == tp_dict ? 0 : -1;
+    Dict* ud = py_newobject(py_retval(), cls, slots, sizeof(Dict));
+    Dict__ctor(ud, 8);
     return true;
+}
+
+void py_newdict(py_Ref out) {
+    Dict* ud = py_newobject(out, tp_dict, 0, sizeof(Dict));
+    Dict__ctor(ud, 8);
 }
 
 static bool dict__init__(int argc, py_Ref argv) {
@@ -239,6 +247,9 @@ static bool dict__getitem__(int argc, py_Ref argv) {
         *py_retval() = entry->val;
         return true;
     }
+    // try __missing__
+    py_Ref missing = py_tpfindmagic(argv->type, __missing__);
+    if(missing) return py_call(missing, argc, argv);
     return KeyError(py_arg(1));
 }
 
@@ -494,11 +505,6 @@ py_Type pk_dict_items__register() {
 }
 
 //////////////////////////
-
-void py_newdict(py_Ref out) {
-    Dict* ud = py_newobject(out, tp_dict, 0, sizeof(Dict));
-    Dict__ctor(ud, 8);
-}
 
 py_Ref py_dict_getitem(py_Ref self, py_Ref key) {
     assert(py_isdict(self));

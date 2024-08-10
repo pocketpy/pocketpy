@@ -177,6 +177,10 @@ assert hex(17) == '0x11'
 
 assert '-'.join(['r', 'u', 'n', 'o', 'o', 'b']) == 'r-u-n-o-o-b'
 
+assert (1 != '1') is True
+assert (1 == '1') is False
+assert 1 == 1.0
+
 exit()
 
 # test format()

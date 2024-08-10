@@ -98,18 +98,7 @@ static bool tuple__getitem__(int argc, py_Ref argv) {
 }
 
 static bool tuple__eq__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    if(py_istype(py_arg(1), tp_tuple)) {
-        int length0, length1;
-        py_TValue* a0 = pk_arrayview(py_arg(0), &length0);
-        py_TValue* a1 = pk_arrayview(py_arg(1), &length1);
-        int res = pk_arrayequal(a0, length0, a1, length1);
-        if(res == -1) return false;
-        py_newbool(py_retval(), res);
-    } else {
-        py_newnotimplemented(py_retval());
-    }
-    return true;
+    return pk_wrapper__arrayequal(tp_tuple, argc, argv);
 }
 
 static bool tuple__ne__(int argc, py_Ref argv) {

@@ -179,6 +179,7 @@ int CodeObject__add_varname(CodeObject* self, py_Name name) {
 }
 
 void Function__dtor(Function* self) {
+    // printf("%s() in %s freed!\n", self->decl->code.name->data, self->decl->code.src->filename->data);
     PK_DECREF(self->decl);
     if(self->closure) NameDict__delete(self->closure);
 }
