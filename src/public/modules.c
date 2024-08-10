@@ -10,7 +10,7 @@
 
 py_Ref py_getmodule(const char* path) {
     VM* vm = pk_current_vm;
-    return NameDict__try_get(&vm->modules, py_name(path));
+    return ModuleDict__try_get(&vm->modules, path);
 }
 
 py_Ref py_getbuiltin(py_Name name) { return py_getdict(&pk_current_vm->builtins, name); }
@@ -51,10 +51,12 @@ py_Ref py_newmodule(const char* path) {
 
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
-    py_Name path_name = py_name(path);
-    bool exists = NameDict__contains(&pk_current_vm->modules, path_name);
+    bool exists = ModuleDict__contains(&pk_current_vm->modules, path);
     if(exists) c11__abort("module '%s' already exists", path);
-    NameDict__set(&pk_current_vm->modules, path_name, *r0);
+
+    // convert to a weak (const char*)
+    path = py_tostr(py_getdict(r0, __path__));
+    ModuleDict__set(&pk_current_vm->modules, path, *r0);
 
     py_shrink(2);
     return py_getmodule(path);
@@ -112,7 +114,7 @@ int py_import(const char* path_cstr) {
     assert(path.data[0] != '.' && path.data[path.size - 1] != '.');
 
     // check existing module
-    py_TmpRef ext_mod = py_getmodule(path.data);
+    py_GlobalRef ext_mod = py_getmodule(path.data);
     if(ext_mod) {
         py_assign(py_retval(), ext_mod);
         return true;

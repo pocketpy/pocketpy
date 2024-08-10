@@ -57,7 +57,7 @@ static void py_TypeInfo__dtor(py_TypeInfo* self) { c11_vector__dtor(&self->annot
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
 
-    NameDict__ctor(&self->modules);
+    ModuleDict__ctor(&self->modules, NULL, *py_NIL);
     c11_vector__ctor(&self->types, sizeof(py_TypeInfo));
 
     self->builtins = *py_NIL;
@@ -221,7 +221,7 @@ void VM__dtor(VM* self) {
     // clear frames
     while(self->top_frame)
         VM__pop_frame(self);
-    NameDict__dtor(&self->modules);
+    ModuleDict__dtor(&self->modules);
     c11__foreach(py_TypeInfo, &self->types, ti) py_TypeInfo__dtor(ti);
     c11_vector__dtor(&self->types);
     ValueStack__clear(&self->stack);
@@ -315,7 +315,7 @@ py_Type pk_newtype(const char* name,
     py_Type index = types->count;
     py_TypeInfo* ti = c11_vector__emplace(types);
     py_TypeInfo* base_ti = base ? c11__at(py_TypeInfo, types, base) : NULL;
-    if(base_ti && base_ti->is_sealed){
+    if(base_ti && base_ti->is_sealed) {
         c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
     }
     py_TypeInfo__ctor(ti, py_name(name), index, base, module ? *module : *py_NIL);

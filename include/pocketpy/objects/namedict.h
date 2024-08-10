@@ -12,3 +12,16 @@
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__HEADER
 
+/* A simple binary tree for storing modules. */
+typedef struct ModuleDict {
+    const char* path;
+    py_TValue module;
+    struct ModuleDict* left;
+    struct ModuleDict* right;
+} ModuleDict;
+
+void ModuleDict__ctor(ModuleDict* self, const char* path, py_TValue module);
+void ModuleDict__dtor(ModuleDict* self);
+void ModuleDict__set(ModuleDict* self, const char* key, py_TValue val);
+py_TValue* ModuleDict__try_get(ModuleDict* self, const char* path);
+bool ModuleDict__contains(ModuleDict* self, const char* path);

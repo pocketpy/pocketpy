@@ -377,9 +377,9 @@ bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE;
 /************* Modules *************/
 
 /// Create a new module.
-py_TmpRef py_newmodule(const char* path);
+py_GlobalRef py_newmodule(const char* path);
 /// Get a module by path.
-py_TmpRef py_getmodule(const char* path);
+py_GlobalRef py_getmodule(const char* path);
 
 /// Import a module.
 /// The result will be set to `py_retval()`.

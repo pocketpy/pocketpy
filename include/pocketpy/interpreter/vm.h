@@ -30,7 +30,7 @@ typedef struct py_TypeInfo {
 typedef struct VM {
     Frame* top_frame;
 
-    NameDict modules;
+    ModuleDict modules;
     c11_vector /*T=py_TypeInfo*/ types;
 
     py_TValue builtins;  // builtins module

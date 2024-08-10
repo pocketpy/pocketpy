@@ -10,7 +10,7 @@ static bool json_loads(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
     const char* source = py_tostr(argv);
-    py_TmpRef mod = py_getmodule("json");
+    py_GlobalRef mod = py_getmodule("json");
     return py_exec(source, "<json>", EVAL_MODE, mod);
 }
 
