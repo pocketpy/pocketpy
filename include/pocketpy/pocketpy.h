@@ -234,11 +234,19 @@ bool py_checktype(py_Ref self, py_Type type) PY_RAISE;
 #define py_checkstr(self) py_checktype(self, tp_str)
 
 /************* References *************/
+
 /// Get the i-th register.
 /// All registers are located in a contiguous memory.
 py_GlobalRef py_getreg(int i);
 /// Set the i-th register.
 void py_setreg(int i, py_Ref val);
+
+/// Get variable in the `__main__` module.
+py_GlobalRef py_getglobal(const char* name);
+/// Set variable in the `__main__` module.
+void py_setglobal(const char* name, py_Ref val);
+/// Get variable in the `builtins` module.
+py_GlobalRef py_getbuiltin(const char* name);
 
 /// Equivalent to `*dst = *src`.
 void py_assign(py_Ref dst, py_Ref src);
