@@ -321,6 +321,22 @@ static bool builtins_issubclass(int argc, py_Ref argv) {
     return true;
 }
 
+static bool builtins_callable(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    bool res;
+    switch(argv->type) {
+        case tp_nativefunc: res = true; break;
+        case tp_function: res = true; break;
+        case tp_type: res = true; break;
+        case tp_boundmethod: res = true; break;
+        case tp_staticmethod: res = true; break;
+        case tp_classmethod: res = true; break;
+        default: res = py_tpfindmagic(argv->type, __call__); break;
+    }
+    py_newbool(py_retval(), res);
+    return true;
+}
+
 static bool builtins_getattr(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_str);
     py_Name name = py_namev(py_tosv(py_arg(1)));
@@ -562,6 +578,7 @@ py_TValue pk_builtins__register() {
 
     py_bindfunc(builtins, "isinstance", builtins_isinstance);
     py_bindfunc(builtins, "issubclass", builtins_issubclass);
+    py_bindfunc(builtins, "callable", builtins_callable);
 
     py_bindfunc(builtins, "getattr", builtins_getattr);
     py_bindfunc(builtins, "setattr", builtins_setattr);
@@ -582,8 +599,11 @@ py_TValue pk_builtins__register() {
 
     // some patches
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);
+    *py_tpgetmagic(tp_NoneType, __hash__) = *py_None;
     py_bindmagic(tp_ellipsis, __repr__, ellipsis__repr__);
+    *py_tpgetmagic(tp_ellipsis, __hash__) = *py_None;
     py_bindmagic(tp_NotImplementedType, __repr__, NotImplementedType__repr__);
+    *py_tpgetmagic(tp_NotImplementedType, __hash__) = *py_None;
     return *builtins;
 }
 

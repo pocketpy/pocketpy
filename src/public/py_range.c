@@ -35,7 +35,7 @@ static bool range__new__(int argc, py_Ref argv) {
             ud->stop = py_toint(py_arg(2));
             ud->step = py_toint(py_arg(3));
             break;
-        default: return TypeError("range() expected at most 4 arguments, got %d", argc);
+        default: return TypeError("range() expected at most 3 arguments, got %d", argc - 1);
     }
     if(ud->step == 0) return ValueError("range() step must not be zero");
     return true;

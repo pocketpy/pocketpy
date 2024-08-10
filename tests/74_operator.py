@@ -26,8 +26,10 @@ assert op.floordiv(1, 2) == 0
 assert op.mod(1, 2) == 1
 assert op.pow(2, 3) == 8
 
-from linalg import mat3x3
-assert op.matmul(mat3x3.identity(), mat3x3.identity()) == mat3x3.identity()
+class A:
+    def __matmul__(self, other):
+        return 'matmul'
+assert op.matmul(A(), 1) == 'matmul'
 
 a = [1, 2]
 assert op.getitem(a, 0) == 1

@@ -596,6 +596,17 @@ static bool bytes__ne__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool bytes__hash__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_bytes* self = py_touserdata(&argv[0]);
+    uint64_t res = 0;
+    for(int i = 0; i < self->size; i++) {
+        res = res * 31 + self->data[i];
+    }
+    py_newint(py_retval(), res);
+    return true;
+}
+
 static bool bytes__add__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_bytes* self = py_touserdata(&argv[0]);
@@ -628,6 +639,7 @@ py_Type pk_bytes__register() {
     py_bindmagic(tp_bytes, __eq__, bytes__eq__);
     py_bindmagic(tp_bytes, __ne__, bytes__ne__);
     py_bindmagic(tp_bytes, __add__, bytes__add__);
+    py_bindmagic(tp_bytes, __hash__, bytes__hash__);
 
     py_bindmethod(tp_bytes, "decode", bytes_decode);
     return type;

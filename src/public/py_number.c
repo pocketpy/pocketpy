@@ -311,17 +311,16 @@ static bool int__new__(int argc, py_Ref argv) {
 
     PY_CHECK_ARG_TYPE(1, tp_str);
 
-    int size;
-    const char* data = py_tostrn(py_arg(1), &size);
+    c11_sv sv = py_tosv(py_arg(1));
     bool negative = false;
-    if(size && (data[0] == '+' || data[0] == '-')) {
-        negative = data[0] == '-';
-        data++;
-        size--;
+    if(sv.size && (sv.data[0] == '+' || sv.data[0] == '-')) {
+        negative = sv.data[0] == '-';
+        sv.data++;
+        sv.size--;
     }
     py_i64 val;
-    if(c11__parse_uint((c11_sv){data, size}, &val, base) != IntParsing_SUCCESS) {
-        return ValueError("invalid literal for int() with base %d: %q", base, data);
+    if(c11__parse_uint(sv, &val, base) != IntParsing_SUCCESS) {
+        return ValueError("invalid literal for int() with base %d: %q", base, sv);
     }
     py_newint(py_retval(), negative ? -val : val);
     return true;
@@ -355,21 +354,20 @@ static bool float__new__(int argc, py_Ref argv) {
         default: return TypeError("invalid arguments for float()");
     }
     // str to float
-    int size;
-    const char* data = py_tostrn(py_arg(1), &size);
+    c11_sv sv = py_tosv(py_arg(1));
 
-    if(c11__streq(data, "inf")) {
+    if(c11__sveq2(sv, "inf")) {
         py_newfloat(py_retval(), INFINITY);
         return true;
     }
-    if(c11__streq(data, "-inf")) {
+    if(c11__sveq2(sv, "-inf")) {
         py_newfloat(py_retval(), -INFINITY);
         return true;
     }
 
     char* p_end;
-    py_f64 float_out = strtod(data, &p_end);
-    if(p_end != data + size) { return ValueError("invalid literal for float(): %q", data); }
+    py_f64 float_out = strtod(sv.data, &p_end);
+    if(p_end != sv.data + sv.size) return ValueError("invalid literal for float(): %q", sv);
     py_newfloat(py_retval(), float_out);
     return true;
 }
@@ -427,6 +425,25 @@ static bool bool__ne__(int argc, py_Ref argv) {
     }
     return true;
 }
+
+#define DEF_BOOL_BITWISE(name, op)                                                                 \
+    static bool bool##name(int argc, py_Ref argv) {                                                \
+        PY_CHECK_ARGC(2);                                                                          \
+        bool lhs = py_tobool(&argv[0]);                                                            \
+        if(argv[1].type == tp_bool) {                                                              \
+            bool rhs = py_tobool(&argv[1]);                                                        \
+            py_newbool(py_retval(), lhs op rhs);                                                   \
+        } else {                                                                                   \
+            py_newnotimplemented(py_retval());                                                     \
+        }                                                                                          \
+        return true;                                                                               \
+    }
+
+DEF_BOOL_BITWISE(__and__, &&)
+DEF_BOOL_BITWISE(__or__, ||)
+DEF_BOOL_BITWISE(__xor__, !=)
+
+#undef DEF_BOOL_BITWISE
 
 void pk_number__register() {
     /****** tp_int & tp_float ******/
@@ -501,4 +518,7 @@ void pk_number__register() {
     py_bindmagic(tp_bool, __repr__, bool__repr__);
     py_bindmagic(tp_bool, __eq__, bool__eq__);
     py_bindmagic(tp_bool, __ne__, bool__ne__);
+    py_bindmagic(tp_bool, __and__, bool__and__);
+    py_bindmagic(tp_bool, __or__, bool__or__);
+    py_bindmagic(tp_bool, __xor__, bool__xor__);
 }

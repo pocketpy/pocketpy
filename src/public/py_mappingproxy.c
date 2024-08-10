@@ -70,6 +70,7 @@ py_Type pk_namedict__register() {
     py_bindmagic(type, __setitem__, namedict__setitem__);
     py_bindmagic(type, __delitem__, namedict__delitem__);
     py_bindmagic(type, __contains__, namedict__contains__);
+    py_newnone(py_tpgetmagic(type, __hash__));
     py_bindmethod(type, "items", namedict_items);
     return type;
 }
@@ -134,5 +135,6 @@ py_Type pk_locals__register() {
     py_bindmagic(type, __setitem__, locals__setitem__);
     py_bindmagic(type, __delitem__, locals__delitem__);
     py_bindmagic(type, __contains__, locals__contains__);
+    py_newnone(py_tpgetmagic(type, __hash__));
     return type;
 }

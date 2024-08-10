@@ -50,7 +50,8 @@ bool py_hash(py_Ref val, int64_t* out) {
         py_Ref _hash = &types[t].magic[__hash__];
         if(py_isnone(_hash)) break;
         py_Ref _eq = &types[t].magic[__eq__];
-        if(!py_isnil(_hash) && !py_isnil(_eq)) {
+        if(!py_isnil(_eq)) {
+            if(py_isnil(_hash)) break;
             if(!py_call(_hash, 1, val)) return false;
             if(!py_checkint(py_retval())) return false;
             *out = py_toint(py_retval());
