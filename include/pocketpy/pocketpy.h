@@ -460,7 +460,7 @@ bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE;
 /// This function does extra checks to help you debug `py_CFunction`.
 bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) PY_RAISE;
 #else
-#define py_callcfunc(f, argc, argv) f(argc, argv)
+#define py_callcfunc(f, argc, argv) (f((argc), (argv)))
 #endif
 
 /// Python equivalent to `str(val)`.

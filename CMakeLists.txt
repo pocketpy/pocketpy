@@ -89,3 +89,7 @@ if(PK_USE_CJSON)
     target_link_libraries(${PROJECT_NAME} PRIVATE cjson)
 endif()
 
+# link math library
+if(UNIX)
+    target_link_libraries(${PROJECT_NAME} PRIVATE m)
+endif()

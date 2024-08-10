@@ -21,15 +21,14 @@ void py_setglobal(py_Name name, py_Ref val) { py_setdict(&pk_current_vm->main, n
 
 py_Ref py_newmodule(const char* path) {
     ManagedHeap* heap = &pk_current_vm->heap;
-    PyObject* obj = ManagedHeap__new(heap, tp_module, -1, 0);
 
     py_Ref r0 = py_pushtmp();
     py_Ref r1 = py_pushtmp();
 
     *r0 = (py_TValue){
-        .type = obj->type,
+        .type = tp_module,
         .is_ptr = true,
-        ._obj = obj,
+        ._obj = ManagedHeap__new(heap, tp_module, -1, 0),
     };
 
     int last_dot = c11_sv__rindex((c11_sv){path, strlen(path)}, '.');

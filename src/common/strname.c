@@ -17,7 +17,7 @@ void py_Name__initialize() {
     }
     c11_vector__ctor(&_r_interned, sizeof(c11_sv));
 
-#define MAGIC_METHOD(x) assert(x == py_name(#x));
+#define MAGIC_METHOD(x) if(x != py_name(#x)) abort();
 #include "pocketpy/xmacros/magics.h"
 #undef MAGIC_METHOD
 }

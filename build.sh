@@ -22,7 +22,7 @@ SRC=$(find src/ -name "*.c")
 
 echo "> Compiling and linking source files... "
 
-FLAGS="-std=c11 -O1 -Wfatal-errors -Iinclude"
+FLAGS="-std=c11 -O1 -Wfatal-errors -Iinclude -DNDEBUG"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     LIB_EXTENSION=".dylib"
