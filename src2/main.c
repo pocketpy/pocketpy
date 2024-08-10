@@ -10,7 +10,7 @@
 #endif
 
 char* read_file(const char* path) {
-    FILE* file = fopen(path, "r");
+    FILE* file = fopen(path, "rb");
     if(file == NULL) {
         printf("Error: file not found\n");
         return NULL;
@@ -19,7 +19,7 @@ char* read_file(const char* path) {
     long size = ftell(file);
     fseek(file, 0, SEEK_SET);
     char* buffer = malloc(size + 1);
-    fread(buffer, 1, size, file);
+    size = fread(buffer, 1, size, file);
     buffer[size] = 0;
     return buffer;
 }
