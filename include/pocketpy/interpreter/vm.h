@@ -97,6 +97,8 @@ bool pk_arraycontains(py_Ref self, py_Ref val);
 bool pk_loadmethod(py_StackRef self, py_Name name);
 bool pk_callmagic(py_Name name, int argc, py_Ref argv);
 
+bool pk_exec(CodeObject* co, py_Ref module);
+
 /// Assumes [a, b] are on the stack, performs a binary op.
 /// The result is stored in `self->last_retval`.
 /// The stack remains unchanged.
@@ -129,6 +131,7 @@ py_Type pk_classmethod__register();
 py_Type pk_generator__register();
 py_Type pk_namedict__register();
 py_Type pk_locals__register();
+py_Type pk_code__register();
 
 py_TValue pk_builtins__register();
 

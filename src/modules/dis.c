@@ -113,9 +113,17 @@ static void disassemble(CodeObject* co) {
 
 static bool dis_dis(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    PY_CHECK_ARG_TYPE(0, tp_function);
-    Function* ud = py_touserdata(argv);
-    disassemble(&ud->decl->code);
+
+    CodeObject* code = NULL;
+    if(py_istype(argv, tp_function)){
+        Function* ud = py_touserdata(argv);
+        code = &ud->decl->code;
+    }else if(py_istype(argv, tp_code)){
+        code = py_touserdata(argv);
+    }else{
+        return TypeError("dis() expected a code object");
+    }
+    disassemble(code);
     py_newnone(py_retval());
     return true;
 }

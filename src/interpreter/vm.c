@@ -115,6 +115,7 @@ void VM__ctor(VM* self) {
     validate(tp_bytes, pk_bytes__register());
     validate(tp_namedict, pk_namedict__register());
     validate(tp_locals, pk_locals__register());
+    validate(tp_code, pk_code__register());
 
     validate(tp_dict, pk_dict__register());
     validate(tp_dict_items, pk_dict_items__register());
@@ -435,7 +436,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 // submit the call
                 if(!fn->cfunc) {
-                    VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true, false));
+                    VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
@@ -459,12 +460,12 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // initialize local variables to py_NIL
                 memset(p1, 0, (char*)self->stack.sp - (char*)p1);
                 // submit the call
-                VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true, false));
+                VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true));
                 return opcall ? RES_CALL : VM__run_top_frame(self);
             case FuncType_GENERATOR: {
                 bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
-                Frame* frame = Frame__new(co, &fn->module, p0, argv, false, false);
+                Frame* frame = Frame__new(co, &fn->module, p0, argv, false);
                 pk_newgenerator(py_retval(), frame, self->__vectorcall_buffer, co->nlocals);
                 self->stack.sp = p0;
                 return RES_RETURN;

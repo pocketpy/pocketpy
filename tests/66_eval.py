@@ -43,6 +43,8 @@ assert (res==1), res
 
 
 # test locals and globals
+assert eval('a', {'a': 2}) == 2
+
 globals = {'a': 1}
 locals = {'a': 1}
 

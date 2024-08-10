@@ -47,8 +47,7 @@ Frame* Frame__new(const CodeObject* co,
                   py_GlobalRef module,
                   py_StackRef p0,
                   py_StackRef locals,
-                  bool has_function,
-                  bool is_dynamic);
+                  bool has_function);
 void Frame__delete(Frame* self);
 
 int Frame__ip(const Frame* self);

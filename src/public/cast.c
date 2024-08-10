@@ -19,7 +19,7 @@ bool py_castfloat(py_Ref self, double* out) {
     switch(self->type) {
         case tp_int: *out = (double)self->_i64; return true;
         case tp_float: *out = self->_f64; return true;
-        default: return TypeError("expected int or float, got %t", self->type);
+        default: return TypeError("expected 'int' or 'float', got '%t'", self->type);
     }
 }
 
@@ -43,7 +43,7 @@ bool py_istype(py_Ref self, py_Type type) { return self->type == type; }
 
 bool py_checktype(py_Ref self, py_Type type) {
     if(self->type == type) return true;
-    return TypeError("expected %t, got %t", type, self->type);
+    return TypeError("expected '%t', got '%t'", type, self->type);
 }
 
 bool py_isinstance(py_Ref obj, py_Type type) { return py_issubclass(obj->type, type); }

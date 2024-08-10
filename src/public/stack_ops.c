@@ -92,6 +92,11 @@ void py_pushnil() {
     py_newnil(vm->stack.sp++);
 }
 
+void py_pushnone() {
+    VM* vm = pk_current_vm;
+    py_newnone(vm->stack.sp++);
+}
+
 py_Ref py_pushtmp() {
     VM* vm = pk_current_vm;
     py_newnil(vm->stack.sp++);

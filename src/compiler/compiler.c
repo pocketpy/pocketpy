@@ -629,17 +629,7 @@ static bool is_fmt_valid_char(char c) {
     }
 }
 
-static bool is_identifier(c11_sv s) {
-    if(s.size == 0) return false;
-    if(!isalpha(s.data[0]) && s.data[0] != '_') return false;
-    for(int i = 0; i < s.size; i++) {
-        char c = s.data[i];
-        if(!isalnum(c) && c != '_') return false;
-    }
-    return true;
-}
-
-static void _load_simple_expr(Ctx* ctx, c11_sv expr, int line) {
+static void _load_expr(Ctx* ctx, c11_sv expr, int line) {
     bool repr = false;
     const char* expr_end = expr.data + expr.size;
     if(expr.size >= 2 && expr_end[-2] == '!') {
@@ -655,30 +645,18 @@ static void _load_simple_expr(Ctx* ctx, c11_sv expr, int line) {
             default: break;  // nothing happens
         }
     }
-    // name or name.name
-    bool is_fastpath = false;
-    if(is_identifier(expr)) {
-        Ctx__emit_(ctx, OP_LOAD_NAME, py_namev(expr), line);
-        is_fastpath = true;
-    } else {
-        int dot = c11_sv__index(expr, '.');
-        if(dot > 0) {
-            c11_sv a = {expr.data, dot};                                // expr[:dot]
-            c11_sv b = {expr.data + (dot + 1), expr.size - (dot + 1)};  // expr[dot+1:]
-            if(is_identifier(a) && is_identifier(b)) {
-                Ctx__emit_(ctx, OP_LOAD_NAME, py_namev(a), line);
-                Ctx__emit_(ctx, OP_LOAD_ATTR, py_namev(b), line);
-                is_fastpath = true;
-            }
-        }
-    }
 
-    if(!is_fastpath) {
-        int index = Ctx__add_const_string(ctx, expr);
-        Ctx__emit_(ctx, OP_FSTRING_EVAL, index, line);
+    c11_string* source = c11_string__new2(expr.data, expr.size);
+    bool ok = py_compile(source->data, "<f-string>", EVAL_MODE, false);
+    if(!ok){
+        py_printexc();
+        c11__abort("f-string: invalid expression");
     }
+    int index = Ctx__add_const(ctx, py_retval());
+    c11_string__delete(source);
+    Ctx__emit_(ctx, OP_FSTRING_EVAL, index, line);
 
-    if(repr) { Ctx__emit_(ctx, OP_REPR, BC_NOARG, line); }
+    if(repr) Ctx__emit_(ctx, OP_REPR, BC_NOARG, line);
 }
 
 static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
@@ -710,18 +688,17 @@ static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
                     }
                     if(ok) {
                         expr.size = conon;  // expr[:conon]
-                        _load_simple_expr(ctx, expr, self->line);
-                        // ctx->emit_(OP_FORMAT_STRING, ctx->add_const_string(spec.sv()), line);
+                        _load_expr(ctx, expr, self->line);
                         Ctx__emit_(ctx,
                                    OP_FORMAT_STRING,
                                    Ctx__add_const_string(ctx, spec),
                                    self->line);
                     } else {
                         // ':' is not a spec indicator
-                        _load_simple_expr(ctx, expr, self->line);
+                        _load_expr(ctx, expr, self->line);
                     }
                 } else {
-                    _load_simple_expr(ctx, expr, self->line);
+                    _load_expr(ctx, expr, self->line);
                 }
                 flag = false;
                 count++;
@@ -2743,8 +2720,7 @@ static Error* compile_stmt(Compiler* self) {
                 }
                 if(!is_typed_name) {
                     Ctx__s_emit_top(ctx());
-                    if((mode() == CELL_MODE || mode() == REPL_MODE) &&
-                       name_scope(self) == NAME_GLOBAL) {
+                    if((mode() == SINGLE_MODE) && name_scope(self) == NAME_GLOBAL) {
                         Ctx__emit_(ctx(), OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
                     } else {
                         Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);

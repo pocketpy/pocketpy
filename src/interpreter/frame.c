@@ -41,8 +41,7 @@ Frame* Frame__new(const CodeObject* co,
                   py_GlobalRef module,
                   py_StackRef p0,
                   py_StackRef locals,
-                  bool has_function,
-                  bool is_dynamic) {
+                  bool has_function) {
     static_assert(sizeof(Frame) <= kPoolFrameBlockSize, "!(sizeof(Frame) <= kPoolFrameBlockSize)");
     Frame* self = PoolFrame_alloc();
     self->f_back = NULL;
@@ -52,7 +51,7 @@ Frame* Frame__new(const CodeObject* co,
     self->p0 = p0;
     self->locals = locals;
     self->has_function = has_function;
-    self->is_dynamic = is_dynamic;
+    self->is_dynamic = co->src->is_dynamic;
     self->uw_list = NULL;
     return self;
 }
@@ -134,7 +133,7 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
     }
 }
 
-void Frame__gc_mark(Frame *self){
+void Frame__gc_mark(Frame* self) {
     pk__mark_value(self->module);
     CodeObject__gc_mark(self->co);
 }

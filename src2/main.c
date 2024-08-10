@@ -49,7 +49,11 @@ int main(int argc, char** argv) {
             int size = py_replinput(buf, sizeof(buf));
             assert(size < sizeof(buf));
             if(size >= 0) {
-                if(!py_exec(buf, "<stdin>", REPL_MODE, NULL)) py_printexc();
+                py_StackRef p0 = py_peek(0);
+                if(!py_exec(buf, "<stdin>", SINGLE_MODE, NULL)) {
+                    py_printexc();
+                    py_clearexc(p0);
+                }
             }
         }
     } else {

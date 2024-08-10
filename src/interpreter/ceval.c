@@ -186,21 +186,17 @@ FrameResult VM__run_top_frame(VM* self) {
                 } else {
                     py_newstr(SP()++, py_name2str(name));
                     // locals
-                    if(py_getitem(&frame->p0[1], TOP())) {
-                        py_assign(TOP(), py_retval());
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
+                    if(!py_isnone(&frame->p0[1])) {
+                        if(py_getitem(&frame->p0[1], TOP())) {
+                            py_assign(TOP(), py_retval());
+                            DISPATCH();
                         } else {
-                            goto __ERROR;
+                            if(py_matchexc(tp_KeyError)) {
+                                py_clearexc(NULL);
+                            } else {
+                                goto __ERROR;
+                            }
                         }
-                    }
-                    // closure
-                    tmp = Frame__f_closure_try_get(frame, name);
-                    if(tmp != NULL) {
-                        py_assign(TOP(), tmp);
-                        DISPATCH();
                     }
                     // globals
                     if(py_getitem(&frame->p0[0], TOP())) {
@@ -325,7 +321,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Name name = byte.arg;
                 py_newstr(SP()++, py_name2str(name));
                 // [value, name]
-                if(!py_isnone(&frame->p0[1])){
+                if(!py_isnone(&frame->p0[1])) {
                     // locals
                     if(py_setitem(&frame->p0[1], TOP(), SECOND())) {
                         STACK_SHRINK(2);
@@ -337,7 +333,7 @@ FrameResult VM__run_top_frame(VM* self) {
                         }
                         goto __ERROR;
                     }
-                }else{
+                } else {
                     // globals
                     if(py_setitem(&frame->p0[0], TOP(), SECOND())) {
                         STACK_SHRINK(2);
@@ -395,7 +391,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 assert(frame->is_dynamic);
                 py_Name name = byte.arg;
                 py_newstr(SP()++, py_name2str(name));
-                if(!py_isnone(&frame->p0[1])){
+                if(!py_isnone(&frame->p0[1])) {
                     // locals
                     if(py_delitem(&frame->p0[1], TOP())) {
                         POP();
@@ -407,7 +403,7 @@ FrameResult VM__run_top_frame(VM* self) {
                         }
                         goto __ERROR;
                     }
-                }else{
+                } else {
                     // globals
                     if(py_delitem(&frame->p0[0], TOP())) {
                         POP();
@@ -911,7 +907,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 POP();
 
                 py_TypeInfo* base_ti = c11__at(py_TypeInfo, &self->types, base);
-                if(base_ti->is_sealed){
+                if(base_ti->is_sealed) {
                     TypeError("type '%t' is not an acceptable base type", base);
                     goto __ERROR;
                 }
@@ -1032,9 +1028,8 @@ FrameResult VM__run_top_frame(VM* self) {
             //////////////////
             case OP_FSTRING_EVAL: {
                 py_TValue* tmp = c11__at(py_TValue, &frame->co->consts, byte.arg);
-                const char* string = py_tostr(tmp);
-                // TODO: optimize this
-                if(!py_exec(string, "<f-string>", EVAL_MODE, frame->module)) goto __ERROR;
+                assert(py_istype(tmp, tp_code));
+                if(!pk_exec(py_touserdata(tmp), frame->module)) goto __ERROR;
                 PUSH(py_retval());
                 DISPATCH();
             }

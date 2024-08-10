@@ -7,9 +7,9 @@
 
 
 void pk_mappingproxy__namedict(py_Ref out, py_Ref object){
-    py_newobject(py_retval(), tp_namedict, 1, 0);
+    py_newobject(out, tp_namedict, 1, 0);
     assert(object->is_ptr && object->_obj->slots == -1);
-    py_setslot(py_retval(), 0, object);
+    py_setslot(out, 0, object);
 }
 
 static bool namedict__getitem__(int argc, py_Ref argv){
@@ -63,7 +63,7 @@ py_Type pk_namedict__register() {
 
 void pk_mappingproxy__locals(py_Ref out, Frame* frame){
     assert(frame->has_function && !frame->is_dynamic);
-    Frame** ud = py_newobject(py_retval(), tp_locals, 0, sizeof(Frame*));
+    Frame** ud = py_newobject(out, tp_locals, 0, sizeof(Frame*));
     *ud = frame;
 }
 

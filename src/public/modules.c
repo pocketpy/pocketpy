@@ -388,62 +388,116 @@ static bool builtins_ord(int argc, py_Ref argv) {
 
 static bool builtins_globals(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
-    Frame* frame = pk_current_vm->top_frame;
-    if(frame->is_dynamic) {
-        py_assign(py_retval(), &frame->p0[0]);
-        return true;
-    }
-    pk_mappingproxy__namedict(py_retval(), frame->module);
+    py_newglobals(py_retval());
     return true;
 }
 
 static bool builtins_locals(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
-    Frame* frame = pk_current_vm->top_frame;
-    if(frame->is_dynamic) {
-        py_assign(py_retval(), &frame->p0[1]);
-        return true;
-    }
-    if(!frame->has_function) return builtins_globals(argc, argv);
-    pk_mappingproxy__locals(py_retval(), frame);
+    py_newlocals(py_retval());
     return true;
 }
 
-static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_CompileMode mode) {
-    PY_CHECK_ARG_TYPE(0, tp_str);
+void py_newglobals(py_Ref out) {
     Frame* frame = pk_current_vm->top_frame;
+    if(frame->is_dynamic) {
+        py_assign(out, &frame->p0[0]);
+    } else {
+        pk_mappingproxy__namedict(out, frame->module);
+    }
+}
+
+void py_newlocals(py_Ref out) {
+    Frame* frame = pk_current_vm->top_frame;
+    if(frame->is_dynamic) {
+        py_assign(out, &frame->p0[1]);
+        return;
+    }
+    if(frame->has_function) {
+        pk_mappingproxy__locals(out, frame);
+    } else {
+        py_newglobals(out);
+    }
+}
+
+static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_CompileMode mode) {
     switch(argc) {
         case 1: {
-            // system globals + system locals
-            if(!builtins_globals(0, NULL)) return false;
-            py_push(py_retval());
-            if(!builtins_locals(0, NULL)) return false;
-            py_push(py_retval());
+            py_newglobals(py_pushtmp());
+            py_newlocals(py_pushtmp());
             break;
         }
         case 2: {
-            // user globals + user globals
-            py_push(py_arg(1));
-            py_push(py_arg(1));
+            if(py_isnone(py_arg(1))) {
+                py_newglobals(py_pushtmp());
+            } else {
+                py_push(py_arg(1));
+            }
+            py_pushnone();
             break;
         }
         case 3: {
-            // user globals + user locals
-            py_push(py_arg(1));
+            if(py_isnone(py_arg(1))) {
+                py_newglobals(py_pushtmp());
+            } else {
+                py_push(py_arg(1));
+            }
             py_push(py_arg(2));
             break;
         }
         default: return TypeError("%s() takes at most 3 arguments", title);
     }
-    return py_execdyn(py_tostr(argv), "<string>", mode, frame->module);
+
+    py_Ref code;
+    if(py_isstr(argv)) {
+        bool ok = py_compile(py_tostr(argv), "<string>", mode, true);
+        if(!ok) return false;
+        code = py_retval();
+    } else if(py_istype(argv, tp_code)) {
+        code = argv;
+    } else {
+        return TypeError("%s() expected 'str' or 'code', got '%t'", title, argv->type);
+    }
+
+    py_push(code);  // keep it alive
+
+    // [globals, locals, code]
+    CodeObject* co = py_touserdata(code);
+    if(!co->src->is_dynamic) py_shrink(3);
+    Frame* frame = pk_current_vm->top_frame;
+    return pk_exec(co, frame ? frame->module : NULL);
 }
 
 static bool builtins_exec(int argc, py_Ref argv) {
-    return _builtins_execdyn("exec", argc, argv, EXEC_MODE);
+    bool ok = _builtins_execdyn("exec", argc, argv, EXEC_MODE);
+    py_newnone(py_retval());
+    return ok;
 }
 
 static bool builtins_eval(int argc, py_Ref argv) {
     return _builtins_execdyn("eval", argc, argv, EVAL_MODE);
+}
+
+static bool builtins_compile(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    for(int i = 0; i < 3; i++) {
+        if(!py_checktype(py_arg(i), tp_str)) return false;
+    }
+    const char* source = py_tostr(py_arg(0));
+    const char* filename = py_tostr(py_arg(1));
+    const char* mode = py_tostr(py_arg(2));
+
+    enum py_CompileMode compile_mode;
+    if(strcmp(mode, "exec") == 0) {
+        compile_mode = EXEC_MODE;
+    } else if(strcmp(mode, "eval") == 0) {
+        compile_mode = EVAL_MODE;
+    } else if(strcmp(mode, "single") == 0) {
+        compile_mode = SINGLE_MODE;
+    } else {
+        return ValueError("compile() mode must be 'exec', 'eval', or 'single'");
+    }
+    return py_compile(source, filename, compile_mode, true);
 }
 
 static bool NoneType__repr__(int argc, py_Ref argv) {
@@ -491,6 +545,7 @@ py_TValue pk_builtins__register() {
     py_bindfunc(builtins, "locals", builtins_locals);
     py_bindfunc(builtins, "exec", builtins_exec);
     py_bindfunc(builtins, "eval", builtins_eval);
+    py_bindfunc(builtins, "compile", builtins_compile);
 
     // some patches
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);
@@ -502,9 +557,7 @@ py_TValue pk_builtins__register() {
 static bool function__closure__getter(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Function* ud = py_touserdata(argv);
-    if(!ud->closure) {
-        py_newnone(py_retval());
-    }
+    if(!ud->closure) { py_newnone(py_retval()); }
     py_Ref r0 = py_pushtmp();
     py_Ref retval = py_pushtmp();
     py_newdict(retval);

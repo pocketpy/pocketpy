@@ -45,7 +45,7 @@ typedef py_TValue* py_TmpRef;
 /// @return true if the function is successful.
 typedef bool (*py_CFunction)(int argc, py_StackRef argv) PY_RAISE;
 
-enum py_CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, CELL_MODE };
+enum py_CompileMode { EXEC_MODE, EVAL_MODE, SINGLE_MODE };
 
 extern py_GlobalRef py_True;
 extern py_GlobalRef py_False;
@@ -75,14 +75,16 @@ bool py_exec(const char* source,
              enum py_CompileMode mode,
              py_Ref module) PY_RAISE;
 
-/// Run a source string in dynamic mode.
-/// Assume `globals()` and `locals()` are pushed to the stack.
-/// After the execution, the result will be set to `py_retval()`.
-/// The stack size will be reduced by 2.
-bool py_execdyn(const char* source,
+bool py_compile(const char* source,
                 const char* filename,
                 enum py_CompileMode mode,
-                py_Ref module) PY_RAISE;
+                bool is_dynamic) PY_RAISE;
+
+/// Python equivalent to `globals()`.
+void py_newglobals(py_Ref);
+/// Python equivalent to `locals()`.
+/// NOTE: Return a temporary object, which expires on the associated function return.
+void py_newlocals(py_Ref);
 
 /************* Values Creation *************/
 
@@ -343,6 +345,8 @@ py_StackRef py_peek(int i);
 void py_push(py_Ref src);
 /// Push a `nil` object to the stack.
 void py_pushnil();
+/// Push a `None` object to the stack.
+void py_pushnone();
 /// Pop an object from the stack.
 void py_pop();
 /// Shrink the stack by n.
@@ -531,6 +535,7 @@ enum py_PredefinedTypes {
     tp_bytes,
     tp_namedict,
     tp_locals,
+    tp_code,
     tp_dict,
     tp_dict_items,    // 1 slot
     tp_property,      // 2 slots (getter + setter)
