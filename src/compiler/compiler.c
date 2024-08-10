@@ -334,7 +334,7 @@ void Literal0Expr__emit_(Expr* self_, Ctx* ctx) {
         case TK_TRUE: opcode = OP_LOAD_TRUE; break;
         case TK_FALSE: opcode = OP_LOAD_FALSE; break;
         case TK_DOTDOTDOT: opcode = OP_LOAD_ELLIPSIS; break;
-        default: assert(false);
+        default: c11__unreachedable();
     }
     Ctx__emit_(ctx, opcode, BC_NOARG, self->line);
 }
