@@ -48,3 +48,7 @@ void pk__add_module_os() {
     py_bindfunc(mod, "chdir", os_chdir);
     py_bindfunc(mod, "getcwd", os_getcwd);
 }
+
+void pk__add_module_sys() {
+    py_Ref mod = py_newmodule("sys");
+}
