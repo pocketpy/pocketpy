@@ -13,17 +13,11 @@ py_Ref py_getmodule(const char* path) {
     return NameDict__try_get(&vm->modules, py_name(path));
 }
 
-py_Ref py_getbuiltin(const char* name){
-    return py_getdict(&pk_current_vm->builtins, py_name(name));
-}
+py_Ref py_getbuiltin(py_Name name) { return py_getdict(&pk_current_vm->builtins, name); }
 
-py_Ref py_getglobal(const char* name){
-    return py_getdict(&pk_current_vm->main, py_name(name));
-}
+py_Ref py_getglobal(py_Name name) { return py_getdict(&pk_current_vm->main, name); }
 
-void py_setglobal(const char* name, py_Ref val){
-    py_setdict(&pk_current_vm->main, py_name(name), val);
-}
+void py_setglobal(py_Name name, py_Ref val) { py_setdict(&pk_current_vm->main, name, val); }
 
 py_Ref py_newmodule(const char* path) {
     ManagedHeap* heap = &pk_current_vm->heap;

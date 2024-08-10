@@ -242,11 +242,11 @@ py_GlobalRef py_getreg(int i);
 void py_setreg(int i, py_Ref val);
 
 /// Get variable in the `__main__` module.
-py_GlobalRef py_getglobal(const char* name);
+py_GlobalRef py_getglobal(py_Name name);
 /// Set variable in the `__main__` module.
-void py_setglobal(const char* name, py_Ref val);
+void py_setglobal(py_Name name, py_Ref val);
 /// Get variable in the `builtins` module.
-py_GlobalRef py_getbuiltin(const char* name);
+py_GlobalRef py_getbuiltin(py_Name name);
 
 /// Equivalent to `*dst = *src`.
 void py_assign(py_Ref dst, py_Ref src);
