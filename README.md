@@ -1,4 +1,4 @@
-# pocketpy: python interpreter in 1 file
+# pocketpy: portable python 3.x interpreter
 
 <p>
 <!-- Build -->
