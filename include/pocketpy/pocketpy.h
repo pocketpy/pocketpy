@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <stddef.h>
 
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/export.h"

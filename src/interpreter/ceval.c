@@ -921,7 +921,6 @@ FrameResult VM__run_top_frame(VM* self) {
                     // call on_end_subclass
                     py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, py_totype(TOP()));
                     if(ti->base != tp_object) {
-                        // PyTypeInfo* base_ti = &_all_types[ti->base];
                         py_TypeInfo* base_ti = c11__at(py_TypeInfo, &self->types, ti->base);
                         if(base_ti->on_end_subclass) base_ti->on_end_subclass(ti);
                     }
