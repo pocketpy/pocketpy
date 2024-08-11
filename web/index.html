@@ -276,16 +276,15 @@ DEALINGS IN THE SOFTWARE.
     let code_output = document.querySelector('#code-output');
     let run_button = document.querySelector('#run-button');
 
+    code_editor.textContent = '# A recursive fibonacci function.\ndef fib(n):\n  if n < 2:\n    return n\n  return fib(n-1) + fib(n-2)\n\n# Prints all fibonacci from 0 to 10 exclusive.\nfor i in range(10):\n  print(f"fib({i}) = {fib(i)}")\n';
+
     let highlight = withLineNumbers(function (editor) {
       editor.textContent = editor.textContent;
       hljs.highlightElement(editor);
     });
 
     highlight(code_editor);
-
     CodeJar(code_editor, highlight); //, { indentOn: /[(\[{:]$/});
-
-    code_editor.textContent = '# A recursive fibonacci function.\ndef fib(n):\n  if n < 2:\n    return n\n  return fib(n-1) + fib(n-2)\n\n# Prints all fibonacci from 0 to 10 exclusive.\nfor i in range(10):\n  print(f"fib({i}) = {fib(i)}")\n';
 
     window.onload = function () {
       run_button.onclick = function () {
