@@ -1,9 +1,5 @@
 -Wall
 -W*
 -xc
-
 -std=c11
-
 -Iinclude/
--I3rd/cjson/include/
-

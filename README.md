@@ -7,9 +7,6 @@
 <!-- Codecov -->
 <a href="https://codecov.io/gh/pocketpy/pocketpy" > 
 <img src="https://codecov.io/gh/pocketpy/pocketpy/branch/main/graph/badge.svg?token=TI9KAFL0RG"/></a>
-<!-- C++17 -->
-<a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization">
-<img alt="C++17" src="https://img.shields.io/badge/C%2B%2B-17-blue.svg"></a>
 <!-- C11 -->
 <a href="https://en.wikipedia.org/wiki/C11_(C_standard_revision)">
 <img alt="Python" src="https://img.shields.io/badge/C-11-blue.svg"></a>
@@ -28,21 +25,21 @@
 </p>
 
 ---
-## This branch is in heavy development. It is not ready for production use.
+## This branch is in alpha stage. Old implementation was moved to v1.x branch.
 ---
 
-pkpy is a lightweight(~15K LOC) Python interpreter for game scripting, built on C11.
+pkpy is a lightweight(~15K LOC) Python 3.x interpreter for game scripting, written in C11.
 
 It aims to be an alternative to lua for game scripting, with elegant syntax, powerful features and competitive performance.
 pkpy is extremely easy to embed via a single header file `pocketpy.h`, without external dependencies.
 
-Please see https://pocketpy.dev for details and try the following resources.
+<!-- Please see https://pocketpy.dev for details and try the following resources.
 + [Live Python Demo](https://pocketpy.dev/static/web/): Python REPL of the latest version
-+ [Live C++ Examples](https://pocketpy.github.io/examples/): Common usage of pkpy in C++
++ [Live C++ Examples](https://pocketpy.github.io/examples/): Common usage of pkpy in C++ -->
 
 ## Supported Platforms
 
-pkpy should work on any platform with a C++17 compiler.
+pkpy should work on any platform with a C11 compiler.
 These platforms are officially tested.
 
 + Windows 64-bit
@@ -70,11 +67,6 @@ In your CMakelists.txt, add the following lines:
 ```cmake
 add_subdirectory(pocketpy)
 target_link_libraries(<your_target> pocketpy)
-
-if(EMSCRIPTEN)
-    # exceptions must be enabled for emscripten
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fexceptions")
-endif()
 ```
 
 See [CMakeLists.txt](https://github.com/pocketpy/pocketpy/blob/main/CMakeLists.txt) for details.
@@ -85,9 +77,7 @@ It is safe to use `main` branch in production if CI badge is green.
 
 To compile it with your project, these flags must be set:
 
-+ `--std=c++17` flag must be set
-+ RTTI must be enabled
-+ Exception must be enabled
++ `--std=c11` flag must be set
 + For MSVC, `/utf-8` flag must be set
 
 For development build, use this snippet.
