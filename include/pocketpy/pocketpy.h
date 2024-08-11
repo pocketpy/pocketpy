@@ -37,8 +37,8 @@ typedef py_TValue* py_ObjectRef;
 typedef py_TValue* py_GlobalRef;
 /// A specific location in the stack.
 typedef py_TValue* py_StackRef;
-/// A temporary reference which has a short or unknown lifespan.
-typedef py_TValue* py_TmpRef;
+/// An item of a container. It invalidates after the container is modified.
+typedef py_TValue* py_ItemRef;
 
 /// Native function signature.
 /// @param argc number of arguments.
@@ -210,16 +210,16 @@ bool py_issubclass(py_Type derived, py_Type base);
 
 /// Search the magic method from the given type to the base type.
 /// Return `NULL` if not found.
-py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
+py_ItemRef py_tpfindmagic(py_Type, py_Name name);
 /// Search the name from the given type to the base type.
 /// Return `NULL` if not found.
-py_GlobalRef py_tpfindname(py_Type, py_Name name);
+py_ItemRef py_tpfindname(py_Type, py_Name name);
 /// Get the magic method from the given type only.
 /// The returned reference is always valid. However, its value may be `nil`.
-py_GlobalRef py_tpgetmagic(py_Type type, py_Name name);
+py_ItemRef py_tpgetmagic(py_Type type, py_Name name);
 
 /// Get the type object of the given type.
-py_GlobalRef py_tpobject(py_Type type);
+py_ItemRef py_tpobject(py_Type type);
 /// Get the type name.
 const char* py_tpname(py_Type type);
 /// Call a type to create a new instance.
@@ -243,11 +243,11 @@ py_GlobalRef py_getreg(int i);
 void py_setreg(int i, py_Ref val);
 
 /// Get variable in the `__main__` module.
-py_GlobalRef py_getglobal(py_Name name);
+py_ItemRef py_getglobal(py_Name name);
 /// Set variable in the `__main__` module.
 void py_setglobal(py_Name name, py_Ref val);
 /// Get variable in the `builtins` module.
-py_GlobalRef py_getbuiltin(py_Name name);
+py_ItemRef py_getbuiltin(py_Name name);
 
 /// Equivalent to `*dst = *src`.
 void py_assign(py_Ref dst, py_Ref src);
@@ -256,14 +256,14 @@ py_GlobalRef py_retval();
 
 /// Get an item from the object's `__dict__`.
 /// Return `NULL` if not found.
-py_ObjectRef py_getdict(py_Ref self, py_Name name);
+py_ItemRef py_getdict(py_Ref self, py_Name name);
 /// Set an item to the object's `__dict__`.
 void py_setdict(py_Ref self, py_Name name, py_Ref val);
 /// Delete an item from the object's `__dict__`.
 /// Return `true` if the deletion is successful.
 bool py_deldict(py_Ref self, py_Name name);
 /// Prepare an insertion to the object's `__dict__`.
-py_ObjectRef py_emplacedict(py_Ref self, py_Name name);
+py_ItemRef py_emplacedict(py_Ref self, py_Name name);
 
 /// Get the i-th slot of the object.
 /// The object must have slots and `i` must be in valid range.
@@ -483,8 +483,8 @@ py_ObjectRef py_tuple_getitem(py_Ref self, int i);
 void py_tuple_setitem(py_Ref self, int i, py_Ref val);
 int py_tuple_len(py_Ref self);
 
-py_TmpRef py_list_data(py_Ref self);
-py_TmpRef py_list_getitem(py_Ref self, int i);
+py_ItemRef py_list_data(py_Ref self);
+py_ItemRef py_list_getitem(py_Ref self, int i);
 void py_list_setitem(py_Ref self, int i, py_Ref val);
 void py_list_delitem(py_Ref self, int i);
 int py_list_len(py_Ref self);

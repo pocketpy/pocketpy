@@ -32,7 +32,7 @@ void py_setdict(py_Ref self, py_Name name, py_Ref val) {
     }
 }
 
-py_TmpRef py_emplacedict(py_Ref self, py_Name name){
+py_ItemRef py_emplacedict(py_Ref self, py_Name name){
     py_setdict(self, name, py_NIL);
     return py_getdict(self, name);
 }
