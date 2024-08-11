@@ -25,7 +25,7 @@ jobs:
     - name: Setup emsdk
       uses: mymindstorm/setup-emsdk@v12
       with:
-        version: '3.1.65'
+        version: latest
         actions-cache-folder: 'emsdk-cache'
     - name: Compile
       run: |
