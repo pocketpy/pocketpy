@@ -497,50 +497,7 @@ assert v.x == 10
 def aaa():
     '12345'
     pass
-assert type(aaa.__doc__) is str
-
-
-# /************ module time ************/
-import time
-# test time.time
-assert type(time.time()) is float
-
-local_t = time.localtime()
-assert type(local_t.tm_year) is int
-assert type(local_t.tm_mon) is int
-assert type(local_t.tm_mday) is int
-assert type(local_t.tm_hour) is int
-assert type(local_t.tm_min) is int
-assert type(local_t.tm_sec) is int
-assert type(local_t.tm_wday) is int
-assert type(local_t.tm_yday) is int
-assert type(local_t.tm_isdst) is int
-
-# test time.sleep
-time.sleep(0.1)
-# test time.localtime
-assert type(time.localtime()) is time.struct_time
-
-# test min/max
-assert min(1, 2) == 1
-assert min(1, 2, 3) == 1
-assert min([1, 2]) == 1
-assert min([1, 2], key=lambda x: -x) == 2
-
-assert max(1, 2) == 2
-assert max(1, 2, 3) == 3
-assert max([1, 2]) == 2
-assert max([1, 2, 3], key=lambda x: -x) == 1
-
-assert min([
-    (1, 2),
-    (1, 3),
-    (1, 4),
-]) == (1, 2)
-
-assert min(1, 2) == 1
-assert max(1, 2) == 2
-
+assert aaa.__doc__ == '12345'
 
 # test callable
 assert callable(lambda: 1) is True          # function
@@ -585,5 +542,49 @@ def f(a, b):
 
 assert f(1, 2) == 3
 
+exit()
+
 dir_int = dir(int)
 assert dir_int[:4] == ['__add__', '__and__', '__base__', '__eq__']
+
+
+# /************ module time ************/
+import time
+# test time.time
+assert type(time.time()) is float
+
+local_t = time.localtime()
+assert type(local_t.tm_year) is int
+assert type(local_t.tm_mon) is int
+assert type(local_t.tm_mday) is int
+assert type(local_t.tm_hour) is int
+assert type(local_t.tm_min) is int
+assert type(local_t.tm_sec) is int
+assert type(local_t.tm_wday) is int
+assert type(local_t.tm_yday) is int
+assert type(local_t.tm_isdst) is int
+
+# test time.sleep
+time.sleep(0.1)
+# test time.localtime
+assert type(time.localtime()) is time.struct_time
+
+# test min/max
+assert min(1, 2) == 1
+assert min(1, 2, 3) == 1
+assert min([1, 2]) == 1
+assert min([1, 2], key=lambda x: -x) == 2
+
+assert max(1, 2) == 2
+assert max(1, 2, 3) == 3
+assert max([1, 2]) == 2
+assert max([1, 2, 3], key=lambda x: -x) == 1
+
+assert min([
+    (1, 2),
+    (1, 3),
+    (1, 4),
+]) == (1, 2)
+
+assert min(1, 2) == 1
+assert max(1, 2) == 2

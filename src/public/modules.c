@@ -607,28 +607,21 @@ py_TValue pk_builtins__register() {
     return *builtins;
 }
 
-static bool function__closure__getter(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    Function* ud = py_touserdata(argv);
-    if(!ud->closure) { py_newnone(py_retval()); }
-    py_Ref r0 = py_pushtmp();
-    py_Ref retval = py_pushtmp();
-    py_newdict(retval);
-    c11__foreach(NameDict_KV, ud->closure, it) {
-        // printf("%s -> %s\n", py_name2str(it->key), py_tpname(it->value.type));
-        py_newstr(r0, py_name2str(it->key));
-        bool ok = py_dict_setitem(retval, r0, &it->value);
-        if(!ok) return false;
-    }
-    py_assign(py_retval(), retval);
-    py_shrink(2);
-    return true;
-}
-
 static void function__gc_mark(void* ud) {
     Function* func = ud;
     if(func->closure) pk__mark_namedict(func->closure);
     CodeObject__gc_mark(&func->decl->code);
+}
+
+static bool function__doc__getter(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Function* func = py_touserdata(py_arg(0));
+    if(func->decl->docstring){
+        py_newstr(py_retval(), func->decl->docstring);
+    }else{
+        py_newnone(py_retval());
+    }
+    return true;
 }
 
 py_Type pk_function__register() {
@@ -637,7 +630,7 @@ py_Type pk_function__register() {
 
     pk__tp_set_marker(type, function__gc_mark);
 
-    py_bindproperty(type, "__closure__", function__closure__getter, NULL);
+    py_bindproperty(type, "__doc__", function__doc__getter, NULL);
     return type;
 }
 
