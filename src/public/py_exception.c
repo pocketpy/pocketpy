@@ -66,7 +66,7 @@ static bool _py_BaseException__init__(int argc, py_Ref argv) {
         py_setslot(py_arg(0), 0, py_arg(1));
         return true;
     }
-    return TypeError("__init__() takes at most 2 arguments but %d were given", argc);
+    return TypeError("__init__() takes at most 1 arguments but %d were given", argc - 1);
 }
 
 static bool _py_BaseException__repr__(int argc, py_Ref argv) {

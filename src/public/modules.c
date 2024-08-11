@@ -617,11 +617,8 @@ static bool function__closure__getter(int argc, py_Ref argv) {
     c11__foreach(NameDict_KV, ud->closure, it) {
         // printf("%s -> %s\n", py_name2str(it->key), py_tpname(it->value.type));
         py_newstr(r0, py_name2str(it->key));
-        py_dict_setitem(retval, r0, &it->value);
-        if(py_checkexc()) {
-            py_shrink(2);
-            return false;
-        }
+        bool ok = py_dict_setitem(retval, r0, &it->value);
+        if(!ok) return false;
     }
     py_assign(py_retval(), retval);
     py_shrink(2);

@@ -389,9 +389,9 @@ static bool
                 py_Ref tmp = py_pushtmp();
                 c11_sv key_sv = py_name2sv(key);
                 py_newstrn(tmp, key_sv.data, key_sv.size);
-                py_dict_setitem(&buffer[decl->starred_kwarg], tmp, &p1[2 * j + 1]);
+                bool ok = py_dict_setitem(&buffer[decl->starred_kwarg], tmp, &p1[2 * j + 1]);
                 py_pop();
-                if(py_checkexc()) return false;
+                if(!ok) return false;
             }
         }
     }

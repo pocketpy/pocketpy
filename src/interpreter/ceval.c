@@ -87,14 +87,9 @@ FrameResult VM__run_top_frame(VM* self) {
     __NEXT_STEP:
         byte = *frame->ip;
 
+#if PK_DEBUG
         pk_print_stack(self, frame, byte);
-
-        // #if PK_DEBUG
-        //         if(py_checkexc()) {
-        //             py_printexc();
-        //             c11__abort("unhandled exception!");
-        //         }
-        // #endif
+#endif
 
         switch((Opcode)byte.op) {
             case OP_NO_OP: DISPATCH();
@@ -506,8 +501,8 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Ref tmp = py_pushtmp();
                 py_newdict(tmp);
                 for(int i = 0; i < byte.arg * 2; i += 2) {
-                    py_dict_setitem(tmp, begin + i, begin + i + 1);
-                    if(py_checkexc()) goto __ERROR;
+                    bool ok = py_dict_setitem(tmp, begin + i, begin + i + 1);
+                    if(!ok) goto __ERROR;
                 }
                 SP() = begin;
                 PUSH(tmp);
@@ -760,8 +755,8 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_DICT_ADD: {
                 // [dict, iter, key, value]
-                py_dict_setitem(FOURTH(), SECOND(), TOP());
-                if(py_checkexc()) goto __ERROR;
+                bool ok = py_dict_setitem(FOURTH(), SECOND(), TOP());
+                if(!ok) goto __ERROR;
                 STACK_SHRINK(2);
                 DISPATCH();
             }
@@ -917,6 +912,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_END_CLASS: {
                 // [cls or decorated]
+                // TODO: if __eq__ is defined, check __ne__ and provide a default implementation
                 py_Name name = byte.arg;
                 // set into f_globals
                 py_setdict(frame->module, name, TOP());

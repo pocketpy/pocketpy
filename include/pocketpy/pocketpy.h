@@ -489,12 +489,18 @@ void py_list_append(py_Ref self, py_Ref val);
 void py_list_clear(py_Ref self);
 void py_list_insert(py_Ref self, int i, py_Ref val);
 
-py_TmpRef py_dict_getitem(py_Ref self, py_Ref key) PY_RAISE;
-void py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
-void py_dict_delitem(py_Ref self, py_Ref key) PY_RAISE;
-bool py_dict_contains(py_Ref self, py_Ref key) PY_RAISE;
-int py_dict_len(py_Ref self);
+/// -1: error, 0: not found, 1: found
+int py_dict_getitem(py_Ref self, py_Ref key) PY_RAISE;
+/// true: success, false: error
+bool py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
+/// -1: error, 0: not found, 1: found (and deleted)
+int py_dict_delitem(py_Ref self, py_Ref key) PY_RAISE;
+/// -1: error, 0: not found, 1: found
+int py_dict_contains(py_Ref self, py_Ref key) PY_RAISE;
+/// true: success, false: error
 bool py_dict_apply(py_Ref self, bool (*f)(py_Ref key, py_Ref val, void* ctx), void* ctx) PY_RAISE;
+/// noexcept
+int py_dict_len(py_Ref self);
 
 /************* Others *************/
 

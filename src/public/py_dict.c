@@ -164,12 +164,10 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
 }
 
 /// Delete an entry from the dict.
-/// If the key is found, `py_retval()` is set to the value.
-/// If the key is not found, `py_retval()` is set to `nil`.
-/// Returns false on error.
-static bool Dict__pop(Dict* self, py_Ref key) {
+/// -1: error, 0: not found, 1: found and deleted
+static int Dict__pop(Dict* self, py_Ref key) {
     py_i64 hash;
-    if(!py_hash(key, &hash)) return false;
+    if(!py_hash(key, &hash)) return -1;
     int idx = hash & (self->capacity - 1);
     for(int i = 0; i < PK_DICT_MAX_COLLISION; i++) {
         int idx2 = self->indices[idx]._[i];
@@ -182,12 +180,11 @@ static bool Dict__pop(Dict* self, py_Ref key) {
             self->indices[idx]._[i] = -1;
             self->length--;
             if(self->length < self->entries.count / 2) Dict__compact_entries(self);
-            return true;
+            return 1;
         }
-        if(res == -1) return false;  // error
+        if(res == -1) return -1;  // error
     }
-    py_newnil(py_retval());
-    return true;
+    return 0;
 }
 
 static void DictIterator__ctor(DictIterator* self, Dict* dict) {
@@ -262,8 +259,13 @@ static bool dict__setitem__(int argc, py_Ref argv) {
 static bool dict__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     Dict* self = py_touserdata(argv);
-    if(!Dict__pop(self, py_arg(1))) return false;
-    return true;
+    int res = Dict__pop(self, py_arg(1));
+    if(res == 1) {
+        py_newnone(py_retval());
+        return true;
+    }
+    if(res == 0) return KeyError(py_arg(1));
+    return false;
 }
 
 static bool dict__contains__(int argc, py_Ref argv) {
@@ -396,10 +398,11 @@ static bool dict_get(int argc, py_Ref argv) {
 
 static bool dict_pop(int argc, py_Ref argv) {
     Dict* self = py_touserdata(argv);
-    if(argc < 2 || argc > 3) return TypeError("pop() takes 2 or 3 arguments (%d given)", argc);
+    if(argc < 2 || argc > 3) return TypeError("pop() takes 1 or 2 arguments (%d given)", argc - 1);
     py_Ref default_val = argc == 3 ? py_arg(2) : py_None;
-    if(!Dict__pop(self, py_arg(1))) return false;
-    if(py_isnil(py_retval())) *py_retval() = *default_val;
+    int res = Dict__pop(self, py_arg(1));
+    if(res == -1) return false;
+    if(res == 0) { py_assign(py_retval(), default_val); }
     return true;
 }
 
@@ -506,33 +509,37 @@ py_Type pk_dict_items__register() {
 
 //////////////////////////
 
-py_Ref py_dict_getitem(py_Ref self, py_Ref key) {
+int py_dict_getitem(py_Ref self, py_Ref key) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     DictEntry* entry;
-    if(!Dict__try_get(ud, key, &entry)) return NULL;
-    if(entry) return &entry->val;
-    return NULL;
+    if(!Dict__try_get(ud, key, &entry)) return -1;
+    if(entry) {
+        py_assign(py_retval(), &entry->val);
+        return 1;
+    }
+    return 0;
 }
 
-void py_dict_delitem(py_Ref self, py_Ref key) {
+int py_dict_delitem(py_Ref self, py_Ref key) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
-    Dict__pop(ud, key);
+    return Dict__pop(ud, key);
 }
 
-void py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) {
+bool py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
-    Dict__set(ud, key, val);
+    return Dict__set(ud, key, val);
 }
 
-bool py_dict_contains(py_Ref self, py_Ref key) {
+int py_dict_contains(py_Ref self, py_Ref key) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     DictEntry* entry;
     bool ok = Dict__try_get(ud, key, &entry);
-    return ok && entry != NULL;
+    if(!ok) return -1;
+    return entry ? 1 : 0;
 }
 
 int py_dict_len(py_Ref self) {
