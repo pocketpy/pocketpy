@@ -13,7 +13,7 @@ def get_loc_for_dir(path):
     loc_ex = 0
     for root, dirs, files in os.walk(path):
         for file in files:
-            if file.endswith('.h') or file.endswith('.cpp') or file.endswith('.hpp'):
+            if file.endswith('.h') or file.endswith('.c') or file.endswith('.h'):
                 _i = get_loc(os.path.join(root, file))
                 if file.startswith('_'):
                     loc_ex += _i
