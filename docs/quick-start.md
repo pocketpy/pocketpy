@@ -1,7 +1,7 @@
 ---
-icon: dot
-label: 'Installation'
-order: 100
+icon: rocket
+order: 20
+label: Quick Start
 ---
 
 You have two options to integrate pkpy into your project.
@@ -125,56 +125,4 @@ __ERROR:
     py_finalize();
     return 1;
 }
-```
-
-### Overview
-
-pkpy's C++ interfaces are organized in an object-oriented way.
-All classes are located in `pkpy` namespace.
-
-The most important class is the `VM` class. A `VM` instance is a python virtual machine which holds all necessary runtime states, including callstack, modules, variables, etc.
-
-A process can have multiple `VM` instances. Each `VM` instance is independent from each other.
-
-!!!
-Always use C++ `new` operator to create a `VM` instance.
-DO NOT declare it on the stack. It may cause stack overflow.
-!!!
-
-```cpp
-VM* vm = new VM();
-```
-
-The constructor can take 1 extra parameters.
-
-#### `VM(bool enable_os=true)`
-
-+ `enable_os`, whether to enable OS-related features or not. This setting controls the availability of privileged modules such os `io` and `os` as well as builtin function `open`. **It is designed for sandboxing.**
-
-When you are done with the `VM` instance, use `delete` operator to dispose it.
-
-```cpp
-delete vm;
-```
-
-### Hook standard buffer
-
-By default, pkpy outputs all messages and errors to `stdout` and `stderr`.
-You can redirect them to your own buffer by setting `vm->_stdout` and `vm->_stderr`.
-
-These two fields are C function pointers with the following signature:
-
-```cpp
-void(*)(const char*, int);
-```
-
-Or you can override these two virtual functions:
-```cpp
-    virtual void stdout_write(const Str& s){
-        _stdout(s.data, s.size);
-    }
-
-    virtual void stderr_write(const Str& s){
-        _stderr(s.data, s.size);
-    }
 ```
