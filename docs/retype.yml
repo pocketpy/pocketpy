@@ -16,10 +16,6 @@ links:
     icon: play
     link: "https://pocketpy.dev/static/web/"
     target: blank
-  - text: "Live Examples"
-    icon: play
-    link: "https://pocketpy.github.io/examples/"
-    target: blank
   - text: "Github"
     icon: mark-github
     link: https://github.com/blueloveth/pocketpy
