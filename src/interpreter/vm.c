@@ -69,6 +69,7 @@ void VM__ctor(VM* self) {
 
     self->last_retval = *py_NIL;
     self->curr_exception = *py_NIL;
+    self->is_curr_exc_handled = false;
     self->is_stopiteration = false;
 
     self->__curr_class = NULL;

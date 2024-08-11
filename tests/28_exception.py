@@ -7,6 +7,9 @@ try:
 except IndexError:
     pass
 
+k = KeyError('foo')
+assert str(k) == "'foo'"
+
 try:
     assert False
     exit(1)

@@ -1013,7 +1013,11 @@ FrameResult VM__run_top_frame(VM* self) {
                 PUSH(&self->curr_exception);
                 DISPATCH();
             }
-            case OP_POP_EXCEPTION: {
+            case OP_BEGIN_EXC_HANDLING: {
+                self->is_curr_exc_handled = true;
+                DISPATCH();
+            }
+            case OP_END_EXC_HANDLING: {
                 assert(self->curr_exception.type);
                 py_clearexc(NULL);
                 DISPATCH();

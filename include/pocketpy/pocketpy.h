@@ -393,13 +393,16 @@ bool py_exception(py_Type type, const char* fmt, ...) PY_RAISE;
 /// Raise an expection object. Always return false.
 bool py_raise(py_Ref) PY_RAISE;
 /// Print the current exception.
+/// The exception will be set as handled.
 void py_printexc();
 /// Format the current exception and return a null-terminated string.
 /// The result should be freed by the caller.
+/// The exception will be set as handled.
 char* py_formatexc();
 /// Check if an exception is raised.
-bool py_checkexc();
+bool py_checkexc(bool ignore_handled);
 /// Check if the exception is an instance of the given type.
+/// If match, the exception will be set as handled.
 bool py_matchexc(py_Type type);
 /// Clear the current exception.
 /// @param p0 the unwinding point. Use `NULL` if not needed.

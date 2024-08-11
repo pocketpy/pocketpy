@@ -88,7 +88,11 @@ static bool _py_BaseException__str__(int argc, py_Ref argv) {
     c11_sbuf__ctor(&ss);
     py_Ref arg = py_getslot(argv, 0);
     if(!py_isnil(arg)) {
-        if(!py_str(arg)) return false;
+        if(argv->type == tp_KeyError) {
+            if(!py_repr(arg)) return false;
+        } else {
+            if(!py_str(arg)) return false;
+        }
         c11_sbuf__write_sv(&ss, py_tosv(py_retval()));
     }
     c11_sbuf__py_submit(&ss, py_retval());
@@ -111,21 +115,29 @@ py_Type pk_Exception__register() {
 }
 
 //////////////////////////////////////////////////
-bool py_checkexc() {
+bool py_checkexc(bool ignore_handled) {
     VM* vm = pk_current_vm;
+    if(ignore_handled && vm->is_curr_exc_handled) return false;
     return !py_isnil(&vm->curr_exception);
 }
 
 bool py_matchexc(py_Type type) {
     VM* vm = pk_current_vm;
+    if(vm->is_curr_exc_handled) return false;
     if(py_isnil(&vm->curr_exception)) return false;
-    return py_issubclass(vm->curr_exception.type, type);
+    bool ok = py_issubclass(vm->curr_exception.type, type);
+    if(ok) {
+        // if match, then the exception is handled
+        vm->is_curr_exc_handled = true;
+    }
+    return ok;
 }
 
 void py_clearexc(py_StackRef p0) {
     VM* vm = pk_current_vm;
     vm->last_retval = *py_NIL;
     vm->curr_exception = *py_NIL;
+    vm->is_curr_exc_handled = false;
     vm->is_stopiteration = false;
     vm->__curr_class = NULL;
     if(p0) vm->stack.sp = p0;
@@ -155,9 +167,13 @@ static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
     }
 
     const char* name = py_tpname(exc->type);
+    const char* message;
     bool ok = py_str(exc);
-    if(!ok) c11__abort("py_printexc(): failed to convert exception to string");
-    const char* message = py_tostr(py_retval());
+    if(!ok || !py_isstr(py_retval())) {
+        message = "<exception str() failed>";
+    } else {
+        message = py_tostr(py_retval());
+    }
 
     c11_sbuf__write_cstr(self, name);
     c11_sbuf__write_cstr(self, ": ");
@@ -167,6 +183,10 @@ static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
 char* py_formatexc() {
     VM* vm = pk_current_vm;
     if(py_isnil(&vm->curr_exception)) return NULL;
+
+    // when you call `py_formatexc()`, you are handling the exception
+    vm->is_curr_exc_handled = true;
+
     c11_sbuf ss;
     c11_sbuf__ctor(&ss);
 
@@ -215,6 +235,7 @@ bool py_raise(py_Ref exc) {
         py_setslot(exc, 1, &vm->curr_exception);
     }
     vm->curr_exception = *exc;
+    vm->is_curr_exc_handled = false;
     return false;
 }
 

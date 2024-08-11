@@ -2519,13 +2519,13 @@ static Error* compile_try_except(Compiler* self) {
         }
         int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
         // on match
+        Ctx__emit_(ctx(), OP_BEGIN_EXC_HANDLING, BC_NOARG, BC_KEEPLINE);
         if(as_name) {
             Ctx__emit_(ctx(), OP_PUSH_EXCEPTION, BC_NOARG, BC_KEEPLINE);
             Ctx__emit_store_name(ctx(), name_scope(self), as_name, BC_KEEPLINE);
         }
         check(compile_block_body(self, compile_stmt));
-        // pop the exception
-        Ctx__emit_(ctx(), OP_POP_EXCEPTION, BC_NOARG, BC_KEEPLINE);
+        Ctx__emit_(ctx(), OP_END_EXC_HANDLING, BC_NOARG, BC_KEEPLINE);
         patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
         Ctx__patch_jump(ctx(), patch);
     } while(curr()->type == TK_EXCEPT);

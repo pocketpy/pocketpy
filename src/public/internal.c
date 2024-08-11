@@ -104,7 +104,7 @@ bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
         c11__abort(
             "py_CFunction returns nothing! Did you forget to call `py_newnone(py_retval())`?");
     }
-    // if(py_checkexc()) { c11__abort("py_CFunction returns `true` but an exception is set!"); }
+    if(py_checkexc(true)) { c11__abort("py_CFunction returns `true` but an exception is set!"); }
     return true;
 }
 #endif

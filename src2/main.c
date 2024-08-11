@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    int code = py_checkexc() ? 1 : 0;
+    int code = py_checkexc(false) ? 1 : 0;
     py_finalize();
     return code;
 }
