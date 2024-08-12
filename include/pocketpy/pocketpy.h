@@ -360,6 +360,8 @@ void py_push(py_Ref src);
 void py_pushnil();
 /// Push a `None` object to the stack.
 void py_pushnone();
+/// Push a `py_Name` to the stack. This is used for keyword arguments.
+void py_pushname(py_Name name);
 /// Pop an object from the stack.
 void py_pop();
 /// Shrink the stack by n.

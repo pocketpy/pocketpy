@@ -8,3 +8,4 @@ void pk__add_module_dis();
 void pk__add_module_random();
 void pk__add_module_json();
 void pk__add_module_gc();
+void pk__add_module_time();

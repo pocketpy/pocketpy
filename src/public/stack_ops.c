@@ -100,8 +100,12 @@ void py_pushnone() {
     py_newnone(vm->stack.sp++);
 }
 
+void py_pushname(py_Name name){
+    VM* vm = pk_current_vm;
+    py_newint(vm->stack.sp++, name);
+}
+
 py_Ref py_pushtmp() {
     VM* vm = pk_current_vm;
-    py_newnil(vm->stack.sp++);
-    return py_peek(-1);
+    return vm->stack.sp++;
 }

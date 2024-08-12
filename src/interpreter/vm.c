@@ -202,6 +202,7 @@ void VM__ctor(VM* self) {
     pk__add_module_random();
     pk__add_module_json();
     pk__add_module_gc();
+    pk__add_module_time();
 
     // add python builtins
     do {
