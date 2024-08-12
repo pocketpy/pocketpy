@@ -76,6 +76,8 @@ bool py_exec(const char* source,
              enum py_CompileMode mode,
              py_Ref module) PY_RAISE;
 
+#define py_eval(source, module) py_exec((source), "<string>", EVAL_MODE, (module))
+
 /// Compile a source string into a code object.
 /// Use python's `exec()` or `eval()` to execute it.
 bool py_compile(const char* source,
@@ -374,6 +376,9 @@ bool py_pushmethod(py_Name name);
 /// The result will be set to `py_retval()`.
 /// The stack size will be reduced by `argc + kwargc`.
 bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE;
+/// Evaluate an expression and push the result to the stack.
+/// This function is used for testing.
+bool py_pusheval(const char* expr, py_GlobalRef module) PY_RAISE;
 
 /************* Modules *************/
 
@@ -474,7 +479,9 @@ bool py_repr(py_Ref val) PY_RAISE;
 /// Python equivalent to `len(val)`.
 bool py_len(py_Ref val) PY_RAISE;
 /// Python equivalent to `json.dumps(val)`.
-bool py_json(py_Ref val) PY_RAISE;
+bool py_json_dumps(py_Ref val) PY_RAISE;
+/// Python equivalent to `json.loads(val)`.
+bool py_json_loads(const char* source) PY_RAISE;
 
 /************* Unchecked Functions *************/
 

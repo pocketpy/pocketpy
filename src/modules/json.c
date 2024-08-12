@@ -10,13 +10,12 @@ static bool json_loads(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
     const char* source = py_tostr(argv);
-    py_GlobalRef mod = py_getmodule("json");
-    return py_exec(source, "<json>", EVAL_MODE, mod);
+    return py_json_loads(source);
 }
 
 static bool json_dumps(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    return py_json(argv);
+    return py_json_dumps(argv);
 }
 
 void pk__add_module_json() {
@@ -98,14 +97,26 @@ static bool json__write_object(c11_sbuf* buf, py_TValue* obj) {
     }
 }
 
-bool py_json(py_Ref val) {
+bool py_json_dumps(py_Ref val) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     bool ok = json__write_object(&buf, val);
-    if(!ok){
+    if(!ok) {
         c11_sbuf__dtor(&buf);
         return false;
     }
     c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
+bool py_json_loads(const char* source) {
+    py_GlobalRef mod = py_getmodule("json");
+    return py_exec(source, "<json>", EVAL_MODE, mod);
+}
+
+bool py_pusheval(const char* expr, py_GlobalRef module) {
+    bool ok = py_exec(expr, "<string>", EVAL_MODE, module);
+    if(!ok) return false;
+    py_push(py_retval());
     return true;
 }
