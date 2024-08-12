@@ -22,7 +22,8 @@ typedef double py_f64;
 
 typedef void (*py_Dtor)(void*);
 
-#define PY_RAISE  // mark a function that can raise an exception
+#define PY_RAISE   // mark a function that can raise an exception
+#define PY_RETURN  // mark a function that can modify `py_retval()` on success
 
 typedef struct c11_sv {
     const char* data;
@@ -44,7 +45,7 @@ typedef py_TValue* py_ItemRef;
 /// @param argc number of arguments.
 /// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
 /// @return true if the function is successful.
-typedef bool (*py_CFunction)(int argc, py_StackRef argv) PY_RAISE;
+typedef bool (*py_CFunction)(int argc, py_StackRef argv) PY_RAISE PY_RETURN;
 
 enum py_CompileMode { EXEC_MODE, EVAL_MODE, SINGLE_MODE };
 
@@ -74,7 +75,7 @@ void py_switchvm(int index);
 bool py_exec(const char* source,
              const char* filename,
              enum py_CompileMode mode,
-             py_Ref module) PY_RAISE;
+             py_Ref module) PY_RAISE PY_RETURN;
 
 #define py_eval(source, module) py_exec((source), "<string>", EVAL_MODE, (module))
 
@@ -83,7 +84,7 @@ bool py_exec(const char* source,
 bool py_compile(const char* source,
                 const char* filename,
                 enum py_CompileMode mode,
-                bool is_dynamic) PY_RAISE;
+                bool is_dynamic) PY_RAISE PY_RETURN;
 
 /// Python equivalent to `globals()`.
 void py_newglobals(py_Ref);
@@ -228,7 +229,7 @@ py_ItemRef py_tpobject(py_Type type);
 /// Get the type name.
 const char* py_tpname(py_Type type);
 /// Call a type to create a new instance.
-bool py_tpcall(py_Type type, int argc, py_Ref argv) PY_RAISE;
+bool py_tpcall(py_Type type, int argc, py_Ref argv) PY_RAISE PY_RETURN;
 
 /// Check if the object is an instance of the given type.
 /// Raise `TypeError` if the check fails.
@@ -323,13 +324,13 @@ void py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFu
 /************* Python Equivalents *************/
 
 /// Python equivalent to `getattr(self, name)`.
-bool py_getattr(py_Ref self, py_Name name) PY_RAISE;
+bool py_getattr(py_Ref self, py_Name name) PY_RAISE PY_RETURN;
 /// Python equivalent to `setattr(self, name, val)`.
 bool py_setattr(py_Ref self, py_Name name, py_Ref val) PY_RAISE;
 /// Python equivalent to `delattr(self, name)`.
 bool py_delattr(py_Ref self, py_Name name) PY_RAISE;
 /// Python equivalent to `self[key]`.
-bool py_getitem(py_Ref self, py_Ref key) PY_RAISE;
+bool py_getitem(py_Ref self, py_Ref key) PY_RAISE PY_RETURN;
 /// Python equivalent to `self[key] = val`.
 bool py_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
 /// Python equivalent to `del self[key]`.
@@ -338,7 +339,7 @@ bool py_delitem(py_Ref self, py_Ref key) PY_RAISE;
 /// Perform a binary operation.
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
-bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) PY_RAISE;
+bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) PY_RAISE PY_RETURN;
 
 #define py_binaryadd(lhs, rhs) py_binaryop(lhs, rhs, __add__, __radd__)
 #define py_binarysub(lhs, rhs) py_binaryop(lhs, rhs, __sub__, __rsub__)
@@ -383,7 +384,7 @@ bool py_pushmethod(py_Name name);
 /// Assume `argc + kwargc` arguments are already pushed to the stack.
 /// The result will be set to `py_retval()`.
 /// The stack size will be reduced by `argc + kwargc`.
-bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE;
+bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE PY_RETURN;
 /// Evaluate an expression and push the result to the stack.
 /// This function is used for testing.
 bool py_pusheval(const char* expr, py_GlobalRef module) PY_RAISE;
@@ -441,7 +442,7 @@ bool KeyError(py_Ref key) PY_RAISE;
 
 /// Python equivalent to `bool(val)`.
 /// 1: true, 0: false, -1: error
-int py_bool(py_Ref val) PY_RAISE;
+int py_bool(py_Ref val) PY_RAISE PY_RETURN;
 
 /// Compare two objects.
 /// 1: lhs == rhs, 0: lhs != rhs, -1: error
@@ -460,36 +461,36 @@ int py_less(py_Ref lhs, py_Ref rhs) PY_RAISE;
 /// Get the hash value of the object.
 bool py_hash(py_Ref, py_i64* out) PY_RAISE;
 /// Get the iterator of the object.
-bool py_iter(py_Ref) PY_RAISE;
+bool py_iter(py_Ref) PY_RAISE PY_RETURN;
 /// Get the next element from the iterator.
 /// 1: success, 0: StopIteration, -1: error
-int py_next(py_Ref) PY_RAISE;
+int py_next(py_Ref) PY_RAISE PY_RETURN;
 /// Python equivalent to `lhs is rhs`.
 bool py_isidentical(py_Ref, py_Ref);
 /// Call a function.
 /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
-bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE;
+bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE PY_RETURN;
 
 #if PK_DEBUG
 /// Call a py_CFunction in a safe way.
 /// This function does extra checks to help you debug `py_CFunction`.
-bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) PY_RAISE;
+bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) PY_RAISE PY_RETURN;
 #else
 #define py_callcfunc(f, argc, argv) (f((argc), (argv)))
 #endif
 
 /// Python equivalent to `str(val)`.
-bool py_str(py_Ref val) PY_RAISE;
+bool py_str(py_Ref val) PY_RAISE PY_RETURN;
 /// Python equivalent to `repr(val)`.
-bool py_repr(py_Ref val) PY_RAISE;
+bool py_repr(py_Ref val) PY_RAISE PY_RETURN;
 /// Python equivalent to `len(val)`.
-bool py_len(py_Ref val) PY_RAISE;
+bool py_len(py_Ref val) PY_RAISE PY_RETURN;
 /// Python equivalent to `json.dumps(val)`.
-bool py_json_dumps(py_Ref val) PY_RAISE;
+bool py_json_dumps(py_Ref val) PY_RAISE PY_RETURN;
 /// Python equivalent to `json.loads(val)`.
-bool py_json_loads(const char* source) PY_RAISE;
+bool py_json_loads(const char* source) PY_RAISE PY_RETURN;
 
 /************* Unchecked Functions *************/
 
@@ -509,7 +510,7 @@ void py_list_clear(py_Ref self);
 void py_list_insert(py_Ref self, int i, py_Ref val);
 
 /// -1: error, 0: not found, 1: found
-int py_dict_getitem(py_Ref self, py_Ref key) PY_RAISE;
+int py_dict_getitem(py_Ref self, py_Ref key) PY_RAISE PY_RETURN;
 /// true: success, false: error
 bool py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
 /// -1: error, 0: not found, 1: found (and deleted)
@@ -526,7 +527,7 @@ int py_dict_len(py_Ref self);
 /// An utility function to read a line from stdin for REPL.
 int py_replinput(char* buf, int max_size);
 
-/// Python favored string formatting. (just put here, not for users)
+/// Python favored string formatting.
 /// %d: int
 /// %i: py_i64 (int64_t)
 /// %f: py_f64 (double)
@@ -604,14 +605,3 @@ enum py_PredefinedTypes {
 #ifdef __cplusplus
 }
 #endif
-
-/*
-Some notes:
-
-## Macros
-1. Function macros are partial functions. They can be used as normal expressions. Use the same
-naming convention as functions.
-2. Snippet macros are `do {...} while(0)` blocks. They cannot be used as expressions. Use
-`UPPER_CASE` naming convention.
-3. Constant macros are used for global constants. Use `UPPER_CASE` or k-prefix naming convention.
-*/
