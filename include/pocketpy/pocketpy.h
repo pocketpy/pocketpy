@@ -203,7 +203,7 @@ void* py_touserdata(py_Ref);
 
 /// Get the type of the object.
 py_Type py_typeof(py_Ref self);
-/// Get type by module and name. e.g. `py_gettype("time", "struct_time")`.
+/// Get type by module and name. e.g. `py_gettype("time", py_name("struct_time"))`.
 /// Return `0` if not found.
 py_Type py_gettype(const char* module, py_Name name);
 /// Check if the object is exactly the given type.

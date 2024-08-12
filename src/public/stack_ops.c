@@ -21,9 +21,6 @@ py_Ref py_getdict(py_Ref self, py_Name name) {
 
 void py_setdict(py_Ref self, py_Name name, py_Ref val) {
     assert(self && self->is_ptr);
-    // if(py_isidentical(self, &pk_current_vm->main)){
-    //     printf("Setting main: %s\n", py_name2str(name));
-    // }
     if(!py_ismagicname(name) || self->type != tp_type) {
         NameDict__set(PyObject__dict(self->_obj), name, *val);
     } else {
