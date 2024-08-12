@@ -1,4 +1,4 @@
-from linalg import mat3x3, vec2, vec3, vec4
+from linalg import mat3x3, vec2, vec3
 import random
 import sys
 import math
@@ -68,25 +68,6 @@ element_name_list = ['x', 'y', 'z']
 element_value_list = [getattr(test_vec3, attr) for attr in element_name_list]
 copy_element_value_list = [getattr(test_vec3, attr) for attr in element_name_list]
 assert element_value_list == copy_element_value_list
-
-# test vec4--------------------------------------------------------------------
-# 生成随机测试目标
-min_num = -10.0
-max_num = 10.0
-test_vec4 = vec4(*tuple([random.uniform(min_num, max_num) for _ in range(4)]))
-static_test_vec4_float = vec4(3.1886954323, -1098399.59932453432, 9.00000000000002765, 4565400000000.0000000045)
-static_test_vec4_int = vec4(278, -13919730938747, 1364223456756456, -37)
-
-# test __repr__
-assert str(static_test_vec4_float).startswith('vec4(')
-assert str(static_test_vec4_int).startswith('vec4(')
-
-# test copy
-element_name_list = ['x', 'y', 'z', 'w']
-element_value_list = [getattr(test_vec4, attr) for attr in element_name_list]
-copy_element_value_list = [getattr(test_vec4.copy(), attr) for attr in element_name_list]
-assert element_value_list == copy_element_value_list
-
 
 # test mat3x3--------------------------------------------------------------------
 def mat_to_str_list(mat):
@@ -446,13 +427,6 @@ assert test_mat_copy.inverse_transform_point(test_vec2_copy) == test_mat_copy.in
 # test inverse_transform_vector
 assert test_mat_copy.inverse_transform_vector(test_vec2_copy) == test_mat_copy.inverse().transform_vector(test_vec2_copy)
 
-import c
-a = vec4(1, 2, 3, 4)
-b = a.tostruct()
-assert a.sizeof() == 16
-assert b.sizeof() == 16
-assert vec4.fromstruct(b) == a
-
 val = vec2.angle(vec2(-1, 0), vec2(0, -1))
 assert 1.57 < val < 1.58
 
@@ -465,12 +439,6 @@ class mymat3x3(mat3x3):
         return _0 == _1 == _2
     
 assert mymat3x3().f()
-
-
-# test assign
-c = vec4(1, 2, 3, 4)
-assert c.copy_(vec4(5, 6, 7, 8)) is None
-assert c == vec4(5, 6, 7, 8)
 
 d = mat3x3.identity()
 assert d.copy_(mat3x3.zeros()) is None
@@ -491,9 +459,7 @@ except IndexError:
 # test vec * vec
 assert vec2(1, 2) * vec2(3, 4) == vec2(3, 8)
 assert vec3(1, 2, 3) * vec3(4, 5, 6) == vec3(4, 10, 18)
-assert vec4(1, 2, 3, 4) * vec4(5, 6, 7, 8) == vec4(5, 12, 21, 32)
 
 # test vec.__getitem__
 assert vec2(1, 2)[0] == 1 and vec2(1, 2)[1] == 2
 assert vec3(1, 2, 3)[0] == 1 and vec3(1, 2, 3)[1] == 2 and vec3(1, 2, 3)[2] == 3
-assert vec4(1, 2, 3, 4)[0] == 1 and vec4(1, 2, 3, 4)[1] == 2 and vec4(1, 2, 3, 4)[2] == 3 and vec4(1, 2, 3, 4)[3] == 4
