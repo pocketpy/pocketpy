@@ -172,7 +172,7 @@ py_i64 py_toint(py_Ref);
 /// Convert a `float` object in python to `double`.
 py_f64 py_tofloat(py_Ref);
 /// Cast a `int` or `float` object in python to `double`.
-/// If successful, returns true and set the value to `out`.
+/// If successful, return true and set the value to `out`.
 /// Otherwise, return false and raise `TypeError`.
 bool py_castfloat(py_Ref, py_f64* out) PY_RAISE;
 /// Convert a `bool` object in python to `bool`.
@@ -203,6 +203,9 @@ void* py_touserdata(py_Ref);
 
 /// Get the type of the object.
 py_Type py_typeof(py_Ref self);
+/// Get type by module and name. e.g. `py_gettype("time", "struct_time")`.
+/// Return `0` if not found.
+py_Type py_gettype(const char* module, py_Name name);
 /// Check if the object is exactly the given type.
 bool py_istype(py_Ref, py_Type);
 /// Check if the object is an instance of the given type.

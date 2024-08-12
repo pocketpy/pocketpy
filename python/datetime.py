@@ -1,4 +1,5 @@
 from time import localtime
+import operator
 
 class timedelta:
     def __init__(self, days=0, seconds=0):
@@ -13,25 +14,10 @@ class timedelta:
             return NotImplemented
         return (self.days, self.seconds) == (other.days, other.seconds)
 
-    def __lt__(self, other: 'timedelta') -> bool:
+    def __ne__(self, other: 'timedelta') -> bool:
         if type(other) is not timedelta:
             return NotImplemented
-        return (self.days, self.seconds) < (other.days, other.seconds)
-
-    def __le__(self, other: 'timedelta') -> bool:
-        if type(other) is not timedelta:
-            return NotImplemented
-        return (self.days, self.seconds) <= (other.days, other.seconds)
-
-    def __gt__(self, other: 'timedelta') -> bool:
-        if type(other) is not timedelta:
-            return NotImplemented
-        return (self.days, self.seconds) > (other.days, other.seconds)
-
-    def __ge__(self, other: 'timedelta') -> bool:
-        if type(other) is not timedelta:
-            return NotImplemented
-        return (self.days, self.seconds) >= (other.days, other.seconds)
+        return (self.days, self.seconds) != (other.days, other.seconds)
 
 
 class date:
@@ -44,31 +30,33 @@ class date:
     def today():
         t = localtime()
         return date(t.tm_year, t.tm_mon, t.tm_mday)
+    
+    def __cmp(self, other, op):
+        if not isinstance(other, date):
+            return NotImplemented
+        if self.year != other.year:
+            return op(self.year, other.year)
+        if self.month != other.month:
+            return op(self.month, other.month)
+        return op(self.day, other.day)
 
     def __eq__(self, other: 'date') -> bool:
-        if type(other) is not date:
-            return NotImplemented
-        return (self.year, self.month, self.day) == (other.year, other.month, other.day)
+        return self.__cmp(other, operator.eq)
+    
+    def __ne__(self, other: 'date') -> bool:
+        return self.__cmp(other, operator.ne)
 
     def __lt__(self, other: 'date') -> bool:
-        if type(other) is not date:
-            return NotImplemented
-        return (self.year, self.month, self.day) < (other.year, other.month, other.day)
+        return self.__cmp(other, operator.lt)
 
     def __le__(self, other: 'date') -> bool:
-        if type(other) is not date:
-            return NotImplemented
-        return (self.year, self.month, self.day) <= (other.year, other.month, other.day)
+        return self.__cmp(other, operator.le)
 
     def __gt__(self, other: 'date') -> bool:
-        if type(other) is not date:
-            return NotImplemented
-        return (self.year, self.month, self.day) > (other.year, other.month, other.day)
+        return self.__cmp(other, operator.gt)
 
     def __ge__(self, other: 'date') -> bool:
-        if type(other) is not date:
-            return NotImplemented
-        return (self.year, self.month, self.day) >= (other.year, other.month, other.day)
+        return self.__cmp(other, operator.ge)
 
     def __str__(self):
         return f"{self.year}-{self.month:02}-{self.day:02}"
@@ -108,41 +96,37 @@ class datetime(date):
     def __repr__(self):
         return f"datetime.datetime({self.year}, {self.month}, {self.day}, {self.hour}, {self.minute}, {self.second})"
 
+    def __cmp(self, other, op):
+        if not isinstance(other, datetime):
+            return NotImplemented
+        if self.year != other.year:
+            return op(self.year, other.year)
+        if self.month != other.month:
+            return op(self.month, other.month)
+        if self.day != other.day:
+            return op(self.day, other.day)
+        if self.hour != other.hour:
+            return op(self.hour, other.hour)
+        if self.minute != other.minute:
+            return op(self.minute, other.minute)
+        return op(self.second, other.second)
+
     def __eq__(self, other) -> bool:
-        if type(other) is not datetime:
-            return NotImplemented
-        return (self.year, self.month, self.day, self.hour, self.minute, self.second) ==\
-            (other.year, other.month, other.day,
-             other.hour, other.minute, other.second)
-
+        return self.__cmp(other, operator.eq)
+    
+    def __ne__(self, other) -> bool:
+        return self.__cmp(other, operator.ne)
+    
     def __lt__(self, other) -> bool:
-        if type(other) is not datetime:
-            return NotImplemented
-        return (self.year, self.month, self.day, self.hour, self.minute, self.second) <\
-            (other.year, other.month, other.day,
-             other.hour, other.minute, other.second)
-
+        return self.__cmp(other, operator.lt)
+    
     def __le__(self, other) -> bool:
-        if type(other) is not datetime:
-            return NotImplemented
-        return (self.year, self.month, self.day, self.hour, self.minute, self.second) <=\
-            (other.year, other.month, other.day,
-             other.hour, other.minute, other.second)
-
+        return self.__cmp(other, operator.le)
+    
     def __gt__(self, other) -> bool:
-        if type(other) is not datetime:
-            return NotImplemented
-        return (self.year, self.month, self.day, self.hour, self.minute, self.second) >\
-            (other.year, other.month, other.day,
-             other.hour, other.minute, other.second)
-
+        return self.__cmp(other, operator.gt)
+    
     def __ge__(self, other) -> bool:
-        if type(other) is not datetime:
-            return NotImplemented
-        return (self.year, self.month, self.day, self.hour, self.minute, self.second) >=\
-            (other.year, other.month, other.day,
-             other.hour, other.minute, other.second)
+        return self.__cmp(other, operator.ge)
 
-    def timestamp(self) -> float:
-        raise NotImplementedError
 

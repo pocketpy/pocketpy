@@ -330,7 +330,9 @@ py_Type pk_newtype(const char* name,
 }
 
 py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, void (*dtor)(void*)) {
-    return pk_newtype(name, base, module, dtor, false, false);
+    py_Type type = pk_newtype(name, base, module, dtor, false, false);
+    if(module) py_setdict(module, py_name(name), py_tpobject(type));
+    return type;
 }
 
 static bool
