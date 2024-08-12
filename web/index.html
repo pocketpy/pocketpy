@@ -259,14 +259,15 @@ DEALINGS IN THE SOFTWARE.
     var Module = {
       onRuntimeInitialized: function () {
         Module.ccall('py_initialize', null, [], []);
+        console.log("py_initialize() called");
       },
       print: function (text) {
-        console.log(text);
         code_output.innerText += text + '\n';
       },
       onabort: function (what) {
         code_output.innerText += 'Aborted: ' + what + '\n';
         Module.ccall('py_finalize', null, [], []);
+        console.log("py_finalize() called");
       }
     };
   </script>
@@ -294,6 +295,7 @@ DEALINGS IN THE SOFTWARE.
           'py_exec', 'boolean', ['string', 'string', 'number', 'number'],
           [source, 'main.py', 0, 0]
         );
+        console.log("py_exec() called");
         if (!ok) {
           Module.ccall('py_printexc', null, [], []);
           Module.ccall('py_clearexc', null, ['number'], [0]);
