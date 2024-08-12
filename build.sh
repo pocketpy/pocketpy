@@ -7,10 +7,7 @@ if ! type -P clang >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "It takes a moment to finish building."
-echo ""
 echo "> Running prebuild.py... "
-
 python prebuild.py
 
 if [ $? -ne 0 ]; then
@@ -22,23 +19,7 @@ SRC=$(find src/ -name "*.c")
 
 echo "> Compiling and linking source files... "
 
-FLAGS="-std=c11 -O1 -Wfatal-errors -Iinclude -DNDEBUG"
-
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    LIB_EXTENSION=".dylib"
-    FLAGS="$FLAGS -undefined dynamic_lookup"
-    LINK_FLAGS=""
-else
-    LIB_EXTENSION=".so"
-    LINK_FLAGS="-Wl,-rpath=."
-fi
-
-clang $FLAGS -o libpocketpy$LIB_EXTENSION $SRC -fPIC -shared -lm
-
-# compile main.cpp and link to libpocketpy.so
-echo "> Compiling main.c and linking to libpocketpy$LIB_EXTENSION..."
-
-clang $FLAGS -o main -O1 src2/main.c -L. -lpocketpy $LINK_FLAGS
+clang -std=c11 -O2 -Wfatal-errors -Iinclude -DNDEBUG -o main src2/main.c $SRC -lm
 
 if [ $? -eq 0 ]; then
     echo "Build completed. Type \"./main\" to enter REPL."
