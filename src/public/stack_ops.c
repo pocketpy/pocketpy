@@ -64,6 +64,12 @@ py_StackRef py_inspect_currentfunction(){
     return frame->p0;
 }
 
+py_GlobalRef py_inspect_currentmodule(){
+    Frame* frame = pk_current_vm->top_frame;
+    if(!frame) return NULL;
+    return frame->module;
+}
+
 void py_assign(py_Ref dst, py_Ref src) { *dst = *src; }
 
 /* Stack References */

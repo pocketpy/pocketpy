@@ -281,6 +281,9 @@ void py_setslot(py_Ref self, int i, py_Ref val);
 /// Get the current `function` object from the stack.
 /// Return `NULL` if not available.
 py_StackRef py_inspect_currentfunction();
+/// Get the current `module` object where the code is executed.
+/// Return `NULL` if not available.
+py_GlobalRef py_inspect_currentmodule();
 
 /************* Bindings *************/
 
