@@ -13,59 +13,78 @@ extern "C" {
 #endif
 
 /************* Public Types *************/
+
+/// A opaque type that represents a python object. You cannot access its members directly.
 typedef struct py_TValue py_TValue;
+/// An integer that represents a python identifier. This is to achieve string pooling and fast name
+/// resolution.
 typedef uint16_t py_Name;
+/// An integer that represents a python type. `0` is invalid.
 typedef int16_t py_Type;
-
+/// A 64-bit integer type. Corresponds to `int` in python.
 typedef int64_t py_i64;
+/// A 64-bit floating-point type. Corresponds to `float` in python.
 typedef double py_f64;
-
+/// A generic destructor function.
 typedef void (*py_Dtor)(void*);
 
-#define PY_RAISE   // mark a function that can raise an exception
-#define PY_RETURN  // mark a function that can modify `py_retval()` on success
-
+/// A string view type. It is helpful for passing strings which are not null-terminated.
 typedef struct c11_sv {
     const char* data;
     int size;
 } c11_sv;
 
-/// Generic reference.
+/// Mark a function that can raise an exception.
+/// + If the function returns `bool`, then `false` means an exception is raised.
+/// + If the function returns `int`, then `-1` means an exception is raised.
+#define PY_RAISE
+/// Mark a function that returns a value by `py_retval()` on success.
+#define PY_RETURN
+
+/// A generic reference to a python object.
 typedef py_TValue* py_Ref;
-/// An object reference which has the same lifespan as the object.
+/// A reference which has the same lifespan as the python object.
 typedef py_TValue* py_ObjectRef;
 /// A global reference which has the same lifespan as the VM.
 typedef py_TValue* py_GlobalRef;
-/// A specific location in the stack.
+/// A specific location in the value stack of the VM.
 typedef py_TValue* py_StackRef;
-/// An item of a container. It invalidates after the container is modified.
+/// An item reference to a container object. It invalidates when the container is modified.
 typedef py_TValue* py_ItemRef;
 
 /// Native function signature.
 /// @param argc number of arguments.
 /// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
-/// @return true if the function is successful.
+/// @return `true` if the function is successful or `false` if an exception is raised.
 typedef bool (*py_CFunction)(int argc, py_StackRef argv) PY_RAISE PY_RETURN;
 
+/// Python compiler modes.
+/// + `EXEC_MODE`: for statements.
+/// + `EVAL_MODE`: for expressions.
+/// + `SINGLE_MODE`: for REPL or jupyter notebook execution.
 enum py_CompileMode { EXEC_MODE, EVAL_MODE, SINGLE_MODE };
 
+/// A shorthand for `True`.
 extern py_GlobalRef py_True;
+/// A shorthand for `False`.
 extern py_GlobalRef py_False;
+/// A shorthand for `None`.
 extern py_GlobalRef py_None;
+/// A shorthand for `nil`. `nil` is not a valid python object.
 extern py_GlobalRef py_NIL;
 
 /************* Global Setup *************/
 
 /// Initialize pocketpy and the default VM.
 void py_initialize();
-/// Finalize pocketpy.
+/// Finalize pocketpy and free all VMs.
 void py_finalize();
 /// Get the current VM index.
 int py_currentvm();
 /// Switch to a VM.
 /// @param index index of the VM ranging from 0 to 16 (exclusive). `0` is the default VM.
 void py_switchvm(int index);
-/// Set `sys.argv`.
+/// Set `sys.argv`. Used for storing command-line arguments.
 void py_sys_setargv(int argc, char** argv);
 
 /// Run a source string.
@@ -73,13 +92,14 @@ void py_sys_setargv(int argc, char** argv);
 /// @param filename filename (for error messages).
 /// @param mode compile mode. Use `EXEC_MODE` for statements `EVAL_MODE` for expressions.
 /// @param module target module. Use NULL for the main module.
-/// @return true if the execution is successful.
+/// @return `true` if the execution is successful or `false` if an exception is raised.
 bool py_exec(const char* source,
              const char* filename,
              enum py_CompileMode mode,
              py_Ref module) PY_RAISE PY_RETURN;
 
-#define py_eval(source, module) py_exec((source), "<string>", EVAL_MODE, (module))
+/// Evaluate a source string. Equivalent to `py_exec(source, "<string>", EVAL_MODE, module)`.
+bool py_eval(const char* source, py_Ref module) PY_RAISE PY_RETURN;
 
 /// Compile a source string into a code object.
 /// Use python's `exec()` or `eval()` to execute it.
@@ -91,7 +111,7 @@ bool py_compile(const char* source,
 /// Python equivalent to `globals()`.
 void py_newglobals(py_Ref);
 /// Python equivalent to `locals()`.
-/// NOTE: Return a temporary object, which expires on the associated function return.
+/// @return a temporary object, which expires on the associated function return.
 void py_newlocals(py_Ref);
 
 /************* Values Creation *************/
@@ -163,7 +183,7 @@ py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, py
 /// Create a new object.
 /// @param out output reference.
 /// @param type type of the object.
-/// @param slots number of slots. Use -1 to create a `__dict__`.
+/// @param slots number of slots. Use `-1` to create a `__dict__`.
 /// @param udsize size of your userdata.
 /// @return pointer to the userdata.
 void* py_newobject(py_Ref out, py_Type type, int slots, int udsize);
@@ -476,7 +496,7 @@ bool py_isidentical(py_Ref, py_Ref);
 bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE PY_RETURN;
 
 #if PK_DEBUG
-/// Call a py_CFunction in a safe way.
+/// Call a `py_CFunction` in a safe way.
 /// This function does extra checks to help you debug `py_CFunction`.
 bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) PY_RAISE PY_RETURN;
 #else

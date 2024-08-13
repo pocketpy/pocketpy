@@ -74,3 +74,7 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
     CodeObject__dtor(&co);
     return ok;
 }
+
+bool py_eval(const char* source, py_Ref module) {
+    return py_exec(source, "<string>", EVAL_MODE, module);
+}
