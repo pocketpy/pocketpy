@@ -126,6 +126,7 @@ py_Type pk_array_iterator__register();
 py_Type pk_slice__register();
 py_Type pk_function__register();
 py_Type pk_nativefunc__register();
+py_Type pk_boundmethod__register();
 py_Type pk_range__register();
 py_Type pk_range_iterator__register();
 py_Type pk_BaseException__register();

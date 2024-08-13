@@ -25,14 +25,14 @@ static bool property_setter(int argc, py_Ref argv) {
     return true;
 }
 
-static bool property_fget__getter(int argc, py_Ref argv) {
+static bool property_fget(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Ref fget = py_getslot(argv, 0);
     py_assign(py_retval(), fget);
     return true;
 }
 
-static bool property_fset__getter(int argc, py_Ref argv) {
+static bool property_fset(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Ref fset = py_getslot(argv, 1);
     py_assign(py_retval(), fset);
@@ -45,7 +45,7 @@ py_Type pk_property__register() {
     py_bindmagic(type, __new__, property__new__);
     py_bindmethod(type, "setter", property_setter);
 
-    py_bindproperty(type, "fget", property_fget__getter, NULL);
-    py_bindproperty(type, "fset", property_fset__getter, NULL);
+    py_bindproperty(type, "fget", property_fget, NULL);
+    py_bindproperty(type, "fset", property_fset, NULL);
     return type;
 }

@@ -42,21 +42,21 @@ static bool slice__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool slice_start__getter(int argc, py_Ref argv) {
+static bool slice_start(int argc, py_Ref argv) {
     py_Ref self = py_arg(0);
     py_TValue* val = py_getslot(self, 0);
     py_assign(py_retval(), val);
     return true;
 }
 
-static bool slice_stop__getter(int argc, py_Ref argv) {
+static bool slice_stop(int argc, py_Ref argv) {
     py_Ref self = py_arg(0);
     py_TValue* val = py_getslot(self, 1);
     py_assign(py_retval(), val);
     return true;
 }
 
-static bool slice_step__getter(int argc, py_Ref argv) {
+static bool slice_step(int argc, py_Ref argv) {
     py_Ref self = py_arg(0);
     py_TValue* val = py_getslot(self, 2);
     py_assign(py_retval(), val);
@@ -69,8 +69,8 @@ py_Type pk_slice__register() {
     py_bindmagic(type, __new__, slice__new__);
     py_bindmagic(type, __repr__, slice__repr__);
 
-    py_bindproperty(type, "start", slice_start__getter, NULL);
-    py_bindproperty(type, "stop", slice_stop__getter, NULL);
-    py_bindproperty(type, "step", slice_step__getter, NULL);
+    py_bindproperty(type, "start", slice_start, NULL);
+    py_bindproperty(type, "stop", slice_stop, NULL);
+    py_bindproperty(type, "step", slice_step, NULL);
     return type;
 }

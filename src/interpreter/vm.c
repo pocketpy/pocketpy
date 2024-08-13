@@ -108,7 +108,7 @@ void VM__ctor(VM* self) {
 
     validate(tp_function, pk_function__register());
     validate(tp_nativefunc, pk_nativefunc__register());
-    validate(tp_boundmethod, pk_newtype("boundmethod", tp_object, NULL, NULL, false, true));
+    validate(tp_boundmethod, pk_boundmethod__register());
 
     validate(tp_super, pk_super__register());
     validate(tp_BaseException, pk_BaseException__register());

@@ -44,7 +44,7 @@ static bool object__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool object__dict__getter(int argc, py_Ref argv) {
+static bool object__dict__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     if(argv->is_ptr && argv->_obj->slots == -1) {
         pk_mappingproxy__namedict(py_retval(), argv);
@@ -70,7 +70,7 @@ static bool type__new__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool type__base__getter(int argc, py_Ref argv) {
+static bool type__base__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Type type = py_totype(argv);
     py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
@@ -82,7 +82,7 @@ static bool type__base__getter(int argc, py_Ref argv) {
     return true;
 }
 
-static bool type__name__getter(int argc, py_Ref argv) {
+static bool type__name__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Type type = py_totype(argv);
     py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
@@ -95,7 +95,7 @@ static bool type__getitem__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool type__module__getter(int argc, py_Ref argv) {
+static bool type__module__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Type type = py_totype(argv);
     py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
@@ -116,13 +116,13 @@ void pk_object__register() {
     py_bindmagic(tp_object, __eq__, object__eq__);
     py_bindmagic(tp_object, __ne__, object__ne__);
     py_bindmagic(tp_object, __repr__, object__repr__);
-    py_bindproperty(tp_object, "__dict__", object__dict__getter, NULL);
+    py_bindproperty(tp_object, "__dict__", object__dict__, NULL);
 
     py_bindmagic(tp_type, __repr__, type__repr__);
     py_bindmagic(tp_type, __new__, type__new__);
     py_bindmagic(tp_type, __getitem__, type__getitem__);
-    py_bindproperty(tp_type, "__module__", type__module__getter, NULL);
+    py_bindproperty(tp_type, "__module__", type__module__, NULL);
 
-    py_bindproperty(tp_type, "__base__", type__base__getter, NULL);
-    py_bindproperty(tp_type, "__name__", type__name__getter, NULL);
+    py_bindproperty(tp_type, "__base__", type__base__, NULL);
+    py_bindproperty(tp_type, "__name__", type__name__, NULL);
 }

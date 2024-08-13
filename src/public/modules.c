@@ -613,7 +613,7 @@ static void function__gc_mark(void* ud) {
     CodeObject__gc_mark(&func->decl->code);
 }
 
-static bool function__doc__getter(int argc, py_Ref argv) {
+static bool function__doc__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Function* func = py_touserdata(py_arg(0));
     if(func->decl->docstring){
@@ -630,7 +630,7 @@ py_Type pk_function__register() {
 
     pk__tp_set_marker(type, function__gc_mark);
 
-    py_bindproperty(type, "__doc__", function__doc__getter, NULL);
+    py_bindproperty(type, "__doc__", function__doc__, NULL);
     return type;
 }
 
