@@ -7,7 +7,7 @@ except KeyError:
     actual = traceback.format_exc()
 
 expected = '''Traceback (most recent call last):
-  File "80_traceback.py", line 5
+  File "tests/80_traceback.py", line 5
     b = a[6]
 KeyError: 6'''
 

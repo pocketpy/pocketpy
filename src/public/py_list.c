@@ -14,34 +14,34 @@ void py_newlist(py_Ref out) {
 
 void py_newlistn(py_Ref out, int n) {
     py_newlist(out);
-    List* userdata = py_touserdata(out);
-    c11_vector__reserve(userdata, n);
-    userdata->count = n;
+    List* ud = py_touserdata(out);
+    c11_vector__reserve(ud, n);
+    ud->count = n;
 }
 
 py_Ref py_list_data(py_Ref self) {
-    List* userdata = py_touserdata(self);
-    return userdata->data;
+    List* ud = py_touserdata(self);
+    return ud->data;
 }
 
 py_Ref py_list_getitem(py_Ref self, int i) {
-    List* userdata = py_touserdata(self);
-    return c11__at(py_TValue, userdata, i);
+    List* ud = py_touserdata(self);
+    return c11__at(py_TValue, ud, i);
 }
 
 void py_list_setitem(py_Ref self, int i, py_Ref val) {
-    List* userdata = py_touserdata(self);
-    c11__setitem(py_TValue, userdata, i, *val);
+    List* ud = py_touserdata(self);
+    c11__setitem(py_TValue, ud, i, *val);
 }
 
 void py_list_delitem(py_Ref self, int i) {
-    List* userdata = py_touserdata(self);
-    c11_vector__erase(py_TValue, userdata, i);
+    List* ud = py_touserdata(self);
+    c11_vector__erase(py_TValue, ud, i);
 }
 
 int py_list_len(py_Ref self) {
-    List* userdata = py_touserdata(self);
-    return userdata->count;
+    List* ud = py_touserdata(self);
+    return ud->count;
 }
 
 void py_list_swap(py_Ref self, int i, int j) {
@@ -52,18 +52,24 @@ void py_list_swap(py_Ref self, int i, int j) {
 }
 
 void py_list_append(py_Ref self, py_Ref val) {
-    List* userdata = py_touserdata(self);
-    c11_vector__push(py_TValue, userdata, *val);
+    List* ud = py_touserdata(self);
+    c11_vector__push(py_TValue, ud, *val);
+}
+
+py_ItemRef py_list_emplace(py_Ref self) {
+    List* ud = py_touserdata(self);
+    c11_vector__emplace(ud);
+    return &c11_vector__back(py_TValue, ud);
 }
 
 void py_list_clear(py_Ref self) {
-    List* userdata = py_touserdata(self);
-    c11_vector__clear(userdata);
+    List* ud = py_touserdata(self);
+    c11_vector__clear(ud);
 }
 
 void py_list_insert(py_Ref self, int i, py_Ref val) {
-    List* userdata = py_touserdata(self);
-    c11_vector__insert(py_TValue, userdata, i, *val);
+    List* ud = py_touserdata(self);
+    c11_vector__insert(py_TValue, ud, i, *val);
 }
 
 ////////////////////////////////

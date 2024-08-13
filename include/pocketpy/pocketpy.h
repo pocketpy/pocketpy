@@ -65,6 +65,8 @@ int py_currentvm();
 /// Switch to a VM.
 /// @param index index of the VM ranging from 0 to 16 (exclusive). `0` is the default VM.
 void py_switchvm(int index);
+/// Set `sys.argv`.
+void py_sys_setargv(int argc, char** argv);
 
 /// Run a source string.
 /// @param source source string.
@@ -506,6 +508,7 @@ void py_list_delitem(py_Ref self, int i);
 int py_list_len(py_Ref self);
 void py_list_swap(py_Ref self, int i, int j);
 void py_list_append(py_Ref self, py_Ref val);
+py_ItemRef py_list_emplace(py_Ref self);
 void py_list_clear(py_Ref self);
 void py_list_insert(py_Ref self, int i, py_Ref val);
 

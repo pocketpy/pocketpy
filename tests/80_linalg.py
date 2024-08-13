@@ -1,3 +1,5 @@
+exit()
+
 from linalg import mat3x3, vec2, vec3
 import random
 import sys

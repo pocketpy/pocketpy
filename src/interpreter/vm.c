@@ -204,6 +204,7 @@ void VM__ctor(VM* self) {
     pk__add_module_gc();
     pk__add_module_time();
     pk__add_module_easing();
+    pk__add_module_traceback();
 
     // add python builtins
     do {

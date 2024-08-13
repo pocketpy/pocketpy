@@ -1,3 +1,5 @@
+#include "pocketpy/common/config.h"
+#include "pocketpy/common/export.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
@@ -51,4 +53,7 @@ void pk__add_module_os() {
 
 void pk__add_module_sys() {
     py_Ref mod = py_newmodule("sys");
+    py_newstr(py_emplacedict(mod, py_name("platform")), PY_SYS_PLATFORM_STRING);
+    py_newstr(py_emplacedict(mod, py_name("version")), PK_VERSION);
+    py_newlist(py_emplacedict(mod, py_name("argv")));
 }

@@ -38,6 +38,7 @@ int main(int argc, char** argv) {
     }
 
     py_initialize();
+    py_sys_setargv(argc, argv);
 
     if(argc == 1) {
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
