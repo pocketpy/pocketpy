@@ -46,7 +46,7 @@ a = object()
 b = object()
 if a is   not b:
     assert True
-if a  is  0:
+if a  ==  0:
     assert False
 
 def g(x):
