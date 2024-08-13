@@ -239,6 +239,11 @@ class set:
         if not isinstance(other, set):
             return NotImplemented
         return len(self ^ other) == 0
+    
+    def __ne__(self, other):
+        if not isinstance(other, set):
+            return NotImplemented
+        return len(self ^ other) != 0
 
     def isdisjoint(self, other):
         return len(self & other) == 0

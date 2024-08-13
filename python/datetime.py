@@ -10,12 +10,12 @@ class timedelta:
         return f"datetime.timedelta(days={self.days}, seconds={self.seconds})"
 
     def __eq__(self, other: 'timedelta') -> bool:
-        if type(other) is not timedelta:
+        if not isinstance(other, timedelta):
             return NotImplemented
         return (self.days, self.seconds) == (other.days, other.seconds)
 
     def __ne__(self, other: 'timedelta') -> bool:
-        if type(other) is not timedelta:
+        if not isinstance(other, timedelta):
             return NotImplemented
         return (self.days, self.seconds) != (other.days, other.seconds)
 

@@ -30,6 +30,12 @@ class complex:
             return self.real == other and self.imag == 0
         return NotImplemented
     
+    def __ne__(self, other):
+        res = self == other
+        if res is NotImplemented:
+            return res
+        return not res
+    
     def __add__(self, other):
         if type(other) is complex:
             return complex(self.real + other.real, self.imag + other.imag)
