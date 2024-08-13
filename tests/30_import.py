@@ -10,8 +10,9 @@ import test1
 
 assert test1.add(1, 2) == 13
 
-from test2.a.g import get_value
+from test2.a.g import get_value, A
 assert get_value() == '123'
+assert (A.__module__ == 'test2.a.g'), A.__module__
 
 import test2
 assert test2.a.g.get_value() == '123'
