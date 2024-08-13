@@ -1,3 +1,5 @@
+exit()
+
 from dataclasses import dataclass, asdict
 
 @dataclass

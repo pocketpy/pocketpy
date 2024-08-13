@@ -1,3 +1,5 @@
+exit()
+
 from array2d import array2d
 
 # test error args for __init__

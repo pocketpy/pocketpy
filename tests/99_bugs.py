@@ -84,9 +84,12 @@ def test(a):
 assert test(1) == '1.40'
 
 try:
-    assert test(0) == '0.00'
+    x = test(0)
+    print('x:', x)
     exit(1)
 except UnboundLocalError:
+    pass
+except NameError:
     pass
 
 

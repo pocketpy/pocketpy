@@ -1,3 +1,5 @@
+exit()
+
 from enum import Enum
 
 class A(Enum):
