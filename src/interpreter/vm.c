@@ -136,30 +136,33 @@ void VM__ctor(VM* self) {
     self->builtins = pk_builtins__register();
 
     // inject some builtin expections
-#define INJECT_BUILTIN_EXC(name)                                                                   \
+#define INJECT_BUILTIN_EXC(name, TBase)                                                            \
     do {                                                                                           \
-        py_Type type = pk_newtype(#name, tp_Exception, &self->builtins, NULL, false, true);        \
+        py_Type type = pk_newtype(#name, TBase, &self->builtins, NULL, false, true);               \
         py_setdict(&self->builtins, py_name(#name), py_tpobject(type));                            \
         validate(tp_##name, type);                                                                 \
     } while(0)
 
-    INJECT_BUILTIN_EXC(StopIteration);
-    INJECT_BUILTIN_EXC(SyntaxError);
-    INJECT_BUILTIN_EXC(StackOverflowError);
-    INJECT_BUILTIN_EXC(IOError);
-    INJECT_BUILTIN_EXC(OSError);
-    INJECT_BUILTIN_EXC(NotImplementedError);
-    INJECT_BUILTIN_EXC(TypeError);
-    INJECT_BUILTIN_EXC(IndexError);
-    INJECT_BUILTIN_EXC(ValueError);
-    INJECT_BUILTIN_EXC(RuntimeError);
-    INJECT_BUILTIN_EXC(ZeroDivisionError);
-    INJECT_BUILTIN_EXC(NameError);
-    INJECT_BUILTIN_EXC(UnboundLocalError);
-    INJECT_BUILTIN_EXC(AttributeError);
-    INJECT_BUILTIN_EXC(ImportError);
-    INJECT_BUILTIN_EXC(AssertionError);
-    INJECT_BUILTIN_EXC(KeyError);
+    INJECT_BUILTIN_EXC(SystemExit, tp_BaseException);
+    INJECT_BUILTIN_EXC(KeyboardInterrupt, tp_BaseException);
+
+    INJECT_BUILTIN_EXC(StopIteration, tp_Exception);
+    INJECT_BUILTIN_EXC(SyntaxError, tp_Exception);
+    INJECT_BUILTIN_EXC(StackOverflowError, tp_Exception);
+    INJECT_BUILTIN_EXC(IOError, tp_Exception);
+    INJECT_BUILTIN_EXC(OSError, tp_Exception);
+    INJECT_BUILTIN_EXC(NotImplementedError, tp_Exception);
+    INJECT_BUILTIN_EXC(TypeError, tp_Exception);
+    INJECT_BUILTIN_EXC(IndexError, tp_Exception);
+    INJECT_BUILTIN_EXC(ValueError, tp_Exception);
+    INJECT_BUILTIN_EXC(RuntimeError, tp_Exception);
+    INJECT_BUILTIN_EXC(ZeroDivisionError, tp_Exception);
+    INJECT_BUILTIN_EXC(NameError, tp_Exception);
+    INJECT_BUILTIN_EXC(UnboundLocalError, tp_Exception);
+    INJECT_BUILTIN_EXC(AttributeError, tp_Exception);
+    INJECT_BUILTIN_EXC(ImportError, tp_Exception);
+    INJECT_BUILTIN_EXC(AssertionError, tp_Exception);
+    INJECT_BUILTIN_EXC(KeyError, tp_Exception);
 
 #undef INJECT_BUILTIN_EXC
 #undef validate

@@ -128,3 +128,6 @@ assert f'{a:10}' == 'A         '
 assert f'{A()!r:10}' == 'A()       '
 assert f'{A():10}' == 'A         '
 assert f'{A():10}' == 'A         '
+
+a = ['1', '2', '3']
+assert f'a = {'\n'.join(a)}' == 'a = 1\n2\n3'

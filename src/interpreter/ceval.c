@@ -161,48 +161,13 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_LOAD_NAME: {
+                assert(frame->is_dynamic);
                 py_Name name = byte.arg;
                 py_TValue* tmp;
-                if(!frame->is_dynamic) {
-                    // locals
-                    tmp = Frame__f_locals_try_get(frame, name);
-                    if(tmp != NULL) {
-                        if(py_isnil(tmp)) {
-                            UnboundLocalError(name);
-                            goto __ERROR;
-                        }
-                        PUSH(tmp);
-                        DISPATCH();
-                    }
-                    // closure
-                    tmp = Frame__f_closure_try_get(frame, name);
-                    if(tmp != NULL) {
-                        PUSH(tmp);
-                        DISPATCH();
-                    }
-                    // globals
-                    tmp = py_getdict(frame->module, name);
-                    if(tmp != NULL) {
-                        PUSH(tmp);
-                        DISPATCH();
-                    }
-                } else {
-                    py_newstr(SP()++, py_name2str(name));
-                    // locals
-                    if(!py_isnone(&frame->p0[1])) {
-                        if(py_getitem(&frame->p0[1], TOP())) {
-                            py_assign(TOP(), py_retval());
-                            DISPATCH();
-                        } else {
-                            if(py_matchexc(tp_KeyError)) {
-                                py_clearexc(NULL);
-                            } else {
-                                goto __ERROR;
-                            }
-                        }
-                    }
-                    // globals
-                    if(py_getitem(&frame->p0[0], TOP())) {
+                py_newstr(SP()++, py_name2str(name));
+                // locals
+                if(!py_isnone(&frame->p0[1])) {
+                    if(py_getitem(&frame->p0[1], TOP())) {
                         py_assign(TOP(), py_retval());
                         DISPATCH();
                     } else {
@@ -211,6 +176,17 @@ FrameResult VM__run_top_frame(VM* self) {
                         } else {
                             goto __ERROR;
                         }
+                    }
+                }
+                // globals
+                if(py_getitem(&frame->p0[0], TOP())) {
+                    py_assign(TOP(), py_retval());
+                    DISPATCH();
+                } else {
+                    if(py_matchexc(tp_KeyError)) {
+                        py_clearexc(NULL);
+                    } else {
+                        goto __ERROR;
                     }
                 }
                 // builtins

@@ -615,6 +615,8 @@ enum py_PredefinedTypes {
     tp_ellipsis,
     tp_generator,
     /* builtin exceptions */
+    tp_SystemExit,
+    tp_KeyboardInterrupt,
     tp_StopIteration,
     tp_SyntaxError,
     tp_StackOverflowError,
