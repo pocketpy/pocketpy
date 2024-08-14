@@ -86,7 +86,7 @@ py_Name
     CodeObject code;
     SourceData_ source = SourceData__rcnew(buffer, "<bind>", EXEC_MODE, false);
     Error* err = pk_compile(source, &code);
-    if(err || code.func_decls.count != 1) {
+    if(err || code.func_decls.length != 1) {
         c11__abort("py_newfunction(): invalid signature '%s'", sig);
     }
     FuncDecl_ decl = c11__getitem(FuncDecl_, &code.func_decls, 0);

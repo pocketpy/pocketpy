@@ -317,7 +317,7 @@ py_Type pk_newtype(const char* name,
                    bool is_python,
                    bool is_sealed) {
     c11_vector* types = &pk_current_vm->types;
-    py_Type index = types->count;
+    py_Type index = types->length;
     py_TypeInfo* ti = c11_vector__emplace(types);
     py_TypeInfo* base_ti = base ? c11__at(py_TypeInfo, types, base) : NULL;
     if(base_ti && base_ti->is_sealed) {
@@ -340,7 +340,7 @@ py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, vo
 static bool
     prepare_py_call(py_TValue* buffer, py_Ref argv, py_Ref p1, int kwargc, const FuncDecl* decl) {
     const CodeObject* co = &decl->code;
-    int decl_argc = decl->args.count;
+    int decl_argc = decl->args.length;
 
     if(p1 - argv < decl_argc) {
         return TypeError("%s() takes %d positional arguments but %d were given",
@@ -452,9 +452,9 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 }
             }
             case FuncType_SIMPLE:
-                if(p1 - argv != fn->decl->args.count) {
+                if(p1 - argv != fn->decl->args.length) {
                     const char* fmt = "%s() takes %d positional arguments but %d were given";
-                    TypeError(fmt, co->name->data, fn->decl->args.count, p1 - argv);
+                    TypeError(fmt, co->name->data, fn->decl->args.length, p1 - argv);
                     return RES_ERROR;
                 }
                 if(kwargc) {
@@ -552,7 +552,7 @@ void pk__mark_value(py_TValue* val) {
 }
 
 void pk__mark_namedict(NameDict* dict) {
-    for(int i = 0; i < dict->count; i++) {
+    for(int i = 0; i < dict->length; i++) {
         NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
         pk__mark_value(&kv->value);
     }
@@ -589,7 +589,7 @@ void CodeObject__gc_mark(const CodeObject* self) {
 void ManagedHeap__mark(ManagedHeap* self) {
     VM* vm = self->vm;
     // mark heap objects
-    for(int i = 0; i < self->no_gc.count; i++) {
+    for(int i = 0; i < self->no_gc.length; i++) {
         PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
         mark_object(obj);
     }
@@ -599,7 +599,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
     }
     // mark magic slots
     py_TypeInfo* types = vm->types.data;
-    int types_length = vm->types.count;
+    int types_length = vm->types.length;
     // 0-th type is placeholder
     for(int i = 1; i < types_length; i++) {
         for(int j = 0; j <= __missing__; j++) {

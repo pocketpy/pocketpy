@@ -85,7 +85,7 @@ int py_import(const char* path_cstr) {
 
         c11_vector /* T=c11_sv */ cpnts = c11_sv__split(package_sv, '.');
         for(int i = is_init; i < dot_count; i++) {
-            if(cpnts.count == 0)
+            if(cpnts.length == 0)
                 return ImportError("attempted relative import beyond top-level package");
             c11_vector__pop(&cpnts);
         }
@@ -98,7 +98,7 @@ int py_import(const char* path_cstr) {
         // join cpnts
         c11_sbuf buf;
         c11_sbuf__ctor(&buf);
-        for(int i = 0; i < cpnts.count; i++) {
+        for(int i = 0; i < cpnts.length; i++) {
             if(i > 0) c11_sbuf__write_char(&buf, '.');
             c11_sbuf__write_sv(&buf, c11__getitem(c11_sv, &cpnts, i));
         }
@@ -616,9 +616,9 @@ static void function__gc_mark(void* ud) {
 static bool function__doc__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Function* func = py_touserdata(py_arg(0));
-    if(func->decl->docstring){
+    if(func->decl->docstring) {
         py_newstr(py_retval(), func->decl->docstring);
-    }else{
+    } else {
         py_newnone(py_retval());
     }
     return true;

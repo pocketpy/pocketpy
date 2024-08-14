@@ -8,7 +8,7 @@
 static void disassemble(CodeObject* co) {
     c11_vector /*T=int*/ jumpTargets;
     c11_vector__ctor(&jumpTargets, sizeof(int));
-    for(int i = 0; i < co->codes.count; i++) {
+    for(int i = 0; i < co->codes.length; i++) {
         Bytecode* bc = c11__at(Bytecode, &co->codes, i);
         if(Bytecode__is_forward_jump(bc)) {
             int target = (int16_t)bc->arg + i;
@@ -20,7 +20,7 @@ static void disassemble(CodeObject* co) {
     c11_sbuf__ctor(&ss);
 
     int prev_line = -1;
-    for(int i = 0; i < co->codes.count; i++) {
+    for(int i = 0; i < co->codes.length; i++) {
         Bytecode byte = c11__getitem(Bytecode, &co->codes, i);
         BytecodeEx ex = c11__getitem(BytecodeEx, &co->codes_ex, i);
 
@@ -101,7 +101,7 @@ static void disassemble(CodeObject* co) {
             }
         } while(0);
 
-        if(i != co->codes.count - 1) c11_sbuf__write_char(&ss, '\n');
+        if(i != co->codes.length - 1) c11_sbuf__write_char(&ss, '\n');
     }
 
     c11_string* output = c11_sbuf__submit(&ss);
@@ -115,12 +115,12 @@ static bool dis_dis(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
 
     CodeObject* code = NULL;
-    if(py_istype(argv, tp_function)){
+    if(py_istype(argv, tp_function)) {
         Function* ud = py_touserdata(argv);
         code = &ud->decl->code;
-    }else if(py_istype(argv, tp_code)){
+    } else if(py_istype(argv, tp_code)) {
         code = py_touserdata(argv);
-    }else{
+    } else {
         return TypeError("dis() expected a code object");
     }
     disassemble(code);

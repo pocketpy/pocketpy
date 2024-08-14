@@ -318,8 +318,8 @@ static bool str_split(int argc, py_Ref argv) {
         c11_sv sep = c11_string__sv(py_touserdata(&argv[1]));
         res = c11_sv__split2(self, sep);
     }
-    py_newlistn(py_retval(), res.count);
-    for(int i = 0; i < res.count; i++) {
+    py_newlistn(py_retval(), res.length);
+    for(int i = 0; i < res.length; i++) {
         c11_sv item = c11__getitem(c11_sv, &res, i);
         py_newstrn(py_list_getitem(py_retval(), i), item.data, item.size);
     }
@@ -563,8 +563,8 @@ static bool bytes__getitem__(int argc, py_Ref argv) {
         for(int i = start; step > 0 ? i < stop : i > stop; i += step) {
             c11_vector__push(unsigned char, &res, data[i]);
         }
-        unsigned char* p = py_newbytes(py_retval(), res.count);
-        memcpy(p, res.data, res.count);
+        unsigned char* p = py_newbytes(py_retval(), res.length);
+        memcpy(p, res.data, res.length);
         c11_vector__dtor(&res);
         return true;
     } else {

@@ -52,8 +52,8 @@ static bool namedict_items(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Ref object = py_getslot(argv, 0);
     NameDict* dict = PyObject__dict(object->_obj);
-    py_newtuple(py_retval(), dict->count);
-    for(int i = 0; i < dict->count; i++) {
+    py_newtuple(py_retval(), dict->length);
+    for(int i = 0; i < dict->length; i++) {
         py_Ref slot = py_tuple_getitem(py_retval(), i);
         py_newtuple(slot, 2);
         NameDict_KV* kv = c11__at(NameDict_KV, dict, i);

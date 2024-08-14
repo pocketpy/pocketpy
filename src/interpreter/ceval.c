@@ -844,7 +844,7 @@ FrameResult VM__run_top_frame(VM* self) {
                         }
                     }
                 } else {
-                    for(int i = 0; i < dict->count; i++) {
+                    for(int i = 0; i < dict->length; i++) {
                         NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
                         if(!kv->key) continue;
                         c11_sv name = py_name2sv(kv->key);
@@ -1124,21 +1124,21 @@ static bool stack_format_object(VM* self, c11_sv spec) {
     py_StackRef val = TOP();
     if(spec.size == 0) return py_str(val);
 
-    if(spec.data[0] == '!'){
-        if(c11_sv__startswith(spec, (c11_sv){"!r", 2})){
+    if(spec.data[0] == '!') {
+        if(c11_sv__startswith(spec, (c11_sv){"!r", 2})) {
             spec.data += 2;
             spec.size -= 2;
             if(!py_repr(val)) return false;
             py_assign(val, py_retval());
             if(spec.size == 0) return true;
-        }else{
+        } else {
             return ValueError("invalid conversion specifier (only !r is supported)");
         }
     }
 
     assert(spec.size > 0);
-    
-    if(spec.data[0] == ':'){
+
+    if(spec.data[0] == ':') {
         spec.data++;
         spec.size--;
     }

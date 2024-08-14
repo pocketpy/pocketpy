@@ -13,7 +13,7 @@
 void c11_sbuf__ctor(c11_sbuf* self) {
     c11_vector__ctor(&self->data, sizeof(char));
     c11_vector__reserve(&self->data, sizeof(c11_string) + 100);
-    self->data.count = sizeof(c11_string);
+    self->data.length = sizeof(c11_string);
 }
 
 void c11_sbuf__dtor(c11_sbuf* self) { c11_vector__dtor(&self->data); }
@@ -28,18 +28,18 @@ void c11_sbuf__write_pad(c11_sbuf* self, int count, char pad) {
 
 void c11_sbuf__write_int(c11_sbuf* self, int i) {
     // len('-2147483648') == 11
-    c11_vector__reserve(&self->data, self->data.count + 11 + 1);
-    char* p = (char*)self->data.data + self->data.count;
+    c11_vector__reserve(&self->data, self->data.length + 11 + 1);
+    char* p = (char*)self->data.data + self->data.length;
     int n = snprintf(p, 11 + 1, "%d", i);
-    self->data.count += n;
+    self->data.length += n;
 }
 
 void c11_sbuf__write_i64(c11_sbuf* self, int64_t val) {
     // len('-9223372036854775808') == 20
-    c11_vector__reserve(&self->data, self->data.count + 20 + 1);
-    char* p = (char*)self->data.data + self->data.count;
+    c11_vector__reserve(&self->data, self->data.length + 20 + 1);
+    char* p = (char*)self->data.data + self->data.length;
     int n = snprintf(p, 20 + 1, "%lld", (long long)val);
-    self->data.count += n;
+    self->data.length += n;
 }
 
 void c11_sbuf__write_f64(c11_sbuf* self, double val, int precision) {
@@ -143,7 +143,7 @@ c11_string* c11_sbuf__submit(c11_sbuf* self) {
     c11_vector__push(char, &self->data, '\0');
     c11_array arr = c11_vector__submit(&self->data);
     c11_string* retval = arr.data;
-    retval->size = arr.count - sizeof(c11_string) - 1;
+    retval->size = arr.length - sizeof(c11_string) - 1;
     return retval;
 }
 

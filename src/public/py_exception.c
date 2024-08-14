@@ -33,7 +33,7 @@ int py_BaseException__get_lineno(py_Ref self, const CodeObject* code) {
 
 void py_BaseException__stpush(py_Ref self, SourceData_ src, int lineno, const char* func_name) {
     BaseException* ud = py_touserdata(self);
-    if(ud->stacktrace.count >= 7) return;
+    if(ud->stacktrace.length >= 7) return;
     BaseExceptionFrame* frame = c11_vector__emplace(&ud->stacktrace);
     PK_INCREF(src);
     frame->src = src;
@@ -156,7 +156,7 @@ static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
 
     BaseException* ud = py_touserdata(exc);
 
-    for(int i = ud->stacktrace.count - 1; i >= 0; i--) {
+    for(int i = ud->stacktrace.length - 1; i >= 0; i--) {
         BaseExceptionFrame* frame = c11__at(BaseExceptionFrame, &ud->stacktrace, i);
         SourceData__snapshot(frame->src,
                              self,

@@ -152,7 +152,7 @@ void CodeObject__dtor(CodeObject* self) {
 
     c11_vector__dtor(&self->blocks);
 
-    for(int i = 0; i < self->func_decls.count; i++) {
+    for(int i = 0; i < self->func_decls.length; i++) {
         FuncDecl_ decl = c11__getitem(FuncDecl_, &self->func_decls, i);
         PK_DECREF(decl);
     }
@@ -173,7 +173,7 @@ int CodeObject__add_varname(CodeObject* self, py_Name name) {
     if(index >= 0) return index;
     c11_vector__push(uint16_t, &self->varnames, name);
     self->nlocals++;
-    index = self->varnames.count - 1;
+    index = self->varnames.length - 1;
     c11_smallmap_n2i__set(&self->varnames_inv, name, index);
     return index;
 }

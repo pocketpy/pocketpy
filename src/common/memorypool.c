@@ -13,13 +13,13 @@ typedef struct LinkedListNode {
 } LinkedListNode;
 
 typedef struct LinkedList {
-    int count;
+    int length;
     LinkedListNode head;
     LinkedListNode tail;
 } LinkedList;
 
 static void LinkedList__ctor(LinkedList* self) {
-    self->count = 0;
+    self->length = 0;
     self->head.prev = NULL;
     self->head.next = &self->tail;
     self->tail.prev = &self->head;
@@ -31,7 +31,7 @@ static void LinkedList__push_back(LinkedList* self, LinkedListNode* node) {
     node->next = &self->tail;
     self->tail.prev->next = node;
     self->tail.prev = node;
-    self->count++;
+    self->length++;
 }
 
 static void LinkedList__push_front(LinkedList* self, LinkedListNode* node) {
@@ -39,25 +39,25 @@ static void LinkedList__push_front(LinkedList* self, LinkedListNode* node) {
     node->next = self->head.next;
     self->head.next->prev = node;
     self->head.next = node;
-    self->count++;
+    self->length++;
 }
 
 static void LinkedList__pop_back(LinkedList* self) {
-    assert(self->count > 0);
+    assert(self->length > 0);
     self->tail.prev->prev->next = &self->tail;
     self->tail.prev = self->tail.prev->prev;
-    self->count--;
+    self->length--;
 }
 
 static LinkedListNode* LinkedList__back(LinkedList* self) {
-    assert(self->count > 0);
+    assert(self->length > 0);
     return self->tail.prev;
 }
 
 static void LinkedList__erase(LinkedList* self, LinkedListNode* node) {
     node->prev->next = node->next;
     node->next->prev = node->prev;
-    self->count--;
+    self->length--;
 }
 
 #define LinkedList__apply(self, __STATEMENTS__) \
@@ -135,7 +135,7 @@ static void MemoryPool__ctor(MemoryPool* self) {
 
 static void* MemoryPool__alloc(MemoryPool* self) {
     MemoryPoolArena* arena;
-    if(self->_arenas.count == 0){
+    if(self->_arenas.length == 0){
         arena = malloc(sizeof(MemoryPoolArena));
         MemoryPoolArena__ctor(arena);
         LinkedList__push_back(&self->_arenas, (LinkedListNode*)arena);
@@ -164,7 +164,7 @@ static void MemoryPool__dealloc(MemoryPool* self, void* p) {
 
 static void MemoryPool__shrink_to_fit(MemoryPool* self) {
     const int MIN_ARENA_COUNT = PK_GC_MIN_THRESHOLD * 100 / (kPoolObjectArenaSize);
-    if(self->_arenas.count < MIN_ARENA_COUNT) return;
+    if(self->_arenas.length < MIN_ARENA_COUNT) return;
     LinkedList__apply(&self->_arenas,
             MemoryPoolArena* arena = (MemoryPoolArena*)node;
             if(MemoryPoolArena__full(arena)) {
@@ -301,8 +301,8 @@ void Pools_debug_info(char* buffer, int size) {
     );
     buffer += n; size -= n;
     // PoolObject
-    int empty_arenas = PoolObject._empty_arenas.count;
-    int arenas = PoolObject._arenas.count;
+    int empty_arenas = PoolObject._empty_arenas.length;
+    int arenas = PoolObject._arenas.length;
     // print empty arenas count
     n = snprintf(
         buffer, size, "PoolObject: %d empty arenas, %d arenas\n",

@@ -454,11 +454,11 @@ typedef struct SequenceExpr {
 
 static void SequenceExpr__emit_(Expr* self_, Ctx* ctx) {
     SequenceExpr* self = (SequenceExpr*)self_;
-    for(int i = 0; i < self->items.count; i++) {
+    for(int i = 0; i < self->items.length; i++) {
         Expr* item = c11__getitem(Expr*, &self->items, i);
         vtemit_(item, ctx);
     }
-    Ctx__emit_(ctx, self->opcode, self->items.count, self->line);
+    Ctx__emit_(ctx, self->opcode, self->items.length, self->line);
 }
 
 void SequenceExpr__dtor(Expr* self_) {
@@ -472,7 +472,7 @@ bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
     // TOS is an iterable
     // items may contain StarredExpr, we should check it
     int starred_i = -1;
-    for(int i = 0; i < self->items.count; i++) {
+    for(int i = 0; i < self->items.length; i++) {
         Expr* e = c11__getitem(Expr*, &self->items, i);
         if(e->vt->is_starred) {
             if(((StarredExpr*)e)->level > 0) {
@@ -485,24 +485,24 @@ bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
     }
 
     if(starred_i == -1) {
-        Bytecode* prev = c11__at(Bytecode, &ctx->co->codes, ctx->co->codes.count - 1);
-        if(prev->op == OP_BUILD_TUPLE && prev->arg == self->items.count) {
+        Bytecode* prev = c11__at(Bytecode, &ctx->co->codes, ctx->co->codes.length - 1);
+        if(prev->op == OP_BUILD_TUPLE && prev->arg == self->items.length) {
             // build tuple and unpack it is meaningless
             Ctx__revert_last_emit_(ctx);
         } else {
-            Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->items.count, self->line);
+            Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->items.length, self->line);
         }
     } else {
         // starred assignment target must be in a tuple
-        if(self->items.count == 1) return false;
+        if(self->items.length == 1) return false;
         // starred assignment target must be the last one (differ from cpython)
-        if(starred_i != self->items.count - 1) return false;
+        if(starred_i != self->items.length - 1) return false;
         // a,*b = [1,2,3]
         // stack is [1,2,3] -> [1,[2,3]]
-        Ctx__emit_(ctx, OP_UNPACK_EX, self->items.count - 1, self->line);
+        Ctx__emit_(ctx, OP_UNPACK_EX, self->items.length - 1, self->line);
     }
     // do reverse emit
-    for(int i = self->items.count - 1; i >= 0; i--) {
+    for(int i = self->items.length - 1; i >= 0; i--) {
         Expr* e = c11__getitem(Expr*, &self->items, i);
         bool ok = vtemit_store(e, ctx);
         if(!ok) return false;
@@ -822,7 +822,7 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
 
     Ctx__emit_(ctx, opcode, arg, self->line);
 
-    for(int i = 0; i < jmps.count; i++) {
+    for(int i = 0; i < jmps.length; i++) {
         Ctx__patch_jump(ctx, c11__getitem(int, &jmps, i));
     }
     c11_vector__dtor(&jmps);
@@ -1069,8 +1069,8 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
         Ctx__emit_int(ctx, e->key, self->line);
         vtemit_(e->val, ctx);
     }
-    int KWARGC = self->kwargs.count;
-    int ARGC = self->args.count;
+    int KWARGC = self->kwargs.length;
+    int ARGC = self->args.length;
     assert(KWARGC < 256 && ARGC < 256);
     Ctx__emit_(ctx, opcode, (KWARGC << 8) | ARGC, self->line);
 }
@@ -1101,7 +1101,7 @@ static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
 
 static void Ctx__dtor(Ctx* self) {
     // clean the expr stack
-    for(int i = 0; i < self->s_expr.count; i++) {
+    for(int i = 0; i < self->s_expr.length; i++) {
         vtdelete(c11__getitem(Expr*, &self->s_expr, i));
     }
     c11_vector__dtor(&self->s_expr);
@@ -1123,16 +1123,16 @@ static int Ctx__get_loop(Ctx* self) {
 }
 
 static CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type) {
-    CodeBlock block = {type, self->curr_iblock, self->co->codes.count, -1, -1};
+    CodeBlock block = {type, self->curr_iblock, self->co->codes.length, -1, -1};
     c11_vector__push(CodeBlock, &self->co->blocks, block);
-    self->curr_iblock = self->co->blocks.count - 1;
+    self->curr_iblock = self->co->blocks.length - 1;
     return c11__at(CodeBlock, &self->co->blocks, self->curr_iblock);
 }
 
 static void Ctx__exit_block(Ctx* self) {
     CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, self->curr_iblock);
     CodeBlockType curr_type = block->type;
-    block->end = self->co->codes.count;
+    block->end = self->co->codes.length;
     self->curr_iblock = block->parent;
     assert(self->curr_iblock >= 0);
     if(curr_type == CodeBlockType_FOR_LOOP) {
@@ -1161,7 +1161,7 @@ static int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, b
     BytecodeEx bcx = {line, is_virtual, self->curr_iblock};
     c11_vector__push(Bytecode, &self->co->codes, bc);
     c11_vector__push(BytecodeEx, &self->co->codes_ex, bcx);
-    int i = self->co->codes.count - 1;
+    int i = self->co->codes.length - 1;
     BytecodeEx* codes_ex = (BytecodeEx*)self->co->codes_ex.data;
     if(line == BC_KEEPLINE) { codes_ex[i].lineno = i >= 1 ? codes_ex[i - 1].lineno : 1; }
     return i;
@@ -1188,14 +1188,14 @@ static int Ctx__emit_int(Ctx* self, int64_t value, int line) {
 
 static void Ctx__patch_jump(Ctx* self, int index) {
     Bytecode* co_codes = (Bytecode*)self->co->codes.data;
-    int target = self->co->codes.count;
+    int target = self->co->codes.length;
     Bytecode__set_signed_arg(&co_codes[index], target - index);
 }
 
 static bool Ctx__add_label(Ctx* self, py_Name name) {
     bool ok = c11_smallmap_n2i__contains(&self->co->labels, name);
     if(ok) return false;
-    c11_smallmap_n2i__set(&self->co->labels, name, self->co->codes.count);
+    c11_smallmap_n2i__set(&self->co->labels, name, self->co->codes.length);
     return true;
 }
 
@@ -1212,7 +1212,7 @@ static int Ctx__add_const_string(Ctx* self, c11_sv key) {
         py_TValue tmp;
         py_newstrn(&tmp, key.data, key.size);
         c11_vector__push(py_TValue, &self->co->consts, tmp);
-        int index = self->co->consts.count - 1;
+        int index = self->co->consts.length - 1;
         c11_smallmap_s2n__set(&self->co_consts_string_dedup_map,
                               c11_string__sv(PyObject__userdata(tmp._obj)),
                               index);
@@ -1223,7 +1223,7 @@ static int Ctx__add_const_string(Ctx* self, c11_sv key) {
 static int Ctx__add_const(Ctx* self, py_Ref v) {
     assert(v->type != tp_str);
     c11_vector__push(py_TValue, &self->co->consts, *v);
-    return self->co->consts.count - 1;
+    return self->co->consts.length - 1;
 }
 
 static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line) {
@@ -1237,7 +1237,7 @@ static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int l
 
 // emit top -> pop -> delete
 static void Ctx__s_emit_top(Ctx* self) {
-    assert(self->s_expr.count);
+    assert(self->s_expr.length);
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     vtemit_(top, self);
     vtdelete(top);
@@ -1249,16 +1249,16 @@ static void Ctx__s_push(Ctx* self, Expr* expr) { c11_vector__push(Expr*, &self->
 
 // top
 static Expr* Ctx__s_top(Ctx* self) {
-    assert(self->s_expr.count);
+    assert(self->s_expr.length);
     return c11_vector__back(Expr*, &self->s_expr);
 }
 
 // size
-static int Ctx__s_size(Ctx* self) { return self->s_expr.count; }
+static int Ctx__s_size(Ctx* self) { return self->s_expr.length; }
 
 // pop -> delete
 static void Ctx__s_pop(Ctx* self) {
-    assert(self->s_expr.count);
+    assert(self->s_expr.length);
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     vtdelete(top);
     c11_vector__pop(&self->s_expr);
@@ -1266,7 +1266,7 @@ static void Ctx__s_pop(Ctx* self) {
 
 // pop move
 static Expr* Ctx__s_popx(Ctx* self) {
-    assert(self->s_expr.count);
+    assert(self->s_expr.length);
     Expr* top = c11_vector__back(Expr*, &self->s_expr);
     c11_vector__pop(&self->s_expr);
     return top;
@@ -1329,7 +1329,7 @@ static void Compiler__dtor(Compiler* self) {
     if((err = B)) return err
 
 static NameScope name_scope(Compiler* self) {
-    NameScope s = self->contexts.count > 1 ? NAME_LOCAL : NAME_GLOBAL;
+    NameScope s = self->contexts.length > 1 ? NAME_LOCAL : NAME_GLOBAL;
     if(self->src->is_dynamic && s == NAME_GLOBAL) s = NAME_GLOBAL_UNKNOWN;
     return s;
 }
@@ -1338,7 +1338,7 @@ Error* SyntaxError(Compiler* self, const char* fmt, ...) {
     Error* err = malloc(sizeof(Error));
     err->src = self->src;
     PK_INCREF(self->src);
-    Token* t = self->i == self->tokens.count ? prev() : curr();
+    Token* t = self->i == self->tokens.length ? prev() : curr();
     err->lineno = t->line;
     va_list args;
     va_start(args, fmt);
@@ -1451,7 +1451,7 @@ static Error* EXPR_VARS(Compiler* self) {
 static void push_global_context(Compiler* self, CodeObject* co) {
     co->start_line = self->i == 0 ? 1 : prev()->line;
     Ctx* ctx = c11_vector__emplace(&self->contexts);
-    Ctx__ctor(ctx, co, NULL, self->contexts.count);
+    Ctx__ctor(ctx, co, NULL, self->contexts.length);
 }
 
 static Error* pop_context(Compiler* self) {
@@ -1473,11 +1473,11 @@ static Error* pop_context(Compiler* self) {
     if(co->nlocals > PK_MAX_CO_VARNAMES) {
         return SyntaxError(self, "maximum number of local variables exceeded");
     }
-    if(co->consts.count > 65530) {
+    if(co->consts.length > 65530) {
         return SyntaxError(self, "maximum number of constants exceeded");
     }
     // pre-compute LOOP_BREAK and LOOP_CONTINUE
-    for(int i = 0; i < codes->count; i++) {
+    for(int i = 0; i < codes->length; i++) {
         Bytecode* bc = c11__at(Bytecode, codes, i);
         if(bc->op == OP_LOOP_CONTINUE) {
             CodeBlock* block = c11__at(CodeBlock, &ctx()->co->blocks, bc->arg);
@@ -1492,7 +1492,7 @@ static Error* pop_context(Compiler* self) {
     if(func) {
         // check generator
         Bytecode* codes = func->code.codes.data;
-        int codes_length = func->code.codes.count;
+        int codes_length = func->code.codes.length;
 
         for(int i = 0; i < codes_length; i++) {
             if(codes[i].op == OP_YIELD_VALUE) {
@@ -1510,7 +1510,7 @@ static Error* pop_context(Compiler* self) {
         }
         if(func->type == FuncType_UNSET) {
             bool is_simple = true;
-            if(func->kwargs.count > 0) is_simple = false;
+            if(func->kwargs.length > 0) is_simple = false;
             if(func->starred_arg >= 0) is_simple = false;
             if(func->starred_kwarg >= 0) is_simple = false;
 
@@ -1855,7 +1855,7 @@ static Error* exprCall(Compiler* self) {
                 c11_vector__push(CallExprKwArg, &e->kwargs, kw);
             } else {
                 // positional argument
-                if(e->kwargs.count > 0) {
+                if(e->kwargs.length > 0) {
                     return SyntaxError(self, "positional argument follows keyword argument");
                 }
                 c11_vector__push(Expr*, &e->args, Ctx__s_popx(ctx()));
@@ -1994,7 +1994,7 @@ static Error* compile_while_loop(Compiler* self) {
     // optional else clause
     if(match(TK_ELSE)) {
         check(compile_block_body(self, compile_stmt));
-        block->end2 = ctx()->co->codes.count;
+        block->end2 = ctx()->co->codes.length;
     }
     return NULL;
 }
@@ -2021,7 +2021,7 @@ static Error* compile_for_loop(Compiler* self) {
     // optional else clause
     if(match(TK_ELSE)) {
         check(compile_block_body(self, compile_stmt));
-        block->end2 = ctx()->co->codes.count;
+        block->end2 = ctx()->co->codes.length;
     }
     return NULL;
 }
@@ -2097,10 +2097,10 @@ static FuncDecl_ push_f_context(Compiler* self, c11_sv name, int* out_index) {
     // add_func_decl
     Ctx* top_ctx = ctx();
     c11_vector__push(FuncDecl_, &top_ctx->co->func_decls, decl);
-    *out_index = top_ctx->co->func_decls.count - 1;
+    *out_index = top_ctx->co->func_decls.length - 1;
     // push new context
     top_ctx = c11_vector__emplace(&self->contexts);
-    Ctx__ctor(top_ctx, &decl->code, decl, self->contexts.count);
+    Ctx__ctor(top_ctx, &decl->code, decl, self->contexts.length);
     return decl;
 }
 
@@ -2214,7 +2214,7 @@ static Error* compile_function(Compiler* self, int decorators) {
     check(compile_block_body(self, compile_stmt));
     check(pop_context(self));
 
-    if(decl->code.codes.count >= 2) {
+    if(decl->code.codes.length >= 2) {
         Bytecode* codes = (Bytecode*)decl->code.codes.data;
 
         if(codes[0].op == OP_LOAD_CONST && codes[1].op == OP_POP_TOP) {
@@ -2463,14 +2463,15 @@ static Error* compile_stmt(Compiler* self) {
             consume_end_stmt();
             break;
         case TK_YIELD:
-            if(self->contexts.count <= 1) return SyntaxError(self, "'yield' outside function");
+            if(self->contexts.length <= 1) return SyntaxError(self, "'yield' outside function");
             check(EXPR_TUPLE(self));
             Ctx__s_emit_top(ctx());
             Ctx__emit_(ctx(), OP_YIELD_VALUE, BC_NOARG, kw_line);
             consume_end_stmt();
             break;
         case TK_YIELD_FROM:
-            if(self->contexts.count <= 1) return SyntaxError(self, "'yield from' outside function");
+            if(self->contexts.length <= 1)
+                return SyntaxError(self, "'yield from' outside function");
             check(EXPR_TUPLE(self));
             Ctx__s_emit_top(ctx());
             Ctx__emit_(ctx(), OP_GET_ITER, BC_NOARG, kw_line);
@@ -2482,7 +2483,7 @@ static Error* compile_stmt(Compiler* self) {
             consume_end_stmt();
             break;
         case TK_RETURN:
-            if(self->contexts.count <= 1) return SyntaxError(self, "'return' outside function");
+            if(self->contexts.length <= 1) return SyntaxError(self, "'return' outside function");
             if(match_end_stmt(self)) {
                 Ctx__emit_(ctx(), OP_RETURN_VALUE, 1, kw_line);
             } else {
@@ -2672,7 +2673,7 @@ Error* pk_compile(SourceData_ src, CodeObject* out) {
 #if 0
     Token* data = (Token*)tokens.data;
     printf("%s\n", src->filename->data);
-    for(int i = 0; i < tokens.count; i++) {
+    for(int i = 0; i < tokens.length; i++) {
         Token* t = data + i;
         c11_string* tmp = c11_string__new2(t->start, t->length);
         if(t->value.index == TokenValue_STR) {

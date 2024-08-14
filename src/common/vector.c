@@ -3,28 +3,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-void c11_array__ctor(c11_array* self, int elem_size, int count){
-    self->data = malloc(elem_size * count);
-    self->count = count;
+void c11_array__ctor(c11_array* self, int elem_size, int length){
+    self->data = malloc(elem_size * length);
+    self->length = length;
     self->elem_size = elem_size;
 }
 
 void c11_array__dtor(c11_array* self){
     free(self->data);
     self->data = NULL;
-    self->count = 0;
+    self->length = 0;
 }
 
 c11_array c11_array__copy(const c11_array* self){
     c11_array retval;
-    c11_array__ctor(&retval, self->elem_size, self->count);
-    memcpy(retval.data, self->data, self->elem_size * self->count);
+    c11_array__ctor(&retval, self->elem_size, self->length);
+    memcpy(retval.data, self->data, self->elem_size * self->length);
     return retval;
 }
 
 void c11_vector__ctor(c11_vector* self, int elem_size){
     self->data = NULL;
-    self->count = 0;
+    self->length = 0;
     self->capacity = 0;
     self->elem_size = elem_size;
 }
@@ -32,7 +32,7 @@ void c11_vector__ctor(c11_vector* self, int elem_size){
 void c11_vector__dtor(c11_vector* self){
     if(self->data) free(self->data);
     self->data = NULL;
-    self->count = 0;
+    self->length = 0;
     self->capacity = 0;
 }
 
@@ -40,8 +40,8 @@ c11_vector c11_vector__copy(const c11_vector* self){
     c11_vector retval;
     c11_vector__ctor(&retval, self->elem_size);
     c11_vector__reserve(&retval, self->capacity);
-    memcpy(retval.data, self->data, self->elem_size * self->count);
-    retval.count = self->count;
+    memcpy(retval.data, self->data, self->elem_size * self->length);
+    retval.length = self->length;
     return retval;
 }
 
@@ -53,18 +53,18 @@ void c11_vector__reserve(c11_vector* self, int capacity){
 }
 
 void c11_vector__clear(c11_vector* self){
-    self->count = 0;
+    self->length = 0;
 }
 
 void* c11_vector__emplace(c11_vector* self){
-    if(self->count == self->capacity) c11_vector__reserve(self, self->capacity*2);
-    void* p = (char*)self->data + self->elem_size * self->count;
-    self->count++;
+    if(self->length == self->capacity) c11_vector__reserve(self, self->capacity*2);
+    void* p = (char*)self->data + self->elem_size * self->length;
+    self->length++;
     return p;
 }
 
 bool c11_vector__contains(const c11_vector *self, void *elem){
-    for(int i = 0; i < self->count; i++){
+    for(int i = 0; i < self->length; i++){
         void* p = (char*)self->data + self->elem_size * i;
         if(memcmp(p, elem, self->elem_size) == 0) return true;
     }
@@ -74,11 +74,11 @@ bool c11_vector__contains(const c11_vector *self, void *elem){
 c11_array c11_vector__submit(c11_vector* self){
     c11_array retval = {
         .data = self->data,
-        .count = self->count,
+        .length = self->length,
         .elem_size = self->elem_size
     };
     self->data = NULL;
-    self->count = 0;
+    self->length = 0;
     self->capacity = 0;
     return retval;
 }

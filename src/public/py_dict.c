@@ -79,7 +79,7 @@ static void Dict__rehash_2x(Dict* self) {
     do {
         Dict__ctor(self, new_capacity);
 
-        for(int i = 0; i < old_dict.entries.count; i++) {
+        for(int i = 0; i < old_dict.entries.length; i++) {
             DictEntry* entry = c11__at(DictEntry, &old_dict.entries, i);
             if(py_isnil(&entry->key)) continue;
             int idx = entry->hash & (new_capacity - 1);
@@ -89,7 +89,7 @@ static void Dict__rehash_2x(Dict* self) {
                 if(idx2 == -1) {
                     // insert new entry (empty slot)
                     c11_vector__push(DictEntry, &self->entries, *entry);
-                    self->indices[idx]._[i] = self->entries.count - 1;
+                    self->indices[idx]._[i] = self->entries.length - 1;
                     self->length++;
                     success = true;
                     break;
@@ -108,10 +108,10 @@ static void Dict__rehash_2x(Dict* self) {
 }
 
 static void Dict__compact_entries(Dict* self) {
-    int* mappings = malloc(self->entries.count * sizeof(int));
+    int* mappings = malloc(self->entries.length * sizeof(int));
 
     int n = 0;
-    for(int i = 0; i < self->entries.count; i++) {
+    for(int i = 0; i < self->entries.length; i++) {
         DictEntry* entry = c11__at(DictEntry, &self->entries, i);
         if(py_isnil(&entry->key)) continue;
         mappings[i] = n;
@@ -121,7 +121,7 @@ static void Dict__compact_entries(Dict* self) {
         }
         n++;
     }
-    self->entries.count = n;
+    self->entries.length = n;
     // update indices
     for(int i = 0; i < self->capacity; i++) {
         for(int j = 0; j < PK_DICT_MAX_COLLISION; j++) {
@@ -145,7 +145,7 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
             new_entry->hash = hash;
             new_entry->key = *key;
             new_entry->val = *val;
-            self->indices[idx]._[i] = self->entries.count - 1;
+            self->indices[idx]._[i] = self->entries.length - 1;
             self->length++;
             return true;
         }
@@ -179,7 +179,7 @@ static int Dict__pop(Dict* self, py_Ref key) {
             py_newnil(&entry->key);
             self->indices[idx]._[i] = -1;
             self->length--;
-            if(self->length < self->entries.count / 2) Dict__compact_entries(self);
+            if(self->length < self->entries.length / 2) Dict__compact_entries(self);
             return 1;
         }
         if(res == -1) return -1;  // error
@@ -189,7 +189,7 @@ static int Dict__pop(Dict* self, py_Ref key) {
 
 static void DictIterator__ctor(DictIterator* self, Dict* dict) {
     self->curr = dict->entries.data;
-    self->end = self->curr + dict->entries.count;
+    self->end = self->curr + dict->entries.length;
 }
 
 static DictEntry* DictIterator__next(DictIterator* self) {
@@ -291,7 +291,7 @@ static bool dict__repr__(int argc, py_Ref argv) {
     c11_sbuf__ctor(&buf);
     c11_sbuf__write_char(&buf, '{');
     bool is_first = true;
-    for(int i = 0; i < self->entries.count; i++) {
+    for(int i = 0; i < self->entries.length; i++) {
         DictEntry* entry = c11__at(DictEntry, &self->entries, i);
         if(py_isnil(&entry->key)) continue;
         if(!is_first) c11_sbuf__write_cstr(&buf, ", ");
@@ -377,7 +377,7 @@ static bool dict_update(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_dict);
     Dict* self = py_touserdata(argv);
     Dict* other = py_touserdata(py_arg(1));
-    for(int i = 0; i < other->entries.count; i++) {
+    for(int i = 0; i < other->entries.length; i++) {
         DictEntry* entry = c11__at(DictEntry, &other->entries, i);
         if(py_isnil(&entry->key)) continue;
         if(!Dict__set(self, &entry->key, &entry->val)) return false;
@@ -449,7 +449,7 @@ static bool dict_values(int argc, py_Ref argv) {
 
 static void dict__gc_mark(void* ud) {
     Dict* self = ud;
-    for(int i = 0; i < self->entries.count; i++) {
+    for(int i = 0; i < self->entries.length; i++) {
         DictEntry* entry = c11__at(DictEntry, &self->entries, i);
         if(py_isnil(&entry->key)) continue;
         pk__mark_value(&entry->key);
@@ -550,7 +550,7 @@ int py_dict_len(py_Ref self) {
 
 bool py_dict_apply(py_Ref self, bool (*f)(py_Ref, py_Ref, void*), void* ctx) {
     Dict* ud = py_touserdata(self);
-    for(int i = 0; i < ud->entries.count; i++) {
+    for(int i = 0; i < ud->entries.length; i++) {
         DictEntry* entry = c11__at(DictEntry, &ud->entries, i);
         if(py_isnil(&entry->key)) continue;
         if(!f(&entry->key, &entry->val, ctx)) return false;

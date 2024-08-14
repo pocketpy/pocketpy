@@ -16,7 +16,7 @@ void py_newlistn(py_Ref out, int n) {
     py_newlist(out);
     List* ud = py_touserdata(out);
     c11_vector__reserve(ud, n);
-    ud->count = n;
+    ud->length = n;
 }
 
 py_Ref py_list_data(py_Ref self) {
@@ -41,7 +41,7 @@ void py_list_delitem(py_Ref self, int i) {
 
 int py_list_len(py_Ref self) {
     List* ud = py_touserdata(self);
-    return ud->count;
+    return ud->length;
 }
 
 void py_list_swap(py_Ref self, int i, int j) {
@@ -137,12 +137,12 @@ static bool list__getitem__(int argc, py_Ref argv) {
     py_Ref _1 = py_arg(1);
     if(_1->type == tp_int) {
         int index = py_toint(py_arg(1));
-        if(!pk__normalize_index(&index, self->count)) return false;
+        if(!pk__normalize_index(&index, self->length)) return false;
         *py_retval() = c11__getitem(py_TValue, self, index);
         return true;
     } else if(_1->type == tp_slice) {
         int start, stop, step;
-        bool ok = pk__parse_int_slice(_1, self->count, &start, &stop, &step);
+        bool ok = pk__parse_int_slice(_1, self->length, &start, &stop, &step);
         if(!ok) return false;
         py_newlist(py_retval());
         List* list = py_touserdata(py_retval());
@@ -160,7 +160,7 @@ static bool list__setitem__(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_int);
     List* self = py_touserdata(py_arg(0));
     int index = py_toint(py_arg(1));
-    if(!pk__normalize_index(&index, self->count)) return false;
+    if(!pk__normalize_index(&index, self->length)) return false;
     c11__setitem(py_TValue, self, index, *py_arg(2));
     py_newnone(py_retval());
     return true;
@@ -171,7 +171,7 @@ static bool list__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_int);
     List* self = py_touserdata(py_arg(0));
     int index = py_toint(py_arg(1));
-    if(!pk__normalize_index(&index, self->count)) return false;
+    if(!pk__normalize_index(&index, self->length)) return false;
     c11_vector__erase(py_TValue, self, index);
     py_newnone(py_retval());
     return true;
@@ -186,8 +186,8 @@ static bool list__add__(int argc, py_Ref argv) {
         List* list_1 = py_touserdata(_1);
         py_newlist(py_retval());
         List* list = py_touserdata(py_retval());
-        c11_vector__extend(py_TValue, list, list_0->data, list_0->count);
-        c11_vector__extend(py_TValue, list, list_1->data, list_1->count);
+        c11_vector__extend(py_TValue, list, list_0->data, list_0->length);
+        c11_vector__extend(py_TValue, list, list_1->data, list_1->length);
     } else {
         py_newnotimplemented(py_retval());
     }
@@ -204,7 +204,7 @@ static bool list__mul__(int argc, py_Ref argv) {
         List* list = py_touserdata(py_retval());
         List* list_0 = py_touserdata(_0);
         for(int i = 0; i < n; i++) {
-            c11_vector__extend(py_TValue, list, list_0->data, list_0->count);
+            c11_vector__extend(py_TValue, list, list_0->data, list_0->length);
         }
     } else {
         py_newnotimplemented(py_retval());
@@ -226,7 +226,7 @@ static bool list__repr__(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     c11_sbuf__write_char(&buf, '[');
-    for(int i = 0; i < self->count; i++) {
+    for(int i = 0; i < self->length; i++) {
         py_TValue* val = c11__at(py_TValue, self, i);
         bool ok = py_repr(val);
         if(!ok) {
@@ -234,7 +234,7 @@ static bool list__repr__(int argc, py_Ref argv) {
             return false;
         }
         c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
-        if(i != self->count - 1) c11_sbuf__write_cstr(&buf, ", ");
+        if(i != self->length - 1) c11_sbuf__write_cstr(&buf, ", ");
     }
     c11_sbuf__write_char(&buf, ']');
     c11_sbuf__py_submit(&buf, py_retval());
@@ -246,7 +246,7 @@ static bool list_extend(int argc, py_Ref argv) {
     List* self = py_touserdata(py_arg(0));
     PY_CHECK_ARG_TYPE(1, tp_list);
     List* other = py_touserdata(py_arg(1));
-    c11_vector__extend(py_TValue, self, other->data, other->count);
+    c11_vector__extend(py_TValue, self, other->data, other->length);
     py_newnone(py_retval());
     return true;
 }
@@ -275,7 +275,7 @@ static bool list_copy(int argc, py_Ref argv) {
     py_newlist(py_retval());
     List* self = py_touserdata(py_arg(0));
     List* list = py_touserdata(py_retval());
-    c11_vector__extend(py_TValue, list, self->data, self->count);
+    c11_vector__extend(py_TValue, list, self->data, self->length);
     return true;
 }
 
@@ -330,8 +330,8 @@ static bool list_pop(int argc, py_Ref argv) {
         return TypeError("pop() takes at most 2 arguments");
     }
     List* self = py_touserdata(py_arg(0));
-    if(self->count == 0) return IndexError("pop from empty list");
-    if(!pk__normalize_index(&index, self->count)) return false;
+    if(self->length == 0) return IndexError("pop from empty list");
+    if(!pk__normalize_index(&index, self->length)) return false;
     *py_retval() = c11__getitem(py_TValue, self, index);
     c11_vector__erase(py_TValue, self, index);
     return true;
@@ -342,9 +342,9 @@ static bool list_insert(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_int);
     List* self = py_touserdata(py_arg(0));
     int index = py_toint(py_arg(1));
-    if(index < 0) index += self->count;
+    if(index < 0) index += self->length;
     if(index < 0) index = 0;
-    if(index > self->count) index = self->count;
+    if(index > self->length) index = self->length;
     c11_vector__insert(py_TValue, self, index, *py_arg(2));
     py_newnone(py_retval());
     return true;
@@ -380,7 +380,7 @@ static bool list_sort(int argc, py_Ref argv) {
     if(py_isnone(key)) key = NULL;
 
     bool ok = c11__stable_sort(self->data,
-                               self->count,
+                               self->length,
                                sizeof(py_TValue),
                                (int (*)(const void*, const void*, void*))lt_with_key,
                                key);
@@ -405,7 +405,7 @@ static bool list__contains__(int argc, py_Ref argv) {
 
 static void list__gc_mark(void* ud) {
     List* self = ud;
-    for(int i = 0; i < self->count; i++) {
+    for(int i = 0; i < self->length; i++) {
         pk__mark_value(c11__at(py_TValue, self, i));
     }
 }

@@ -1,27 +1,27 @@
 #if !defined(SMALLMAP_T__HEADER) && !defined(SMALLMAP_T__SOURCE)
-    #include "pocketpy/common/vector.h"
+#include "pocketpy/common/vector.h"
 
-    #define SMALLMAP_T__HEADER
-    #define SMALLMAP_T__SOURCE
-    /* Input */
-    #define K int
-    #define V float
-    #define NAME c11_smallmap_i2f
+#define SMALLMAP_T__HEADER
+#define SMALLMAP_T__SOURCE
+/* Input */
+#define K int
+#define V float
+#define NAME c11_smallmap_i2f
 #endif
 
 /* Optional Input */
 #ifndef less
-    #define less(a, b) ((a) < (b))
+#define less(a, b) ((a) < (b))
 #endif
 
 #ifndef equal
-    #define equal(a, b) ((a) == (b))
+#define equal(a, b) ((a) == (b))
 #endif
 
 /* Temprary macros */
-#define partial_less(a, b)      less((a).key, (b))
-#define CONCAT(A, B)            CONCAT_(A, B)
-#define CONCAT_(A, B)           A##B
+#define partial_less(a, b) less((a).key, (b))
+#define CONCAT(A, B) CONCAT_(A, B)
+#define CONCAT_(A, B) A##B
 
 #define KV CONCAT(NAME, _KV)
 #define METHOD(name) CONCAT(NAME, CONCAT(__, name))
@@ -56,9 +56,7 @@ void METHOD(ctor)(NAME* self) {
     c11_vector__reserve(self, 4);
 }
 
-void METHOD(dtor)(NAME* self) {
-    c11_vector__dtor(self);
-}
+void METHOD(dtor)(NAME* self) { c11_vector__dtor(self); }
 
 NAME* METHOD(new)() {
     NAME* self = malloc(sizeof(NAME));
@@ -73,10 +71,10 @@ void METHOD(delete)(NAME* self) {
 
 void METHOD(set)(NAME* self, K key, V value) {
     int index;
-    c11__lower_bound(KV, self->data, self->count, key, partial_less, &index);
-    if(index != self->count){
+    c11__lower_bound(KV, self->data, self->length, key, partial_less, &index);
+    if(index != self->length) {
         KV* it = c11__at(KV, self, index);
-        if(equal(it->key, key)){
+        if(equal(it->key, key)) {
             it->value = value;
             return;
         }
@@ -87,8 +85,8 @@ void METHOD(set)(NAME* self, K key, V value) {
 
 V* METHOD(try_get)(const NAME* self, K key) {
     int index;
-    c11__lower_bound(KV, self->data, self->count, key, partial_less, &index);
-    if(index != self->count){
+    c11__lower_bound(KV, self->data, self->length, key, partial_less, &index);
+    if(index != self->length) {
         KV* it = c11__at(KV, self, index);
         if(equal(it->key, key)) return &it->value;
     }
@@ -100,16 +98,14 @@ V METHOD(get)(const NAME* self, K key, V default_value) {
     return p ? *p : default_value;
 }
 
-bool METHOD(contains)(const NAME* self, K key) {
-    return METHOD(try_get)(self, key) != NULL;
-}
+bool METHOD(contains)(const NAME* self, K key) { return METHOD(try_get)(self, key) != NULL; }
 
 bool METHOD(del)(NAME* self, K key) {
     int index;
-    c11__lower_bound(KV, self->data, self->count, key, partial_less, &index);
-    if(index != self->count){
+    c11__lower_bound(KV, self->data, self->length, key, partial_less, &index);
+    if(index != self->length) {
         KV* it = c11__at(KV, self, index);
-        if(equal(it->key, key)){
+        if(equal(it->key, key)) {
             c11_vector__erase(KV, self, index);
             return true;
         }
@@ -117,9 +113,7 @@ bool METHOD(del)(NAME* self, K key) {
     return false;
 }
 
-void METHOD(clear)(NAME* self) {
-    c11_vector__clear(self);
-}
+void METHOD(clear)(NAME* self) { c11_vector__clear(self); }
 
 #endif
 

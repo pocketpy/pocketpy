@@ -81,7 +81,7 @@ int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {
 
 void Frame__prepare_jump_break(Frame* self, ValueStack* _s, int target) {
     int iblock = Frame__iblock(self);
-    if(target >= self->co->codes.count) {
+    if(target >= self->co->codes.length) {
         while(iblock >= 0)
             iblock = Frame__exit_block(self, _s, iblock);
     } else {

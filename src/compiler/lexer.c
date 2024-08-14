@@ -125,7 +125,7 @@ static void add_token_with_value(Lexer* self, TokenIndex type, TokenValue value)
                    self->brackets_level,
                    value};
     // handle "not in", "is not", "yield from"
-    if(self->nexts.count > 0) {
+    if(self->nexts.length > 0) {
         Token* back = &c11_vector__back(Token, &self->nexts);
         if(back->type == TK_NOT_KW && type == TK_IN) {
             back->type = TK_NOT_IN;
@@ -336,12 +336,12 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
 
                         // submit {expr} tokens
                         bool eof = false;
-                        int token_count = self->nexts.count;
+                        int token_count = self->nexts.length;
                         while(!eof) {
                             Error* err = lex_one_token(self, &eof, true);
                             if(err) return err;
                         }
-                        if(self->nexts.count == token_count) {
+                        if(self->nexts.length == token_count) {
                             // f'{}' is not allowed
                             return SyntaxError(self, "f-string: empty expression not allowed");
                         }
@@ -353,7 +353,7 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
                     } else {
                         return SyntaxError(self, "f-string: single '}' is not allowed");
                     }
-                }else{
+                } else {
                     c11_sbuf__write_char(buff, c);
                 }
             } else {
@@ -600,7 +600,7 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
     if(is_fstring) return SyntaxError(self, "unterminated f-string expression");
 
     self->token_start = self->curr_char;
-    while(self->indents.count > 1) {
+    while(self->indents.length > 1) {
         c11_vector__pop(&self->indents);
         add_token(self, TK_DEDENT);
         return NULL;
@@ -637,7 +637,7 @@ Error* Lexer__process(SourceData_ src, TokenArray* out_tokens) {
 
 void TokenArray__dtor(TokenArray* self) {
     Token* data = self->data;
-    for(int i = 0; i < self->count; i++) {
+    for(int i = 0; i < self->length; i++) {
         if(data[i].value.index == TokenValue_STR) { c11_string__delete(data[i].value._str); }
     }
     c11_array__dtor(self);
