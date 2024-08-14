@@ -34,7 +34,7 @@
  * `strcmp`.
  */
 bool c11__stable_sort(void* ptr,
-                      int count,
+                      int length,
                       int elem_size,
                       int (*f_lt)(const void* a, const void* b, void* extra),
                       void* extra);
