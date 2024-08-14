@@ -2,7 +2,7 @@
 
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
-#include "pocketpy/interpreter/gc.h"
+#include "pocketpy/interpreter/heap.h"
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/modules.h"
 

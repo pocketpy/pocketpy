@@ -1,4 +1,4 @@
-#include "pocketpy/interpreter/gc.h"
+#include "pocketpy/interpreter/heap.h"
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/objects/base.h"
 
