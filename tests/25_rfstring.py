@@ -20,6 +20,9 @@ assert s == 'asdasd\nasds1321321321测试\\测试'
 t = 4
 assert f'123{t}56789' == '123456789'
 
+assert f'{{' == '{'
+assert f'}}' == '}'
+
 b = 123
 s = f'''->->{s}<-<-
 {b}
@@ -117,10 +120,11 @@ class A:
         return 'A'
 
 a = A()
+assert f'{a!r}' == 'A()'
 assert f'{a!r:10}' == 'A()       '
-assert f'{a!s:10}' == 'A         '
+assert f'{a:10}' == 'A         '
 assert f'{a:10}' == 'A         '
 
 assert f'{A()!r:10}' == 'A()       '
-assert f'{A()!s:10}' == 'A         '
+assert f'{A():10}' == 'A         '
 assert f'{A():10}' == 'A         '

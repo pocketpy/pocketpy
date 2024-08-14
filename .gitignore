@@ -34,3 +34,5 @@ docs/references.md
 
 .xmake
 .vs
+
+tests/00_tmp.py

@@ -7,6 +7,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/memorypool.h"
+#include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
 
@@ -227,6 +228,30 @@ UnaryExpr* UnaryExpr__new(int line, Expr* child, Opcode opcode) {
     return self;
 }
 
+typedef struct FStringSpecExpr {
+    EXPR_COMMON_HEADER
+    Expr* child;
+    c11_sv spec;
+} FStringSpecExpr;
+
+void FStringSpecExpr__emit_(Expr* self_, Ctx* ctx) {
+    FStringSpecExpr* self = (FStringSpecExpr*)self_;
+    vtemit_(self->child, ctx);
+    int index = Ctx__add_const_string(ctx, self->spec);
+    Ctx__emit_(ctx, OP_FORMAT_STRING, index, self->line);
+}
+
+FStringSpecExpr* FStringSpecExpr__new(int line, Expr* child, c11_sv spec) {
+    const static ExprVt Vt = {.emit_ = FStringSpecExpr__emit_, .dtor = UnaryExpr__dtor};
+    static_assert_expr_size(FStringSpecExpr);
+    FStringSpecExpr* self = PoolExpr_alloc();
+    self->vt = &Vt;
+    self->line = line;
+    self->child = child;
+    self->spec = spec;
+    return self;
+}
+
 typedef struct RawStringExpr {
     EXPR_COMMON_HEADER
     c11_sv value;
@@ -236,8 +261,7 @@ typedef struct RawStringExpr {
 void RawStringExpr__emit_(Expr* self_, Ctx* ctx) {
     RawStringExpr* self = (RawStringExpr*)self_;
     int index = Ctx__add_const_string(ctx, self->value);
-    Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
-    Ctx__emit_(ctx, self->opcode, BC_NOARG, self->line);
+    Ctx__emit_(ctx, self->opcode, index, self->line);
 }
 
 RawStringExpr* RawStringExpr__new(int line, c11_sv value, Opcode opcode) {
@@ -505,6 +529,11 @@ static SequenceExpr* SequenceExpr__new(int line, const ExprVt* vt, int count, Op
     return self;
 }
 
+SequenceExpr* FStringExpr__new(int line, int count) {
+    const static ExprVt ListExprVt = {.dtor = SequenceExpr__dtor, .emit_ = SequenceExpr__emit_};
+    return SequenceExpr__new(line, &ListExprVt, count, OP_BUILD_STRING);
+}
+
 SequenceExpr* ListExpr__new(int line, int count) {
     const static ExprVt ListExprVt = {.dtor = SequenceExpr__dtor, .emit_ = SequenceExpr__emit_};
     return SequenceExpr__new(line, &ListExprVt, count, OP_BUILD_LIST);
@@ -608,162 +637,6 @@ LambdaExpr* LambdaExpr__new(int line, int index) {
     self->vt = &Vt;
     self->line = line;
     self->index = index;
-    return self;
-}
-
-typedef struct FStringExpr {
-    EXPR_COMMON_HEADER
-    c11_sv src;
-} FStringExpr;
-
-static bool is_fmt_valid_char(char c) {
-    switch(c) {
-        // clang-format off
-        case '-': case '=': case '*': case '#': case '@': case '!': case '~':
-        case '<': case '>': case '^':
-        case '.': case 'f': case 'd': case 's':
-        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-        return true;
-        default: return false;
-            // clang-format on
-    }
-}
-
-static void _load_expr(Ctx* ctx, c11_sv expr, int line) {
-    bool repr = false;
-    const char* expr_end = expr.data + expr.size;
-    if(expr.size >= 2 && expr_end[-2] == '!') {
-        switch(expr_end[-1]) {
-            case 'r':
-                repr = true;
-                expr.size -= 2;  // expr[:-2]
-                break;
-            case 's':
-                repr = false;
-                expr.size -= 2;  // expr[:-2]
-                break;
-            default: break;  // nothing happens
-        }
-    }
-
-    c11_string* source = c11_string__new2(expr.data, expr.size);
-    bool ok = py_compile(source->data, "<f-string>", EVAL_MODE, true);
-    if(!ok) {
-        py_printexc();
-        c11__abort("f-string: invalid expression");
-    }
-    int index = Ctx__add_const(ctx, py_retval());
-    c11_string__delete(source);
-    Ctx__emit_(ctx, OP_FSTRING_EVAL, index, line);
-
-    if(repr) Ctx__emit_(ctx, OP_REPR, BC_NOARG, line);
-}
-
-static void FStringExpr__emit_(Expr* self_, Ctx* ctx) {
-    FStringExpr* self = (FStringExpr*)self_;
-    int i = 0;          // left index
-    int j = 0;          // right index
-    int count = 0;      // how many string parts
-    bool flag = false;  // true if we are in a expression
-
-    const char* src = self->src.data;
-    while(j < self->src.size) {
-        if(flag) {
-            if(src[j] == '}') {
-                // add expression
-                c11_sv expr = {src + i, j - i};  // src[i:j]
-                // BUG: ':' is not a format specifier in f"{stack[2:]}"
-                int conon = c11_sv__index(expr, ':');
-                if(conon >= 0) {
-                    c11_sv spec = {expr.data + (conon + 1),
-                                   expr.size - (conon + 1)};  // expr[conon+1:]
-                    // filter some invalid spec
-                    bool ok = true;
-                    for(int k = 0; k < spec.size; k++) {
-                        char c = spec.data[k];
-                        if(!is_fmt_valid_char(c)) {
-                            ok = false;
-                            break;
-                        }
-                    }
-                    if(ok) {
-                        expr.size = conon;  // expr[:conon]
-                        _load_expr(ctx, expr, self->line);
-                        Ctx__emit_(ctx,
-                                   OP_FORMAT_STRING,
-                                   Ctx__add_const_string(ctx, spec),
-                                   self->line);
-                    } else {
-                        // ':' is not a spec indicator
-                        _load_expr(ctx, expr, self->line);
-                    }
-                } else {
-                    _load_expr(ctx, expr, self->line);
-                }
-                flag = false;
-                count++;
-            }
-        } else {
-            if(src[j] == '{') {
-                // look at next char
-                if(j + 1 < self->src.size && src[j + 1] == '{') {
-                    // {{ -> {
-                    j++;
-                    Ctx__emit_(ctx,
-                               OP_LOAD_CONST,
-                               Ctx__add_const_string(ctx, (c11_sv){"{", 1}),
-                               self->line);
-                    count++;
-                } else {
-                    // { -> }
-                    flag = true;
-                    i = j + 1;
-                }
-            } else if(src[j] == '}') {
-                // look at next char
-                if(j + 1 < self->src.size && src[j + 1] == '}') {
-                    // }} -> }
-                    j++;
-                    Ctx__emit_(ctx,
-                               OP_LOAD_CONST,
-                               Ctx__add_const_string(ctx, (c11_sv){"}", 1}),
-                               self->line);
-                    count++;
-                } else {
-                    // } -> error
-                    // throw std::runtime_error("f-string: unexpected }");
-                    // just ignore
-                }
-            } else {
-                // literal
-                i = j;
-                while(j < self->src.size && src[j] != '{' && src[j] != '}')
-                    j++;
-                c11_sv literal = {src + i, j - i};  // src[i:j]
-                Ctx__emit_(ctx, OP_LOAD_CONST, Ctx__add_const_string(ctx, literal), self->line);
-                count++;
-                continue;  // skip j++
-            }
-        }
-        j++;
-    }
-
-    if(flag) {
-        // literal
-        c11_sv literal = {src + i, self->src.size - i};  // src[i:]
-        Ctx__emit_(ctx, OP_LOAD_CONST, Ctx__add_const_string(ctx, literal), self->line);
-        count++;
-    }
-    Ctx__emit_(ctx, OP_BUILD_STRING, count, self->line);
-}
-
-FStringExpr* FStringExpr__new(int line, c11_sv src) {
-    const static ExprVt Vt = {.emit_ = FStringExpr__emit_};
-    static_assert_expr_size(FStringExpr);
-    FStringExpr* self = PoolExpr_alloc();
-    self->vt = &Vt;
-    self->line = line;
-    self->src = src;
     return self;
 }
 
@@ -1669,9 +1542,39 @@ static Error* exprBytes(Compiler* self) {
 }
 
 static Error* exprFString(Compiler* self) {
-    c11_sv sv = c11_string__sv(prev()->value._str);
-    Ctx__s_push(ctx(), (Expr*)FStringExpr__new(prev()->line, sv));
-    return NULL;
+    // @fstr-begin, [@fstr-cpnt | <expr>]*, @fstr-end
+    int count = 0;
+    int line = prev()->line;
+    while(true) {
+        if(match(TK_FSTR_END)) {
+            SequenceExpr* e = FStringExpr__new(line, count);
+            for(int i = count - 1; i >= 0; i--) {
+                Expr* item = Ctx__s_popx(ctx());
+                c11__setitem(Expr*, &e->items, i, item);
+            }
+            Ctx__s_push(ctx(), (Expr*)e);
+            return NULL;
+        } else if(match(TK_FSTR_CPNT)) {
+            // OP_LOAD_CONST
+            LiteralExpr* e = LiteralExpr__new(prev()->line, &prev()->value);
+            Ctx__s_push(ctx(), (Expr*)e);
+            count++;
+        } else {
+            // {a!r:.2f}
+            Error* err = EXPR(self);
+            if(err) return err;
+            count++;
+
+            if(match(TK_FSTR_SPEC)) {
+                c11_sv spec = Token__sv(prev());
+                // ':.2f}' -> ':.2f'
+                spec.size--;
+                Expr* child = Ctx__s_popx(ctx());
+                FStringSpecExpr* e = FStringSpecExpr__new(prev()->line, child, spec);
+                Ctx__s_push(ctx(), (Expr*)e);
+            }
+        }
+    }
 }
 
 static Error* exprImag(Compiler* self) {
@@ -2766,14 +2669,25 @@ Error* pk_compile(SourceData_ src, CodeObject* out) {
     Error* err = Lexer__process(src, &tokens);
     if(err) return err;
 
-    // Token* data = (Token*)tokens.data;
-    // printf("%s\n", src->filename->data);
-    // for(int i = 0; i < tokens.count; i++) {
-    //     Token* t = data + i;
-    //     c11_string* tmp = c11_string__new2(t->start, t->length);
-    //     printf("[%d] %s: %s\n", t->line, TokenSymbols[t->type], tmp->data);
-    //     c11_string__delete(tmp);
-    // }
+#if 0
+    Token* data = (Token*)tokens.data;
+    printf("%s\n", src->filename->data);
+    for(int i = 0; i < tokens.count; i++) {
+        Token* t = data + i;
+        c11_string* tmp = c11_string__new2(t->start, t->length);
+        if(t->value.index == TokenValue_STR) {
+            const char* value_str = t->value._str->data;
+            printf("[%d] %s: %s (value._str=%s)\n",
+                   t->line,
+                   TokenSymbols[t->type],
+                   tmp->data,
+                   value_str);
+        } else {
+            printf("[%d] %s: %s\n", t->line, TokenSymbols[t->type], tmp->data);
+        }
+        c11_string__delete(tmp);
+    }
+#endif
 
     Compiler compiler;
     Compiler__ctor(&compiler, src, tokens);
@@ -2829,7 +2743,7 @@ const static PrattRule rules[TK__COUNT__] = {
     [TK_ID] =          { exprName,    },
     [TK_NUM] =         { exprLiteral, },
     [TK_STR] =         { exprLiteral, },
-    [TK_FSTR] =        { exprFString, },
+    [TK_FSTR_BEGIN] =  { exprFString, },
     [TK_IMAG] =        { exprImag,    },
     [TK_BYTES] =       { exprBytes,   },
     [TK_LBRACE] =      { exprMap      },

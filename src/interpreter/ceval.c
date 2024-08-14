@@ -1,4 +1,5 @@
 #include "pocketpy/common/config.h"
+#include "pocketpy/common/str.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/vm.h"
@@ -10,7 +11,7 @@
 #include <stdbool.h>
 
 static bool stack_unpack_sequence(VM* self, uint16_t arg);
-static bool format_object(py_Ref obj, c11_sv spec);
+static bool stack_format_object(VM* self, c11_sv spec);
 
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
@@ -469,8 +470,9 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_BUILD_BYTES: {
                 int size;
-                const char* data = py_tostrn(TOP(), &size);
-                unsigned char* p = py_newbytes(TOP(), size);
+                py_Ref string = c11__at(py_TValue, &frame->co->consts, byte.arg);
+                const char* data = py_tostrn(string, &size);
+                unsigned char* p = py_newbytes(SP()++, size);
                 memcpy(p, data, size);
                 DISPATCH();
             }
@@ -660,11 +662,6 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH_JUMP_ABSOLUTE(target);
             }
                 /*****************************************/
-            case OP_REPR: {
-                if(!py_repr(TOP())) goto __ERROR;
-                py_assign(TOP(), py_retval());
-                DISPATCH();
-            }
             case OP_CALL: {
                 ManagedHeap__collect_if_needed(&self->heap);
                 vectorcall_opcall(byte.arg & 0xFF, byte.arg >> 8);
@@ -1022,21 +1019,10 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             //////////////////
-            case OP_FSTRING_EVAL: {
-                py_TValue* code = c11__at(py_TValue, &frame->co->consts, byte.arg);
-                assert(py_istype(code, tp_code));
-                py_newglobals(SP()++);
-                py_newlocals(SP()++);
-                PUSH(code);
-                if(!pk_exec(py_touserdata(code), frame->module)) goto __ERROR;
-                PUSH(py_retval());
-                DISPATCH();
-            }
             case OP_FORMAT_STRING: {
                 py_Ref spec = c11__at(py_TValue, &frame->co->consts, byte.arg);
-                bool ok = format_object(TOP(), py_tosv(spec));
+                bool ok = stack_format_object(self, py_tosv(spec));
                 if(!ok) goto __ERROR;
-                py_assign(TOP(), py_retval());
                 DISPATCH();
             }
             default: c11__unreachedable();
@@ -1132,8 +1118,30 @@ static bool stack_unpack_sequence(VM* self, uint16_t arg) {
     return true;
 }
 
-static bool format_object(py_Ref val, c11_sv spec) {
+static bool stack_format_object(VM* self, c11_sv spec) {
+    // format TOS via `spec` inplace
+    // spec: '!r:.2f', '.2f'
+    py_StackRef val = TOP();
     if(spec.size == 0) return py_str(val);
+
+    if(spec.data[0] == '!'){
+        if(c11_sv__startswith(spec, (c11_sv){"!r", 2})){
+            spec.data += 2;
+            spec.size -= 2;
+            if(!py_repr(val)) return false;
+            py_assign(val, py_retval());
+            if(spec.size == 0) return true;
+        }else{
+            return ValueError("invalid conversion specifier (only !r is supported)");
+        }
+    }
+
+    assert(spec.size > 0);
+    
+    if(spec.data[0] == ':'){
+        spec.data++;
+        spec.size--;
+    }
 
     char type;
     switch(spec.data[spec.size - 1]) {
@@ -1253,6 +1261,7 @@ static bool format_object(py_Ref val, c11_sv spec) {
     }
 
     c11_string__delete(body);
-    c11_sbuf__py_submit(&buf, py_retval());
+    // inplace update
+    c11_sbuf__py_submit(&buf, val);
     return true;
 }

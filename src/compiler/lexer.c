@@ -36,6 +36,8 @@ double TokenDeserializer__read_float(TokenDeserializer* self, char c);
 
 const static TokenValue EmptyTokenValue;
 
+static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring);
+
 static void Lexer__ctor(Lexer* self, SourceData_ src) {
     PK_INCREF(src);
     self->src = src;
@@ -269,20 +271,22 @@ static Error* eat_name(Lexer* self) {
 
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
 
-static Error* eat_string(Lexer* self, char quote, enum StringType type) {
-    bool raw = type == RAW_STRING;
+static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringType type) {
+    bool is_raw = type == RAW_STRING;
+    bool is_fstring = type == F_STRING;
+
+    if(is_fstring) { add_token(self, TK_FSTR_BEGIN); }
 
     // previous char is quote
     bool quote3 = match_n_chars(self, 2, quote);
-    c11_sbuf buff;
-    c11_sbuf__ctor(&buff);
     while(true) {
         char c = eatchar_include_newline(self);
         if(c == quote) {
             if(quote3 && !match_n_chars(self, 2, quote)) {
-                c11_sbuf__write_char(&buff, c);
+                c11_sbuf__write_char(buff, c);
                 continue;
             }
+            // end of string
             break;
         }
         if(c == '\0') { return SyntaxError(self, "EOL while scanning string literal"); }
@@ -290,44 +294,101 @@ static Error* eat_string(Lexer* self, char quote, enum StringType type) {
             if(!quote3)
                 return SyntaxError(self, "EOL while scanning string literal");
             else {
-                c11_sbuf__write_char(&buff, c);
+                c11_sbuf__write_char(buff, c);
                 continue;
             }
         }
-        if(!raw && c == '\\') {
+        if(!is_raw && c == '\\') {
             switch(eatchar_include_newline(self)) {
-                case '"': c11_sbuf__write_char(&buff, '"'); break;
-                case '\'': c11_sbuf__write_char(&buff, '\''); break;
-                case '\\': c11_sbuf__write_char(&buff, '\\'); break;
-                case 'n': c11_sbuf__write_char(&buff, '\n'); break;
-                case 'r': c11_sbuf__write_char(&buff, '\r'); break;
-                case 't': c11_sbuf__write_char(&buff, '\t'); break;
-                case 'b': c11_sbuf__write_char(&buff, '\b'); break;
+                case '"': c11_sbuf__write_char(buff, '"'); break;
+                case '\'': c11_sbuf__write_char(buff, '\''); break;
+                case '\\': c11_sbuf__write_char(buff, '\\'); break;
+                case 'n': c11_sbuf__write_char(buff, '\n'); break;
+                case 'r': c11_sbuf__write_char(buff, '\r'); break;
+                case 't': c11_sbuf__write_char(buff, '\t'); break;
+                case 'b': c11_sbuf__write_char(buff, '\b'); break;
                 case 'x': {
                     char hex[3] = {eatchar(self), eatchar(self), '\0'};
                     int code;
                     if(sscanf(hex, "%x", &code) != 1) {
                         return SyntaxError(self, "invalid hex char");
                     }
-                    c11_sbuf__write_char(&buff, (char)code);
+                    c11_sbuf__write_char(buff, (char)code);
                 } break;
                 default: return SyntaxError(self, "invalid escape char");
             }
         } else {
-            c11_sbuf__write_char(&buff, c);
+            if(is_fstring) {
+                if(c == '{') {
+                    if(matchchar(self, '{')) {
+                        // '{{' -> '{'
+                        c11_sbuf__write_char(buff, '{');
+                    } else {
+                        // submit previous string
+                        c11_string* res = c11_sbuf__submit(buff);
+                        if(res->size > 0) {
+                            TokenValue value = {TokenValue_STR, ._str = res};
+                            add_token_with_value(self, TK_FSTR_CPNT, value);
+                        } else {
+                            c11_string__delete(res);
+                        }
+                        c11_sbuf__ctor(buff);  // re-init buffer
+
+                        // submit {expr} tokens
+                        bool eof = false;
+                        int token_count = self->nexts.count;
+                        while(!eof) {
+                            Error* err = lex_one_token(self, &eof, true);
+                            if(err) return err;
+                        }
+                        if(self->nexts.count == token_count) {
+                            // f'{}' is not allowed
+                            return SyntaxError(self, "f-string: empty expression not allowed");
+                        }
+                    }
+                } else if(c == '}') {
+                    if(matchchar(self, '}')) {
+                        // '}}' -> '}'
+                        c11_sbuf__write_char(buff, '}');
+                    } else {
+                        return SyntaxError(self, "f-string: single '}' is not allowed");
+                    }
+                }else{
+                    c11_sbuf__write_char(buff, c);
+                }
+            } else {
+                c11_sbuf__write_char(buff, c);
+            }
         }
     }
 
-    c11_string* res = c11_sbuf__submit(&buff);
+    c11_string* res = c11_sbuf__submit(buff);
     TokenValue value = {TokenValue_STR, ._str = res};
-    if(type == F_STRING) {
-        add_token_with_value(self, TK_FSTR, value);
-    } else if(type == NORMAL_BYTES) {
+
+    if(is_fstring) {
+        if(res->size > 0) {
+            add_token_with_value(self, TK_FSTR_CPNT, value);
+        } else {
+            c11_string__delete(res);
+        }
+        add_token(self, TK_FSTR_END);
+        return NULL;
+    }
+
+    if(type == NORMAL_BYTES) {
         add_token_with_value(self, TK_BYTES, value);
     } else {
         add_token_with_value(self, TK_STR, value);
     }
     return NULL;
+}
+
+static Error* eat_string(Lexer* self, char quote, enum StringType type) {
+    c11_sbuf buff;
+    c11_sbuf__ctor(&buff);
+    Error* err = _eat_string(self, &buff, quote, type);
+    c11_sbuf__dtor(&buff);
+    return err;
 }
 
 static Error* eat_number(Lexer* self) {
@@ -376,7 +437,22 @@ static Error* eat_number(Lexer* self) {
     return SyntaxError(self, "invalid number literal");
 }
 
-static Error* lex_one_token(Lexer* self, bool* eof) {
+static Error* eat_fstring_spec(Lexer* self, bool* eof) {
+    while(true) {
+        char c = eatchar_include_newline(self);
+        if(c == '\n' || c == '\0') {
+            return SyntaxError(self, "EOL while scanning f-string format spec");
+        }
+        if(c == '}') {
+            add_token(self, TK_FSTR_SPEC);
+            *eof = true;
+            break;
+        }
+    }
+    return NULL;
+}
+
+static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
     *eof = false;
     while(*self->curr_char) {
         self->token_start = self->curr_char;
@@ -391,9 +467,20 @@ static Error* lex_one_token(Lexer* self, bool* eof) {
             case '#': skip_line_comment(self); break;
             case '~': add_token(self, TK_INVERT); return NULL;
             case '{': add_token(self, TK_LBRACE); return NULL;
-            case '}': add_token(self, TK_RBRACE); return NULL;
+            case '}': {
+                if(is_fstring) {
+                    *eof = true;
+                    return NULL;
+                }
+                add_token(self, TK_RBRACE);
+                return NULL;
+            }
             case ',': add_token(self, TK_COMMA); return NULL;
-            case ':': add_token(self, TK_COLON); return NULL;
+            case ':': {
+                if(is_fstring && self->brackets_level == 0) { return eat_fstring_spec(self, eof); }
+                add_token(self, TK_COLON);
+                return NULL;
+            }
             case ';': add_token(self, TK_SEMICOLON); return NULL;
             case '(': add_token(self, TK_LPAREN); return NULL;
             case ')': add_token(self, TK_RPAREN); return NULL;
@@ -461,12 +548,15 @@ static Error* lex_one_token(Lexer* self, bool* eof) {
                 return NULL;
             }
             case '!':
+                if(is_fstring && self->brackets_level == 0) {
+                    if(matchchar(self, 'r')) { return eat_fstring_spec(self, eof); }
+                }
                 if(matchchar(self, '=')) {
                     add_token(self, TK_NE);
+                    return NULL;
                 } else {
                     return SyntaxError(self, "expected '=' after '!'");
                 }
-                break;
             case '*':
                 if(matchchar(self, '*')) {
                     add_token(self, TK_POW);  // '**'
@@ -507,6 +597,8 @@ static Error* lex_one_token(Lexer* self, bool* eof) {
         }
     }
 
+    if(is_fstring) return SyntaxError(self, "unterminated f-string expression");
+
     self->token_start = self->curr_char;
     while(self->indents.count > 1) {
         c11_vector__pop(&self->indents);
@@ -530,7 +622,7 @@ Error* Lexer__process(SourceData_ src, TokenArray* out_tokens) {
 
     bool eof = false;
     while(!eof) {
-        void* err = lex_one_token(&lexer, &eof);
+        void* err = lex_one_token(&lexer, &eof, false);
         if(err) {
             Lexer__dtor(&lexer);
             return err;
@@ -558,7 +650,10 @@ const char* TokenSymbols[] = {
     "@id",
     "@num",
     "@str",
-    "@fstr",
+    "@fstr-begin",  // TK_FSTR_BEGIN
+    "@fstr-cpnt",   // TK_FSTR_CPNT
+    "@fstr-spec",   // TK_FSTR_SPEC
+    "@fstr-end",    // TK_FSTR_END
     "@bytes",
     "@imag",
     "@indent",

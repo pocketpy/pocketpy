@@ -646,6 +646,10 @@ py_Type pk_bytes__register() {
 }
 
 bool py_str(py_Ref val) {
+    if(val->type == tp_str) {
+        py_assign(py_retval(), val);
+        return true;
+    }
     py_Ref tmp = py_tpfindmagic(val->type, __str__);
     if(!tmp) return py_repr(val);
     return py_call(tmp, 1, val);
