@@ -11,12 +11,12 @@ if(MSVC)
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Ox")
+        add_definitions(-DNDEBUG)
     endif()
 else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
+        add_definitions(-DNDEBUG)
     endif()
 
     # disable -Wshorten-64-to-32 for apple
@@ -27,12 +27,6 @@ endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 file(GLOB_RECURSE POCKETPY_SRC ${CMAKE_CURRENT_LIST_DIR}/src/*.c)
-
-# option(PK_USE_CJSON "" OFF)
-# if(PK_USE_CJSON)
-#     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson)
-#     add_definitions(-DPK_USE_CJSON)
-# endif()
 
 option(PK_ENABLE_OS "" OFF)
 if(PK_ENABLE_OS)
@@ -83,10 +77,6 @@ else()
     # shared linked main
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
     target_link_libraries(${PROJECT_EXE_NAME} ${PROJECT_NAME})
-endif()
-
-if(PK_USE_CJSON)
-    target_link_libraries(${PROJECT_NAME} PRIVATE cjson)
 endif()
 
 # link math library
