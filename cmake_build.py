@@ -25,10 +25,10 @@ assert code == 0
 
 if sys.platform == "win32":
     shutil.copy(f"{config}/main.exe", "../main.exe")
-    # shutil.copy(f"{config}/pocketpy.dll", "../pocketpy.dll")
+    shutil.copy(f"{config}/pocketpy.dll", "../pocketpy.dll")
 elif sys.platform == "darwin":
     shutil.copy("main", "../main")
-    # shutil.copy("libpocketpy.dylib", "../libpocketpy.dylib")
+    shutil.copy("libpocketpy.dylib", "../libpocketpy.dylib")
 else:
     shutil.copy("main", "../main")
     # shutil.copy("libpocketpy.so", "../libpocketpy.so")

@@ -80,8 +80,8 @@ elseif(PK_BUILD_STATIC_LIB)
 else()
     set(PROJECT_EXE_NAME main)
     add_executable(${PROJECT_EXE_NAME} src2/main.c)
-    # static linked main
-    add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC})
+    # shared linked main
+    add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
     target_link_libraries(${PROJECT_EXE_NAME} ${PROJECT_NAME})
 endif()
 
