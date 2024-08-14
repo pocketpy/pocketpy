@@ -83,7 +83,7 @@ jobs:
         uses: jirutka/setup-alpine@v1
         with:
           arch: x86
-          packages: gcc make cmake libc-dev linux-headers python3
+          packages: gcc g++ make cmake libc-dev linux-headers python3
       - name: Build and Test
         run: |
           uname -m

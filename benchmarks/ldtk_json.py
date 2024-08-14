@@ -1,7 +1,4 @@
-try:
-    import os
-except ImportError:
-    exit(0)
+exit(0)
 
 os.chdir('benchmarks')
 
