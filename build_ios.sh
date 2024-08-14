@@ -13,8 +13,8 @@ cmake -B simulatorarm64 -G Xcode $FLAGS -DPLATFORM=SIMULATORARM64 ..
 cmake --build simulatorarm64 --config Release
 
 xcodebuild -create-xcframework \
-    -library os64/Release-iphoneos/libpocketpy.a -headers ../include \
-    -library simulatorarm64/Release-iphonesimulator/libpocketpy.a -headers ../include \
+    -library os64/Release-iphoneos/libpocketpy.a -headers ../include/pocketpy/pocketpy.h \
+    -library simulatorarm64/Release-iphonesimulator/libpocketpy.a -headers ../include/pocketpy/pocketpy.h \
     -output pocketpy.xcframework
 
 
