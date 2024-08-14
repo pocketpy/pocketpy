@@ -6,10 +6,12 @@
 
 static bool get_ns(int64_t* out) {
     struct timespec tms;
+#ifdef __ANDROID__
+    clock_gettime(CLOCK_REALTIME, &tms);
+#else
     /* The C11 way */
-    if(!timespec_get(&tms, TIME_UTC)) {
-        return py_exception(tp_OSError, "%s", "timespec_get() failed");
-    }
+    timespec_get(&tms, TIME_UTC);
+#endif
     /* seconds, multiplied with 1 billion */
     int64_t nanos = tms.tv_sec * NANOS_PER_SEC;
     /* Add full nanoseconds */

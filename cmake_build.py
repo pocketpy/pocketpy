@@ -31,4 +31,4 @@ elif sys.platform == "darwin":
     shutil.copy("libpocketpy.dylib", "../libpocketpy.dylib")
 else:
     shutil.copy("main", "../main")
-    # shutil.copy("libpocketpy.so", "../libpocketpy.so")
+    shutil.copy("libpocketpy.so", "../libpocketpy.so")
