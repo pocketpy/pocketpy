@@ -89,8 +89,6 @@ try:
     exit(1)
 except UnboundLocalError:
     pass
-except NameError:
-    pass
 
 
 g = 1
