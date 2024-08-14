@@ -56,11 +56,9 @@ if(PK_BUILD_SHARED_LIB)
 elseif(PK_BUILD_STATIC_LIB)
     add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC})
 else()
-    set(PROJECT_EXE_NAME main)
-    add_executable(${PROJECT_EXE_NAME} src2/main.c)
-    # shared linked main
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
-    target_link_libraries(${PROJECT_EXE_NAME} ${PROJECT_NAME})
+    add_executable(main src2/main.c)
+    target_link_libraries(main ${PROJECT_NAME})
 endif()
 
 # link math library
