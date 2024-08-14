@@ -392,11 +392,9 @@ static bool
                                  co->name->data);
             } else {
                 // add to **kwargs
-                py_Ref tmp = py_pushtmp();
-                c11_sv key_sv = py_name2sv(key);
-                py_newstrn(tmp, key_sv.data, key_sv.size);
-                bool ok = py_dict_setitem(&buffer[decl->starred_kwarg], tmp, &p1[2 * j + 1]);
-                py_pop();
+                bool ok = py_dict_setitem_by_str(&buffer[decl->starred_kwarg],
+                                                 py_name2str(key),
+                                                 &p1[2 * j + 1]);
                 if(!ok) return false;
             }
         }

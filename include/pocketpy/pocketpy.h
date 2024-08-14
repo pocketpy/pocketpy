@@ -543,7 +543,11 @@ PK_EXPORT bool py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) PY_RAISE;
 /// -1: error, 0: not found, 1: found (and deleted)
 PK_EXPORT int py_dict_delitem(py_Ref self, py_Ref key) PY_RAISE;
 /// -1: error, 0: not found, 1: found
-PK_EXPORT int py_dict_contains(py_Ref self, py_Ref key) PY_RAISE;
+PK_EXPORT int py_dict_getitem_by_str(py_Ref self, const char* key) PY_RAISE PY_RETURN;
+/// true: success, false: error
+PK_EXPORT bool py_dict_setitem_by_str(py_Ref self, const char* key, py_Ref val) PY_RAISE;
+/// -1: error, 0: not found, 1: found (and deleted)
+PK_EXPORT int py_dict_delitem_by_str(py_Ref self, const char* key) PY_RAISE;
 /// true: success, false: error
 PK_EXPORT bool
     py_dict_apply(py_Ref self, bool (*f)(py_Ref key, py_Ref val, void* ctx), void* ctx) PY_RAISE;

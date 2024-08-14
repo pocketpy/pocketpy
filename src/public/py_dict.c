@@ -521,25 +521,40 @@ int py_dict_getitem(py_Ref self, py_Ref key) {
     return 0;
 }
 
-int py_dict_delitem(py_Ref self, py_Ref key) {
-    assert(py_isdict(self));
-    Dict* ud = py_touserdata(self);
-    return Dict__pop(ud, key);
-}
-
 bool py_dict_setitem(py_Ref self, py_Ref key, py_Ref val) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
     return Dict__set(ud, key, val);
 }
 
-int py_dict_contains(py_Ref self, py_Ref key) {
+int py_dict_delitem(py_Ref self, py_Ref key) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);
-    DictEntry* entry;
-    bool ok = Dict__try_get(ud, key, &entry);
-    if(!ok) return -1;
-    return entry ? 1 : 0;
+    return Dict__pop(ud, key);
+}
+
+int py_dict_getitem_by_str(py_Ref self, const char *key){
+    py_Ref tmp = py_pushtmp();
+    py_newstr(tmp, key);
+    int res = py_dict_getitem(self, tmp);
+    py_pop();
+    return res;
+}
+
+bool py_dict_setitem_by_str(py_Ref self, const char *key, py_Ref val){
+    py_Ref tmp = py_pushtmp();
+    py_newstr(tmp, key);
+    bool res = py_dict_setitem(self, tmp, val);
+    py_pop();
+    return res;
+}
+
+int py_dict_delitem_by_str(py_Ref self, const char *key){
+    py_Ref tmp = py_pushtmp();
+    py_newstr(tmp, key);
+    int res = py_dict_delitem(self, tmp);
+    py_pop();
+    return res;
 }
 
 int py_dict_len(py_Ref self) {
