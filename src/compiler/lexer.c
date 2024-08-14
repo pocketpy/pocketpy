@@ -267,7 +267,11 @@ static Error* eat_name(Lexer* self) {
     return NULL;
 }
 
-static Error* eat_string_until(Lexer* self, char quote, bool raw, c11_string** out) {
+enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
+
+static Error* eat_string(Lexer* self, char quote, enum StringType type) {
+    bool raw = type == RAW_STRING;
+
     // previous char is quote
     bool quote3 = match_n_chars(self, 2, quote);
     c11_sbuf buff;
@@ -313,17 +317,9 @@ static Error* eat_string_until(Lexer* self, char quote, bool raw, c11_string** o
             c11_sbuf__write_char(&buff, c);
         }
     }
-    *out = c11_sbuf__submit(&buff);
-    return NULL;
-}
 
-enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
-
-static Error* eat_string(Lexer* self, char quote, enum StringType type) {
-    c11_string* s;
-    Error* err = eat_string_until(self, quote, type == RAW_STRING, &s);
-    if(err) return err;
-    TokenValue value = {TokenValue_STR, ._str = s};
+    c11_string* res = c11_sbuf__submit(&buff);
+    TokenValue value = {TokenValue_STR, ._str = res};
     if(type == F_STRING) {
         add_token_with_value(self, TK_FSTR, value);
     } else if(type == NORMAL_BYTES) {
@@ -468,8 +464,7 @@ static Error* lex_one_token(Lexer* self, bool* eof) {
                 if(matchchar(self, '=')) {
                     add_token(self, TK_NE);
                 } else {
-                    Error* err = SyntaxError(self, "expected '=' after '!'");
-                    if(err) return err;
+                    return SyntaxError(self, "expected '=' after '!'");
                 }
                 break;
             case '*':
@@ -523,85 +518,10 @@ static Error* lex_one_token(Lexer* self, bool* eof) {
     return NULL;
 }
 
-static Error* from_precompiled(Lexer* self) {
-    TokenDeserializer deserializer;
-    TokenDeserializer__ctor(&deserializer, self->src->source->data);
-
-    deserializer.curr += 5;  // skip "pkpy:"
-    c11_sv version = TokenDeserializer__read_string(&deserializer, '\n');
-
-    if(c11_sv__cmp2(version, PK_VERSION) != 0) {
-        return SyntaxError(self, "precompiled version mismatch");
-    }
-    if(TokenDeserializer__read_uint(&deserializer, '\n') != (int64_t)self->src->mode) {
-        return SyntaxError(self, "precompiled mode mismatch");
-    }
-
-    int count = TokenDeserializer__read_count(&deserializer);
-    c11_vector* precompiled_tokens = &self->src->_precompiled_tokens;
-    for(int i = 0; i < count; i++) {
-        c11_sv item = TokenDeserializer__read_string(&deserializer, '\n');
-        c11_string* copied_item = c11_string__new2(item.data, item.size);
-        c11_vector__push(c11_string*, precompiled_tokens, copied_item);
-    }
-
-    count = TokenDeserializer__read_count(&deserializer);
-    for(int i = 0; i < count; i++) {
-        Token t;
-        t.type = (TokenIndex)TokenDeserializer__read_uint(&deserializer, ',');
-        if(is_raw_string_used(t.type)) {
-            int64_t index = TokenDeserializer__read_uint(&deserializer, ',');
-            c11_string* p = c11__getitem(c11_string*, precompiled_tokens, index);
-            t.start = p->data;
-            t.length = p->size;
-        } else {
-            t.start = NULL;
-            t.length = 0;
-        }
-
-        if(TokenDeserializer__match_char(&deserializer, ',')) {
-            t.line = c11_vector__back(Token, &self->nexts).line;
-        } else {
-            t.line = (int)TokenDeserializer__read_uint(&deserializer, ',');
-        }
-
-        if(TokenDeserializer__match_char(&deserializer, ',')) {
-            t.brackets_level = c11_vector__back(Token, &self->nexts).brackets_level;
-        } else {
-            t.brackets_level = (int)TokenDeserializer__read_uint(&deserializer, ',');
-        }
-
-        char type = (*deserializer.curr++);  // read_char
-        switch(type) {
-            case 'I': {
-                int64_t res = TokenDeserializer__read_uint(&deserializer, '\n');
-                t.value = (TokenValue){TokenValue_I64, ._i64 = res};
-            } break;
-            case 'F': {
-                double res = TokenDeserializer__read_float(&deserializer, '\n');
-                t.value = (TokenValue){TokenValue_F64, ._f64 = res};
-            } break;
-            case 'S': {
-                c11_string* res = TokenDeserializer__read_string_from_hex(&deserializer, '\n');
-                t.value = (TokenValue){TokenValue_STR, ._str = res};
-            } break;
-            default: t.value = EmptyTokenValue; break;
-        }
-        c11_vector__push(Token, &self->nexts, t);
-    }
-    return NULL;
-}
-
 Error* Lexer__process(SourceData_ src, TokenArray* out_tokens) {
     Lexer lexer;
     Lexer__ctor(&lexer, src);
 
-    if(src->is_precompiled) {
-        Error* err = from_precompiled(&lexer);
-        // TODO: set out tokens
-        Lexer__dtor(&lexer);
-        return err;
-    }
     // push initial tokens
     Token sof =
         {TK_SOF, lexer.token_start, 0, lexer.current_line, lexer.brackets_level, EmptyTokenValue};
@@ -620,102 +540,6 @@ Error* Lexer__process(SourceData_ src, TokenArray* out_tokens) {
     *out_tokens = c11_vector__submit(&lexer.nexts);
 
     Lexer__dtor(&lexer);
-    return NULL;
-}
-
-Error* Lexer__process_and_dump(SourceData_ src, c11_string** out) {
-    assert(!src->is_precompiled);
-    TokenArray nexts;  // output tokens
-    Error* err = Lexer__process(src, &nexts);
-    if(err) return err;
-
-    c11_sbuf ss;
-    c11_sbuf__ctor(&ss);
-
-    // L1: version string
-    c11_sbuf__write_cstr(&ss, "pkpy:" PK_VERSION "\n");
-    // L2: mode
-    c11_sbuf__write_int(&ss, (int)src->mode);
-    c11_sbuf__write_char(&ss, '\n');
-
-    c11_smallmap_s2n token_indices;
-    c11_smallmap_s2n__ctor(&token_indices);
-
-    c11__foreach(Token, &nexts, token) {
-        if(is_raw_string_used(token->type)) {
-            c11_sv token_sv = {token->start, token->length};
-            if(!c11_smallmap_s2n__contains(&token_indices, token_sv)) {
-                c11_smallmap_s2n__set(&token_indices, token_sv, 0);
-            }
-        }
-    }
-    // L3: raw string count
-    c11_sbuf__write_char(&ss, '=');
-    c11_sbuf__write_int(&ss, token_indices.count);
-    c11_sbuf__write_char(&ss, '\n');
-
-    uint16_t index = 0;
-    for(int i = 0; i < token_indices.count; i++) {
-        c11_smallmap_s2n_KV* kv = c11__at(c11_smallmap_s2n_KV, &token_indices, i);
-        // L4: raw strings
-        c11_sbuf__write_cstrn(&ss, kv->key.data, kv->key.size);
-        kv->value = index++;
-    }
-
-    // L5: token count
-    c11_sbuf__write_char(&ss, '=');
-    c11_sbuf__write_int(&ss, nexts.count);
-    c11_sbuf__write_char(&ss, '\n');
-
-    for(int i = 0; i < nexts.count; i++) {
-        const Token* token = c11__at(Token, &nexts, i);
-        c11_sbuf__write_int(&ss, (int)token->type);
-        c11_sbuf__write_char(&ss, ',');
-
-        if(is_raw_string_used(token->type)) {
-            uint16_t* p =
-                c11_smallmap_s2n__try_get(&token_indices, (c11_sv){token->start, token->length});
-            assert(p != NULL);
-            c11_sbuf__write_int(&ss, (int)*p);
-            c11_sbuf__write_char(&ss, ',');
-        }
-        if(i > 0 && c11__getitem(Token, &nexts, i - 1).line == token->line) {
-            c11_sbuf__write_char(&ss, ',');
-        } else {
-            c11_sbuf__write_int(&ss, token->line);
-            c11_sbuf__write_char(&ss, ',');
-        }
-
-        if(i > 0 && c11__getitem(Token, &nexts, i - 1).brackets_level == token->brackets_level) {
-            c11_sbuf__write_char(&ss, ',');
-        } else {
-            c11_sbuf__write_int(&ss, token->brackets_level);
-            c11_sbuf__write_char(&ss, ',');
-        }
-        // visit token value
-        switch(token->value.index) {
-            case TokenValue_EMPTY: break;
-            case TokenValue_I64:
-                c11_sbuf__write_char(&ss, 'I');
-                c11_sbuf__write_int(&ss, token->value._i64);
-                break;
-            case TokenValue_F64:
-                c11_sbuf__write_char(&ss, 'F');
-                c11_sbuf__write_f64(&ss, token->value._f64, -1);
-                break;
-            case TokenValue_STR: {
-                c11_sbuf__write_char(&ss, 'S');
-                c11_sv sv = c11_string__sv(token->value._str);
-                for(int i = 0; i < sv.size; i++) {
-                    c11_sbuf__write_hex(&ss, sv.data[i], false);
-                }
-                break;
-            }
-        }
-        c11_sbuf__write_char(&ss, '\n');
-    }
-    *out = c11_sbuf__submit(&ss);
-    c11_smallmap_s2n__dtor(&token_indices);
     return NULL;
 }
 

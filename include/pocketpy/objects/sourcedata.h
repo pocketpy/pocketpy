@@ -9,14 +9,12 @@
 struct SourceData {
     RefCounted rc;
     enum py_CompileMode mode;
-    bool is_precompiled;
     bool is_dynamic;  // for exec() and eval()
 
     c11_string* filename;
     c11_string* source;
 
     c11_vector /*T=const char* */ line_starts;
-    c11_vector /*T=c11_string* */ _precompiled_tokens;
 };
 
 typedef struct SourceData* SourceData_;
