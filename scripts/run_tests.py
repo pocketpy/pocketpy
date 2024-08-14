@@ -56,11 +56,8 @@ def add(a, b):
 class A:
     def __init__(self, x):
         self.x = x
-
     def get(self):
         return self.x
-
-
 
 print('ans_1:', add(1, 2))
 print('ans_2:', A('abc').get())
