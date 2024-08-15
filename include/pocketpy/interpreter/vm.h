@@ -71,6 +71,7 @@ bool pk__normalize_index(int* index, int length);
 void pk__mark_value(py_TValue*);
 void pk__mark_namedict(NameDict*);
 void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*));
+bool pk__object_new(int argc, py_Ref argv);
 
 bool pk_wrapper__self(int argc, py_Ref argv);
 bool pk_wrapper__NotImplementedError(int argc, py_Ref argv);

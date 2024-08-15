@@ -486,7 +486,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
     }
 
     if(p0->type == tp_nativefunc) {
-        if(kwargc) {
+        if(kwargc && p0->_cfunc != pk__object_new) {
             TypeError("nativefunc does not accept keyword arguments");
             return RES_ERROR;
         }

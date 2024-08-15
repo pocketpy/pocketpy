@@ -2,7 +2,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/pocketpy.h"
 
-static bool object__new__(int argc, py_Ref argv) {
+bool pk__object_new(int argc, py_Ref argv) {
     if(argc == 0) return TypeError("object.__new__(): not enough arguments");
     py_Type cls = py_totype(py_arg(0));
     py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, cls);
@@ -110,7 +110,7 @@ static bool type__module__(int argc, py_Ref argv) {
 
 void pk_object__register() {
     // TODO: use staticmethod
-    py_bindmagic(tp_object, __new__, object__new__);
+    py_bindmagic(tp_object, __new__, pk__object_new);
 
     py_bindmagic(tp_object, __hash__, object__hash__);
     py_bindmagic(tp_object, __eq__, object__eq__);
