@@ -164,9 +164,9 @@ PK_EXPORT void py_newboundmethod(py_Ref out, py_Ref self, py_Ref func);
 PK_EXPORT py_Name py_name(const char*);
 /// Convert a name to a null-terminated string.
 PK_EXPORT const char* py_name2str(py_Name);
-/// Convert a name to a `c11_sv`.
-PK_EXPORT py_Name py_namev(c11_sv name);
 /// Convert a `c11_sv` to a name.
+PK_EXPORT py_Name py_namev(c11_sv);
+/// Convert a name to a `c11_sv`.
 PK_EXPORT c11_sv py_name2sv(py_Name);
 
 #define py_ismagicname(name) (name <= __missing__)
