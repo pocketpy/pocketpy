@@ -99,6 +99,18 @@ static bool _py_BaseException__str__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool BaseException_args(int argc, py_Ref argv){
+    PY_CHECK_ARGC(1);
+    py_Ref arg = py_getslot(argv, 0);
+    if(!py_isnil(arg)) {
+        py_newtuple(py_retval(), 1);
+        py_setslot(py_retval(), 0, arg);
+    }else{
+        py_newtuple(py_retval(), 0);
+    }
+    return true;
+}
+
 py_Type pk_BaseException__register() {
     py_Type type = pk_newtype("BaseException", tp_object, NULL, BaseException__dtor, false, false);
 
@@ -106,6 +118,7 @@ py_Type pk_BaseException__register() {
     py_bindmagic(type, __init__, _py_BaseException__init__);
     py_bindmagic(type, __repr__, _py_BaseException__repr__);
     py_bindmagic(type, __str__, _py_BaseException__str__);
+    py_bindproperty(type, "args", BaseException_args, NULL);
     return type;
 }
 

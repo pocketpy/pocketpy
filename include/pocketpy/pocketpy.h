@@ -468,7 +468,7 @@ PK_EXPORT bool KeyError(py_Ref key) PY_RAISE;
 
 /// Python equivalent to `bool(val)`.
 /// 1: true, 0: false, -1: error
-PK_EXPORT int py_bool(py_Ref val) PY_RAISE PY_RETURN;
+PK_EXPORT int py_bool(py_Ref val) PY_RAISE;
 
 /// Compare two objects.
 /// 1: lhs == rhs, 0: lhs != rhs, -1: error
@@ -598,7 +598,7 @@ enum py_PredefinedTypes {
     tp_nativefunc,
     tp_boundmethod,
     tp_super,          // 1 slot + py_Type
-    tp_BaseException,  // 2 slots (arg + inner exc)
+    tp_BaseException,  // 2 slots (arg + inner_exc)
     tp_Exception,
     tp_bytes,
     tp_namedict,
