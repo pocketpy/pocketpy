@@ -272,7 +272,11 @@ static bool str_join(int argc, py_Ref argv) {
     bool first = true;
     while(true) {
         int res = py_next(py_peek(-1));
-        if(res == -1) return false;
+        if(res == -1) {
+            c11_sbuf__dtor(&buf);
+            return false;
+        }
+
         if(res == 0) break;
 
         if(!first) c11_sbuf__write_sv(&buf, self);
