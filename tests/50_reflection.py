@@ -26,3 +26,27 @@ except AttributeError:
     pass
 
 assert getattr(a, 'xxx', 1) == 1
+
+class A:
+    def __init__(self, x):
+        self.x = x
+
+    def __getattr__(self, name):
+        if not name:
+            raise AttributeError
+        return name, None
+    
+a = A(1)
+assert a.x == 1
+assert a.y == ('y', None)
+assert a.zzz == ('zzz', None)
+
+assert getattr(a, 'x') == 1
+assert getattr(a, 'zzz') == ('zzz', None)
+
+assert hasattr(a, 'x')
+assert hasattr(a, 'y')
+assert hasattr(a, 'zzz')
+
+assert not hasattr(a, '')
+

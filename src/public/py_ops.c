@@ -151,6 +151,14 @@ bool py_getattr(py_Ref self, py_Name name) {
         }
     }
 
+    py_Ref fallback = py_tpfindmagic(type, __getattr__);
+    if(fallback){
+        py_push(fallback);
+        py_push(self);
+        py_newstr(py_pushtmp(), py_name2str(name));
+        return py_vectorcall(1, 0);
+    }
+
     if(self->type == tp_module) {
         py_Ref path = py_getdict(self, __path__);
         c11_sbuf buf;

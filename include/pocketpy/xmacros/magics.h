@@ -59,6 +59,7 @@ MAGIC_METHOD(__package__)
 MAGIC_METHOD(__path__)
 MAGIC_METHOD(__class__)
 MAGIC_METHOD(__abs__)
+MAGIC_METHOD(__getattr__)
 MAGIC_METHOD(__missing__)
 
 #endif
