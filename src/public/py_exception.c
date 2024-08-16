@@ -142,6 +142,7 @@ bool py_matchexc(py_Type type) {
     if(ok) {
         // if match, then the exception is handled
         vm->is_curr_exc_handled = true;
+        vm->last_retval = vm->curr_exception;
     }
     return ok;
 }

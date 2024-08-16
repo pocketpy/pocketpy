@@ -443,8 +443,9 @@ PK_EXPORT char* py_formatexc();
 /// Check if an exception is raised.
 PK_EXPORT bool py_checkexc(bool ignore_handled);
 /// Check if the exception is an instance of the given type.
-/// If match, the exception will be set as handled.
-PK_EXPORT bool py_matchexc(py_Type type);
+/// This function is roughly equivalent to python's `except <T> as e:` block.
+/// If match, the exception will be stored in `py_retval()` as handled.
+PK_EXPORT bool py_matchexc(py_Type type) PY_RETURN;
 /// Clear the current exception.
 /// @param p0 the unwinding point. Use `NULL` if not needed.
 PK_EXPORT void py_clearexc(py_StackRef p0);
