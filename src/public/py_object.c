@@ -108,6 +108,18 @@ static bool type__module__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool type__annotations__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_Type type = py_totype(argv);
+    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
+    if(py_isnil(&ti->annotations)) {
+        py_newdict(py_retval());
+    } else {
+        py_assign(py_retval(), &ti->annotations);
+    }
+    return true;
+}
+
 void pk_object__register() {
     // TODO: use staticmethod
     py_bindmagic(tp_object, __new__, pk__object_new);
@@ -116,8 +128,7 @@ void pk_object__register() {
     py_bindmagic(tp_object, __eq__, object__eq__);
     py_bindmagic(tp_object, __ne__, object__ne__);
     py_bindmagic(tp_object, __repr__, object__repr__);
-    py_bindproperty(tp_object, "__dict__", object__dict__, NULL);
-
+    
     py_bindmagic(tp_type, __repr__, type__repr__);
     py_bindmagic(tp_type, __new__, type__new__);
     py_bindmagic(tp_type, __getitem__, type__getitem__);
@@ -125,4 +136,6 @@ void pk_object__register() {
 
     py_bindproperty(tp_type, "__base__", type__base__, NULL);
     py_bindproperty(tp_type, "__name__", type__name__, NULL);
+    py_bindproperty(tp_object, "__dict__", object__dict__, NULL);
+    py_bindproperty(tp_type, "__annotations__", type__annotations__, NULL);
 }

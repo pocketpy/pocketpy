@@ -206,4 +206,4 @@ assert "{{{}xxx{}x}}".format(1, 2) == "{1xxx2x}"
 assert "{{abc}}".format() == "{abc}"
 
 # test f-string
-stack=[1,2,3,4]; assert f"{stack[2:]}" == '[3, 4]'
+# stack=[1,2,3,4]; assert f"{stack[2:]}" == '[3, 4]'

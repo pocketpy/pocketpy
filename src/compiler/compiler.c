@@ -1930,6 +1930,16 @@ static Error* consume_type_hints(Compiler* self) {
     return NULL;
 }
 
+static Error* consume_type_hints_sv(Compiler* self, c11_sv* out) {
+    Error* err;
+    const char* start = curr()->start;
+    check(EXPR(self));
+    const char* end = prev()->start + prev()->length;
+    *out = (c11_sv){start, end - start};
+    Ctx__s_pop(ctx());
+    return NULL;
+}
+
 static Error* compile_stmt(Compiler* self);
 
 static Error* compile_block_body(Compiler* self, PrattCallback callback) {
@@ -2601,11 +2611,14 @@ static Error* compile_stmt(Compiler* self) {
             // eat variable's type hint if it is a single name
             if(Ctx__s_top(ctx())->vt->is_name) {
                 if(match(TK_COLON)) {
-                    check(consume_type_hints(self));
+                    c11_sv type_hint;
+                    check(consume_type_hints_sv(self, &type_hint));
                     is_typed_name = true;
 
                     if(ctx()->is_compiling_class) {
                         NameExpr* ne = (NameExpr*)Ctx__s_top(ctx());
+                        int index = Ctx__add_const_string(ctx(), type_hint);
+                        Ctx__emit_(ctx(), OP_LOAD_CONST, index, BC_KEEPLINE);
                         Ctx__emit_(ctx(), OP_ADD_CLASS_ANNOTATION, ne->name, BC_KEEPLINE);
                     }
                 }

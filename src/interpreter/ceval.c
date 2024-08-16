@@ -913,9 +913,13 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_ADD_CLASS_ANNOTATION: {
+                // [type_hint string]
                 py_Type type = py_totype(self->__curr_class);
                 py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, type);
-                c11_vector__push(py_Name, &ti->annotated_fields, byte.arg);
+                if(py_isnil(&ti->annotations)) py_newdict(&ti->annotations);
+                bool ok = py_dict_setitem_by_str(&ti->annotations, py_name2str(byte.arg), TOP());
+                if(!ok) goto __ERROR;
+                POP();
                 DISPATCH();
             }
             ///////////

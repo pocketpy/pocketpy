@@ -49,10 +49,8 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
     };
 
     self->module = module;
-    c11_vector__ctor(&self->annotated_fields, sizeof(py_Name));
+    self->annotations = *py_NIL;
 }
-
-static void py_TypeInfo__dtor(py_TypeInfo* self) { c11_vector__dtor(&self->annotated_fields); }
 
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
@@ -230,7 +228,6 @@ void VM__dtor(VM* self) {
     while(self->top_frame)
         VM__pop_frame(self);
     ModuleDict__dtor(&self->modules);
-    c11__foreach(py_TypeInfo, &self->types, ti) py_TypeInfo__dtor(ti);
     c11_vector__dtor(&self->types);
     ValueStack__clear(&self->stack);
 }
@@ -602,16 +599,19 @@ void ManagedHeap__mark(ManagedHeap* self) {
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
         pk__mark_value(p);
     }
-    // mark magic slots
+    // mark types
     py_TypeInfo* types = vm->types.data;
     int types_length = vm->types.length;
     // 0-th type is placeholder
     for(int i = 1; i < types_length; i++) {
+        // mark magic slots
         for(int j = 0; j <= __missing__; j++) {
             py_TValue* slot = types[i].magic + j;
             if(py_isnil(slot)) continue;
             pk__mark_value(slot);
         }
+        // mark type annotations
+        pk__mark_value(&types[i].annotations);
     }
     // mark frame
     for(Frame* frame = vm->top_frame; frame; frame = frame->f_back) {

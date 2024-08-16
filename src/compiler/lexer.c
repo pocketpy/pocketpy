@@ -477,7 +477,7 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
             }
             case ',': add_token(self, TK_COMMA); return NULL;
             case ':': {
-                if(is_fstring && self->brackets_level == 0) { return eat_fstring_spec(self, eof); }
+                if(is_fstring) { return eat_fstring_spec(self, eof); }
                 add_token(self, TK_COLON);
                 return NULL;
             }
@@ -548,7 +548,7 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
                 return NULL;
             }
             case '!':
-                if(is_fstring && self->brackets_level == 0) {
+                if(is_fstring) {
                     if(matchchar(self, 'r')) { return eat_fstring_spec(self, eof); }
                 }
                 if(matchchar(self, '=')) {
