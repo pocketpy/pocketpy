@@ -68,7 +68,6 @@ void VM__ctor(VM* self) {
     self->last_retval = *py_NIL;
     self->curr_exception = *py_NIL;
     self->is_curr_exc_handled = false;
-    self->is_stopiteration = false;
 
     self->__curr_class = NULL;
 
@@ -206,6 +205,7 @@ void VM__ctor(VM* self) {
     pk__add_module_time();
     pk__add_module_easing();
     pk__add_module_traceback();
+    pk__add_module_enum();
 
     // add python builtins
     do {

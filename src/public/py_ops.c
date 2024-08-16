@@ -70,20 +70,17 @@ bool py_iter(py_Ref val) {
 
 int py_next(py_Ref val) {
     VM* vm = pk_current_vm;
-    vm->is_stopiteration = false;
     py_Ref tmp = py_tpfindmagic(val->type, __next__);
     if(!tmp) {
         TypeError("'%t' object is not an iterator", val->type);
         return -1;
     }
-    if(py_call(tmp, 1, val)) return true;
+    if(py_call(tmp, 1, val)) return 1;
     if(vm->curr_exception.type == tp_StopIteration) {
         py_clearexc(NULL);
-        vm->is_stopiteration = true;
+        return 0;
     }
-    int retval = vm->is_stopiteration ? 0 : -1;
-    vm->is_stopiteration = false;
-    return retval;
+    return -1;
 }
 
 bool py_getattr(py_Ref self, py_Name name) {

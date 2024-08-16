@@ -105,7 +105,12 @@ bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
     py_StackRef p0 = py_peek(0);
     py_newnil(py_retval());
     bool ok = f(argc, argv);
-    if(!ok) return false;
+    if(!ok) {
+        if(!py_checkexc(true)) {
+            c11__abort("py_CFunction returns `false` but no exception is set!");
+        }
+        return false;
+    }
     if(py_peek(0) != p0) {
         c11__abort("py_CFunction corrupts the stack! Did you forget to call `py_pop()`?");
     }
@@ -219,9 +224,4 @@ bool pk_callmagic(py_Name name, int argc, py_Ref argv) {
     return py_call(tmp, argc, argv);
 }
 
-bool StopIteration() {
-    VM* vm = pk_current_vm;
-    assert(!vm->is_stopiteration);  // flag is already set
-    vm->is_stopiteration = true;
-    return false;
-}
+bool StopIteration() { return py_exception(tp_StopIteration, ""); }

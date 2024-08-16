@@ -11,3 +11,4 @@ void pk__add_module_gc();
 void pk__add_module_time();
 void pk__add_module_easing();
 void pk__add_module_traceback();
+void pk__add_module_enum();

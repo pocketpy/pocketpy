@@ -48,7 +48,6 @@ typedef struct VM {
     py_TValue last_retval;
     py_TValue curr_exception;
     bool is_curr_exc_handled;  // handled by try-except block but not cleared yet
-    bool is_stopiteration;
 
     py_TValue reg[8];  // users' registers
 

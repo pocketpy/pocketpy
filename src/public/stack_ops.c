@@ -34,6 +34,17 @@ py_ItemRef py_emplacedict(py_Ref self, py_Name name){
     return py_getdict(self, name);
 }
 
+bool py_applydict(py_Ref self, bool (*f)(py_Name, py_Ref, void *), void *ctx){
+    assert(self && self->is_ptr);
+    NameDict* dict = PyObject__dict(self->_obj);
+    for(int i = 0; i < dict->length; i++){
+        NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
+        bool ok = f(kv->key, &kv->value, ctx);
+        if(!ok) return false;
+    }
+    return true;
+}
+
 bool py_deldict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
     if(!py_ismagicname(name) || self->type != tp_type) {

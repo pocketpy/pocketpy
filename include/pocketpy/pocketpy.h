@@ -295,6 +295,10 @@ PK_EXPORT void py_setdict(py_Ref self, py_Name name, py_Ref val);
 PK_EXPORT bool py_deldict(py_Ref self, py_Name name);
 /// Prepare an insertion to the object's `__dict__`.
 PK_EXPORT py_ItemRef py_emplacedict(py_Ref self, py_Name name);
+/// Apply a function to all items in the object's `__dict__`.
+/// Return `true` if the function is successful for all items.
+/// NOTE: Be careful if `f` modifies the object's `__dict__`.
+PK_EXPORT bool py_applydict(py_Ref self, bool (*f)(py_Name name, py_Ref val, void* ctx), void* ctx) PY_RAISE;
 
 /// Get the i-th slot of the object.
 /// The object must have slots and `i` must be in valid range.
