@@ -51,6 +51,8 @@ typedef py_TValue* py_GlobalRef;
 typedef py_TValue* py_StackRef;
 /// An item reference to a container object. It invalidates when the container is modified.
 typedef py_TValue* py_ItemRef;
+/// An output reference for returning a value.
+typedef py_TValue* py_OutRef;
 
 /// Native function signature.
 /// @param argc number of arguments.
@@ -109,54 +111,57 @@ PK_EXPORT bool py_compile(const char* source,
                           bool is_dynamic) PY_RAISE PY_RETURN;
 
 /// Python equivalent to `globals()`.
-PK_EXPORT void py_newglobals(py_Ref);
+PK_EXPORT void py_newglobals(py_OutRef);
 /// Python equivalent to `locals()`.
 /// @return a temporary object, which expires on the associated function return.
-PK_EXPORT void py_newlocals(py_Ref);
+PK_EXPORT void py_newlocals(py_OutRef);
 
 /************* Values Creation *************/
 
 /// Create an `int` object.
-PK_EXPORT void py_newint(py_Ref, py_i64);
+PK_EXPORT void py_newint(py_OutRef, py_i64);
 /// Create a `float` object.
-PK_EXPORT void py_newfloat(py_Ref, py_f64);
+PK_EXPORT void py_newfloat(py_OutRef, py_f64);
 /// Create a `bool` object.
-PK_EXPORT void py_newbool(py_Ref, bool);
+PK_EXPORT void py_newbool(py_OutRef, bool);
 /// Create a `str` object from a null-terminated string (utf-8).
-PK_EXPORT void py_newstr(py_Ref, const char*);
+PK_EXPORT void py_newstr(py_OutRef, const char*);
 /// Create a `str` object from a char array (utf-8).
-PK_EXPORT void py_newstrn(py_Ref, const char*, int);
+PK_EXPORT void py_newstrn(py_OutRef, const char*, int);
 /// Create a `bytes` object with `n` UNINITIALIZED bytes.
-PK_EXPORT unsigned char* py_newbytes(py_Ref, int n);
+PK_EXPORT unsigned char* py_newbytes(py_OutRef, int n);
 /// Create a `None` object.
-PK_EXPORT void py_newnone(py_Ref);
+PK_EXPORT void py_newnone(py_OutRef);
 /// Create a `NotImplemented` object.
-PK_EXPORT void py_newnotimplemented(py_Ref out);
+PK_EXPORT void py_newnotimplemented(py_OutRef);
 /// Create a `...` object.
-PK_EXPORT void py_newellipsis(py_Ref out);
+PK_EXPORT void py_newellipsis(py_OutRef);
 /// Create a `nil` object. `nil` is an invalid representation of an object.
 /// Don't use it unless you know what you are doing.
-PK_EXPORT void py_newnil(py_Ref);
+PK_EXPORT void py_newnil(py_OutRef);
 /// Create a `tuple` with `n` UNINITIALIZED elements.
 /// You should initialize all elements before using it.
-PK_EXPORT void py_newtuple(py_Ref, int n);
+PK_EXPORT void py_newtuple(py_OutRef, int n);
 /// Create an empty `list`.
-PK_EXPORT void py_newlist(py_Ref);
+PK_EXPORT void py_newlist(py_OutRef);
 /// Create a `list` with `n` UNINITIALIZED elements.
 /// You should initialize all elements before using it.
-PK_EXPORT void py_newlistn(py_Ref, int n);
+PK_EXPORT void py_newlistn(py_OutRef, int n);
 /// Create an empty `dict`.
-PK_EXPORT void py_newdict(py_Ref);
+PK_EXPORT void py_newdict(py_OutRef);
 /// Create an UNINITIALIZED `slice` object.
 /// You should use `py_setslot()` to set `start`, `stop`, and `step`.
-PK_EXPORT void py_newslice(py_Ref);
+PK_EXPORT void py_newslice(py_OutRef);
 /// Create a `nativefunc` object.
-PK_EXPORT void py_newnativefunc(py_Ref out, py_CFunction);
+PK_EXPORT void py_newnativefunc(py_OutRef, py_CFunction);
 /// Create a `function` object.
-PK_EXPORT py_Name
-    py_newfunction(py_Ref out, const char* sig, py_CFunction f, const char* docstring, int slots);
+PK_EXPORT py_Name py_newfunction(py_OutRef out,
+                                 const char* sig,
+                                 py_CFunction f,
+                                 const char* docstring,
+                                 int slots);
 /// Create a `boundmethod` object.
-PK_EXPORT void py_newboundmethod(py_Ref out, py_Ref self, py_Ref func);
+PK_EXPORT void py_newboundmethod(py_OutRef out, py_Ref self, py_Ref func);
 
 /************* Name Convertions *************/
 
@@ -189,7 +194,7 @@ PK_EXPORT py_Type py_newtype(const char* name,
 /// @param slots number of slots. Use `-1` to create a `__dict__`.
 /// @param udsize size of your userdata.
 /// @return pointer to the userdata.
-PK_EXPORT void* py_newobject(py_Ref out, py_Type type, int slots, int udsize);
+PK_EXPORT void* py_newobject(py_OutRef out, py_Type type, int slots, int udsize);
 
 /************* Type Cast *************/
 
@@ -298,7 +303,8 @@ PK_EXPORT py_ItemRef py_emplacedict(py_Ref self, py_Name name);
 /// Apply a function to all items in the object's `__dict__`.
 /// Return `true` if the function is successful for all items.
 /// NOTE: Be careful if `f` modifies the object's `__dict__`.
-PK_EXPORT bool py_applydict(py_Ref self, bool (*f)(py_Name name, py_Ref val, void* ctx), void* ctx) PY_RAISE;
+PK_EXPORT bool
+    py_applydict(py_Ref self, bool (*f)(py_Name name, py_Ref val, void* ctx), void* ctx) PY_RAISE;
 
 /// Get the i-th slot of the object.
 /// The object must have slots and `i` must be in valid range.
@@ -466,7 +472,7 @@ PK_EXPORT void py_clearexc(py_StackRef p0);
 #define UnboundLocalError(n)                                                                       \
     py_exception(tp_UnboundLocalError, "local variable '%n' referenced before assignment", (n))
 
-PK_EXPORT bool StopIteration();
+PK_EXPORT bool StopIteration() PY_RAISE;
 PK_EXPORT bool KeyError(py_Ref key) PY_RAISE;
 
 /************* Operators *************/
@@ -474,7 +480,6 @@ PK_EXPORT bool KeyError(py_Ref key) PY_RAISE;
 /// Python equivalent to `bool(val)`.
 /// 1: true, 0: false, -1: error
 PK_EXPORT int py_bool(py_Ref val) PY_RAISE;
-
 /// Compare two objects.
 /// 1: lhs == rhs, 0: lhs != rhs, -1: error
 PK_EXPORT int py_equal(py_Ref lhs, py_Ref rhs) PY_RAISE;
