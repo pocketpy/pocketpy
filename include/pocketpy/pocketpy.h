@@ -34,11 +34,7 @@ typedef struct c11_sv {
     int size;
 } c11_sv;
 
-/// Mark a function that can raise an exception.
-/// + If the function returns `bool`, then `false` means an exception is raised.
-/// + If the function returns `int`, then `-1` means an exception is raised.
 #define PY_RAISE
-/// Mark a function that returns a value by `py_retval()` on success.
 #define PY_RETURN
 
 /// A generic reference to a python object.
