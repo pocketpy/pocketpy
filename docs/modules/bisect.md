@@ -22,3 +22,7 @@ If x is already in a, insert it to the left of the leftmost x.
 Insert item `x` in list `a`, and keep it sorted assuming `a` is sorted.
 
 If x is already in a, insert it to the right of the rightmost x.
+
+#### Source code
+
+:::code source="../../python/bisect.py" :::

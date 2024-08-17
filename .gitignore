@@ -36,3 +36,4 @@ docs/references.md
 .vs
 
 tests/00_tmp.py
+docs/C-API/functions.md

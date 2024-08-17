@@ -5,7 +5,7 @@ label: dataclasses
 
 ### `dataclasses.dataclass`
 
-A decorator that is used to add generated special method to classes, including `__init__`, `__repr__` and `__eq__`.
+A decorator that is used to add special method to classes, including `__init__`, `__repr__` and `__eq__`.
 
 ### `dataclasses.asdict(obj) -> dict`
 

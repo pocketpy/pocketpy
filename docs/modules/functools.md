@@ -14,3 +14,8 @@ Apply a function of two arguments cumulatively to the items of a sequence, from 
 ### `functools.partial(f, *args, **kwargs)`
 
 Return a new partial object which when called will behave like `f` called with the positional arguments `args` and keyword arguments `kwargs`. If more arguments are supplied to the call, they are appended to `args`. If additional keyword arguments are supplied, they extend and override `kwargs`.
+
+
+#### Source code
+
+:::code source="../../python/functools.py" :::
