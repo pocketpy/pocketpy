@@ -98,7 +98,13 @@ py_Name
     CodeObject__dtor(&code);
     PK_DECREF(source);
     assert(decl->rc.count == 1);
-    return py_name(ud->decl->code.name->data);
+    py_Name decl_name = py_name(ud->decl->code.name->data);
+    if(decl_name == __new__ || decl_name == __init__) {
+        if(ud->decl->args.length == 0) {
+            c11__abort("%s() should have at least one positional argument", py_name2str(decl_name));
+        }
+    }
+    return decl_name;
 }
 
 void py_newboundmethod(py_Ref out, py_Ref self, py_Ref func) {
