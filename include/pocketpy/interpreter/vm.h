@@ -76,10 +76,10 @@ bool pk_wrapper__self(int argc, py_Ref argv);
 bool pk_wrapper__NotImplementedError(int argc, py_Ref argv);
 
 typedef enum FrameResult {
-    RES_RETURN,
-    RES_CALL,
-    RES_YIELD,
-    RES_ERROR,
+    RES_ERROR = 0,
+    RES_RETURN = 1,
+    RES_CALL = 2,
+    RES_YIELD = 3,
 } FrameResult;
 
 FrameResult VM__run_top_frame(VM* self);

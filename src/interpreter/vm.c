@@ -346,7 +346,7 @@ static bool
         return TypeError("%s() takes %d positional arguments but %d were given",
                          co->name->data,
                          decl_argc,
-                         p1 - argv);
+                         (int)(p1 - argv));
     }
 
     py_TValue* t = argv;
@@ -419,10 +419,9 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         // [unbound, self, args..., kwargs...]
     }
 
-    py_Ref argv = py_isnil(p0 + 1) ? p0 + 2 : p0 + 1;
+    py_Ref argv = p0 + 1 + (int)py_isnil(p0 + 1);
 
     if(p0->type == tp_function) {
-        /*****************_py_call*****************/
         // check stack overflow
         if(self->stack.sp > self->stack.end) {
             py_exception(tp_StackOverflowError, "");
@@ -441,9 +440,11 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 // submit the call
                 if(!fn->cfunc) {
+                    // python function
                     VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
+                    // decl-based binding
                     bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
                     self->stack.sp = p0;
                     return ok ? RES_RETURN : RES_ERROR;
@@ -452,7 +453,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
             case FuncType_SIMPLE:
                 if(p1 - argv != fn->decl->args.length) {
                     const char* fmt = "%s() takes %d positional arguments but %d were given";
-                    TypeError(fmt, co->name->data, fn->decl->args.length, p1 - argv);
+                    TypeError(fmt, co->name->data, fn->decl->args.length, (int)(p1 - argv));
                     return RES_ERROR;
                 }
                 if(kwargc) {
@@ -634,7 +635,7 @@ void pk_print_stack(VM* self, Frame* frame, Bytecode byte) {
     c11_sbuf__ctor(&buf);
     for(py_Ref p = self->stack.begin; p != sp; p++) {
         switch(p->type) {
-            case 0: c11_sbuf__write_cstr(&buf, "nil"); break;
+            case tp_nil: c11_sbuf__write_cstr(&buf, "nil"); break;
             case tp_int: c11_sbuf__write_i64(&buf, p->_i64); break;
             case tp_float: c11_sbuf__write_f64(&buf, p->_f64, -1); break;
             case tp_bool: c11_sbuf__write_cstr(&buf, p->_bool ? "True" : "False"); break;

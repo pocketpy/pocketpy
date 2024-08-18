@@ -586,6 +586,7 @@ enum py_MagicNames {
 };
 
 enum py_PredefinedTypes {
+    tp_nil = 0,
     tp_object = 1,
     tp_type,  // py_Type
     tp_int,
