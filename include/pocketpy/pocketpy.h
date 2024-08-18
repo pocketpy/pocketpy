@@ -310,8 +310,9 @@ PK_EXPORT void py_setslot(py_Ref self, int i, py_Ref val);
 
 /************* Inspection *************/
 
-/// Get the current `function` object from the stack.
+/// Get the current `function` object on the stack.
 /// Return `NULL` if not available.
+/// NOTE: This function should be placed at the beginning of your decl-based bindings.
 PK_EXPORT py_StackRef py_inspect_currentfunction();
 /// Get the current `module` object where the code is executed.
 /// Return `NULL` if not available.

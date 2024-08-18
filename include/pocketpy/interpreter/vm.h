@@ -51,7 +51,8 @@ typedef struct VM {
 
     py_TValue reg[8];  // users' registers
 
-    py_TValue* __curr_class;
+    py_StackRef __curr_class;
+    py_StackRef __curr_function;
     py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
     ManagedHeap heap;

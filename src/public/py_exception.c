@@ -153,6 +153,7 @@ void py_clearexc(py_StackRef p0) {
     vm->curr_exception = *py_NIL;
     vm->is_curr_exc_handled = false;
     vm->__curr_class = NULL;
+    vm->__curr_function = NULL;
     if(p0) vm->stack.sp = p0;
 }
 

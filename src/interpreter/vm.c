@@ -70,6 +70,7 @@ void VM__ctor(VM* self) {
     self->is_curr_exc_handled = false;
 
     self->__curr_class = NULL;
+    self->__curr_function = NULL;
 
     ManagedHeap__ctor(&self->heap, self);
     ValueStack__ctor(&self->stack);
@@ -445,8 +446,10 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
+                    self->__curr_function = p0;
                     bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
                     self->stack.sp = p0;
+                    self->__curr_function = NULL;
                     return ok ? RES_RETURN : RES_ERROR;
                 }
             }

@@ -70,9 +70,7 @@ void py_setslot(py_Ref self, int i, py_Ref val) {
 }
 
 py_StackRef py_inspect_currentfunction(){
-    Frame* frame = pk_current_vm->top_frame;
-    if(!frame || !frame->has_function) return NULL;
-    return frame->p0;
+    return pk_current_vm->__curr_function;
 }
 
 py_GlobalRef py_inspect_currentmodule(){
