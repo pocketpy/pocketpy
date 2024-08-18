@@ -134,3 +134,6 @@ a = [1, 10, 3]
 a[test()] += 1
 assert (a == [1, 11, 3]), a
 assert (g == 1), g
+
+assert list.__new__(list) == []
+assert a.__new__ == list.__new__

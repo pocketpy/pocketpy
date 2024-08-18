@@ -129,10 +129,12 @@ bool py_getattr(py_Ref self, py_Name name) {
         // bound method is non-data descriptor
         switch(cls_var->type) {
             case tp_function: {
+                if(name == __new__) goto __STATIC_NEW;
                 py_newboundmethod(py_retval(), self, cls_var);
                 return true;
             }
             case tp_nativefunc: {
+                if(name == __new__) goto __STATIC_NEW;
                 py_newboundmethod(py_retval(), self, cls_var);
                 return true;
             }
@@ -145,6 +147,7 @@ bool py_getattr(py_Ref self, py_Name name) {
                 return true;
             }
             default: {
+            __STATIC_NEW:
                 py_assign(py_retval(), cls_var);
                 return true;
             }
@@ -152,7 +155,7 @@ bool py_getattr(py_Ref self, py_Name name) {
     }
 
     py_Ref fallback = py_tpfindmagic(type, __getattr__);
-    if(fallback){
+    if(fallback) {
         py_push(fallback);
         py_push(self);
         py_newstr(py_pushtmp(), py_name2str(name));

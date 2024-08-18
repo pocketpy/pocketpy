@@ -78,7 +78,6 @@ void py_sys_setargv(int argc, char** argv) {
 
 py_Callbacks* py_getcallbacks() { return &pk_current_vm->callbacks; }
 
-
 const char* pk_opname(Opcode op) {
     const static char* OP_NAMES[] = {
 #define OPCODE(name) #name,
@@ -140,6 +139,19 @@ bool py_pushmethod(py_Name name) {
 
 bool pk_loadmethod(py_StackRef self, py_Name name) {
     // NOTE: `out` and `out_self` may overlap with `self`
+
+    if(name == __new__ && py_istype(self, tp_type)) {
+        // __new__ acts like a @staticmethod
+        // T.__new__(...)
+        py_Ref cls_var = py_tpfindmagic(py_totype(self), name);
+        if(cls_var) {
+            self[0] = *cls_var;
+            self[1] = *py_NIL;
+            return true;
+        }
+        return false;
+    }
+
     py_Type type;
     // handle super() proxy
     if(py_istype(self, tp_super)) {
