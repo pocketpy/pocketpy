@@ -34,6 +34,14 @@ typedef struct c11_sv {
     int size;
 } c11_sv;
 
+/// A struct contains the callbacks of the VM.
+typedef struct py_Callbacks {
+    /// Used by `__import__` to load source code of a module.
+    char* (*importfile)(const char*);
+    /// Used by `print` to output a string.
+    void (*print)(const char*);
+} py_Callbacks;
+
 #define PY_RAISE
 #define PY_RETURN
 
@@ -84,6 +92,8 @@ PK_EXPORT int py_currentvm();
 PK_EXPORT void py_switchvm(int index);
 /// Set `sys.argv`. Used for storing command-line arguments.
 PK_EXPORT void py_sys_setargv(int argc, char** argv);
+/// Setup the callbacks for the current VM.
+PK_EXPORT py_Callbacks* py_callbacks();
 
 /// Run a source string.
 /// @param source source string.

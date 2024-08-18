@@ -120,15 +120,6 @@ void FuncDecl__add_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value);
 void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name);
-FuncDecl_ FuncDecl__build(c11_sv name,
-                          c11_sv* args,
-                          int argc,
-                          c11_sv starred_arg,
-                          c11_sv* kwargs,
-                          int kwargc,
-                          py_Ref kwdefaults,  // a tuple contains default values
-                          c11_sv starred_kwarg,
-                          const char* docstring);
 
 // runtime function
 typedef struct Function {

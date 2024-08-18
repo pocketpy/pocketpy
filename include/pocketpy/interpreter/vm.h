@@ -41,9 +41,7 @@ typedef struct VM {
     py_TValue builtins;  // builtins module
     py_TValue main;      // __main__ module
 
-    void (*ceval_on_step)(Frame*, Bytecode);
-    char* (*import_file)(const char*);
-    void (*print)(const char*);
+    py_Callbacks callbacks;
 
     py_TValue last_retval;
     py_TValue curr_exception;

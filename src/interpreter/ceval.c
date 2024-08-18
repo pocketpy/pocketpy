@@ -120,8 +120,8 @@ FrameResult VM__run_top_frame(VM* self) {
                 if(TOP()->type != tp_NoneType) {
                     bool ok = py_repr(TOP());
                     if(!ok) goto __ERROR;
-                    self->print(py_tostr(&self->last_retval));
-                    self->print("\n");
+                    self->callbacks.print(py_tostr(&self->last_retval));
+                    self->callbacks.print("\n");
                 }
                 POP();
                 DISPATCH();

@@ -130,12 +130,12 @@ int py_import(const char* path_cstr) {
         goto __SUCCESS;
     }
 
-    data = vm->import_file(filename->data);
+    data = vm->callbacks.importfile(filename->data);
     if(data != NULL) goto __SUCCESS;
 
     c11_string__delete(filename);
     filename = c11_string__new3("%s/__init__.py", slashed_path->data);
-    data = vm->import_file(filename->data);
+    data = vm->callbacks.importfile(filename->data);
     if(data != NULL) goto __SUCCESS;
 
     c11_string__delete(filename);
@@ -290,7 +290,7 @@ static bool builtins_print(int argc, py_Ref argv) {
     }
     c11_sbuf__write_sv(&buf, end);
     c11_string* res = c11_sbuf__submit(&buf);
-    pk_current_vm->print(res->data);
+    pk_current_vm->callbacks.print(res->data);
     c11_string__delete(res);
     py_newnone(py_retval());
     return true;

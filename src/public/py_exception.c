@@ -160,8 +160,8 @@ void py_clearexc(py_StackRef p0) {
 void py_printexc() {
     char* msg = py_formatexc();
     if(!msg) return;
-    pk_current_vm->print(msg);
-    pk_current_vm->print("\n");
+    pk_current_vm->callbacks.print(msg);
+    pk_current_vm->callbacks.print("\n");
     free(msg);
 }
 

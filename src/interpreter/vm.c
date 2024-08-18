@@ -9,7 +9,7 @@
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
 
-static char* pk_default_import_file(const char* path) {
+static char* pk_default_importfile(const char* path) {
 #if PK_ENABLE_OS
     FILE* f = fopen(path, "rb");
     if(f == NULL) return NULL;
@@ -61,9 +61,8 @@ void VM__ctor(VM* self) {
     self->builtins = *py_NIL;
     self->main = *py_NIL;
 
-    self->ceval_on_step = NULL;
-    self->import_file = pk_default_import_file;
-    self->print = pk_default_print;
+    self->callbacks.importfile = pk_default_importfile;
+    self->callbacks.print = pk_default_print;
 
     self->last_retval = *py_NIL;
     self->curr_exception = *py_NIL;
