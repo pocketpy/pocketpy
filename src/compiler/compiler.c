@@ -2212,9 +2212,9 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
 static Error* compile_function(Compiler* self, int decorators) {
     Error* err;
     consume(TK_ID);
-    c11_sv decl_name = Token__sv(prev());
+    c11_sv decl_name_sv = Token__sv(prev());
     int decl_index;
-    FuncDecl_ decl = push_f_context(self, decl_name, &decl_index);
+    FuncDecl_ decl = push_f_context(self, decl_name_sv, &decl_index);
     consume(TK_LPAREN);
     if(!match(TK_RPAREN)) {
         check(_compile_f_args(self, decl, true));
@@ -2242,10 +2242,19 @@ static Error* compile_function(Compiler* self, int decorators) {
     Ctx__emit_(ctx(), OP_LOAD_FUNCTION, decl_index, prev()->line);
     Ctx__s_emit_decorators(ctx(), decorators);
 
+    py_Name decl_name = py_namev(decl_name_sv);
     if(ctx()->is_compiling_class) {
-        Ctx__emit_(ctx(), OP_STORE_CLASS_ATTR, py_namev(decl_name), prev()->line);
+        if(decl_name == __new__ || decl_name == __init__) {
+            if(decl->args.length == 0) {
+                return SyntaxError(self,
+                                   "%s() should have at least one positional argument",
+                                   py_name2str(decl_name));
+            }
+        }
+
+        Ctx__emit_(ctx(), OP_STORE_CLASS_ATTR, decl_name, prev()->line);
     } else {
-        NameExpr* e = NameExpr__new(prev()->line, py_namev(decl_name), name_scope(self));
+        NameExpr* e = NameExpr__new(prev()->line, decl_name, name_scope(self));
         vtemit_store((Expr*)e, ctx());
         vtdelete((Expr*)e);
     }
