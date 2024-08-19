@@ -5,7 +5,7 @@
 bool pk__object_new(int argc, py_Ref argv) {
     if(argc == 0) return TypeError("object.__new__(): not enough arguments");
     py_Type cls = py_totype(py_arg(0));
-    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, cls);
+    py_TypeInfo* ti = pk__type_info(cls);
     if(!ti->is_python) {
         return TypeError("object.__new__(%t) is not safe, use %t.__new__()", cls, cls);
     }
@@ -72,8 +72,7 @@ static bool type__new__(int argc, py_Ref argv) {
 
 static bool type__base__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_Type type = py_totype(argv);
-    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
+    py_TypeInfo* ti = pk__type_info(py_totype(argv));
     if(ti->base) {
         py_assign(py_retval(), py_tpobject(ti->base));
     } else {
@@ -84,8 +83,7 @@ static bool type__base__(int argc, py_Ref argv) {
 
 static bool type__name__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_Type type = py_totype(argv);
-    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
+    py_TypeInfo* ti = pk__type_info(py_totype(argv));
     py_newstr(py_retval(), py_name2str(ti->name));
     return true;
 }
@@ -97,8 +95,7 @@ static bool type__getitem__(int argc, py_Ref argv) {
 
 static bool type__module__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_Type type = py_totype(argv);
-    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
+    py_TypeInfo* ti = pk__type_info(py_totype(argv));
     if(py_isnil(&ti->module)) {
         py_newnone(py_retval());
     } else {
@@ -110,8 +107,7 @@ static bool type__module__(int argc, py_Ref argv) {
 
 static bool type__annotations__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_Type type = py_totype(argv);
-    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
+    py_TypeInfo* ti = pk__type_info(py_totype(argv));
     if(py_isnil(&ti->annotations)) {
         py_newdict(py_retval());
     } else {
@@ -128,7 +124,7 @@ void pk_object__register() {
     py_bindmagic(tp_object, __eq__, object__eq__);
     py_bindmagic(tp_object, __ne__, object__ne__);
     py_bindmagic(tp_object, __repr__, object__repr__);
-    
+
     py_bindmagic(tp_type, __repr__, type__repr__);
     py_bindmagic(tp_type, __new__, type__new__);
     py_bindmagic(tp_type, __getitem__, type__getitem__);

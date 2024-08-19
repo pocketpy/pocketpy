@@ -1,3 +1,4 @@
+#include "pocketpy/interpreter/typeinfo.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
@@ -45,11 +46,12 @@ int py_bool(py_Ref val) {
 
 bool py_hash(py_Ref val, int64_t* out) {
     py_Type t = val->type;
-    py_TypeInfo* types = (py_TypeInfo*)pk_current_vm->types.data;
+    TypeList* types = &pk_current_vm->types;
     do {
-        py_Ref _hash = &types[t].magic[__hash__];
+        py_TypeInfo* ti = TypeList__get(types, t);
+        py_Ref _hash = &ti->magic[__hash__];
         if(py_isnone(_hash)) break;
-        py_Ref _eq = &types[t].magic[__eq__];
+        py_Ref _eq = &ti->magic[__eq__];
         if(!py_isnil(_eq)) {
             if(py_isnil(_hash)) break;
             if(!py_call(_hash, 1, val)) return false;
@@ -57,7 +59,7 @@ bool py_hash(py_Ref val, int64_t* out) {
             *out = py_toint(py_retval());
             return true;
         }
-        t = types[t].base;
+        t = ti->base;
     } while(t);
     return TypeError("unhashable type: '%t'", val->type);
 }

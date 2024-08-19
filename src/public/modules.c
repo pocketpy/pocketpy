@@ -675,8 +675,7 @@ static bool super__new__(int argc, py_Ref argv) {
         return TypeError("super() takes 0 or 2 arguments");
     }
 
-    py_TypeInfo* types = pk_current_vm->types.data;
-    *class_arg = types[*class_arg].base;
+    *class_arg = pk__type_info(*class_arg)->base;
     if(*class_arg == 0) return RuntimeError("super(): base class is invalid");
 
     py_setslot(py_retval(), 0, self_arg);

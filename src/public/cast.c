@@ -1,4 +1,5 @@
 #include "pocketpy/common/str.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
@@ -49,10 +50,10 @@ bool py_checktype(py_Ref self, py_Type type) {
 bool py_isinstance(py_Ref obj, py_Type type) { return py_issubclass(obj->type, type); }
 
 bool py_issubclass(py_Type derived, py_Type base) {
-    py_TypeInfo* types = pk_current_vm->types.data;
+    TypeList* types = &pk_current_vm->types;
     do {
         if(derived == base) return true;
-        derived = types[derived].base;
+        derived = TypeList__get(types, derived)->base;
     } while(derived);
     return false;
 }

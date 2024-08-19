@@ -4,6 +4,7 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/generator.h"
 #include "pocketpy/interpreter/modules.h"
+#include "pocketpy/interpreter/typeinfo.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/common/_generated.h"
 #include "pocketpy/pocketpy.h"
@@ -56,7 +57,7 @@ void VM__ctor(VM* self) {
     self->top_frame = NULL;
 
     ModuleDict__ctor(&self->modules, NULL, *py_NIL);
-    c11_vector__ctor(&self->types, sizeof(py_TypeInfo));
+    TypeList__ctor(&self->types);
 
     self->builtins = *py_NIL;
     self->main = *py_NIL;
@@ -76,7 +77,7 @@ void VM__ctor(VM* self) {
 
     /* Init Builtin Types */
     // 0: unused
-    void* placeholder = c11_vector__emplace(&self->types);
+    void* placeholder = TypeList__emplace(&self->types);
     memset(placeholder, 0, sizeof(py_TypeInfo));
 
 #define validate(t, expr)                                                                          \
@@ -187,7 +188,7 @@ void VM__ctor(VM* self) {
     };
 
     for(int i = 0; i < c11__count_array(public_types); i++) {
-        py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, public_types[i]);
+        py_TypeInfo* ti = pk__type_info(public_types[i]);
         py_setdict(&self->builtins, ti->name, &ti->self);
     }
 
@@ -228,7 +229,7 @@ void VM__dtor(VM* self) {
     while(self->top_frame)
         VM__pop_frame(self);
     ModuleDict__dtor(&self->modules);
-    c11_vector__dtor(&self->types);
+    TypeList__dtor(&self->types);
     ValueStack__clear(&self->stack);
 }
 
@@ -316,10 +317,9 @@ py_Type pk_newtype(const char* name,
                    void (*dtor)(void*),
                    bool is_python,
                    bool is_sealed) {
-    c11_vector* types = &pk_current_vm->types;
-    py_Type index = types->length;
-    py_TypeInfo* ti = c11_vector__emplace(types);
-    py_TypeInfo* base_ti = base ? c11__at(py_TypeInfo, types, base) : NULL;
+    py_Type index = pk_current_vm->types.length;
+    py_TypeInfo* ti = TypeList__emplace(&pk_current_vm->types);
+    py_TypeInfo* base_ti = base ? pk__type_info(base) : NULL;
     if(base_ti && base_ti->is_sealed) {
         c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
     }
@@ -540,7 +540,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
 
 /****************************************/
 void PyObject__delete(PyObject* self) {
-    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, self->type);
+    py_TypeInfo* ti = pk__type_info(self->type);
     if(ti->dtor) ti->dtor(PyObject__userdata(self));
     if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
     if(self->gc_is_large) {
@@ -564,7 +564,7 @@ void pk__mark_namedict(NameDict* dict) {
 }
 
 void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*)) {
-    py_TypeInfo* ti = c11__at(py_TypeInfo, &pk_current_vm->types, type);
+    py_TypeInfo* ti = pk__type_info(type);
     assert(ti->gc_mark == NULL);
     ti->gc_mark = gc_mark;
 }
@@ -582,8 +582,8 @@ static void mark_object(PyObject* obj) {
         pk__mark_namedict(dict);
     }
 
-    py_TypeInfo* types = c11__at(py_TypeInfo, &pk_current_vm->types, obj->type);
-    if(types->gc_mark) types->gc_mark(PyObject__userdata(obj));
+    py_TypeInfo* ti = pk__type_info(obj->type);
+    if(ti->gc_mark) ti->gc_mark(PyObject__userdata(obj));
 }
 
 void CodeObject__gc_mark(const CodeObject* self) {
@@ -603,18 +603,18 @@ void ManagedHeap__mark(ManagedHeap* self) {
         pk__mark_value(p);
     }
     // mark types
-    py_TypeInfo* types = vm->types.data;
     int types_length = vm->types.length;
     // 0-th type is placeholder
-    for(int i = 1; i < types_length; i++) {
+    for(py_Type i = 1; i < types_length; i++) {
+        py_TypeInfo* ti = TypeList__get(&vm->types, i);
         // mark magic slots
         for(int j = 0; j <= __missing__; j++) {
-            py_TValue* slot = types[i].magic + j;
+            py_TValue* slot = ti->magic + j;
             if(py_isnil(slot)) continue;
             pk__mark_value(slot);
         }
         // mark type annotations
-        pk__mark_value(&types[i].annotations);
+        pk__mark_value(&ti->annotations);
     }
     // mark frame
     for(Frame* frame = vm->top_frame; frame; frame = frame->f_back) {
@@ -695,4 +695,8 @@ bool pk_wrapper__self(int argc, py_Ref argv) {
 
 bool pk_wrapper__NotImplementedError(int argc, py_Ref argv) {
     return py_exception(tp_NotImplementedError, "");
+}
+
+py_TypeInfo* pk__type_info(py_Type type) {
+    return TypeList__get(&pk_current_vm->types, type);
 }

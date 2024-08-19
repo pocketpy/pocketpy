@@ -1,3 +1,4 @@
+#include "pocketpy/interpreter/typeinfo.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/pocketpy.h"
@@ -178,7 +179,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
                 break;
             case tp_classmethod:
                 self[0] = *py_getslot(cls_var, 0);
-                self[1] = c11__getitem(py_TypeInfo, &pk_current_vm->types, type).self;
+                self[1] = pk__type_info(type)->self;
                 break;
             default: c11__unreachedable();
         }
@@ -189,41 +190,40 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
 
 py_Ref py_tpfindmagic(py_Type t, py_Name name) {
     assert(py_ismagicname(name));
-    py_TypeInfo* types = (py_TypeInfo*)pk_current_vm->types.data;
+    TypeList* types = &pk_current_vm->types;
     do {
-        py_Ref f = &types[t].magic[name];
+        py_TypeInfo* ti = TypeList__get(types, t);
+        py_Ref f = &ti->magic[name];
         if(!py_isnil(f)) return f;
-        t = types[t].base;
+        t = ti->base;
     } while(t);
     return NULL;
 }
 
 py_Ref py_tpfindname(py_Type t, py_Name name) {
-    py_TypeInfo* types = (py_TypeInfo*)pk_current_vm->types.data;
+    TypeList* types = &pk_current_vm->types;
     do {
-        py_Ref res = py_getdict(&types[t].self, name);
+        py_TypeInfo* ti = TypeList__get(types, t);
+        py_Ref res = py_getdict(&ti->self, name);
         if(res) return res;
-        t = types[t].base;
+        t = ti->base;
     } while(t);
     return NULL;
 }
 
 py_Ref py_tpgetmagic(py_Type type, py_Name name) {
     assert(py_ismagicname(name));
-    VM* vm = pk_current_vm;
-    return &c11__at(py_TypeInfo, &vm->types, type)->magic[name];
+    return pk__type_info(type)->magic + name;
 }
 
 py_Ref py_tpobject(py_Type type) {
     assert(type);
-    VM* vm = pk_current_vm;
-    return &c11__at(py_TypeInfo, &vm->types, type)->self;
+    return &pk__type_info(type)->self;
 }
 
 const char* py_tpname(py_Type type) {
     if(!type) return "nil";
-    VM* vm = pk_current_vm;
-    py_Name name = c11__at(py_TypeInfo, &vm->types, type)->name;
+    py_Name name = pk__type_info(type)->name;
     return py_name2str(name);
 }
 

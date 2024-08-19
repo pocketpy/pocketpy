@@ -250,18 +250,18 @@ PK_EXPORT bool py_isinstance(py_Ref obj, py_Type type);
 /// Check if the derived type is a subclass of the base type.
 PK_EXPORT bool py_issubclass(py_Type derived, py_Type base);
 
+/// Get the magic method from the given type only.
+/// The returned reference is always valid. However, its value may be `nil`.
+PK_EXPORT py_GlobalRef py_tpgetmagic(py_Type type, py_Name name);
 /// Search the magic method from the given type to the base type.
 /// Return `NULL` if not found.
-PK_EXPORT py_ItemRef py_tpfindmagic(py_Type, py_Name name);
+PK_EXPORT py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
 /// Search the name from the given type to the base type.
 /// Return `NULL` if not found.
 PK_EXPORT py_ItemRef py_tpfindname(py_Type, py_Name name);
-/// Get the magic method from the given type only.
-/// The returned reference is always valid. However, its value may be `nil`.
-PK_EXPORT py_ItemRef py_tpgetmagic(py_Type type, py_Name name);
 
 /// Get the type object of the given type.
-PK_EXPORT py_ItemRef py_tpobject(py_Type type);
+PK_EXPORT py_GlobalRef py_tpobject(py_Type type);
 /// Get the type name.
 PK_EXPORT const char* py_tpname(py_Type type);
 /// Call a type to create a new instance.

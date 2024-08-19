@@ -5,6 +5,7 @@
 #include "pocketpy/interpreter/heap.h"
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/modules.h"
+#include "pocketpy/interpreter/typeinfo.h"
 
 // TODO:
 // 1. __eq__ and __ne__ fallbacks
@@ -15,32 +16,11 @@
 // 6. py_TypeInfo
 // 7. Direct assignment of py_NIL, py_True, py_False, py_None. They are slow.
 
-typedef struct py_TypeInfo {
-    py_Name name;
-    py_Type base;
-
-    py_TValue self;
-    py_TValue module;  // the module where the type is defined
-
-    bool is_python;  // is it a python class? (not derived from c object)
-    bool is_sealed;  // can it be subclassed?
-
-    void (*dtor)(void*);
-
-    py_TValue annotations;  // type annotations
-
-    void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
-    void (*gc_mark)(void* ud);
-
-    /* Magic Slots */
-    py_TValue magic[64];
-} py_TypeInfo;
-
 typedef struct VM {
     Frame* top_frame;
 
     ModuleDict modules;
-    c11_vector /*T=py_TypeInfo*/ types;
+    TypeList types;
 
     py_TValue builtins;  // builtins module
     py_TValue main;      // __main__ module
@@ -74,6 +54,7 @@ void pk__mark_value(py_TValue*);
 void pk__mark_namedict(NameDict*);
 void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*));
 bool pk__object_new(int argc, py_Ref argv);
+py_TypeInfo* pk__type_info(py_Type type);
 
 bool pk_wrapper__self(int argc, py_Ref argv);
 bool pk_wrapper__NotImplementedError(int argc, py_Ref argv);

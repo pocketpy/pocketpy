@@ -871,7 +871,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
                 POP();
 
-                py_TypeInfo* base_ti = c11__at(py_TypeInfo, &self->types, base);
+                py_TypeInfo* base_ti = TypeList__get(&self->types, base);
                 if(base_ti->is_sealed) {
                     TypeError("type '%t' is not an acceptable base type", base);
                     goto __ERROR;
@@ -892,9 +892,9 @@ FrameResult VM__run_top_frame(VM* self) {
 
                 if(py_istype(TOP(), tp_type)) {
                     // call on_end_subclass
-                    py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, py_totype(TOP()));
+                    py_TypeInfo* ti = TypeList__get(&self->types, py_totype(TOP()));
                     if(ti->base != tp_object) {
-                        py_TypeInfo* base_ti = c11__at(py_TypeInfo, &self->types, ti->base);
+                        py_TypeInfo* base_ti = TypeList__get(&self->types, ti->base);
                         if(base_ti->on_end_subclass) base_ti->on_end_subclass(ti);
                     }
                 }
@@ -915,7 +915,7 @@ FrameResult VM__run_top_frame(VM* self) {
             case OP_ADD_CLASS_ANNOTATION: {
                 // [type_hint string]
                 py_Type type = py_totype(self->__curr_class);
-                py_TypeInfo* ti = c11__at(py_TypeInfo, &self->types, type);
+                py_TypeInfo* ti = TypeList__get(&self->types, type);
                 if(py_isnil(&ti->annotations)) py_newdict(&ti->annotations);
                 bool ok = py_dict_setitem_by_str(&ti->annotations, py_name2str(byte.arg), TOP());
                 if(!ok) goto __ERROR;
