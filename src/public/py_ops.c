@@ -45,10 +45,8 @@ int py_bool(py_Ref val) {
 }
 
 bool py_hash(py_Ref val, int64_t* out) {
-    py_Type t = val->type;
-    TypeList* types = &pk_current_vm->types;
+    py_TypeInfo* ti = pk__type_info(val->type);
     do {
-        py_TypeInfo* ti = TypeList__get(types, t);
         py_Ref _hash = &ti->magic[__hash__];
         if(py_isnone(_hash)) break;
         py_Ref _eq = &ti->magic[__eq__];
@@ -59,8 +57,8 @@ bool py_hash(py_Ref val, int64_t* out) {
             *out = py_toint(py_retval());
             return true;
         }
-        t = ti->base;
-    } while(t);
+        ti = ti->base_ti;
+    } while(ti);
     return TypeError("unhashable type: '%t'", val->type);
 }
 

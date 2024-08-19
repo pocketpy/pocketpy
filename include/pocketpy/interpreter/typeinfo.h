@@ -6,6 +6,7 @@
 typedef struct py_TypeInfo {
     py_Name name;
     py_Type base;
+    struct py_TypeInfo* base_ti;
 
     py_TValue self;
     py_TValue module;  // the module where the type is defined

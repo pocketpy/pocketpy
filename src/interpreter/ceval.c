@@ -894,7 +894,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     // call on_end_subclass
                     py_TypeInfo* ti = TypeList__get(&self->types, py_totype(TOP()));
                     if(ti->base != tp_object) {
-                        py_TypeInfo* base_ti = TypeList__get(&self->types, ti->base);
+                        py_TypeInfo* base_ti = ti->base_ti;
                         if(base_ti->on_end_subclass) base_ti->on_end_subclass(ti);
                     }
                 }

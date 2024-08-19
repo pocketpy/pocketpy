@@ -33,11 +33,13 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
                               py_Name name,
                               py_Type index,
                               py_Type base,
+                              py_TypeInfo* base_ti,
                               py_TValue module) {
     memset(self, 0, sizeof(py_TypeInfo));
 
     self->name = name;
     self->base = base;
+    self->base_ti = base_ti;
 
     // create type object with __dict__
     ManagedHeap* heap = &pk_current_vm->heap;
@@ -323,7 +325,7 @@ py_Type pk_newtype(const char* name,
     if(base_ti && base_ti->is_sealed) {
         c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
     }
-    py_TypeInfo__ctor(ti, py_name(name), index, base, module ? *module : *py_NIL);
+    py_TypeInfo__ctor(ti, py_name(name), index, base, base_ti, module ? *module : *py_NIL);
     if(!dtor && base) dtor = base_ti->dtor;
     ti->dtor = dtor;
     ti->is_python = is_python;
@@ -697,6 +699,4 @@ bool pk_wrapper__NotImplementedError(int argc, py_Ref argv) {
     return py_exception(tp_NotImplementedError, "");
 }
 
-py_TypeInfo* pk__type_info(py_Type type) {
-    return TypeList__get(&pk_current_vm->types, type);
-}
+py_TypeInfo* pk__type_info(py_Type type) { return TypeList__get(&pk_current_vm->types, type); }

@@ -74,7 +74,7 @@ static bool type__base__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_TypeInfo* ti = pk__type_info(py_totype(argv));
     if(ti->base) {
-        py_assign(py_retval(), py_tpobject(ti->base));
+        py_assign(py_retval(), &ti->base_ti->self);
     } else {
         py_newnone(py_retval());
     }

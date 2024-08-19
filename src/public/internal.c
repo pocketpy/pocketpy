@@ -190,24 +190,22 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
 
 py_Ref py_tpfindmagic(py_Type t, py_Name name) {
     assert(py_ismagicname(name));
-    TypeList* types = &pk_current_vm->types;
+    py_TypeInfo* ti = pk__type_info(t);
     do {
-        py_TypeInfo* ti = TypeList__get(types, t);
         py_Ref f = &ti->magic[name];
         if(!py_isnil(f)) return f;
-        t = ti->base;
-    } while(t);
+        ti = ti->base_ti;
+    } while(ti);
     return NULL;
 }
 
 py_Ref py_tpfindname(py_Type t, py_Name name) {
-    TypeList* types = &pk_current_vm->types;
+    py_TypeInfo* ti = pk__type_info(t);
     do {
-        py_TypeInfo* ti = TypeList__get(types, t);
         py_Ref res = py_getdict(&ti->self, name);
         if(res) return res;
-        t = ti->base;
-    } while(t);
+        ti = ti->base_ti;
+    } while(ti);
     return NULL;
 }
 
