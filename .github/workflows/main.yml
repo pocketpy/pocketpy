@@ -22,7 +22,7 @@ jobs:
       run: |
         python amalgamate.py
         cd amalgamated
-        cl.exe /std:c11 /utf-8 /Ox /I. /DPK_ENABLE_OS=1 main.c /link /out:pkpy.exe
+        cl.exe /std:c11 /utf-8 /Ox /I. pocketpy.c main.c /link /out:pkpy.exe
   build_win32:
     runs-on: windows-latest
     steps:
@@ -103,16 +103,8 @@ jobs:
           python scripts/run_tests.py
       - name: Benchmark
         run: python scripts/run_tests.py benchmark
-      # - run: |
-      #     python amalgamate.py
-      #     cd plugins/macos/pocketpy
-      #     mkdir output
-      #     xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-      #     cp -r build/Release/pocketpy.bundle output
-      # - uses: actions/upload-artifact@v4
-      #   with:
-      #     name: macos
-      #     path: plugins/macos/pocketpy/output
+      - name: Test Amalgamated Build
+        run: python amalgamate.py
   build_android:
       runs-on: ubuntu-latest
       steps:
