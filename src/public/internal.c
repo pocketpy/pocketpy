@@ -61,11 +61,10 @@ void py_switchvm(int index) {
     pk_current_vm = pk_all_vm[index];
 }
 
-void py_resetvm(int index){
-    if(index < 0 || index >= 16) c11__abort("invalid vm index");
-    VM* vm = pk_all_vm[index];
-    if(!vm) c11__abort("vm not initialized");
+void py_resetvm() {
+    VM* vm = pk_current_vm;
     VM__dtor(vm);
+    memset(vm, 0, sizeof(VM));
     VM__ctor(vm);
 }
 

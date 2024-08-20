@@ -90,8 +90,8 @@ PK_EXPORT int py_currentvm();
 /// Switch to a VM.
 /// @param index index of the VM ranging from 0 to 16 (exclusive). `0` is the default VM.
 PK_EXPORT void py_switchvm(int index);
-/// Reset a VM.
-PK_EXPORT void py_resetvm(int index);
+/// Reset the current VM.
+PK_EXPORT void py_resetvm();
 /// Set `sys.argv`. Used for storing command-line arguments.
 PK_EXPORT void py_sys_setargv(int argc, char** argv);
 /// Setup the callbacks for the current VM.
