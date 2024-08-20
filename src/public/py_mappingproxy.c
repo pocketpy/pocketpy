@@ -129,7 +129,7 @@ static bool locals__contains__(int argc, py_Ref argv) {
 }
 
 py_Type pk_locals__register() {
-    py_Type type = pk_newtype("locals", tp_locals, NULL, NULL, false, true);
+    py_Type type = pk_newtype("locals", tp_object, NULL, NULL, false, true);
 
     py_bindmagic(type, __getitem__, locals__getitem__);
     py_bindmagic(type, __setitem__, locals__setitem__);
