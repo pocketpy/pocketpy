@@ -3,16 +3,13 @@
 #define CHUNK_SIZE 128
 #define LOG2_CHUNK_SIZE 7
 
-static py_TypeInfo firstChunk[CHUNK_SIZE];
-
 void TypeList__ctor(TypeList* self) {
     self->length = 0;
     memset(self->chunks, 0, sizeof(self->chunks));
-    self->chunks[0] = firstChunk;
 }
 
 void TypeList__dtor(TypeList* self) {
-    for (int i = 1; i < self->length; i++) {
+    for (int i = 0; i < self->length; i++) {
         if(self->chunks[i]) free(self->chunks[i]);
     }
 }
