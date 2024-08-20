@@ -12,17 +12,17 @@ on:
       - 'web/**'
       - '**.md'
 jobs:
-  # build_win32_amalgamated:
-  #   runs-on: windows-latest
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #   - uses: ilammy/msvc-dev-cmd@v1
-  #   - name: Compile
-  #     shell: powershell
-  #     run: |
-  #       python amalgamate.py
-  #       cd amalgamated
-  #       cl.exe /std:c++17 /EHsc /utf-8 /Ox /I. /DPK_ENABLE_OS=1 main.cpp /link /out:pkpy.exe
+  build_win32_amalgamated:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: Compile
+      shell: powershell
+      run: |
+        python amalgamate.py
+        cd amalgamated
+        cl.exe /std:c11 /utf-8 /Ox /I. /DPK_ENABLE_OS=1 main.c /link /out:pkpy.exe
   build_win32:
     runs-on: windows-latest
     steps:

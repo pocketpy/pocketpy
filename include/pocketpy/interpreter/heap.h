@@ -1,5 +1,4 @@
 #include "pocketpy/objects/object.h"
-#include "pocketpy/common/config.h"
 
 typedef struct ManagedHeap{
     c11_vector no_gc;

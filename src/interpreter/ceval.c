@@ -1,4 +1,3 @@
-#include "pocketpy/common/config.h"
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/frame.h"
@@ -90,6 +89,7 @@ FrameResult VM__run_top_frame(VM* self) {
 
 #if PK_DEBUG
         pk_print_stack(self, frame, byte);
+        // assert(!py_checkexc(true));
 #endif
 
         switch((Opcode)byte.op) {

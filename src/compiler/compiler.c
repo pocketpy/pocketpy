@@ -5,7 +5,6 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/strname.h"
 #include "pocketpy/common/sstream.h"
-#include "pocketpy/common/config.h"
 #include "pocketpy/common/memorypool.h"
 #include <assert.h>
 #include <ctype.h>

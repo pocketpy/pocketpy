@@ -1,6 +1,6 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/vm.h"
-#include "time.h"
+#include <time.h>
 
 #define NANOS_PER_SEC 1000000000
 

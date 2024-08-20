@@ -1,5 +1,3 @@
-#include "pocketpy/common/config.h"
-#include "pocketpy/common/export.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"

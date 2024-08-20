@@ -1,12 +1,9 @@
 #include "pocketpy/common/smallmap.h"
-#include "pocketpy/common/config.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/vector.h"
 #include "pocketpy/compiler/lexer.h"
 #include "pocketpy/objects/sourcedata.h"
 #include <ctype.h>
-#include <stdarg.h>
-#include <stdbool.h>
 
 #define is_raw_string_used(t) ((t) == TK_ID)
 
@@ -201,7 +198,7 @@ static bool is_possible_number_char(char c) {
 }
 
 /******************************/
-static Error* SyntaxError(Lexer* self, const char* fmt, ...) {
+static Error* LexerError(Lexer* self, const char* fmt, ...) {
     Error* err = malloc(sizeof(Error));
     err->src = self->src;
     PK_INCREF(self->src);
@@ -219,7 +216,7 @@ static Error* eat_name(Lexer* self) {
     while(true) {
         unsigned char c = *self->curr_char;
         int u8bytes = c11__u8_header(c, true);
-        if(u8bytes == 0) return SyntaxError(self, "invalid char: %c", c);
+        if(u8bytes == 0) return LexerError(self, "invalid char: %c", c);
         if(u8bytes == 1) {
             if(isalnum(c) || c == '_') {
                 self->curr_char++;
@@ -251,7 +248,7 @@ static Error* eat_name(Lexer* self) {
     }
 
     int length = (int)(self->curr_char - self->token_start);
-    if(length == 0) return SyntaxError(self, "@id contains invalid char");
+    if(length == 0) return LexerError(self, "@id contains invalid char");
     c11_sv name = {self->token_start, length};
 
     const char** KW_BEGIN = TokenSymbols + TK_FALSE;
@@ -289,10 +286,10 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
             // end of string
             break;
         }
-        if(c == '\0') { return SyntaxError(self, "EOL while scanning string literal"); }
+        if(c == '\0') { return LexerError(self, "EOL while scanning string literal"); }
         if(c == '\n') {
             if(!quote3)
-                return SyntaxError(self, "EOL while scanning string literal");
+                return LexerError(self, "EOL while scanning string literal");
             else {
                 c11_sbuf__write_char(buff, c);
                 continue;
@@ -311,11 +308,11 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
                     char hex[3] = {eatchar(self), eatchar(self), '\0'};
                     int code;
                     if(sscanf(hex, "%x", &code) != 1) {
-                        return SyntaxError(self, "invalid hex char");
+                        return LexerError(self, "invalid hex char");
                     }
                     c11_sbuf__write_char(buff, (char)code);
                 } break;
-                default: return SyntaxError(self, "invalid escape char");
+                default: return LexerError(self, "invalid escape char");
             }
         } else {
             if(is_fstring) {
@@ -343,7 +340,7 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
                         }
                         if(self->nexts.length == token_count) {
                             // f'{}' is not allowed
-                            return SyntaxError(self, "f-string: empty expression not allowed");
+                            return LexerError(self, "f-string: empty expression not allowed");
                         }
                     }
                 } else if(c == '}') {
@@ -351,7 +348,7 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
                         // '}}' -> '}'
                         c11_sbuf__write_char(buff, '}');
                     } else {
-                        return SyntaxError(self, "f-string: single '}' is not allowed");
+                        return LexerError(self, "f-string: single '}' is not allowed");
                     }
                 } else {
                     c11_sbuf__write_char(buff, c);
@@ -412,7 +409,7 @@ static Error* eat_number(Lexer* self) {
         TokenValue value = {.index = TokenValue_I64};
         switch(c11__parse_uint(text, &value._i64, -1)) {
             case IntParsing_SUCCESS: add_token_with_value(self, TK_NUM, value); return NULL;
-            case IntParsing_OVERFLOW: return SyntaxError(self, "int literal is too large");
+            case IntParsing_OVERFLOW: return LexerError(self, "int literal is too large");
             case IntParsing_FAILURE: break;  // do nothing
         }
     }
@@ -434,14 +431,14 @@ static Error* eat_number(Lexer* self) {
         return NULL;
     }
 
-    return SyntaxError(self, "invalid number literal");
+    return LexerError(self, "invalid number literal");
 }
 
 static Error* eat_fstring_spec(Lexer* self, bool* eof) {
     while(true) {
         char c = eatchar_include_newline(self);
         if(c == '\n' || c == '\0') {
-            return SyntaxError(self, "EOL while scanning f-string format spec");
+            return LexerError(self, "EOL while scanning f-string format spec");
         }
         if(c == '}') {
             add_token(self, TK_FSTR_SPEC);
@@ -491,7 +488,7 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
                 // line continuation character
                 char c = eatchar_include_newline(self);
                 if(c != '\n') {
-                    return SyntaxError(self, "expected newline after line continuation character");
+                    return LexerError(self, "expected newline after line continuation character");
                 }
                 eat_spaces(self);
                 return NULL;
@@ -555,7 +552,7 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
                     add_token(self, TK_NE);
                     return NULL;
                 } else {
-                    return SyntaxError(self, "expected '=' after '!'");
+                    return LexerError(self, "expected '=' after '!'");
                 }
             case '*':
                 if(matchchar(self, '*')) {
@@ -576,7 +573,7 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
             case '\n': {
                 add_token(self, TK_EOL);
                 if(!eat_indentation(self)) {
-                    return SyntaxError(self, "unindent does not match any outer indentation level");
+                    return LexerError(self, "unindent does not match any outer indentation level");
                 }
                 return NULL;
             }
@@ -597,7 +594,7 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
         }
     }
 
-    if(is_fstring) return SyntaxError(self, "unterminated f-string expression");
+    if(is_fstring) return LexerError(self, "unterminated f-string expression");
 
     self->token_start = self->curr_char;
     while(self->indents.length > 1) {

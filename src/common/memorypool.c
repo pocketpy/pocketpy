@@ -1,5 +1,5 @@
 #include "pocketpy/common/memorypool.h"
-#include "pocketpy/common/config.h"
+#include "pocketpy/pocketpy.h"
 
 #include <stdlib.h>
 #include <string.h>

@@ -1,5 +1,4 @@
 #include "pocketpy/common/sstream.h"
-#include "pocketpy/common/config.h"
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/pocketpy.h"
