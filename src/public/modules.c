@@ -437,6 +437,10 @@ static bool builtins_locals(int argc, py_Ref argv) {
 
 void py_newglobals(py_Ref out) {
     Frame* frame = pk_current_vm->top_frame;
+    if(!frame){
+        pk_mappingproxy__namedict(out, &pk_current_vm->main);
+        return;
+    }
     if(frame->is_dynamic) {
         py_assign(out, &frame->p0[0]);
     } else {
