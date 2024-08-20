@@ -85,7 +85,7 @@ void py_sys_setargv(int argc, char** argv) {
     }
 }
 
-py_Callbacks* py_getcallbacks() { return &pk_current_vm->callbacks; }
+py_Callbacks* py_callbacks() { return &pk_current_vm->callbacks; }
 
 const char* pk_opname(Opcode op) {
     const static char* OP_NAMES[] = {
