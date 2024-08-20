@@ -80,15 +80,7 @@ To compile it with your project, these flags must be set:
 + `--std=c11` flag must be set
 + For MSVC, `/utf-8` flag must be set
 
-For development build, use this snippet.
-```bash
-# prerequisites
-pip install cmake
-# build the repo
-python cmake_build.py
-# unittest
-python scripts/run_tests.py
-```
+For amalgamated build, run `python amalgamate.py` to generate `pocketpy.c` and `pocketpy.h` in `amalgamated/` directory.
 
 ### Example
 
