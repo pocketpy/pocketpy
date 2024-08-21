@@ -1,11 +1,13 @@
+#include "pocketpy/common/str.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
-
 #include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/_generated.h"
+
+#include <ctype.h>
 #include <math.h>
 
 py_Ref py_getmodule(const char* path) {
@@ -437,7 +439,7 @@ static bool builtins_locals(int argc, py_Ref argv) {
 
 void py_newglobals(py_Ref out) {
     Frame* frame = pk_current_vm->top_frame;
-    if(!frame){
+    if(!frame) {
         pk_mappingproxy__namedict(out, &pk_current_vm->main);
         return;
     }
@@ -521,6 +523,67 @@ static bool builtins_exec(int argc, py_Ref argv) {
 
 static bool builtins_eval(int argc, py_Ref argv) {
     return _builtins_execdyn("eval", argc, argv, EVAL_MODE);
+}
+
+static bool
+    pk_smartexec(const char* source, py_Ref module, enum py_CompileMode mode, va_list args) {
+    if(module == NULL) module = &pk_current_vm->main;
+    pk_mappingproxy__namedict(py_pushtmp(), module);  // globals
+    py_newdict(py_pushtmp());                         // locals
+    bool ok = py_compile(source, "<string>", mode, true);
+    if(!ok) return false;
+    py_push(py_retval());
+    // [globals, locals, code]
+    CodeObject* co = py_touserdata(py_peek(-1));
+    py_StackRef locals = py_peek(-2);
+    int max_index = 0;
+    c11__foreach(Bytecode, &co->codes, bc) {
+        if(bc->op == OP_LOAD_NAME) {
+            c11_sv name = py_name2sv(bc->arg);
+            if(name.data[0] != '_') continue;
+            int index;
+            if(name.size == 1) {
+                index = 1;
+            } else if(name.size == 2 && isdigit(name.data[1])) {
+                index = name.data[1] - '0';
+            } else {
+                continue;
+            }
+            max_index = c11__max(max_index, index);
+        }
+    }
+
+    if(max_index == 0) { return ValueError("no placeholder found in the source"); }
+
+    for(int i = 1; i <= max_index; i++) {
+        py_Ref val = va_arg(args, py_Ref);
+        char buf[3];
+        buf[0] = '_';
+        buf[1] = '0' + i;
+        buf[2] = '\0';
+        py_dict_setitem_by_str(locals, buf, val);
+        if(i == 1) {
+            // _ => _1
+            py_dict_setitem_by_str(locals, "_", val);
+        }
+    }
+    return pk_exec(co, module);
+}
+
+bool py_smartexec(const char* source, py_Ref module, ...) {
+    va_list args;
+    va_start(args, module);
+    bool ok = pk_smartexec(source, module, EXEC_MODE, args);
+    va_end(args);
+    return ok;
+}
+
+bool py_smarteval(const char* source, py_Ref module, ...) {
+    va_list args;
+    va_start(args, module);
+    bool ok = pk_smartexec(source, module, EVAL_MODE, args);
+    va_end(args);
+    return ok;
 }
 
 static bool builtins_compile(int argc, py_Ref argv) {

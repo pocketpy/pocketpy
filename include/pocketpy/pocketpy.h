@@ -111,6 +111,21 @@ PK_EXPORT bool py_exec(const char* source,
 /// Evaluate a source string. Equivalent to `py_exec(source, "<string>", EVAL_MODE, module)`.
 PK_EXPORT bool py_eval(const char* source, py_Ref module) PY_RAISE PY_RETURN;
 
+/// Run a source string with smart interpretation.
+/// Example:
+/// `py_newstr(py_r0(), "abc");`
+/// `py_newint(py_r1(), 123);`
+/// `py_smartexec("print(_1, _2)", NULL, py_r0(), py_r1());`
+/// `// "abc 123" will be printed`.
+PK_EXPORT bool py_smartexec(const char* source, py_Ref module, ...) PY_RAISE PY_RETURN;
+/// Evaluate a source string with smart interpretation.
+/// Example:
+/// `py_newstr(py_r0(), "abc");`
+/// `py_smarteval("len(_1)", NULL, py_r0());`
+/// `int res = py_toint(py_retval());`
+/// `// res will be 3`.
+PK_EXPORT bool py_smarteval(const char* source, py_Ref module, ...) PY_RAISE PY_RETURN;
+
 /// Compile a source string into a code object.
 /// Use python's `exec()` or `eval()` to execute it.
 PK_EXPORT bool py_compile(const char* source,
@@ -285,6 +300,15 @@ PK_EXPORT bool py_checktype(py_Ref self, py_Type type) PY_RAISE;
 PK_EXPORT py_GlobalRef py_getreg(int i);
 /// Set the i-th register.
 PK_EXPORT void py_setreg(int i, py_Ref val);
+
+#define py_r0() py_getreg(0)
+#define py_r1() py_getreg(1)
+#define py_r2() py_getreg(2)
+#define py_r3() py_getreg(3)
+#define py_r4() py_getreg(4)
+#define py_r5() py_getreg(5)
+#define py_r6() py_getreg(6)
+#define py_r7() py_getreg(7)
 
 /// Get variable in the `__main__` module.
 PK_EXPORT py_ItemRef py_getglobal(py_Name name);
