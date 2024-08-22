@@ -147,8 +147,8 @@ public:
         using Callable = std::decay_t<Fn>;
 
         if constexpr(std::is_trivially_copyable_v<Callable> && sizeof(Callable) <= sizeof(buffer)) {
-            // if the callable object is trivially copyable and the size is less than 16 bytes, store it in the
-            // buffer
+            // if the callable object is trivially copyable and the size is less than 16 bytes,
+            // store it in the buffer
             new (buffer) auto(std::forward<Fn>(f));
             destructor = [](function_record* self) {
                 reinterpret_cast<Callable*>(self->buffer)->~Callable();
@@ -178,18 +178,10 @@ public:
     function_record& operator= (function_record&&) = delete;
 
     ~function_record() {
-        if(destructor) {
-            destructor(this);
-        }
-        if(arguments) {
-            delete arguments;
-        }
-        if(next) {
-            delete next;
-        }
-        if(signature) {
-            delete[] signature;
-        }
+        if(destructor) { destructor(this); }
+        if(arguments) { delete arguments; }
+        if(next) { delete next; }
+        if(signature) { delete[] signature; }
     }
 
     void append(function_record* record) {
@@ -220,9 +212,7 @@ public:
         bool has_self = argc == 3;
         std::vector<handle> args;
         handle self = py_offset(stack.ptr(), 0);
-        if(has_self) {
-            args.push_back(self);
-        }
+        if(has_self) { args.push_back(self); }
 
         auto tuple = py_offset(stack.ptr(), 0 + has_self);
         for(int i = 0; i < py_tuple_len(tuple); ++i) {
@@ -239,9 +229,7 @@ public:
         // foreach function record and call the function with not convert
         while(p != nullptr) {
             auto result = p->wrapper(*p, args, kwargs, false, self);
-            if(result) {
-                return;
-            }
+            if(result) { return; }
             p = p->next;
         }
 
@@ -249,9 +237,7 @@ public:
         // foreach function record and call the function with convert
         while(p != nullptr) {
             auto result = p->wrapper(*p, args, kwargs, true, self);
-            if(result) {
-                return;
-            }
+            if(result) { return; }
             p = p->next;
         }
 
@@ -299,14 +285,16 @@ void invoke(Fn&& fn,
         };
 
         if constexpr(!is_void) {
-            py_assign(py_retval(), pkbind::cast(unpack(std::get<Is>(casters).value()...), policy, parent).ptr());
+            py_assign(py_retval(),
+                      pkbind::cast(unpack(std::get<Is>(casters).value()...), policy, parent).ptr());
         } else {
             unpack(std::get<Is>(casters).value()...);
             py_newnone(py_retval());
         }
     } else {
         if constexpr(!is_void) {
-            py_assign(py_retval(), pkbind::cast(fn(std::get<Is>(casters).value()...), policy, parent).ptr());
+            py_assign(py_retval(),
+                      pkbind::cast(fn(std::get<Is>(casters).value()...), policy, parent).ptr());
         } else {
             fn(std::get<Is>(casters).value()...);
             py_newnone(py_retval());
@@ -315,7 +303,10 @@ void invoke(Fn&& fn,
 }
 
 template <typename Callable, typename... Extras, typename... Args, std::size_t... Is>
-struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std::index_sequence<Is...>> {
+struct template_parser<Callable,
+                       std::tuple<Extras...>,
+                       std::tuple<Args...>,
+                       std::index_sequence<Is...>> {
     using types = type_list<Args...>;
 
     /// count of the Callable parameters.
@@ -333,7 +324,8 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
 
     // FIXME: temporarily, args and kwargs must be at the end of the arguments list
     /// if have py::kwargs, it must be at the end of the arguments list.
-    static_assert(kwargs_count == 0 || kwargs_pos == argc - 1, "py::kwargs must be the last parameter");
+    static_assert(kwargs_count == 0 || kwargs_pos == argc - 1,
+                  "py::kwargs must be the last parameter");
     /// if have py::args, it must be before py::kwargs or at the end of the arguments list.
     static_assert(args_count == 0 || args_pos == kwargs_pos - 1 || args_pos == argc - 1,
                   "py::args must be before py::kwargs or at the end of the parameter list");
@@ -348,14 +340,18 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
 
     constexpr inline static auto policy_pos = extras::template find<pkbind::return_value_policy>;
 
-    constexpr inline static auto last_arg_without_default_pos = types::template find_last<pkbind::arg>;
-    constexpr inline static auto first_arg_with_default_pos = types::template find<pkbind::arg_with_default>;
-    static_assert(last_arg_without_default_pos < first_arg_with_default_pos || first_arg_with_default_pos == -1,
+    constexpr inline static auto last_arg_without_default_pos =
+        types::template find_last<pkbind::arg>;
+    constexpr inline static auto first_arg_with_default_pos =
+        types::template find<pkbind::arg_with_default>;
+    static_assert(last_arg_without_default_pos < first_arg_with_default_pos ||
+                      first_arg_with_default_pos == -1,
                   "parameter with default value must be after parameter without default value");
 
     /// count of named parameters(explicit with name).
     constexpr inline static auto named_only_argc = extras::template count<pkbind::arg>;
-    constexpr inline static auto named_default_argc = extras::template count<pkbind::arg_with_default>;
+    constexpr inline static auto named_default_argc =
+        extras::template count<pkbind::arg_with_default>;
     constexpr inline static auto named_argc = named_only_argc + named_default_argc;
 
     /// count of normal parameters(which are not py::args or py::kwargs).
@@ -368,9 +364,7 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
     static void initialize(function_record& record, const Extras&... extras) {
         auto extras_tuple = std::make_tuple(extras...);
         constexpr static bool has_named_args = (named_argc > 0);
-        if constexpr(policy_pos != -1) {
-            record.policy = std::get<policy_pos>(extras_tuple);
-        }
+        if constexpr(policy_pos != -1) { record.policy = std::get<policy_pos>(extras_tuple); }
 
         // TODO: set others
 
@@ -410,15 +404,15 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
                     sig += type_info::of<T>().name;
                     if(!record.arguments->defaults[index].empty()) {
                         sig += " = ";
-                        sig += record.arguments->defaults[index].attr("__repr__")().cast<std::string_view>();
+                        sig += record.arguments->defaults[index]
+                                   .attr("__repr__")()
+                                   .cast<std::string_view>();
                     }
                 } else {
                     sig += "_: ";
                     sig += type_info::of<T>().name;
                 }
-                if(index + 1 < argc) {
-                    sig += ", ";
-                }
+                if(index + 1 < argc) { sig += ", "; }
                 index++;
             };
             (append(type_identity<Args>{}), ...);
@@ -430,8 +424,8 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
         }
     }
 
-    /// try to call a C++ function(store in function_record) with the arguments which are from Python.
-    /// if success, return true, otherwise return false.
+    /// try to call a C++ function(store in function_record) with the arguments which are from
+    /// Python. if success, return true, otherwise return false.
     static bool call(function_record& record,
                      std::vector<handle>& args,
                      std::vector<std::pair<handle, handle>>& kwargs,
@@ -451,9 +445,7 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
 
         // load arguments from call arguments
         if(args.size() > normal_argc) {
-            if constexpr(args_pos == -1) {
-                return false;
-            }
+            if constexpr(args_pos == -1) { return false; }
         }
 
         for(std::size_t i = 0; i < std::min(normal_argc, (int)args.size()); ++i) {
@@ -463,9 +455,10 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
         object repack_args;
         // pack the args
         if constexpr(args_pos != -1) {
-            const auto n = args.size() > normal_argc ? args.size() - normal_argc : 0;
+            const auto n =
+                static_cast<int>(args.size() > normal_argc ? args.size() - normal_argc : 0);
             auto pack = tuple(n);
-            for(std::size_t i = 0; i < n; ++i) {
+            for(int i = 0; i < n; ++i) {
                 pack[i] = args[normal_argc + i];
             }
             repack_args = std::move(pack);
@@ -500,16 +493,18 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
 
         // check if all the arguments are valid
         for(std::size_t i = 0; i < argc; ++i) {
-            if(!stack[i]) {
-                return false;
-            }
+            if(!stack[i]) { return false; }
         }
 
         // ok, all the arguments are valid, call the function
         std::tuple<type_caster<Args>...> casters;
 
         if(((std::get<Is>(casters).load(stack[Is], convert)) && ...)) {
-            invoke(record.as<Callable>(), std::index_sequence<Is...>{}, casters, record.policy, parent);
+            invoke(record.as<Callable>(),
+                   std::index_sequence<Is...>{},
+                   casters,
+                   record.policy,
+                   parent);
             return true;
         }
 
@@ -533,15 +528,14 @@ class cpp_function : public function {
     static bool is_function_record(handle h) {
         if(isinstance<function>(h)) {
             auto slot = py_getslot(h.ptr(), 0);
-            if(slot) {
-                return py_typeof(slot) == m_type;
-            }
+            if(slot) { return py_typeof(slot) == m_type; }
         }
         return false;
     }
 
     template <typename Fn, typename... Extras>
-    cpp_function(bool is_method, const char* name, Fn&& fn, const Extras&... extras) : function(alloc_t{}) {
+    cpp_function(bool is_method, const char* name, Fn&& fn, const Extras&... extras) :
+        function(alloc_t{}) {
         // bind the function
         std::string sig = name;
         sig += is_method ? "(self, *args, **kwargs)" : "(*args, **kwargs)";
@@ -562,13 +556,9 @@ class cpp_function : public function {
                 py_exception(tp_IndexError, e.what());
             } catch(std::range_error& e) {
                 py_exception(tp_ValueError, e.what());
-            } catch(stop_iteration& e) {
-                StopIteration();
-            } catch(index_error& e) {
+            } catch(stop_iteration&) { StopIteration(); } catch(index_error& e) {
                 py_exception(tp_IndexError, e.what());
-            } catch(key_error& e) {
-                py_exception(tp_KeyError, e.what());
-            } catch(value_error& e) {
+            } catch(key_error& e) { py_exception(tp_KeyError, e.what()); } catch(value_error& e) {
                 py_exception(tp_ValueError, e.what());
             } catch(type_error& e) {
                 py_exception(tp_TypeError, e.what());
@@ -576,9 +566,7 @@ class cpp_function : public function {
                 py_exception(tp_ImportError, e.what());
             } catch(attribute_error& e) {
                 py_exception(tp_AttributeError, e.what());
-            } catch(std::exception& e) {
-                py_exception(tp_RuntimeError, e.what());
-            }
+            } catch(std::exception& e) { py_exception(tp_RuntimeError, e.what()); }
             return false;
         };
         py_newfunction(m_ptr, sig.c_str(), call, nullptr, 1);
@@ -590,7 +578,8 @@ class cpp_function : public function {
     }
 
     template <typename Fn, typename... Extras>
-    cpp_function(Fn&& fn, const Extras&... extras) : cpp_function("lambda", std::forward<Fn>(fn), extras...) {}
+    cpp_function(Fn&& fn, const Extras&... extras) :
+        cpp_function("lambda", std::forward<Fn>(fn), extras...) {}
 };
 
 class property : public object {
@@ -620,7 +609,8 @@ namespace impl {
 
 template <bool is_method, bool is_static, typename Fn, typename... Extras>
 void bind_function(handle obj, const char* name_, Fn&& fn, const Extras&... extras) {
-    constexpr bool has_named_args = ((std::is_same_v<Extras, arg> || std::is_same_v<Extras, arg_with_default>) || ...);
+    constexpr bool has_named_args =
+        ((std::is_same_v<Extras, arg> || std::is_same_v<Extras, arg_with_default>) || ...);
     auto name = py_name(name_);
     auto func = py_getdict(obj.ptr(), name);
 
@@ -634,23 +624,33 @@ void bind_function(handle obj, const char* name_, Fn&& fn, const Extras&... extr
         }
     } else {
         if constexpr(is_static) {
-            py_setdict(obj.ptr(),
-                       name,
-                       staticmethod(cpp_function(is_method, name_, std::forward<Fn>(fn), extras...).ptr()).ptr());
+            py_setdict(
+                obj.ptr(),
+                name,
+                staticmethod(cpp_function(is_method, name_, std::forward<Fn>(fn), extras...).ptr())
+                    .ptr());
         } else {
             if constexpr(has_named_args && is_method) {
+                py_setdict(
+                    obj.ptr(),
+                    name,
+                    cpp_function(is_method, name_, std::forward<Fn>(fn), arg("self"), extras...)
+                        .ptr());
+            } else {
                 py_setdict(obj.ptr(),
                            name,
-                           cpp_function(is_method, name_, std::forward<Fn>(fn), arg("self"), extras...).ptr());
-            } else {
-                py_setdict(obj.ptr(), name, cpp_function(is_method, name_, std::forward<Fn>(fn), extras...).ptr());
+                           cpp_function(is_method, name_, std::forward<Fn>(fn), extras...).ptr());
             }
         }
     }
 }
 
 template <typename Getter, typename Setter, typename... Extras>
-void bind_property(handle obj, const char* name, Getter&& getter_, Setter&& setter_, const Extras&... extras) {
+void bind_property(handle obj,
+                   const char* name,
+                   Getter&& getter_,
+                   Setter&& setter_,
+                   const Extras&... extras) {
     if constexpr(std::is_same_v<std::decay_t<Setter>, std::nullptr_t>) {
         cpp_function getter(true,
                             name,

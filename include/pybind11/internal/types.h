@@ -4,22 +4,24 @@
 
 namespace pkbind {
 
-#define PKBIND_TYPE_IMPL(parent, child, expr)                                                                          \
-                                                                                                                       \
-private:                                                                                                               \
-    friend class type;                                                                                                 \
-    static auto type_or_check() { return expr; }                                                                       \
-                                                                                                                       \
-public:                                                                                                                \
-    using parent::parent;                                                                                              \
-    using parent::operator=;                                                                                           \
-    child(const object& o) : parent(type::isinstance<child>(o) ? o : type::of<child>()(o)) {}                          \
-    child(object&& o) : parent(type::isinstance<child>(o) ? std::move(o) : type::of<child>()(std::move(o))) {}
+#define PKBIND_TYPE_IMPL(parent, child, expr)                                                      \
+                                                                                                   \
+private:                                                                                           \
+    friend class type;                                                                             \
+    static auto type_or_check() { return expr; }                                                   \
+                                                                                                   \
+public:                                                                                            \
+    using parent::parent;                                                                          \
+    using parent::operator=;                                                                       \
+    child(const object& o) : parent(type::isinstance<child>(o) ? o : type::of<child>()(o)) {}      \
+    child(object&& o) :                                                                            \
+        parent(type::isinstance<child>(o) ? std::move(o) : type::of<child>()(std::move(o))) {}
 
 class type : public object {
 protected:
     template <typename T>
-    constexpr inline static bool is_check_v = std::is_invocable_r_v<bool, decltype(T::type_or_check()), handle>;
+    constexpr inline static bool is_check_v =
+        std::is_invocable_r_v<bool, decltype(T::type_or_check()), handle>;
 
     static auto type_or_check() { return tp_type; }
 
@@ -108,7 +110,9 @@ public:
 
     object operator* () const { return m_value; }
 
-    friend bool operator== (const iterator& lhs, const iterator& rhs) { return lhs.m_value.ptr() == rhs.m_value.ptr(); }
+    friend bool operator== (const iterator& lhs, const iterator& rhs) {
+        return lhs.m_value.ptr() == rhs.m_value.ptr();
+    }
 
     friend bool operator!= (const iterator& lhs, const iterator& rhs) { return !(lhs == rhs); }
 
@@ -134,7 +138,7 @@ class str : public object {
 
     str(const char* data, int size) : object(alloc_t{}) { py_newstrn(m_ptr, data, size); }
 
-    str(const char* data) : str(data, strlen(data)) {}
+    str(const char* data) : str(data, static_cast<int>(strlen(data))) {}
 
     str(std::string_view s) : str(s.data(), static_cast<int>(s.size())) {}
 
@@ -147,7 +151,7 @@ class tuple : public object {
 
     tuple(int size) : object(alloc_t{}) { py_newtuple(m_ptr, size); }
 
-    tuple(std::initializer_list<handle> args) : tuple(args.size()) {
+    tuple(std::initializer_list<handle> args) : tuple(static_cast<int>(args.size())) {
         int index = 0;
         for(auto& arg: args) {
             py_tuple_setitem(m_ptr, index++, arg.ptr());
@@ -194,7 +198,7 @@ class list : public object {
 
     list(int size) : object(alloc_t{}) { py_newlistn(m_ptr, size); }
 
-    list(std::initializer_list<handle> args) : list(args.size()) {
+    list(std::initializer_list<handle> args) : list(static_cast<int>(args.size())) {
         int index = 0;
         for(auto& arg: args) {
             py_list_setitem(m_ptr, index++, arg.ptr());
@@ -338,9 +342,7 @@ class capsule : public object {
     static void register_() {
         m_type = py_newtype("capsule", tp_object, nullptr, [](void* data) {
             auto impl = static_cast<capsule_impl*>(data);
-            if(impl->data && impl->destructor) {
-                impl->destructor(impl->data);
-            }
+            if(impl->data && impl->destructor) { impl->destructor(impl->data); }
         });
     }
 

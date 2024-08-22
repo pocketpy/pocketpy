@@ -2,11 +2,15 @@ name: CMake Build and Test
 
 on:
   push:
-    branches:
-      - pkpy-v2
+    paths-ignore:
+      - "docs/**"
+      - "web/**"
+      - "**.md"
   pull_request:
-    branches:
-      - pkpy-v2
+    paths-ignore:
+      - "docs/**"
+      - "web/**"
+      - "**.md"
 
 jobs:
   build_linux:
@@ -14,7 +18,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up GCC
         run: |
           sudo apt-get update
@@ -23,18 +27,11 @@ jobs:
       - name: Set up CMake
         uses: jwlawson/actions-setup-cmake@v1.10
 
-      - name: Install dependencies
-        run: |
-          git submodule update --init --recursive
-          git clone https://github.com/google/googletest.git
-
-      - name: Build
-        run: |
-          cmake -B build -DENABLE_TEST=ON
-          cmake --build build --config Release --parallel
-          
       - name: Test
         run: |
+          cd include/pybind11/tests
+          cmake -B build
+          cmake --build build --config Release --parallel
           build/pybind11_test
 
   build_win:
@@ -42,25 +39,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Set up CMake
         uses: jwlawson/actions-setup-cmake@v1.10
 
-      - name: Install dependencies
-        run: |
-          git submodule update --init --recursive
-          git clone https://github.com/google/googletest.git
-
-      - name: Build
-        run: |
-          cmake -B build -DENABLE_TEST=ON
-          cmake --build build --config Release --parallel
-          
       - name: Test
         run: |
+          cd include\pybind11\tests
+          cmake -B build
+          cmake --build build --config Release --parallel
           build\Release\pybind11_test.exe
 
   build_mac:
@@ -68,7 +58,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up Clang
         run: |
           brew install llvm
@@ -78,16 +68,9 @@ jobs:
       - name: Set up CMake
         uses: jwlawson/actions-setup-cmake@v1.10
 
-      - name: Install dependencies
-        run: |
-          git submodule update --init --recursive
-          git clone https://github.com/google/googletest.git
-
-      - name: Build
-        run: |
-          cmake -B build -DENABLE_TEST=ON
-          cmake --build build --config Release --parallel
-          
       - name: Test
         run: |
+          cd include/pybind11/tests
+          cmake -B build -DENABLE_TEST=ON
+          cmake --build build --config Release --parallel
           build/pybind11_test

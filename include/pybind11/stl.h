@@ -30,7 +30,7 @@ struct type_caster<std::array<T, N>> {
 
         if(list.size() != N) { return false; }
 
-        for(std::size_t i = 0; i < N; ++i) {
+        for(int i = 0; i < N; ++i) {
             type_caster<T> caster;
             if(!caster.load(list[i], convert)) { return false; }
             data[i] = std::move(caster.value());
@@ -139,7 +139,8 @@ struct type_caster<T, std::enable_if_t<is_py_map_like_v<T>>> {
     static object cast(U&& src, return_value_policy policy, handle parent) {
         auto dict = pkbind::dict();
         for(auto&& [key, value]: src) {
-            dict[pkbind::cast(std::move(key), policy, parent)] = pkbind::cast(std::move(value), policy, parent);
+            dict[pkbind::cast(std::move(key), policy, parent)] =
+                pkbind::cast(std::move(value), policy, parent);
         }
         return dict;
     }
@@ -167,4 +168,3 @@ struct type_caster<T, std::enable_if_t<is_py_map_like_v<T>>> {
 };
 
 }  // namespace pkbind
-

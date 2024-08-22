@@ -351,7 +351,7 @@ TEST_F(PYBIND11_TEST, lambda) {
         size_t c;
         size_t d;
 
-        int operator() (int x, int y) { return x + y + a + b + c + d; }
+        size_t operator() (size_t x, size_t y) { return x + y + a + b + c + d; }
 
         ~NotSmall() { destructor_calls++; }
     };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "module.h"
+#include "type_traits.h"
 
 namespace pkbind {
 
@@ -38,7 +39,8 @@ public:
                 [[maybe_unused]] auto kwargs = py_offset(stack, 2);
 
                 auto info = &type_info::of<T>();
-                int slot = (type_list<Args...>::template count<dynamic_attr> ? -1 : 0);
+                int slot = ((std::is_same_v<dynamic_attr, Args> || ...) ? -1 : 0);
+                std::cout << "<< " << slot << "\n";
                 void* data = py_newobject(retv, steal<type>(cls).index(), slot, sizeof(instance));
                 new (data) instance{instance::Flag::Own, operator new (info->size), info};
                 return true;
@@ -82,8 +84,9 @@ public:
         constexpr bool is_first_base_of_v = std::is_base_of_v<first, T> || std::is_same_v<first, T>;
 
         if constexpr(!is_first_base_of_v) {
-            static_assert(is_first_base_of_v,
-                          "If you want to bind member function, the first argument must be the base class");
+            static_assert(
+                is_first_base_of_v,
+                "If you want to bind member function, the first argument must be the base class");
         } else {
             impl::bind_function<true, false>(*this, name, std::forward<Fn>(f), extra...);
         }
@@ -108,7 +111,8 @@ public:
     template <typename MP, typename... Extras>
     class_& def_readwrite(const char* name, MP mp, const Extras&... extras) {
         if constexpr(!std::is_member_object_pointer_v<MP>) {
-            static_assert(std::is_member_object_pointer_v<MP>, "def_readwrite only supports pointer to data member");
+            static_assert(std::is_member_object_pointer_v<MP>,
+                          "def_readwrite only supports pointer to data member");
         } else {
             impl::bind_property(
                 *this,
@@ -127,7 +131,8 @@ public:
     template <typename MP, typename... Extras>
     class_& def_readonly(const char* name, MP mp, const Extras&... extras) {
         if constexpr(!std::is_member_object_pointer_v<MP>) {
-            static_assert(std::is_member_object_pointer_v<MP>, "def_readonly only supports pointer to data member");
+            static_assert(std::is_member_object_pointer_v<MP>,
+                          "def_readonly only supports pointer to data member");
         } else {
             impl::bind_property(
                 *this,
@@ -143,7 +148,11 @@ public:
 
     template <typename Getter, typename Setter, typename... Extras>
     class_& def_property(const char* name, Getter&& g, Setter&& s, const Extras&... extras) {
-        impl::bind_property(*this, name, std::forward<Getter>(g), std::forward<Setter>(s), extras...);
+        impl::bind_property(*this,
+                            name,
+                            std::forward<Getter>(g),
+                            std::forward<Setter>(s),
+                            extras...);
         return *this;
     }
 
