@@ -8,9 +8,13 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 # use IPO
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result)
+
 if(result)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-    message(">> IPO is enabled")
+else()
+    message(WARNING ">> IPO disabled. You will get very poor performance!!")
+    message(WARNING ">> IPO disabled. You will get very poor performance!!")
+    message(WARNING ">> IPO disabled. You will get very poor performance!!")
 endif()
 
 
