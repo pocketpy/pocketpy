@@ -5,6 +5,15 @@ project(pocketpy)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# use IPO
+include(CheckIPOSupported)
+check_ipo_supported(RESULT result)
+if(result)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    message(">> IPO is enabled")
+endif()
+
+
 if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /jumptablerdata /GS-")
     add_compile_options(/wd4267 /wd4244)
