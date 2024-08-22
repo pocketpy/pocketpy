@@ -198,7 +198,9 @@ public:
     object() = default;
 
     object(const object& other) : handle(other), m_index(other.m_index) {
-        if(other.in_pool()) { object_pool::inc_ref(other); }
+        if(other.in_pool()) {
+            object_pool::inc_ref(other);
+        }
     }
 
     object(object&& other) : handle(other), m_index(other.m_index) {
@@ -208,8 +210,12 @@ public:
 
     object& operator= (const object& other) {
         if(this != &other) {
-            if(in_pool()) { object_pool::dec_ref(*this); }
-            if(other.in_pool()) { object_pool::inc_ref(other); }
+            if(in_pool()) {
+                object_pool::dec_ref(*this);
+            }
+            if(other.in_pool()) {
+                object_pool::inc_ref(other);
+            }
             m_ptr = other.m_ptr;
             m_index = other.m_index;
         }
@@ -218,7 +224,9 @@ public:
 
     object& operator= (object&& other) {
         if(this != &other) {
-            if(in_pool()) { object_pool::dec_ref(*this); }
+            if(in_pool()) {
+                object_pool::dec_ref(*this);
+            }
             m_ptr = other.m_ptr;
             m_index = other.m_index;
             other.m_ptr = nullptr;
@@ -228,12 +236,14 @@ public:
     }
 
     ~object() {
-        if(in_pool()) { object_pool::dec_ref(*this); }
+        if(in_pool()) {
+            object_pool::dec_ref(*this);
+        }
     }
 
     bool is_singleton() const { return m_ptr && m_index == -1; }
 
-    bool is_empty() const { return m_ptr == nullptr && m_index == -1; }
+    bool empty() const { return m_ptr == nullptr && m_index == -1; }
 
     /// return whether the object is in the object pool.
     bool in_pool() const { return m_ptr && m_index != -1; }
@@ -270,6 +280,16 @@ public:
 protected:
     int m_index = -1;
 };
+
+template <typename T = object>
+T steal(handle h) {
+    return T(h, object::ref_t{});
+}
+
+template <typename T = object>
+T borrow(handle h) {
+    return T(h, object::realloc_t{});
+}
 
 template <int N>
 void reg_t<N>::operator= (handle h) & {

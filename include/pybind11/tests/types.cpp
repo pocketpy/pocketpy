@@ -2,7 +2,7 @@
 
 TEST_F(PYBIND11_TEST, int) {
     py::object obj = py::int_(123);
-    py::handle obj2 = py::eval("123");
+    py::object obj2 = py::eval("123");
 
     EXPECT_EQ(obj, obj2);
 
@@ -13,7 +13,7 @@ TEST_F(PYBIND11_TEST, int) {
 
 TEST_F(PYBIND11_TEST, float) {
     py::object obj = py::float_(123.0);
-    py::handle obj2 = py::eval("123.0");
+    py::object obj2 = py::eval("123.0");
 
     EXPECT_EQ(obj, obj2);
 
@@ -23,17 +23,24 @@ TEST_F(PYBIND11_TEST, float) {
 
 TEST_F(PYBIND11_TEST, str) {
     py::object obj = py::str("123");
-    py::handle obj2 = py::eval("'123'");
+    py::object obj2 = py::eval("'123'");
 
     EXPECT_EQ(obj, obj2);
 
     EXPECT_STREQ(obj.cast<const char*>(), "123");
     EXPECT_EQ(obj.cast<std::string>(), "123");
     EXPECT_EQ(obj.cast<std::string_view>(), "123");
+
+    auto s = py::str("Hello, {}");
+    EXPECT_EQ(s.format("world").cast<std::string>(), "Hello, world");
 }
 
 TEST_F(PYBIND11_TEST, tuple) {
-    py::tuple tuple = py::tuple{py::int_(1), py::str("123"), py::int_(3)};
+    py::tuple tuple = py::tuple{
+        py::int_(1),
+        py::str("123"),
+        py::int_(3),
+    };
     EXPECT_EQ(tuple, py::eval("(1, '123', 3)"));
     EXPECT_EQ(tuple.size(), 3);
     EXPECT_FALSE(tuple.empty());
@@ -41,26 +48,56 @@ TEST_F(PYBIND11_TEST, tuple) {
     tuple[0] = py::int_(3);
     tuple[2] = py::int_(1);
     EXPECT_EQ(tuple, py::eval("(3, '123', 1)"));
+
+    // iterators.
+    int index = 0;
+    for(auto item: tuple) {
+        if(index == 0) {
+            EXPECT_EQ(item, py::int_(3));
+        } else if(index == 1) {
+            EXPECT_EQ(item, py::str("123"));
+        } else if(index == 2) {
+            EXPECT_EQ(item, py::int_(1));
+        }
+        index++;
+    }
 }
 
 TEST_F(PYBIND11_TEST, list) {
-    // test constructors
+    // constructors
     py::list list = py::list();
     EXPECT_EQ(list, py::eval("[]"));
     EXPECT_EQ(list.size(), 0);
     EXPECT_TRUE(list.empty());
 
-    list = py::list{py::int_(1), py::int_(2), py::int_(3)};
+    list = py::list{
+        py::int_(1),
+        py::int_(2),
+        py::int_(3),
+    };
     EXPECT_EQ(list, py::eval("[1, 2, 3]"));
     EXPECT_EQ(list.size(), 3);
     EXPECT_FALSE(list.empty());
 
-    // test accessor
+    // accessor
     list[0] = py::int_(3);
     list[2] = py::int_(1);
     EXPECT_EQ(list, py::eval("[3, 2, 1]"));
 
-    // test other apis
+    // iterators
+    int index = 0;
+    for(auto item: list) {
+        if(index == 0) {
+            EXPECT_EQ(item, py::int_(3));
+        } else if(index == 1) {
+            EXPECT_EQ(item, py::int_(2));
+        } else if(index == 2) {
+            EXPECT_EQ(item, py::int_(1));
+        }
+        index++;
+    }
+
+    // others
     list.append(py::int_(4));
     EXPECT_EQ(list, py::eval("[3, 2, 1, 4]"));
 
@@ -69,22 +106,39 @@ TEST_F(PYBIND11_TEST, list) {
 }
 
 TEST_F(PYBIND11_TEST, dict) {
-    // test constructors
+    // constructors
     py::dict dict = py::dict();
     EXPECT_EQ(dict, py::eval("{}"));
     EXPECT_EQ(dict.size(), 0);
     EXPECT_TRUE(dict.empty());
 
-    // test accessor
+    // accessor
     dict["a"] = py::int_(1);
     dict["b"] = py::int_(2);
     dict["c"] = py::int_(3);
     EXPECT_EQ(dict, py::eval("{'a': 1, 'b': 2, 'c': 3}"));
+    EXPECT_EQ(dict,
+              py::dict({
+                  {"a", py::int_(1)},
+                  {"b", py::int_(2)},
+                  {"c", py::int_(3)},
+    }));
 
-    // FIXME:
-    // test other apis
-    // dict.clear();
-    // EXPECT_EQ(dict, py::eval("{}"));
+    // iterators
+    int index = 0;
+    for(auto item: dict) {
+        if(index == 0) {
+            EXPECT_EQ(item.first.cast<std::string>(), "a");
+            EXPECT_EQ(item.second, py::int_(1));
+        } else if(index == 1) {
+            EXPECT_EQ(item.first.cast<std::string>(), "b");
+            EXPECT_EQ(item.second, py::int_(2));
+        } else if(index == 2) {
+            EXPECT_EQ(item.first.cast<std::string>(), "c");
+            EXPECT_EQ(item.second, py::int_(3));
+        }
+        index++;
+    }
 }
 
 TEST_F(PYBIND11_TEST, capsule) {

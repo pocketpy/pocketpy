@@ -18,7 +18,9 @@ class accessor : public interface<accessor<policy>> {
 
 public:
     auto ptr() const {
-        if(!m_value) { m_value = policy::get(m_obj, m_key); }
+        if(m_value.empty()) {
+            m_value = borrow(policy::get(m_obj, m_key));
+        }
         return m_value.ptr();
     }
 
@@ -38,11 +40,12 @@ public:
 
 private:
     handle m_obj;
-    mutable handle m_value;
+    mutable object m_value;
     key_type m_key;
 };
 
 namespace policy {
+
 struct attr {
     using key_type = name;
 
@@ -136,6 +139,11 @@ inline item_accessor<handle> interface<Derived>::operator[] (handle key) const {
     return {ptr(), key};
 }
 
+template <typename... Args>
+object str::format(Args&&... args) {
+    return attr("format")(std::forward<Args>(args)...);
+}
+
 inline tuple_accessor tuple::operator[] (int index) const { return {m_ptr, index}; }
 
 inline list_accessor list::operator[] (int index) const { return {m_ptr, index}; };
@@ -148,9 +156,9 @@ inline dict_accessor<handle> dict::operator[] (handle key) const { return {m_ptr
 
 inline dict::iterator::iterator(handle h) : items(h.attr("items")()), iter(items.begin()) {}
 
-inline std::pair<handle, handle> dict::iterator::operator* () const {
-    tuple pair = tuple(*iter, object::ref_t{});
-    return {pair[0], pair[1]};
+inline std::pair<object, object> dict::iterator::operator* () const {
+    tuple pair = *iter;
+    return {borrow(pair[0]), borrow(pair[1])};
 }
 
 }  // namespace pkbind

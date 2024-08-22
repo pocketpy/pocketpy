@@ -16,6 +16,10 @@ public:
 
     ~python_error() { std::free(m_what); }
 
+    bool match(py_Type type) const { return py_isinstance(m_exception.ptr(), type); }
+
+    bool match(class type) const;
+
 private:
     char* m_what;
     object m_exception;
@@ -30,18 +34,53 @@ inline auto raise_call(Args&&... args) {
 
     using type = decltype(result);
     if constexpr(std::is_same_v<type, bool>) {
-        if(result != false) { return result; }
+        if(result != false) {
+            return result;
+        }
     } else if constexpr(std::is_same_v<type, int>) {
-        if(result != -1) { return result; }
+        if(result != -1) {
+            return result;
+        }
     } else {
         static_assert(dependent_false<type>, "invalid return type");
     }
 
+    bool o = py_matchexc(tp_Exception);
+    object e = object::from_ret();
     auto what = py_formatexc();
-    py_matchexc(tp_Exception);
     py_clearexc(pc);
-    throw python_error(what, object(retv, object::realloc_t{}));
+    throw python_error(what, std::move(e));
 }
+
+class stop_iteration {};
+
+class cast_error : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+class index_error : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+class key_error : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+class value_error : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+class type_error : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+class import_error : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+class attribute_error : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
 
 inline object::operator bool () const { return raise_call<py_bool>(m_ptr); }
 

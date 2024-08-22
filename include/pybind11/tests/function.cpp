@@ -2,6 +2,31 @@
 
 namespace {
 
+TEST_F(PYBIND11_TEST, vectorcall) {
+    auto m = py::module_::__main__();
+
+    py::exec(R"(
+def add(a, b):
+    return a + b
+)");
+    // position only
+    EXPECT_CAST_EQ(m.attr("add")(1, 2), 3);
+    // FIXME: pkpy does not support such calling.
+    // keyword only
+    // EXPECT_CAST_EQ(m.attr("add")(py::arg("a") = 1, py::arg("b") = 2), 3);
+    // mix
+    // EXPECT_CAST_EQ(m.attr("add")(1, py::arg("b") = 2), 3);
+
+    py::exec(R"(
+def add2(a, *args):
+    return a + sum(args)
+)");
+    EXPECT_CAST_EQ(m.attr("add2")(1, 2, 3, 4), 10);
+
+    EXPECT_EQ(py::type::of<py::tuple>()(py::eval("[1, 2, 3]")), py::eval("(1, 2, 3)"));
+    EXPECT_EQ(py::type::of<py::list>()(py::eval("(1, 2, 3)")), py::eval("[1, 2, 3]"));
+}
+
 TEST_F(PYBIND11_TEST, constructor) {
     auto m = py::module_::__main__();
 

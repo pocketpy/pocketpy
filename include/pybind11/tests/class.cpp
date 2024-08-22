@@ -158,7 +158,7 @@ assert p.z == 30
 
     EXPECT_EQ(constructor_calls, 4);
 }
-// FIXME: 
+
 TEST_F(PYBIND11_TEST, dynamic_attr) {
     py::module_ m = py::module_::import("__main__");
 
@@ -178,8 +178,8 @@ TEST_F(PYBIND11_TEST, dynamic_attr) {
     EXPECT_EQ(p.attr("x").cast<int>(), 1);
     EXPECT_EQ(p.attr("y").cast<int>(), 2);
 
-    // p.attr("z") = py::int_(3);
-    // EXPECT_EQ(p.attr("z").cast<int>(), 3);
+    p.attr("z") = py::int_(3);
+    EXPECT_EQ(p.attr("z").cast<int>(), 3);
 }
 
 TEST_F(PYBIND11_TEST, enum) {

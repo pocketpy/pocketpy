@@ -1,0 +1,93 @@
+name: CMake Build and Test
+
+on:
+  push:
+    branches:
+      - pkpy-v2
+  pull_request:
+    branches:
+      - pkpy-v2
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up GCC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++
+
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1.10
+
+      - name: Install dependencies
+        run: |
+          git submodule update --init --recursive
+          git clone https://github.com/google/googletest.git
+
+      - name: Build
+        run: |
+          cmake -B build -DENABLE_TEST=ON
+          cmake --build build --config Release --parallel
+          
+      - name: Test
+        run: |
+          build/pybind11_test
+
+  build_win:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1.10
+
+      - name: Install dependencies
+        run: |
+          git submodule update --init --recursive
+          git clone https://github.com/google/googletest.git
+
+      - name: Build
+        run: |
+          cmake -B build -DENABLE_TEST=ON
+          cmake --build build --config Release --parallel
+          
+      - name: Test
+        run: |
+          build\Release\pybind11_test.exe
+
+  build_mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Clang
+        run: |
+          brew install llvm
+          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
+          source ~/.zshrc
+
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1.10
+
+      - name: Install dependencies
+        run: |
+          git submodule update --init --recursive
+          git clone https://github.com/google/googletest.git
+
+      - name: Build
+        run: |
+          cmake -B build -DENABLE_TEST=ON
+          cmake --build build --config Release --parallel
+          
+      - name: Test
+        run: |
+          build/pybind11_test

@@ -29,8 +29,7 @@ struct type_info {
 };
 
 // all registered C++ class will be ensured as instance type.
-class instance {
-public:
+struct instance {
     // use to record the type information of C++ class.
     enum Flag {
         None = 0,
@@ -41,13 +40,11 @@ public:
     Flag flag;
     void* data;
     const type_info* info;
+    object parent;
 
 public:
     template <typename Value>
-    static object create(Value&& value_,
-                         type type,
-                         return_value_policy policy = return_value_policy::automatic_reference,
-                         handle parent_ = {}) {
+    static object create(type type, Value&& value_, handle parent_, return_value_policy policy) {
         using underlying_type = remove_cvref_t<Value>;
 
         auto& value = [&]() -> auto& {
@@ -66,7 +63,7 @@ public:
 
         void* data = nullptr;
         Flag flag = Flag::None;
-        handle parent = parent_;
+        object parent;
 
         if(policy == return_value_policy::take_ownership) {
             data = &value;
@@ -95,16 +92,19 @@ public:
         } else if(policy == return_value_policy::reference_internal) {
             data = &value;
             flag = Flag::Ref;
+            parent = borrow(parent_);
         }
 
         object result(object::alloc_t{});
         void* temp = py_newobject(result.ptr(), type.index(), 1, sizeof(instance));
-        new (temp) instance{flag, data, info};
+        new (temp) instance{flag, data, info, std::move(parent)};
         return result;
     }
 
     ~instance() {
-        if(flag & Flag::Own) { info->destructor(data); }
+        if(flag & Flag::Own) {
+            info->destructor(data);
+        }
     }
 
     template <typename T>

@@ -130,10 +130,14 @@ class function_record {
     friend struct template_parser;
 
     using destructor_t = void (*)(function_record*);
-    using wrapper_t = bool (*)(function_record&, std::vector<handle>&, dict&, bool convert, handle parent);
+    using wrapper_t = bool (*)(function_record&,
+                               std::vector<handle>&,
+                               std::vector<std::pair<handle, handle>>&,
+                               bool convert,
+                               handle parent);
 
     struct arguments_t {
-        std::vector<name> names;
+        std::vector<std::string> names;
         std::vector<object> defaults;
     };
 
@@ -174,10 +178,18 @@ public:
     function_record& operator= (function_record&&) = delete;
 
     ~function_record() {
-        if(destructor) { destructor(this); }
-        if(arguments) { delete arguments; }
-        if(next) { delete next; }
-        if(signature) { delete[] signature; }
+        if(destructor) {
+            destructor(this);
+        }
+        if(arguments) {
+            delete arguments;
+        }
+        if(next) {
+            delete next;
+        }
+        if(signature) {
+            delete[] signature;
+        }
     }
 
     void append(function_record* record) {
@@ -202,32 +214,44 @@ public:
         return *static_cast<function_record*>(py_touserdata(slot));
     }
 
-    bool operator() (int argc, handle stack) {
+    void operator() (int argc, handle stack) {
         function_record* p = this;
 
         bool has_self = argc == 3;
-        std::vector<handle> args2;
-        if(has_self) { args2.push_back(py_offset(stack.ptr(), 0)); }
-
-        tuple args(py_offset(stack.ptr(), 0 + has_self), object::ref_t{});
-        for(int i = 0; i < args.size(); ++i) {
-            args2.push_back(args[i]);
+        std::vector<handle> args;
+        handle self = py_offset(stack.ptr(), 0);
+        if(has_self) {
+            args.push_back(self);
         }
 
-        dict kwargs(py_offset(stack.ptr(), 1 + has_self), object::ref_t{});
+        auto tuple = py_offset(stack.ptr(), 0 + has_self);
+        for(int i = 0; i < py_tuple_len(tuple); ++i) {
+            args.push_back(py_tuple_getitem(tuple, i));
+        }
+
+        auto dict = steal<pkbind::dict>(py_offset(stack.ptr(), 1 + has_self));
+
+        std::vector<std::pair<handle, handle>> kwargs;
+        dict.apply([&](handle key, handle value) {
+            kwargs.emplace_back(key, value);
+        });
 
         // foreach function record and call the function with not convert
         while(p != nullptr) {
-            auto result = p->wrapper(*p, args2, kwargs, false, {});
-            if(result) { return result; }
+            auto result = p->wrapper(*p, args, kwargs, false, self);
+            if(result) {
+                return;
+            }
             p = p->next;
         }
 
         p = this;
         // foreach function record and call the function with convert
         while(p != nullptr) {
-            auto result = p->wrapper(*p, args2, kwargs, true, {});
-            if(result) { return result; }
+            auto result = p->wrapper(*p, args, kwargs, true, self);
+            if(result) {
+                return;
+            }
             p = p->next;
         }
 
@@ -344,7 +368,9 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
     static void initialize(function_record& record, const Extras&... extras) {
         auto extras_tuple = std::make_tuple(extras...);
         constexpr static bool has_named_args = (named_argc > 0);
-        if constexpr(policy_pos != -1) { record.policy = std::get<policy_pos>(extras_tuple); }
+        if constexpr(policy_pos != -1) {
+            record.policy = std::get<policy_pos>(extras_tuple);
+        }
 
         // TODO: set others
 
@@ -382,17 +408,17 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
                     sig += record.arguments->names[index].c_str();
                     sig += ": ";
                     sig += type_info::of<T>().name;
-                    if(!record.arguments->defaults[index].is_empty()) {
+                    if(!record.arguments->defaults[index].empty()) {
                         sig += " = ";
-                        // FIXME:
-                        // sig += record.arguments->defaults[index].repr();
+                        sig += record.arguments->defaults[index].attr("__repr__")().cast<std::string_view>();
                     }
                 } else {
                     sig += "_: ";
                     sig += type_info::of<T>().name;
                 }
-
-                if(index + 1 < argc) { sig += ", "; }
+                if(index + 1 < argc) {
+                    sig += ", ";
+                }
                 index++;
             };
             (append(type_identity<Args>{}), ...);
@@ -406,7 +432,11 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
 
     /// try to call a C++ function(store in function_record) with the arguments which are from Python.
     /// if success, return true, otherwise return false.
-    static bool call(function_record& record, std::vector<handle>& args, dict& kwargs, bool convert, handle parent) {
+    static bool call(function_record& record,
+                     std::vector<handle>& args,
+                     std::vector<std::pair<handle, handle>>& kwargs,
+                     bool convert,
+                     handle parent) {
         // first, we try to load arguments into the stack.
         // use argc + 1 to avoid compile error when argc is 0.
         handle stack[argc + 1] = {};
@@ -421,48 +451,58 @@ struct template_parser<Callable, std::tuple<Extras...>, std::tuple<Args...>, std
 
         // load arguments from call arguments
         if(args.size() > normal_argc) {
-            if constexpr(args_pos == -1) { return false; }
+            if constexpr(args_pos == -1) {
+                return false;
+            }
         }
 
         for(std::size_t i = 0; i < std::min(normal_argc, (int)args.size()); ++i) {
             stack[i] = args[i];
         }
 
+        object repack_args;
         // pack the args
         if constexpr(args_pos != -1) {
             const auto n = args.size() > normal_argc ? args.size() - normal_argc : 0;
-            reg<0> = tuple(n);
-            stack[args_pos] = reg<0>;
-            auto pack = tuple(reg<0>, object::ref_t{});
+            auto pack = tuple(n);
             for(std::size_t i = 0; i < n; ++i) {
                 pack[i] = args[normal_argc + i];
             }
+            repack_args = std::move(pack);
+            stack[args_pos] = repack_args;
         }
 
         // pack the kwargs
         int index = 0;
-        bool init_dict = false;
-        dict pack2;
-
-        kwargs.apply([&](handle key, handle value) {
-            if constexpr(named_argc != 0) {
-                for(int i = index; i < named_argc; ++i) {
-                    if(key.cast<std::string_view>() == record.arguments->names[i]) {
-                        stack[i] = value;
-                        index = i + 1;
-                        return;
-                    }
+        if constexpr(named_argc != 0) {
+            int arg_index = 0;
+            while(arg_index < named_argc && index < kwargs.size()) {
+                const auto name = kwargs[index].first;
+                const auto value = kwargs[index].second;
+                if(name.cast<std::string_view>() == record.arguments->names[arg_index]) {
+                    stack[arg_index] = value;
+                    index += 1;
                 }
+                arg_index += 1;
             }
+        }
 
-            if constexpr(kwargs_pos != -1) { pack2[key] = value; }
-        });
-
-        if constexpr(kwargs_pos != -1) { stack[kwargs_pos] = pack2; }
+        object repacked_kwargs;
+        if constexpr(kwargs_pos != -1) {
+            auto pack = dict();
+            while(index < kwargs.size()) {
+                pack[kwargs[index].first] = kwargs[index].second;
+                index += 1;
+            }
+            repacked_kwargs = std::move(pack);
+            stack[kwargs_pos] = repacked_kwargs;
+        }
 
         // check if all the arguments are valid
         for(std::size_t i = 0; i < argc; ++i) {
-            if(!stack[i]) { return false; }
+            if(!stack[i]) {
+                return false;
+            }
         }
 
         // ok, all the arguments are valid, call the function
@@ -493,7 +533,9 @@ class cpp_function : public function {
     static bool is_function_record(handle h) {
         if(isinstance<function>(h)) {
             auto slot = py_getslot(h.ptr(), 0);
-            if(slot) { return py_typeof(slot) == m_type; }
+            if(slot) {
+                return py_typeof(slot) == m_type;
+            }
         }
         return false;
     }
@@ -505,8 +547,39 @@ class cpp_function : public function {
         sig += is_method ? "(self, *args, **kwargs)" : "(*args, **kwargs)";
         auto call = [](int argc, py_Ref stack) {
             handle func = py_inspect_currentfunction();
-            auto& record = *static_cast<impl::function_record*>(py_touserdata(py_getslot(func.ptr(), 0)));
-            return record(argc, stack);
+            auto data = py_touserdata(py_getslot(func.ptr(), 0));
+            auto& record = *static_cast<impl::function_record*>(data);
+            try {
+                record(argc, stack);
+                return true;
+            } catch(std::domain_error& e) {
+                py_exception(tp_ValueError, e.what());
+            } catch(std::invalid_argument& e) {
+                py_exception(tp_ValueError, e.what());
+            } catch(std::length_error& e) {
+                py_exception(tp_ValueError, e.what());
+            } catch(std::out_of_range& e) {
+                py_exception(tp_IndexError, e.what());
+            } catch(std::range_error& e) {
+                py_exception(tp_ValueError, e.what());
+            } catch(stop_iteration& e) {
+                StopIteration();
+            } catch(index_error& e) {
+                py_exception(tp_IndexError, e.what());
+            } catch(key_error& e) {
+                py_exception(tp_KeyError, e.what());
+            } catch(value_error& e) {
+                py_exception(tp_ValueError, e.what());
+            } catch(type_error& e) {
+                py_exception(tp_TypeError, e.what());
+            } catch(import_error& e) {
+                py_exception(tp_ImportError, e.what());
+            } catch(attribute_error& e) {
+                py_exception(tp_AttributeError, e.what());
+            } catch(std::exception& e) {
+                py_exception(tp_RuntimeError, e.what());
+            }
+            return false;
         };
         py_newfunction(m_ptr, sig.c_str(), call, nullptr, 1);
 

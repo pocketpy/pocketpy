@@ -31,9 +31,9 @@ struct type_caster {
     static_assert(!std::is_reference_v<T>, "type caster for reference type must be specialized.");
 
     template <typename U>
-    static object cast(U&& value, return_value_policy policy, handle parent = none()) {
+    static object cast(U&& value, return_value_policy policy, handle parent) {
         // TODO: support implicit cast
-        return instance::create(std::forward<U>(value), type::of<T>(), policy, parent.ptr());
+        return instance::create(type::of<T>(), std::forward<U>(value), parent, policy);
     }
 
     bool load(handle src, bool convert) {

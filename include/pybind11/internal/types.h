@@ -13,8 +13,8 @@ private:                                                                        
 public:                                                                                                                \
     using parent::parent;                                                                                              \
     using parent::operator=;                                                                                           \
-    child(const object& o) : parent(o) {}                                                                              \
-    child(object&& o) : parent(std::move(o)) {}
+    child(const object& o) : parent(type::isinstance<child>(o) ? o : type::of<child>()(o)) {}                          \
+    child(object&& o) : parent(type::isinstance<child>(o) ? std::move(o) : type::of<child>()(std::move(o))) {}
 
 class type : public object {
 protected:
@@ -106,7 +106,7 @@ public:
         return *this;
     }
 
-    handle operator* () const { return m_value; }
+    object operator* () const { return m_value; }
 
     friend bool operator== (const iterator& lhs, const iterator& rhs) { return lhs.m_value.ptr() == rhs.m_value.ptr(); }
 
@@ -137,6 +137,9 @@ class str : public object {
     str(const char* data) : str(data, strlen(data)) {}
 
     str(std::string_view s) : str(s.data(), static_cast<int>(s.size())) {}
+
+    template <typename... Args>
+    object format(Args&&... args);
 };
 
 class tuple : public object {
@@ -172,7 +175,7 @@ class tuple : public object {
             return *this;
         }
 
-        handle operator* () const { return py_tuple_getitem(ptr, index); }
+        object operator* () const { return borrow(py_tuple_getitem(ptr, index)); }
 
     private:
         py_Ref ptr;
@@ -231,7 +234,7 @@ class list : public object {
             return *this;
         }
 
-        handle operator* () const { return py_list_getitem(ptr, index); }
+        object operator* () const { return borrow(py_list_getitem(ptr, index)); }
 
     private:
         py_Ref ptr;
@@ -295,7 +298,7 @@ class dict : public object {
             return *this;
         }
 
-        std::pair<handle, handle> operator* () const;
+        std::pair<object, object> operator* () const;
 
     private:
         object items;
@@ -335,7 +338,9 @@ class capsule : public object {
     static void register_() {
         m_type = py_newtype("capsule", tp_object, nullptr, [](void* data) {
             auto impl = static_cast<capsule_impl*>(data);
-            if(impl->data && impl->destructor) { impl->destructor(impl->data); }
+            if(impl->data && impl->destructor) {
+                impl->destructor(impl->data);
+            }
         });
     }
 

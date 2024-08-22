@@ -37,16 +37,10 @@ public:
                 [[maybe_unused]] auto args = py_offset(stack, 1);
                 [[maybe_unused]] auto kwargs = py_offset(stack, 2);
 
-                // if constexpr(types_count_v<dynamic_attr, Args...> != 0) {
-                //     // FIXME:
-                //     // bind dynamic attributes
-                // }
-
-                auto type = pkbind::type(cls, object::ref_t{});
                 auto info = &type_info::of<T>();
-                void* data = py_newobject(py_retval(), type.index(), 1, sizeof(instance));
+                int slot = (type_list<Args...>::template count<dynamic_attr> ? -1 : 0);
+                void* data = py_newobject(retv, steal<type>(cls).index(), slot, sizeof(instance));
                 new (data) instance{instance::Flag::Own, operator new (info->size), info};
-
                 return true;
             },
             nullptr,

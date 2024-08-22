@@ -72,6 +72,8 @@ inline py_i64 hash(handle obj) {
 
 inline bool isinstance(handle obj, type type) { return py_isinstance(obj.ptr(), type.index()); }
 
+inline bool python_error::match(type type) const { return isinstance(m_exception.ptr(), type); }
+
 template <typename T>
 constexpr inline bool is_pyobject_v = std::is_base_of_v<object, std::decay_t<T>> || std::is_same_v<type, T>;
 
@@ -173,13 +175,12 @@ T cast(handle obj, bool convert = true) {
             return std::move(caster.value());
         }
     } else {
-        std::string msg = "cast python instance to c++ failed, ";
-        msg += "obj type is: {";
+        std::string msg = "cast python instance to c++ failed, obj type is: {";
         msg += type::of(obj).name();
         msg += "}, target type is: {";
         msg += type_name<T>();
         msg += "}.";
-        throw std::runtime_error(msg);
+        throw cast_error(msg);
     }
 }
 
