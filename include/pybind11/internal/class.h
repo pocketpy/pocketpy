@@ -40,7 +40,6 @@ public:
 
                 auto info = &type_info::of<T>();
                 int slot = ((std::is_same_v<dynamic_attr, Args> || ...) ? -1 : 0);
-                std::cout << "<< " << slot << "\n";
                 void* data = py_newobject(retv, steal<type>(cls).index(), slot, sizeof(instance));
                 new (data) instance{instance::Flag::Own, operator new (info->size), info};
                 return true;

@@ -10,8 +10,6 @@
 #include <stdexcept>
 #include <unordered_map>
 
-#include <iostream>
-
 #include "pocketpy.h"
 #include "type_traits.h"
 
