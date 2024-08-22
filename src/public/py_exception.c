@@ -235,7 +235,7 @@ bool py_exception(py_Type type, const char* fmt, ...) {
     c11_sbuf__py_submit(&buf, message);
 
     bool ok = py_tpcall(type, 1, message);
-    if(!ok) c11__abort("py_exception(): failed to create exception object");
+    if(!ok) return false;
     py_pop();
 
     return py_raise(py_retval());
