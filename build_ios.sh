@@ -1,5 +1,7 @@
 set -e
 
+python amalgamate.py
+
 rm -rf build
 mkdir build
 cd build
@@ -12,7 +14,7 @@ cmake --build os64 --config Release
 cmake -B simulatorarm64 -G Xcode $FLAGS -DPLATFORM=SIMULATORARM64 ..
 cmake --build simulatorarm64 --config Release
 
-HEADERS="../include/pocketpy/*.h"
+HEADERS="../amalgamated/pocketpy.h"
 
 xcodebuild -create-xcframework \
     -library os64/Release-iphoneos/libpocketpy.a -headers $HEADERS \
