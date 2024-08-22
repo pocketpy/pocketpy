@@ -1,4 +1,4 @@
-name: CMake Build and Test
+name: PKBIND Build and Test
 
 on:
   push:
