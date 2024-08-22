@@ -9,7 +9,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result)
 
-if(result)
+if(result AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 else()
     message(WARNING ">> IPO disabled. You will get very poor performance!!")
