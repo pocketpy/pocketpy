@@ -2,251 +2,294 @@
 
 #include "kernel.h"
 
-namespace pybind11 {
+namespace pkbind {
+
 class handle;
 class object;
-class attr_accessor;
-class item_accessor;
 class iterator;
 class str;
-class bytes;
-class iterable;
-class tuple;
-class dict;
-class list;
-class set;
-class function;
-class module;
-class type;
-class bool_;
-class int_;
-class float_;
-class str;
-class bytes;
 
-template <typename T>
-T& _builtin_cast(const handle& obj);
+struct arg;
+struct arg_with_default;
+struct args_proxy;
 
-template <typename T>
-T reinterpret_borrow(const handle& h);
+enum class return_value_policy : uint8_t {
+    /**
+     *  This is the default return value policy, which falls back to the policy
+     *  return_value_policy::take_ownership when the return value is a pointer.
+     *  Otherwise, it uses return_value::move or return_value::copy for rvalue
+     *  and lvalue references, respectively. See below for a description of what
+     *  all of these different policies do.
+     */
+    automatic = 0,
 
-template <typename T>
-T reinterpret_steal(const handle& h);
+    /**
+     *  As above, but use policy return_value_policy::reference when the return
+     *  value is a pointer. This is the default conversion policy for function
+     *  arguments when calling Python functions manually from C++ code (i.e. via
+     *  handle::operator()). You probably won't need to use this.
+     */
+    automatic_reference,
 
-class handle {
-protected:
-    pkpy::PyVar m_ptr = nullptr;
-    mutable int* ref_count = nullptr;
+    /**
+     *  Reference an existing object (i.e. do not create a new copy) and take
+     *  ownership. Python will call the destructor and delete operator when the
+     *  object's reference count reaches zero. Undefined behavior ensues when
+     *  the C++ side does the same..
+     */
+    take_ownership,
 
+    /**
+     *  Create a new copy of the returned object, which will be owned by
+     *  Python. This policy is comparably safe because the lifetimes of the two
+     *  instances are decoupled.
+     */
+    copy,
+
+    /**
+     *  Use std::move to move the return value contents into a new instance
+     *  that will be owned by Python. This policy is comparably safe because the
+     *  lifetimes of the two instances (move source and destination) are
+     *  decoupled.
+     */
+    move,
+
+    /**
+     *  Reference an existing object, but do not take ownership. The C++ side
+     *  is responsible for managing the object's lifetime and deallocating it
+     *  when it is no longer used. Warning: undefined behavior will ensue when
+     *  the C++ side deletes an object that is still referenced and used by
+     *  Python.
+     */
+    reference,
+
+    /**
+     *  This policy only applies to methods and properties. It references the
+     *  object without taking ownership similar to the above
+     *  return_value_policy::reference policy. In contrast to that policy, the
+     *  function or property's implicit this argument (called the parent) is
+     *  considered to be the the owner of the return value (the child).
+     *  pybind11 then couples the lifetime of the parent to the child via a
+     *  reference relationship that ensures that the parent cannot be garbage
+     *  collected while Python is still using the child. More advanced
+     *  variations of this scheme are also possible using combinations of
+     *  return_value_policy::reference and the keep_alive call policy
+     */
+    reference_internal
+};
+
+template <typename policy>
+class accessor;
+
+namespace policy {
+
+struct attr;
+template <typename Key>
+struct item;
+struct tuple;
+struct list;
+template <typename Key>
+struct dict;
+
+}  // namespace policy
+
+using attr_accessor = accessor<policy::attr>;
+template <typename Key>
+using item_accessor = accessor<policy::item<Key>>;
+using tuple_accessor = accessor<policy::tuple>;
+using list_accessor = accessor<policy::list>;
+template <typename Key>
+using dict_accessor = accessor<policy::dict<Key>>;
+
+/// call a pkpy function which may raise a python exception.
+template <auto Fn, typename... Args>
+auto raise_call(Args&&... args);
+
+/// an effective representation of a python small string.
+class name {
 public:
-    handle() = default;
-    handle(const handle& h) = default;
-    handle& operator= (const handle& other) = default;
+    name() = default;
 
-    handle(pkpy::PyVar ptr) : m_ptr(ptr) {}
+    name(const name&) = default;
 
-    pkpy::PyVar ptr() const { return m_ptr; }
+    name& operator= (const name&) = default;
 
-    int reference_count() const { return ref_count == nullptr ? 0 : *ref_count; }
+    explicit name(py_Name data) : data(data) {}
 
-    const handle& inc_ref() const {
-        assert(m_ptr != nullptr);
-        if(ref_count == nullptr) {
-            auto iter = _ref_counts_map->find(m_ptr);
-            if(iter == _ref_counts_map->end()) {
-                ref_count = ::new int(1);
-                _ref_counts_map->insert({m_ptr, ref_count});
-            } else {
-                ref_count = iter->second;
-                *ref_count += 1;
-            }
-        } else {
-            *ref_count += 1;
-        }
-        return *this;
+    name(const char* str) : data(py_name(str)) {}
+
+    name(const char* data, int size) : data(py_namev({data, size})) {}
+
+    name(std::string_view str) : name(str.data(), str.size()) {}
+
+    name(handle h);
+
+    py_Name index() const { return data; }
+
+    const char* c_str() const { return py_name2str(data); }
+
+    operator std::string_view () const {
+        auto temp = py_name2sv(data);
+        return std::string_view(temp.data, temp.size);
     }
 
-    const handle& dec_ref() const {
-        assert(m_ptr != nullptr);
-        assert(ref_count != nullptr);
+private:
+    py_Name data;
+};
 
-        *ref_count -= 1;
-        try {
-            if(*ref_count == 0) {
-                _ref_counts_map->erase(m_ptr);
-                ::delete ref_count;
-                ref_count = nullptr;
-            }
-        } catch(std::exception& e) { std::cerr << "Error: " << e.what() << std::endl; }
-
-        return *this;
-    }
-
+template <typename Derived>
+class interface {
 public:
-    template <typename T>
-    T cast() const;
+    /// equal to `self is None` in python.
+    bool is_none() const { return py_isnone(ptr()); }
 
-    explicit operator bool () const { return m_ptr.operator bool (); }
+    /// equal to `self is other` in python.
+    bool is(const interface& other) const { return py_isidentical(ptr(), other.ptr()); }
 
-    bool is(const handle& other) const { return m_ptr == other.m_ptr; }
-
-    bool is_none() const { return m_ptr == vm->None; }
-
-    bool in(const handle& other) const {
-        return pkpy::py_cast<bool>(vm, vm->call(vm->py_op("contains"), other.m_ptr, m_ptr));
-    }
-
-    bool contains(const handle& other) const {
-        return pkpy::py_cast<bool>(vm, vm->call(vm->py_op("contains"), m_ptr, other.m_ptr));
-    }
+    void assign(const interface& other) { py_assign(ptr(), other.ptr()); }
 
     iterator begin() const;
     iterator end() const;
 
-    str doc() const;
-
-    attr_accessor attr(const char* name) const;
-    attr_accessor attr(const handle& name) const;
-    attr_accessor attr(object&& name) const;
-
-    item_accessor operator[] (int64_t key) const;
-    item_accessor operator[] (const char* key) const;
-    item_accessor operator[] (const handle& key) const;
-    item_accessor operator[] (object&& key) const;
+    attr_accessor attr(name key) const;
 
     object operator- () const;
     object operator~() const;
+    args_proxy operator* () const;
+
+    item_accessor<int> operator[] (int index) const;
+    item_accessor<name> operator[] (name key) const;
+    item_accessor<handle> operator[] (handle key) const;
 
     template <return_value_policy policy = return_value_policy::automatic, typename... Args>
     object operator() (Args&&... args) const;
 
-private:
-    friend object operator+ (const handle& lhs, const handle& rhs);
-    friend object operator- (const handle& lhs, const handle& rhs);
-    friend object operator* (const handle& lhs, const handle& rhs);
-    friend object operator% (const handle& lhs, const handle& rhs);
-    friend object operator/ (const handle& lhs, const handle& rhs);
-    friend object operator| (const handle& lhs, const handle& rhs);
-    friend object operator& (const handle& lhs, const handle& rhs);
-    friend object operator^ (const handle& lhs, const handle& rhs);
-    friend object operator<< (const handle& lhs, const handle& rhs);
-    friend object operator>> (const handle& lhs, const handle& rhs);
-
-    friend object operator+= (const handle& lhs, const handle& rhs);
-    friend object operator-= (const handle& lhs, const handle& rhs);
-    friend object operator*= (const handle& lhs, const handle& rhs);
-    friend object operator/= (const handle& lhs, const handle& rhs);
-    friend object operator%= (const handle& lhs, const handle& rhs);
-    friend object operator|= (const handle& lhs, const handle& rhs);
-    friend object operator&= (const handle& lhs, const handle& rhs);
-    friend object operator^= (const handle& lhs, const handle& rhs);
-    friend object operator<<= (const handle& lhs, const handle& rhs);
-    friend object operator>>= (const handle& lhs, const handle& rhs);
-
-    friend object operator== (const handle& lhs, const handle& rhs);
-    friend object operator!= (const handle& lhs, const handle& rhs);
-    friend object operator< (const handle& lhs, const handle& rhs);
-    friend object operator> (const handle& lhs, const handle& rhs);
-    friend object operator<= (const handle& lhs, const handle& rhs);
-    friend object operator>= (const handle& lhs, const handle& rhs);
+    auto doc() const { return attr("__doc__"); }
 
     template <typename T>
-    friend T& _builtin_cast(const handle& obj) {
-        // FIXME: 2.0 does not use Py_<T> anymore
-        static_assert(!std::is_reference_v<T>, "T must not be a reference type.");
-        return obj.ptr().obj_get<T>();
-    }
+    T cast() const;
+
+private:
+    py_Ref ptr() const { return static_cast<const Derived*>(this)->ptr(); }
 };
 
-static_assert(std::is_trivially_copyable_v<handle>);
+/// a simple wrapper to py_Ref.
+/// Note that it does not manage the lifetime of the object.
+class handle : public interface<handle> {
+public:
+    handle() = default;
+
+    handle(const handle&) = default;
+
+    handle& operator= (const handle&) = default;
+
+    handle(py_Ref ptr) : m_ptr(ptr) {}
+
+    auto ptr() const { return m_ptr; }
+
+    explicit operator bool () const { return m_ptr != nullptr; }
+
+protected:
+    py_Ref m_ptr = nullptr;
+};
 
 class object : public handle {
 public:
-    object(const object& other) : handle(other) { inc_ref(); }
+    object() = default;
 
-    object(object&& other) noexcept : handle(other) {
+    object(const object& other) : handle(other), m_index(other.m_index) {
+        if(other.in_pool()) { object_pool::inc_ref(other); }
+    }
+
+    object(object&& other) : handle(other), m_index(other.m_index) {
         other.m_ptr = nullptr;
-        other.ref_count = nullptr;
+        other.m_index = -1;
     }
 
     object& operator= (const object& other) {
         if(this != &other) {
-            dec_ref();
+            if(in_pool()) { object_pool::dec_ref(*this); }
+            if(other.in_pool()) { object_pool::inc_ref(other); }
             m_ptr = other.m_ptr;
-            ref_count = other.ref_count;
-            inc_ref();
+            m_index = other.m_index;
         }
         return *this;
     }
 
-    object& operator= (object&& other) noexcept {
+    object& operator= (object&& other) {
         if(this != &other) {
-            dec_ref();
+            if(in_pool()) { object_pool::dec_ref(*this); }
             m_ptr = other.m_ptr;
-            ref_count = other.ref_count;
+            m_index = other.m_index;
             other.m_ptr = nullptr;
-            other.ref_count = nullptr;
+            other.m_index = -1;
         }
         return *this;
     }
 
     ~object() {
-        if(m_ptr != nullptr) { dec_ref(); }
+        if(in_pool()) { object_pool::dec_ref(*this); }
     }
+
+    bool is_singleton() const { return m_ptr && m_index == -1; }
+
+    bool is_empty() const { return m_ptr == nullptr && m_index == -1; }
+
+    /// return whether the object is in the object pool.
+    bool in_pool() const { return m_ptr && m_index != -1; }
+
+public:
+    static auto type_or_check() { return tp_object; }
+
+    struct alloc_t {};
+
+    struct realloc_t {};
+
+    struct ref_t {};
+
+    object(alloc_t) {
+        auto ref = object_pool::alloc();
+        m_ptr = ref.data;
+        m_index = ref.index;
+    }
+
+    object(handle h, realloc_t) {
+        auto ref = object_pool::realloc(h.ptr());
+        m_ptr = ref.data;
+        m_index = ref.index;
+    }
+
+    object(handle h, ref_t) : handle(h) {}
+
+    static object from_ret() { return object(retv, realloc_t{}); }
+
+    operator object_pool::object_ref () const { return {m_ptr, m_index}; }
+
+    explicit operator bool () const;
 
 protected:
-    object(const handle& h, bool borrow) : handle(h) {
-        if(borrow) { inc_ref(); }
-    }
-
-    template <typename T>
-    friend T reinterpret_borrow(const handle& h) {
-        return {h, true};
-    }
-
-    template <typename T>
-    friend T reinterpret_steal(const handle& h) {
-        return {h, false};
-    }
+    int m_index = -1;
 };
 
-inline void setattr(const handle& obj, const handle& name, const handle& value);
-inline void setitem(const handle& obj, const handle& key, const handle& value);
+template <int N>
+void reg_t<N>::operator= (handle h) & {
+    py_setreg(N, h.ptr());
+}
 
-#define PYBIND11_BINARY_OPERATOR(OP, NAME)                                                                             \
-    inline object operator OP (const handle& lhs, const handle& rhs) {                                                 \
-        return reinterpret_borrow<object>(vm->call(vm->py_op(NAME), lhs.m_ptr, rhs.m_ptr));                            \
-    }
+template <int N>
+reg_t<N>::operator handle () & {
+    assert(value && "register is not initialized");
+    return value;
+}
 
-PYBIND11_BINARY_OPERATOR(+, "add");
-PYBIND11_BINARY_OPERATOR(-, "sub");
-PYBIND11_BINARY_OPERATOR(*, "mul");
-PYBIND11_BINARY_OPERATOR(/, "truediv");
-PYBIND11_BINARY_OPERATOR(%, "mod");
-PYBIND11_BINARY_OPERATOR(|, "or_");
-PYBIND11_BINARY_OPERATOR(&, "and_");
-PYBIND11_BINARY_OPERATOR(^, "xor");
-PYBIND11_BINARY_OPERATOR(<<, "lshift");
-PYBIND11_BINARY_OPERATOR(>>, "rshift");
+inline void retv_t::operator= (handle h) & { py_assign(value, h.ptr()); }
 
-PYBIND11_BINARY_OPERATOR(+=, "iadd");
-PYBIND11_BINARY_OPERATOR(-=, "isub");
-PYBIND11_BINARY_OPERATOR(*=, "imul");
-PYBIND11_BINARY_OPERATOR(/=, "itruediv");
-PYBIND11_BINARY_OPERATOR(%=, "imod");
-PYBIND11_BINARY_OPERATOR(|=, "ior");
-PYBIND11_BINARY_OPERATOR(&=, "iand");
-PYBIND11_BINARY_OPERATOR(^=, "ixor");
-PYBIND11_BINARY_OPERATOR(<<=, "ilshift");
-PYBIND11_BINARY_OPERATOR(>>=, "irshift");
+inline retv_t::operator handle () & {
+    assert(value && "return value is not initialized");
+    return value;
+}
 
-PYBIND11_BINARY_OPERATOR(==, "eq");
-PYBIND11_BINARY_OPERATOR(!=, "ne");
-PYBIND11_BINARY_OPERATOR(<, "lt");
-PYBIND11_BINARY_OPERATOR(>, "gt");
-PYBIND11_BINARY_OPERATOR(<=, "le");
-PYBIND11_BINARY_OPERATOR(>=, "ge");
+static_assert(std::is_trivially_copyable_v<name>);
+static_assert(std::is_trivially_copyable_v<handle>);
 
-#undef PYBIND11_BINARY_OPERATOR
-
-}  // namespace pybind11
+}  // namespace pkbind

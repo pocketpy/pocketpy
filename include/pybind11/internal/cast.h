@@ -1,166 +1,190 @@
 #pragma once
 
 #include "instance.h"
-#include "builtins.h"
-#include "type_traits.h"
 
-namespace pybind11 {
-
-using pkpy::is_floating_point_v;
-using pkpy::is_integral_v;
+namespace pkbind {
 
 template <typename T>
-constexpr inline bool is_string_v = std::is_same_v<T, char*> || std::is_same_v<T, const char*> ||
-                                    std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>;
+constexpr inline bool is_string_v =
+    std::is_same_v<T, const char*> || std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>;
 
-template <typename T>
-constexpr bool is_pyobject_v = std::is_base_of_v<handle, T>;
+/// The `type_caster` class is responsible for converting between Python objects and C++ objects.
+///
+/// The static method `type_caster<T>::cast(...)` is used to convert a C++ object to a Python object.
+/// If the conversion fails, an exception is thrown.
+///
+/// The method `type_caster<T>::load(...)` is used to try to convert a Python object to a C++ object.
+/// If the conversion is successful, it returns true, and you can then call `type_caster<T>::value()`
+/// to access the resulting C++ object. If the conversion fails, it returns false.
+///
+/// NOTE: The type T could be a reference type or a pointer type. What is the lifetime of the reference or pointer?
+/// It depends on the referenced type. For some types, such as bool, int, float, etc., the loaded value is stored
+/// in the type_caster itself, so the lifetime of the reference is no longer than the lifetime of the type_caster
+/// object. For other user-registered types, the lifetime of the reference is the same as the corresponding Python
+/// object. A static variable `is_temporary_v` is used to indicate whether the loaded value is temporary or not.
 
-template <typename T, typename>
-struct type_caster;
+template <typename T, typename SFINAE>
+struct type_caster {
+    T* data;
+
+    static_assert(!std::is_pointer_v<T>, "type caster for pointer type must be specialized.");
+    static_assert(!std::is_reference_v<T>, "type caster for reference type must be specialized.");
+
+    template <typename U>
+    static object cast(U&& value, return_value_policy policy, handle parent = none()) {
+        // TODO: support implicit cast
+        return instance::create(std::forward<U>(value), type::of<T>(), policy, parent.ptr());
+    }
+
+    bool load(handle src, bool convert) {
+        if(isinstance<T>(src)) {
+            auto& i = *static_cast<instance*>(py_touserdata(src.ptr()));
+            data = &i.as<T>();
+            return true;
+        }
+
+        return false;
+    }
+
+    T& value() { return *data; }
+
+    constexpr inline static bool is_temporary_v = false;
+};
 
 template <>
 struct type_caster<bool> {
-    bool value;
+    bool data;
 
-    bool load(const handle& src, bool) {
-        if(isinstance<pybind11::bool_>(src)) {
-            value = pkpy::_py_cast<bool>(vm, src.ptr());
+    static object cast(bool src, return_value_policy, handle) { return bool_(src); }
+
+    bool load(handle src, bool) {
+        if(isinstance<pkbind::bool_>(src)) {
+            data = py_tobool(src.ptr());
             return true;
         }
 
         return false;
     }
 
-    static handle cast(bool src, return_value_policy, handle) { return src ? vm->True : vm->False; }
+    bool& value() { return data; }
+
+    constexpr inline static bool is_temporary_v = true;
 };
 
 template <typename T>
-struct type_caster<T, std::enable_if_t<is_integral_v<T>>> {
-    T value;
+struct type_caster<T, std::enable_if_t<is_integer_v<T>>> {
+    T data;
 
-    bool load(const handle& src, bool convert) {
-        if(isinstance<pybind11::int_>(src)) {
-            value = pkpy::_py_cast<T>(vm, src.ptr());
+    static object cast(T src, return_value_policy, handle) { return int_(src); }
+
+    bool load(handle src, bool) {
+        if(isinstance<int_>(src)) {
+            data = py_toint(src.ptr());
             return true;
         }
 
         return false;
     }
 
-    static handle cast(T src, return_value_policy, handle) { return pkpy::py_var(vm, src); }
+    T& value() { return data; }
+
+    constexpr inline static bool is_temporary_v = true;
 };
 
 template <typename T>
 struct type_caster<T, std::enable_if_t<is_floating_point_v<T>>> {
-    T value;
+    T data;
 
-    bool load(const handle& src, bool convert) {
-        if(isinstance<pybind11::float_>(src)) {
-            value = pkpy::_py_cast<T>(vm, src.ptr());
+    static object cast(T src, return_value_policy, handle) { return float_(src); }
+
+    bool load(handle src, bool convert) {
+        if(isinstance<pkbind::float_>(src)) {
+            data = py_tofloat(src.ptr());
             return true;
         }
 
-        if(convert && isinstance<pybind11::int_>(src)) {
-            value = pkpy::_py_cast<int64_t>(vm, src.ptr());
+        if(convert && isinstance<pkbind::int_>(src)) {
+            data = py_toint(src.ptr());
             return true;
         }
 
         return false;
     }
 
-    static handle cast(T src, return_value_policy, handle) { return pkpy::py_var(vm, src); }
+    T& value() { return data; }
+
+    constexpr inline static bool is_temporary_v = true;
 };
 
 template <typename T>
 struct type_caster<T, std::enable_if_t<is_string_v<T>>> {
-    T value;
+    T data;
 
-    bool load(const handle& src, bool) {
-        if(isinstance<pybind11::str>(src)) {
-            // FIXME: support other kinds of string
-            value = pkpy::_py_cast<std::string>(vm, src.ptr());
+    template <typename U>
+    static object cast(U&& src, return_value_policy, handle) {
+        return str(std::forward<U>(src));
+    }
+
+    bool load(handle src, bool) {
+        if(isinstance<pkbind::str>(src)) {
+            data = py_tostr(src.ptr());
             return true;
         }
 
         return false;
     }
 
-    static handle cast(const std::string& src, return_value_policy, handle) { return pkpy::py_var(vm, src); }
+    T& value() { return data; }
+
+    constexpr inline static bool is_temporary_v = true;
 };
 
 template <typename T>
 struct type_caster<T, std::enable_if_t<is_pyobject_v<T>>> {
-    T value;
+    T data;
 
-    bool load(const handle& src, bool) {
+    template <typename U>
+    static object cast(U&& src, return_value_policy, handle) {
+        return object(std::forward<U>(src));
+    }
+
+    bool load(handle src, bool) {
         if(isinstance<T>(src)) {
-            value = reinterpret_borrow<T>(src);
+            data = T(src.ptr(), object::realloc_t{});
             return true;
         }
 
         return false;
     }
 
-    template <typename U>
-    static handle cast(U&& src, return_value_policy, handle) {
-        return std::forward<U>(src);
-    }
-};
+    T& value() { return data; }
 
-template <typename T, typename>
-struct type_caster {
-    value_wrapper<T> value;
-
-    using underlying_type = std::remove_pointer_t<decltype(value.pointer)>;
-
-    bool load(handle src, bool convert) {
-        if(isinstance<underlying_type>(src)) {
-            auto& i = _builtin_cast<instance>(src);
-            value.pointer = &i.cast<underlying_type>();
-            return true;
-        }
-
-        return false;
-    }
-
-    template <typename U>
-    static handle cast(U&& value, return_value_policy policy, const handle& parent = handle()) {
-        // TODO: support implicit cast
-        const auto& info = typeid(underlying_type);
-        bool existed = vm->_cxx_typeid_map.find(info) != vm->_cxx_typeid_map.end();
-        if(existed) {
-            auto type = vm->_cxx_typeid_map[info];
-            return instance::create(std::forward<U>(value), type, policy, parent.ptr());
-        }
-        vm->TypeError("type not registered");
-    }
+    constexpr inline static bool is_temporary_v = true;
 };
 
 template <typename T>
-struct type_caster<T, std::enable_if_t<std::is_pointer_v<T> || std::is_reference_v<T>>> {
-    using underlying = std::conditional_t<std::is_pointer_v<T>, std::remove_pointer_t<T>, std::remove_reference_t<T>>;
+struct type_caster<T, std::enable_if_t<is_pointer_v<T> || std::is_reference_v<T>>> {
+    using underlying =
+        std::remove_cv_t<std::conditional_t<is_pointer_v<T>, std::remove_pointer_t<T>, std::remove_reference_t<T>>>;
 
-    struct wrapper {
-        type_caster<underlying> caster;
-
-        operator T () {
-            if constexpr(std::is_pointer_v<T>) {
-                return caster.value.pointer;
-            } else {
-                return caster.value;
-            }
-        }
-    };
-
-    wrapper value;
-
-    bool load(const handle& src, bool convert) { return value.caster.load(src, convert); }
+    type_caster<underlying> caster;
 
     template <typename U>
-    static handle cast(U&& value, return_value_policy policy, const handle& parent) {
+    static object cast(U&& value, return_value_policy policy, handle parent) {
         return type_caster<underlying>::cast(std::forward<U>(value), policy, parent);
     }
-};
-}  // namespace pybind11
 
+    bool load(handle src, bool convert) { return caster.load(src, convert); }
+
+    T value() {
+        if constexpr(std::is_pointer_v<T>) {
+            return &caster.value();
+        } else {
+            return caster.value();
+        }
+    }
+
+    constexpr inline static bool is_temporary_v = type_caster<underlying>::is_temporary_v;
+};
+
+}  // namespace pkbind

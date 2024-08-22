@@ -1,15 +1,14 @@
 #pragma once
 
-#include "kernel.h"
+#include "accessor.h"
 
-namespace pybind11 {
+namespace pkbind {
+
 struct type_info {
-    const char* name;
+    std::string_view name;
     std::size_t size;
     std::size_t alignment;
     void (*destructor)(void*);
-    void (*copy)(void*, const void*);
-    void (*move)(void*, void*);
     const std::type_info* type;
 
     template <typename T>
@@ -17,18 +16,11 @@ struct type_info {
         static_assert(!std::is_reference_v<T> && !std::is_const_v<std::remove_reference_t<T>>,
                       "T must not be a reference type or const type.");
         static type_info info = {
-            typeid(T).name(),
+            type_name<T>(),
             sizeof(T),
             alignof(T),
             [](void* ptr) {
-                ((T*)ptr)->~T();
-                operator delete (ptr);
-            },
-            [](void* dst, const void* src) {
-                new (dst) T(*(const T*)src);
-            },
-            [](void* dst, void* src) {
-                new (dst) T(std::move(*(T*)src));
+                delete static_cast<T*>(ptr);
             },
             &typeid(T),
         };
@@ -40,8 +32,6 @@ struct type_info {
 class instance {
 public:
     // use to record the type information of C++ class.
-
-private:
     enum Flag {
         None = 0,
         Own = 1 << 0,  // if the instance is owned by C++ side.
@@ -50,96 +40,77 @@ private:
 
     Flag flag;
     void* data;
-    const type_info* type;
-    pkpy::PyVar parent;
-    // pkpy::PyVar
+    const type_info* info;
 
 public:
-    instance() noexcept : flag(Flag::None), data(nullptr), type(nullptr), parent(nullptr) {}
+    template <typename Value>
+    static object create(Value&& value_,
+                         type type,
+                         return_value_policy policy = return_value_policy::automatic_reference,
+                         handle parent_ = {}) {
+        using underlying_type = remove_cvref_t<Value>;
 
-    instance(const instance&) = delete;
-
-    instance(instance&& other) noexcept : flag(other.flag), data(other.data), type(other.type), parent(other.parent) {
-        other.flag = Flag::None;
-        other.data = nullptr;
-        other.type = nullptr;
-        other.parent = nullptr;
-    }
-
-    template <typename T>
-    static pkpy::PyVar create(pkpy::Type type) {
-        instance instance;
-        instance.type = &type_info::of<T>();
-        instance.data = operator new (sizeof(T));
-        instance.flag = Flag::Own;
-        return vm->new_object<pybind11::instance>(type, std::move(instance));
-    }
-
-    template <typename T>
-    static pkpy::PyVar create(T&& value,
-                              pkpy::Type type,
-                              return_value_policy policy = return_value_policy::automatic_reference,
-                              pkpy::PyVar parent = nullptr) noexcept {
-        using underlying_type = std::remove_cv_t<std::remove_reference_t<T>>;
-
-        // resolve for automatic policy.
-        if(policy == return_value_policy::automatic) {
-            policy = std::is_pointer_v<underlying_type> ? return_value_policy::take_ownership
-                     : std::is_lvalue_reference_v<T&&>  ? return_value_policy::copy
-                                                        : return_value_policy::move;
-        } else if(policy == return_value_policy::automatic_reference) {
-            policy = std::is_pointer_v<underlying_type> ? return_value_policy::reference
-                     : std::is_lvalue_reference_v<T&&>  ? return_value_policy::copy
-                                                        : return_value_policy::move;
-        }
-
-        auto& _value = [&]() -> auto& {
-            /**
-             * note that, pybind11 will ignore the const qualifier.
-             * in fact, try to modify a const value will result in undefined behavior.
-             */
+        auto& value = [&]() -> auto& {
+            // note that, pybind11 will ignore the const qualifier.
+            // in fact, try to modify a const value will result in undefined behavior.
             if constexpr(std::is_pointer_v<underlying_type>) {
-                return *reinterpret_cast<underlying_type*>(value);
+                return *reinterpret_cast<underlying_type*>(value_);
             } else {
-                return const_cast<underlying_type&>(value);
+                return const_cast<underlying_type&>(value_);
             }
         }();
 
-        instance instance;
-        instance.type = &type_info::of<underlying_type>();
+        using primary = std::remove_pointer_t<underlying_type>;
+
+        auto info = &type_info::of<primary>();
+
+        void* data = nullptr;
+        Flag flag = Flag::None;
+        handle parent = parent_;
 
         if(policy == return_value_policy::take_ownership) {
-            instance.data = &_value;
-            instance.flag = Flag::Own;
+            data = &value;
+            flag = Flag::Own;
         } else if(policy == return_value_policy::copy) {
-            instance.data = ::new auto(_value);
-            instance.flag = Flag::Own;
+            if constexpr(std::is_copy_constructible_v<primary>) {
+                data = new auto(value);
+                flag = Flag::Own;
+            } else {
+                std::string msg = "cannot use copy policy on non-copyable type: ";
+                msg += type_name<primary>();
+                throw std::runtime_error(msg);
+            }
         } else if(policy == return_value_policy::move) {
-            instance.data = ::new auto(std::move(_value));
-            instance.flag = Flag::Own;
+            if constexpr(std::is_move_constructible_v<primary>) {
+                data = new auto(std::move(value));
+                flag = Flag::Own;
+            } else {
+                std::string msg = "cannot use move policy on non-moveable type: ";
+                msg += type_name<primary>();
+                throw std::runtime_error(msg);
+            }
         } else if(policy == return_value_policy::reference) {
-            instance.data = &_value;
-            instance.flag = Flag::None;
+            data = &value;
+            flag = Flag::None;
         } else if(policy == return_value_policy::reference_internal) {
-            instance.data = &_value;
-            instance.flag = Flag::Ref;
-            instance.parent = parent;
+            data = &value;
+            flag = Flag::Ref;
         }
 
-        return vm->new_object<pybind11::instance>(type, std::move(instance));
+        object result(object::alloc_t{});
+        void* temp = py_newobject(result.ptr(), type.index(), 1, sizeof(instance));
+        new (temp) instance{flag, data, info};
+        return result;
     }
 
     ~instance() {
-        if(flag & Flag::Own) { type->destructor(data); }
-    }
-
-    void _gc_mark(pkpy::VM* vm) const noexcept {
-        if(parent && (flag & Flag::Ref)) { PK_OBJ_MARK(parent); }
+        if(flag & Flag::Own) { info->destructor(data); }
     }
 
     template <typename T>
-    T& cast() noexcept {
+    T& as() noexcept {
         return *static_cast<T*>(data);
     }
 };
-}  // namespace pybind11
+
+}  // namespace pkbind

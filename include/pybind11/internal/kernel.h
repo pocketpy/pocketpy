@@ -1,99 +1,152 @@
 #pragma once
 
-#include <pocketpy.h>
+#include <array>
+#include <vector>
+#include <string>
+#include <cstdlib>
+#include <cstring>
+#include <cassert>
+#include <typeindex>
+#include <stdexcept>
+#include <unordered_map>
 
-namespace pybind11 {
-inline pkpy::VM* vm = nullptr;
-inline std::map<pkpy::PyVar, int*>* _ref_counts_map = nullptr;
+#include <iostream>
 
-inline void initialize(bool enable_os = true) {
-    vm = new pkpy::VM(enable_os);
-    _ref_counts_map = new std::map<pkpy::PyVar, int*>();
+#include "pocketpy.h"
+#include "type_traits.h"
 
-    // use to keep alive PyObject, when the object is hold by C++ side.
-    vm->heap._gc_marker_ex = [](pkpy::VM* vm) {
-        for(auto iter = _ref_counts_map->begin(); iter != _ref_counts_map->end();) {
-            auto ref_count = iter->second;
-            if(*ref_count != 0) {
-                // if ref count is not zero, then mark it.
-                PK_OBJ_MARK(iter->first);
-                ++iter;
-            } else {
-                // if ref count is zero, then delete it.
-                iter = _ref_counts_map->erase(iter);
-                delete ref_count;
+namespace pkbind {
+
+class handle;
+
+/// hold the object temporarily
+template <int N>
+struct reg_t {
+    py_Ref value;
+
+    void operator= (py_Ref ref) & { py_setreg(N, ref); }
+
+    operator py_Ref () & {
+        assert(value && "register is not initialized");
+        return value;
+    }
+
+    void operator= (handle value) &;
+
+    operator handle () &;
+
+    // pkpy provide user 8 registers.
+    // 8th register is used for object pool, so N is limited to [0, 7).
+    static_assert(N >= 0 && N <= 6, "N must be in [0, 7)");
+};
+
+struct retv_t {
+    py_Ref value;
+
+    void operator= (py_Ref ref) & { py_assign(value, ref); }
+
+    operator py_Ref () & {
+        assert(value && "return value is not initialized");
+        return value;
+    }
+
+    void operator= (handle value) &;
+
+    operator handle () &;
+};
+
+/// hold the object long time.
+struct object_pool {
+    inline static int cache = -1;
+    inline static py_Ref pool = nullptr;
+    inline static std::vector<int>* indices_ = nullptr;
+
+    struct object_ref {
+        py_Ref data;
+        int index;
+    };
+
+    static void initialize(int size) noexcept {
+        // use 8th register.
+        pool = py_getreg(7);
+        py_newtuple(pool, size);
+        indices_ = new std::vector<int>(size, 0);
+    }
+
+    static void finalize() noexcept {
+        delete indices_;
+        indices_ = nullptr;
+    }
+
+    /// alloc an object from pool, note that the object is uninitialized.
+    static object_ref alloc() {
+        auto& indices = *indices_;
+        if(cache != -1) {
+            auto index = cache;
+            cache = -1;
+            indices[index] = 1;
+            return {py_tuple_getitem(pool, index), index};
+        }
+
+        for(int i = 0; i < indices.size(); ++i) {
+            if(indices[i] == 0) {
+                indices[i] = 1;
+                return {py_tuple_getitem(pool, i), i};
             }
         }
-    };
-}
 
-inline void finalize() {
-    delete _ref_counts_map;
-    delete vm;
-}
+        throw std::runtime_error("object pool is full");
+    }
 
-enum class return_value_policy : uint8_t {
-    /**
-     *  This is the default return value policy, which falls back to the policy
-     *  return_value_policy::take_ownership when the return value is a pointer.
-     *  Otherwise, it uses return_value::move or return_value::copy for rvalue
-     *  and lvalue references, respectively. See below for a description of what
-     *  all of these different policies do.
-     */
-    automatic = 0,
+    /// alloc an object from pool, the object is initialized with ref.
+    static object_ref realloc(py_Ref ref) {
+        auto result = alloc();
+        py_assign(result.data, ref);
+        return result;
+    }
 
-    /**
-     *  As above, but use policy return_value_policy::reference when the return
-     *  value is a pointer. This is the default conversion policy for function
-     *  arguments when calling Python functions manually from C++ code (i.e. via
-     *  handle::operator()). You probably won't need to use this.
-     */
-    automatic_reference,
+    static void inc_ref(object_ref ref) {
+        if(!indices_) { return; }
+        if(ref.data == py_tuple_getitem(pool, ref.index)) {
+            auto& indices = *indices_;
+            indices[ref.index] += 1;
+        } else {
+            throw std::runtime_error("object_ref is invalid");
+        }
+    }
 
-    /**
-     *  Reference an existing object (i.e. do not create a new copy) and take
-     *  ownership. Python will call the destructor and delete operator when the
-     *  object's reference count reaches zero. Undefined behavior ensues when
-     *  the C++ side does the same..
-     */
-    take_ownership,
-
-    /**
-     *  Create a new copy of the returned object, which will be owned by
-     *  Python. This policy is comparably safe because the lifetimes of the two
-     *  instances are decoupled.
-     */
-    copy,
-
-    /**
-     *  Use std::move to move the return value contents into a new instance
-     *  that will be owned by Python. This policy is comparably safe because the
-     *  lifetimes of the two instances (move source and destination) are
-     *  decoupled.
-     */
-    move,
-
-    /**
-     *  Reference an existing object, but do not take ownership. The C++ side
-     *  is responsible for managing the object's lifetime and deallocating it
-     *  when it is no longer used. Warning: undefined behavior will ensue when
-     *  the C++ side deletes an object that is still referenced and used by
-     *  Python.
-     */
-    reference,
-
-    /**
-     *  This policy only applies to methods and properties. It references the
-     *  object without taking ownership similar to the above
-     *  return_value_policy::reference policy. In contrast to that policy, the
-     *  function or property's implicit this argument (called the parent) is
-     *  considered to be the the owner of the return value (the child).
-     *  pybind11 then couples the lifetime of the parent to the child via a
-     *  reference relationship that ensures that the parent cannot be garbage
-     *  collected while Python is still using the child. More advanced
-     *  variations of this scheme are also possible using combinations of
-     *  return_value_policy::reference and the keep_alive call policy
-     */
-    reference_internal
+    static void dec_ref(object_ref ref) {
+        if(!indices_) { return; }
+        if(ref.data == py_tuple_getitem(pool, ref.index)) {
+            auto& indices = *indices_;
+            indices[ref.index] -= 1;
+            assert(indices[ref.index] >= 0 && "ref count is negative");
+            if(indices[ref.index] == 0) { cache = ref.index; }
+        } else {
+            throw std::runtime_error("object_ref is invalid");
+        }
+    }
 };
-}  // namespace pybind11
+
+struct action {
+    using function = void (*)();
+    inline static std::vector<function> starts;
+
+    static void initialize() noexcept {
+        for(auto func: starts) {
+            func();
+        }
+    }
+
+    // register a function to be called at the start of the vm.
+    static void register_start(function func) { starts.push_back(func); }
+};
+
+template <int N>
+inline reg_t<N> reg;
+
+inline retv_t retv;
+
+inline std::unordered_map<std::type_index, py_Type>* m_type_map = nullptr;
+
+}  // namespace pkbind
