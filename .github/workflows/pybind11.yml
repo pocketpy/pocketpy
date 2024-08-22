@@ -32,7 +32,7 @@ jobs:
           cd include/pybind11/tests
           cmake -B build
           cmake --build build --config Release --parallel
-          build/pybind11_test
+          ./build/PKBIND_TEST
 
   build_win:
     runs-on: windows-latest
@@ -51,7 +51,7 @@ jobs:
           cd include\pybind11\tests
           cmake -B build
           cmake --build build --config Release --parallel
-          build\Release\pybind11_test.exe
+          build\Release\PKBIND_TEST.exe
 
   build_mac:
     runs-on: macos-latest
@@ -73,4 +73,4 @@ jobs:
           cd include/pybind11/tests
           cmake -B build -DENABLE_TEST=ON
           cmake --build build --config Release --parallel
-          build/pybind11_test
+          ./build/PKBIND_TEST
