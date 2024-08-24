@@ -7,6 +7,7 @@
 
 #include "pocketpy/config.h"
 #include "pocketpy/export.h"
+#include "pocketpy/linalg.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -229,6 +230,8 @@ PK_EXPORT py_f64 py_tofloat(py_Ref);
 /// If successful, return true and set the value to `out`.
 /// Otherwise, return false and raise `TypeError`.
 PK_EXPORT bool py_castfloat(py_Ref, py_f64* out) PY_RAISE;
+/// Cast a `int` object in python to `int64_t`.
+PK_EXPORT bool py_castint(py_Ref, py_i64* out) PY_RAISE;
 /// Convert a `bool` object in python to `bool`.
 PK_EXPORT bool py_tobool(py_Ref);
 /// Convert a `type` object in python to `py_Type`.
@@ -597,6 +600,18 @@ PK_EXPORT bool
 /// noexcept
 PK_EXPORT int py_dict_len(py_Ref self);
 
+/************* linalg module *************/
+void py_newvec2(py_OutRef out, c11_vec2);
+void py_newvec3(py_OutRef out, c11_vec3);
+void py_newvec2i(py_OutRef out, c11_vec2i);
+void py_newvec3i(py_OutRef out, c11_vec3i);
+c11_mat3x3* py_newmat3x3(py_OutRef out);
+c11_vec2 py_tovec2(py_Ref self);
+c11_vec3 py_tovec3(py_Ref self);
+c11_vec2i py_tovec2i(py_Ref self);
+c11_vec3i py_tovec3i(py_Ref self);
+c11_mat3x3* py_tomat3x3(py_Ref self);
+
 /************* Others *************/
 
 /// An utility function to read a line from stdin for REPL.
@@ -678,6 +693,12 @@ enum py_PredefinedTypes {
     tp_ImportError,
     tp_AssertionError,
     tp_KeyError,
+    /* Extended */
+    tp_vec2,
+    tp_vec3,
+    tp_vec2i,
+    tp_vec3i,
+    tp_mat3x3,
 };
 
 #ifdef __cplusplus

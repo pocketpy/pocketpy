@@ -103,11 +103,10 @@ PyObject* PyObject__new(py_Type type, int slots, int size) {
     self->slots = slots;
 
     // initialize slots or dict
-    void* p = (char*)self + 8;
     if(slots >= 0) {
-        memset(p, 0, slots * sizeof(py_TValue));
+        memset(self->flex, 0, slots * sizeof(py_TValue));
     } else {
-        NameDict__ctor(p);
+        NameDict__ctor((void*)self->flex);
     }
     return self;
 }

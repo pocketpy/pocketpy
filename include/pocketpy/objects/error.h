@@ -13,6 +13,4 @@ typedef struct{
     char msg[100];
 } Error;
 
-void py_BaseException__set_lineno(py_Ref, int lineno, const CodeObject* code);
-int py_BaseException__get_lineno(py_Ref, const CodeObject* code);
 void py_BaseException__stpush(py_Ref, SourceData_ src, int lineno, const char* func_name);

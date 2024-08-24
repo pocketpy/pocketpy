@@ -1011,18 +1011,13 @@ FrameResult VM__run_top_frame(VM* self) {
         c11__unreachedable();
 
     __ERROR:
-        pk_print_stack(self, frame, (Bytecode){0});
-        py_BaseException__set_lineno(&self->curr_exception, Frame__lineno(frame), frame->co);
+        py_BaseException__stpush(&self->curr_exception,
+                                 frame->co->src,
+                                 Frame__lineno(frame),
+                                 frame->has_function ? frame->co->name->data : NULL);
     __ERROR_RE_RAISE:
         do {
         } while(0);
-        // printf("error.op: %s, line: %d\n", pk_opname(byte.op), Frame__lineno(frame));
-        int lineno = py_BaseException__get_lineno(&self->curr_exception, frame->co);
-        py_BaseException__stpush(&self->curr_exception,
-                                 frame->co->src,
-                                 lineno < 0 ? Frame__lineno(frame) : lineno,
-                                 frame->has_function ? frame->co->name->data : NULL);
-
         int target = Frame__prepare_jump_exception_handler(frame, &self->stack);
         if(target >= 0) {
             // 1. Exception can be handled inside the current frame

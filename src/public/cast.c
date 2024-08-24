@@ -24,6 +24,14 @@ bool py_castfloat(py_Ref self, double* out) {
     }
 }
 
+bool py_castint(py_Ref self, int64_t* out) {
+    if(self->type == tp_int) {
+        *out = self->_i64;
+        return true;
+    }
+    return TypeError("expected 'int', got '%t'", self->type);
+}
+
 bool py_tobool(py_Ref self) {
     assert(self->type == tp_bool);
     return self->_bool;

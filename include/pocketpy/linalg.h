@@ -29,7 +29,8 @@ typedef struct c11_mat3x3 {
             float _21, _22, _23;
             float _31, _32, _33;
         };
+
         float m[3][3];
-        float v[9];
+        float data[9];
     };
 } c11_mat3x3;

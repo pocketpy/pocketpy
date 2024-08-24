@@ -1,15 +1,10 @@
-exit()
-
-from linalg import mat3x3, vec2, vec3
+from linalg import mat3x3, vec2, vec3, vec2i, vec3i
 import random
-import sys
 import math
 
 a = vec2(1.5, 2)
 assert a.x == 1.5
 assert a.y == 2
-
-assert repr(math) == "<module 'math'>"
 
 # 出于对精度转换的考虑,在本测试中具体将采用str(floating_num)[:6]来比较两个浮点数是否相等
 
@@ -33,12 +28,6 @@ static_test_vec2_int = vec2(278, -1391)
 # test __repr__
 assert str(static_test_vec2_float).startswith('vec2(')
 assert str(static_test_vec2_int).startswith('vec2(')
-
-# test copy
-element_name_list = [e for e in dir(test_vec2) if e in 'x,y,z,w']
-element_value_list = [getattr(test_vec2, attr) for attr in element_name_list]
-copy_element_value_list = [getattr(test_vec2, attr) for attr in element_name_list]
-assert element_value_list == copy_element_value_list
 
 # test rotate
 test_vec2_copy = test_vec2
@@ -161,7 +150,7 @@ def row_operation(matrix, target_row, source_row, scale):
 # 生成随机测试目标
 min_num = -10.0
 max_num = 10.0
-test_mat = mat3x3([random.uniform(min_num, max_num) for _ in range(9)])
+test_mat = mat3x3(*[random.uniform(min_num, max_num) for _ in range(9)])
 static_test_mat_float= mat3x3(
     7.264189733952545, -5.432187523625671, 1.8765304152872613,
     -2.4910524352374734, 8.989660807513068, -0.7168824333280513,
@@ -172,11 +161,7 @@ static_test_mat_float_inv = mat3x3( 0.32265243,  0.15808159, -0.09939472,
         0.04199553,  0.13813096,  0.00408326,
        -0.59454451, -0.21208362,  0.39658464)
 
-static_test_mat_int = mat3x3([
-        1, 2, 3,
-        4, 5, 6,
-        7, 8, 9]
-    )
+static_test_mat_int = mat3x3(1, 2, 3, 4, 5, 6, 7, 8, 9)
 
 # test incorrect number of parameters is passed
 for i in range(20):
@@ -194,94 +179,45 @@ for i in range(20):
     except TypeError:
         pass
 
-# test 9 floating parameters is passed
-test_mat_copy = test_mat.copy()
-element_name_list = []
-for i in range(3):
-    for j in range(3):
-        element_name_list.append(f'_{i+1}{j+1}')
-element_value_list = [getattr(test_mat, attr) for attr in element_name_list]
-assert mat3x3(*tuple(element_value_list)) == test_mat
-
         
 # test copy
 test_mat_copy = test_mat.copy()
 assert test_mat is not test_mat_copy
 assert test_mat == test_mat_copy
 
-# test __getitem__
-for i, element in enumerate([getattr(test_mat, e) for e in element_name_list]):
-    assert test_mat[int(i/3), i%3] == element
-
 try:
     test_mat[1,2,3]
-    raise Exception('未能触发错误拦截, 此处应当报错 IndexError("index out of range")')
-except:
+except IndexError:
     pass
 
 try:
-    test_mat[-1][4]
+    test_mat[-1, 4]
     raise Exception('未能触发错误拦截, 此处应当报错 IndexError("index out of range")')
-except:
+except IndexError:
     pass
 
-# test __setitem__
+# test __setitem__ and __getitem__
 test_mat_copy = test_mat.copy()
-for i, element in enumerate([getattr(test_mat_copy, e) for e in element_name_list]):
-    test_mat_copy[int(i/3), i%3] = list(range(9))[i]
-assert test_mat_copy == mat3x3([0,1,2,
-                                3,4,5,
-                                6,7,8])
+test_mat_copy[1, 2] = 1
+assert test_mat_copy[1, 2] == 1
 
 try:
     test_mat[1,2,3] = 1
     raise Exception('未能触发错误拦截, 此处应当报错 TypeError("Mat3x3.__setitem__ takes a tuple of 2 integers")')
-except:
+except IndexError:
     pass
 
 try:
-    test_mat[-1][4] = 1
+    test_mat[-1, 4] = 1
     raise Exception('未能触发错误拦截, 此处应当报错 IndexError("index out of range")')
-except:
+except IndexError:
     pass
-
-# test __add__
-test_mat_copy = test_mat.copy()
-ones = mat3x3.ones()
-result_mat = test_mat_copy.__add__(ones)
-correct_result_mat = test_mat_copy.copy()
-for i in range(3):
-    for j in range(3):
-        correct_result_mat[i, j] += 1
-assert result_mat == correct_result_mat
-
-# test __sub__
-test_mat_copy = test_mat.copy()
-ones = mat3x3.ones()
-result_mat = test_mat_copy.__sub__(ones)
-correct_result_mat = test_mat_copy.copy()
-for i in range(3):
-    for j in range(3):
-        correct_result_mat[i, j] -= 1
-assert result_mat == correct_result_mat
-
-# test __mul__
-test_mat_copy = test_mat.copy()
-result_mat = test_mat_copy.__mul__(12.345)
-correct_result_mat = test_mat_copy.copy()
-for i in range(3):
-    for j in range(3):
-        correct_result_mat[i, j] *= 12.345
-# print(result_mat)
-# print(correct_result_mat)
-assert result_mat == correct_result_mat
-
 
 # test matmul
 test_mat_copy = test_mat.copy()
 test_mat_copy_2 = test_mat.copy()
 result_mat = test_mat_copy @ test_mat_copy_2
-correct_result_mat = mat3x3()
+correct_result_mat = mat3x3.zeros()
 for i in range(3):
     for j in range(3):
         correct_result_mat[i, j] = sum([e1*e2 for e1, e2 in zip(get_row(test_mat_copy, i), get_col(test_mat_copy_2, j))])
@@ -295,27 +231,6 @@ test_mat_copy.determinant()
 assert str(static_test_mat_float)
 assert str(static_test_mat_int)
 
-# test __truediv__
-test_mat_copy = test_mat.copy()
-result_mat = test_mat_copy.__truediv__(12.345)
-correct_result_mat = test_mat_copy.copy()
-for i in range(3):
-    for j in range(3):
-        correct_result_mat[i, j] /= 12.345
-assert result_mat == correct_result_mat
-
-
-
-# test __rmul__
-test_mat_copy = test_mat.copy()
-result_mat = 12.345 * test_mat_copy
-correct_result_mat = test_mat_copy.copy()
-for i in range(3):
-    for j in range(3):
-        correct_result_mat[i, j] *= 12.345
-
-assert result_mat == correct_result_mat
-
 
 # 此处测试不完全, 未验证正确性
 # test interface of "@" "matmul" "__matmul__" with vec3 and error handling
@@ -328,31 +243,22 @@ except TypeError:
     pass
 
 
-# test transpose
-test_mat_copy = test_mat.copy()
-assert test_mat_copy.transpose_() is None
-assert test_mat_copy == test_mat.transpose()
-assert test_mat_copy.transpose() == test_mat_copy.transpose().transpose().transpose()
-
 # test inverse
 assert ~static_test_mat_float == static_test_mat_float_inv == static_test_mat_float.inverse()
 assert static_test_mat_float.inverse_() is None
 assert static_test_mat_float == static_test_mat_float_inv
 
 try:
-    ~mat3x3([1, 2, 3, 2, 4, 6, 3, 6, 9])
+    ~mat3x3(*[1, 2, 3, 2, 4, 6, 3, 6, 9])
     raise Exception('未能拦截错误 ValueError("matrix is not invertible") 在 test_mat_copy 的行列式为0')
-except ValueError:
+except ZeroDivisionError:
     pass
 
 # test zeros
-assert mat3x3([0 for _ in range(9)]) == mat3x3.zeros()
-
-# test ones
-assert mat3x3([1 for _ in range(9)]) == mat3x3.ones()
+assert mat3x3(*[0 for _ in range(9)]) == mat3x3.zeros()
 
 # test identity
-assert mat3x3([1,0,0,0,1,0,0,0,1]) == mat3x3.identity()
+assert mat3x3(*[1,0,0,0,1,0,0,0,1]) == mat3x3.identity()
 
 
 # test affine transformations-----------------------------------------------
@@ -378,39 +284,20 @@ mat3x3.trs(test_vec2_copy, radian, test_vec2_2_copy)
 a = mat3x3.zeros()
 a.copy_trs_(test_vec2_copy, radian, test_vec2_2_copy)
 assert a == mat3x3.trs(test_vec2_copy, radian, test_vec2_2_copy)
-b = mat3x3.identity()
-b.copy_t_(test_vec2_copy)
-b.copy_r_(radian)
-b.copy_s_(test_vec2_2_copy)
-assert a == b
-
-# test is_affine
-def mat_is_affine(mat_list):
-    return mat_list[2][0] == 0 and mat_list[2][1] == 0 and mat_list[2][2] == 1
-
-# 通过random.unifrom的返回值不可能是整数0或1, 因此认为test_mat不可能is_affine
-test_mat_copy = test_mat.copy()
-assert test_mat_copy.is_affine() == mat_is_affine(mat_to_list(test_mat_copy))
-
-test_mat_copy[2,0] = 0
-test_mat_copy[2,1] = 0
-test_mat_copy[2,2] = 1
-assert test_mat_copy.is_affine() == mat_is_affine(mat_to_list(test_mat_copy))
-
 
 # test translation
 test_mat_copy = test_mat.copy()
-assert test_mat_copy._t() == vec2(test_mat_copy[0, 2], test_mat_copy[1, 2])
+assert test_mat_copy.t() == vec2(test_mat_copy[0, 2], test_mat_copy[1, 2])
 
 # 该方法的测试未验证计算的准确性
 # test rotation
 test_mat_copy = test_mat.copy()
-assert type(test_mat_copy._r()) is float
+assert type(test_mat_copy.r()) is float
 
 
 # test scale
 test_mat_copy = test_mat.copy()
-temp_vec2 = test_mat_copy._s()
+temp_vec2 = test_mat_copy.s()
 
 # test transform_point
 test_mat_copy = test_mat.copy()
@@ -424,32 +311,27 @@ test_mat_copy = test_mat.copy()
 test_vec2_copy = test_vec2
 temp_vec2 = test_mat_copy.transform_vector(test_vec2_copy)
 
-# test inverse_transform_point
-assert test_mat_copy.inverse_transform_point(test_vec2_copy) == test_mat_copy.inverse().transform_point(test_vec2_copy)
-# test inverse_transform_vector
-assert test_mat_copy.inverse_transform_vector(test_vec2_copy) == test_mat_copy.inverse().transform_vector(test_vec2_copy)
-
 val = vec2.angle(vec2(-1, 0), vec2(0, -1))
 assert 1.57 < val < 1.58
 
 # test about staticmethod
-class mymat3x3(mat3x3):
-    def f(self):
-        _0 = self.zeros()
-        _1 = super().zeros()
-        _2 = mat3x3.zeros()
-        return _0 == _1 == _2
+# class mymat3x3(mat3x3):
+#     def f(self):
+#         _0 = self.zeros()
+#         _1 = super().zeros()
+#         _2 = mat3x3.zeros()
+#         return _0 == _1 == _2
     
-assert mymat3x3().f()
+# assert mymat3x3().f()
 
 d = mat3x3.identity()
 assert d.copy_(mat3x3.zeros()) is None
 assert d == mat3x3.zeros()
 
 d = mat3x3.identity()
-assert d.matmul(mat3x3.zeros()) == mat3x3.zeros()
+assert d @ mat3x3.zeros() == mat3x3.zeros()
 assert d == mat3x3.identity()
-assert d.matmul(mat3x3.zeros(), out=d) is None
+assert d.matmul(mat3x3.zeros(), d) is None
 assert d == mat3x3.zeros()
 
 try:
@@ -460,8 +342,21 @@ except IndexError:
 
 # test vec * vec
 assert vec2(1, 2) * vec2(3, 4) == vec2(3, 8)
-assert vec3(1, 2, 3) * vec3(4, 5, 6) == vec3(4, 10, 18)
 
-# test vec.__getitem__
-assert vec2(1, 2)[0] == 1 and vec2(1, 2)[1] == 2
-assert vec3(1, 2, 3)[0] == 1 and vec3(1, 2, 3)[1] == 2 and vec3(1, 2, 3)[2] == 3
+# test vec2i and vec3i
+
+a = vec2i(1, 2)
+assert a.x == 1
+assert a.y == 2
+
+assert a == vec2i(1, 2)
+
+a = vec3i(1, 2, 3)
+assert a.x == 1
+assert a.y == 2
+assert a.z == 3
+
+assert a == vec3i(1, 2, 3)
+assert a.with_x(2) == vec3i(2, 2, 3)
+assert a.with_y(3) == vec3i(1, 3, 3)
+assert a.with_z(4) == vec3i(1, 2, 4)

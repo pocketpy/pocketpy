@@ -22,7 +22,8 @@ typedef struct py_TValue {
         bool _bool;
         py_CFunction _cfunc;
         PyObject* _obj;
-        // Vec2
+        c11_vec2 _vec2;
+        c11_vec2i _vec2i;
     };
 } py_TValue;
 
