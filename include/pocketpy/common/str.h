@@ -4,6 +4,8 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/pocketpy.h"
 
+#include <stdarg.h>
+
 /* string */
 typedef struct c11_string{
     // int size | char[] | '\0'

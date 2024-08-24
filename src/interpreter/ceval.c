@@ -283,12 +283,13 @@ FrameResult VM__run_top_frame(VM* self) {
                     if(magic->type == tp_nativefunc) {
                         if(!py_callcfunc(magic->_cfunc, 2, SECOND())) goto __ERROR;
                         POP();
+                        py_assign(TOP(), py_retval());
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__getitem__, a, b]
                         if(!py_vectorcall(1, 0)) goto __ERROR;
+                        PUSH(py_retval());
                     }
-                    *TOP() = self->last_retval;
                     DISPATCH();
                 }
                 TypeError("'%t' object is not subscriptable", SECOND()->type);
@@ -349,7 +350,6 @@ FrameResult VM__run_top_frame(VM* self) {
                     } else {
                         *FOURTH() = *magic;  // [__selitem__, a, b, val]
                         if(!py_vectorcall(2, 0)) goto __ERROR;
-                        POP();  // discard retval
                     }
                     DISPATCH();
                 }
@@ -423,7 +423,6 @@ FrameResult VM__run_top_frame(VM* self) {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__delitem__, a, b]
                         if(!py_vectorcall(1, 0)) goto __ERROR;
-                        POP();  // discard retval
                     }
                     DISPATCH();
                 }

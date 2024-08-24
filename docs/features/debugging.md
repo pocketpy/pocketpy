@@ -4,7 +4,7 @@ title: Debugging
 ---
 
 !!!
-This feature is available in `v1.4.5` or higher. Set `PK_ENABLE_PROFILER` to `1` to enable this feature.
+This feature is not available in `v2.0` yet.
 !!!
 
 You can invoke `breakpoint()` in your python code to start a PDB-like session.

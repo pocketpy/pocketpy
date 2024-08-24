@@ -167,26 +167,6 @@ assert b == [(5, 1), (1, 2), (3,3)]
 
 # assert repr(a) == "[0, [1, 2, [...]]]"
 
-# try:
-#     a.index(1, 1)
-#     exit(1)
-# except ValueError:
-#     pass
-
-# slice extras
-# class A:
-#     def __getitem__(self, index):
-#         return index
-    
-# assert A()[1:2, 3] == (slice(1, 2, None), 3)
-# assert A()[1:2, 3:4] == (slice(1, 2, None), slice(3, 4, None))
-# assert A()[1:2, 3:4, 5] == (slice(1, 2, None), slice(3, 4, None), 5)
-# assert A()[:, :] == (slice(None, None, None), slice(None, None, None))
-# assert A()[::, :] == (slice(None, None, None), slice(None, None, None))
-# assert A()[::, :2] == (slice(None, None, None), slice(None, 2, None))
-# assert A()['b':'c':1, :] == (slice('b', 'c', 1), slice(None, None, None))
-# assert A()[1:2, :A()[3:4, ::-1]] == (slice(1, 2, None), slice(None, (slice(3, 4, None), slice(None, None, -1)), None))
-
 # unpacking builder (not supported)
 # a = [1, 2, 3]
 # b = [*a, 4, 5]

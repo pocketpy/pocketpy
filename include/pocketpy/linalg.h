@@ -22,15 +22,13 @@ typedef struct c11_vec3 {
     float z;
 } c11_vec3;
 
-typedef struct c11_mat3x3 {
-    union {
-        struct {
-            float _11, _12, _13;
-            float _21, _22, _23;
-            float _31, _32, _33;
-        };
-
-        float m[3][3];
-        float data[9];
+typedef union c11_mat3x3 {
+    struct {
+        float _11, _12, _13;
+        float _21, _22, _23;
+        float _31, _32, _33;
     };
+
+    float m[3][3];
+    float data[9];
 } c11_mat3x3;

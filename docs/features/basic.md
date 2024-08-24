@@ -4,9 +4,6 @@ title: Basic Features
 order: 100
 ---
 
-Check this [Cheatsheet](https://reference.pocketpy.dev/python.html)
-for a quick overview of the supported features.
-
 The following table shows the basic features of pkpy with respect to [cpython](https://github.com/python/cpython).
 The features marked with `YES` are supported, and the features marked with `NO` are not supported.
 

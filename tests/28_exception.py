@@ -47,7 +47,7 @@ try:
     a = A()
     b = a[1]
     exit(1)
-except:
+except KeyError:
     pass
 
 try:

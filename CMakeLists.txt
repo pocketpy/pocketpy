@@ -12,11 +12,8 @@ check_ipo_supported(RESULT result)
 if(result AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 else()
-    message(WARNING ">> IPO disabled. You will get very poor performance!!")
-    message(WARNING ">> IPO disabled. You will get very poor performance!!")
-    message(WARNING ">> IPO disabled. You will get very poor performance!!")
+    message(WARNING ">> IPO disabled. You will not get the best performance.")
 endif()
-
 
 if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /jumptablerdata /GS-")
@@ -45,11 +42,6 @@ file(GLOB_RECURSE POCKETPY_SRC ${CMAKE_CURRENT_LIST_DIR}/src/*.c)
 option(PK_ENABLE_OS "" OFF)
 if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
-endif()
-
-option(PK_ENABLE_PROFILER "" OFF)
-if(PK_ENABLE_PROFILER)
-    add_definitions(-DPK_ENABLE_PROFILER=1)
 endif()
 
 # PK_IS_MAIN determines whether the project is being used from root

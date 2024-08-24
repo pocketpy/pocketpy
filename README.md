@@ -79,6 +79,7 @@ To compile it with your project, these flags must be set:
 
 + `--std=c11` flag must be set
 + For MSVC, `/utf-8` flag must be set
++ `NDEBUG` macro should be defined for release build, or you will get poor performance
 
 For amalgamated build, run `python amalgamate.py` to generate `pocketpy.c` and `pocketpy.h` in `amalgamated/` directory.
 
@@ -145,9 +146,6 @@ __ERROR:
 ```
 
 ## Features
-
-Check this [Cheatsheet](https://reference.pocketpy.dev/python.html)
-for a quick overview of the supported features.
 
 | Name            | Example                         | Supported |
 | --------------- | ------------------------------- | --------- |
@@ -235,7 +233,6 @@ Your sponsorship will help us develop pkpy continuously.
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=blueloveth/pocketpy&type=Date)](https://star-history.com/#blueloveth/pocketpy&Date)
-
 
 
 ## License

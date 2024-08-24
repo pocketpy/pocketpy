@@ -63,11 +63,44 @@ static bool slice_step(int argc, py_Ref argv) {
     return true;
 }
 
+static bool slice__eq__(int argc, py_Ref argv) {
+    py_Ref self = py_arg(0);
+    py_Ref other = py_arg(1);
+    if(!py_istype(other, tp_slice)) {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    for(int i = 0; i < 3; i++) {
+        py_Ref lhs = py_getslot(self, i);
+        py_Ref rhs = py_getslot(other, i);
+        int res = py_equal(lhs, rhs);
+        if(res == -1) return false;
+        if(res == 0) {
+            py_newbool(py_retval(), false);
+            return true;
+        }
+    }
+    py_newbool(py_retval(), true);
+    return true;
+}
+
+static bool slice__ne__(int argc, py_Ref argv) {
+    bool ok = slice__eq__(argc, argv);
+    if(!ok) return false;
+    py_Ref res = py_retval();
+    if(py_isbool(res)) py_newbool(py_retval(), !py_tobool(res));
+    return true;
+}
+
 py_Type pk_slice__register() {
     py_Type type = pk_newtype("slice", tp_object, NULL, NULL, false, true);
 
     py_bindmagic(type, __new__, slice__new__);
     py_bindmagic(type, __repr__, slice__repr__);
+    py_bindmagic(type, __eq__, slice__eq__);
+    py_bindmagic(type, __ne__, slice__ne__);
+
+    py_setdict(py_tpobject(type), __hash__, py_None);
 
     py_bindproperty(type, "start", slice_start, NULL);
     py_bindproperty(type, "stop", slice_stop, NULL);
