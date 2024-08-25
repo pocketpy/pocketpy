@@ -31,6 +31,7 @@ To compile it with your project, these flags must be set:
 
 + `--std=c11` flag must be set
 + For MSVC, `/utf-8` flag must be set
++ `NDEBUG` macro should be defined for release build, or you will get poor performance
 
 ### Get prebuilt binaries
 
@@ -53,12 +54,6 @@ You can download an artifact there which contains the following files.
 │   └── x86_64
 │       ├── libpocketpy.so
 │       └── main
-├── macos
-│   └── pocketpy.bundle
-│       └── Contents
-│           ├── Info.plist
-│           └── MacOS
-│               └── pocketpy
 └── windows
     └── x86_64
         ├── main.exe
