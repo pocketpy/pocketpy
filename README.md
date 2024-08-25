@@ -147,9 +147,6 @@ __ERROR:
 
 ## Features
 
-Check this [Cheatsheet](https://reference.pocketpy.dev/python.html)
-for a quick overview of the supported features.
-
 | Name            | Example                         | Supported |
 | --------------- | ------------------------------- | --------- |
 | If Else         | `if..else..elif`                | ✅       |
@@ -236,7 +233,6 @@ Your sponsorship will help us develop pkpy continuously.
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=blueloveth/pocketpy&type=Date)](https://star-history.com/#blueloveth/pocketpy&Date)
-
 
 
 ## License
