@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdarg.h>
 #include <stddef.h>
 
 #include "pocketpy/config.h"
