@@ -585,24 +585,14 @@ class cpp_function : public function {
 class property : public object {
     PKBIND_TYPE_IMPL(object, property, tp_property);
 
-    property(handle getter, handle setter = none()) : object() {
-        auto start = py_peek(0);
-        py_push(getter.ptr());
-        py_push(setter.ptr());
-        raise_call<py_tpcall>(type::of<property>().index(), 2, start);
-        *this = object::from_ret();
-    }
+    property(handle getter, handle setter = none()) :
+        object(type::of<property>()(getter, setter)) {}
 };
 
 class staticmethod : public object {
     PKBIND_TYPE_IMPL(object, staticmethod, tp_staticmethod);
 
-    staticmethod(handle method) : object() {
-        auto start = py_peek(0);
-        py_push(method.ptr());
-        raise_call<py_tpcall>(type::of<staticmethod>().index(), 1, start);
-        *this = object::from_ret();
-    }
+    staticmethod(handle method) : object(type::of<staticmethod>()(method)) {}
 };
 
 namespace impl {
