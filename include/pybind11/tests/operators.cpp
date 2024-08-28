@@ -1,5 +1,5 @@
 #include "test.h"
-#include <pybind11/operators.h>
+#include "pybind11/operators.h"
 
 namespace {
 
@@ -8,19 +8,19 @@ struct Int {
 
     Int(int x) : x(x) {}
 
-#define OPERATOR_IMPL(op)                                                                                              \
-    template <typename LHS, typename RHS>                                                                              \
-    friend int operator op (const LHS& lhs, const RHS& rhs) {                                                          \
-        int l, r;                                                                                                      \
-        if constexpr(std::is_same_v<LHS, Int>)                                                                         \
-            l = lhs.x;                                                                                                 \
-        else                                                                                                           \
-            l = lhs;                                                                                                   \
-        if constexpr(std::is_same_v<RHS, Int>)                                                                         \
-            r = rhs.x;                                                                                                 \
-        else                                                                                                           \
-            r = rhs;                                                                                                   \
-        return l op r;                                                                                                 \
+#define OPERATOR_IMPL(op)                                                                          \
+    template <typename LHS, typename RHS>                                                          \
+    friend int operator op (const LHS& lhs, const RHS& rhs) {                                      \
+        int l, r;                                                                                  \
+        if constexpr(std::is_same_v<LHS, Int>)                                                     \
+            l = lhs.x;                                                                             \
+        else                                                                                       \
+            l = lhs;                                                                               \
+        if constexpr(std::is_same_v<RHS, Int>)                                                     \
+            r = rhs.x;                                                                             \
+        else                                                                                       \
+            r = rhs;                                                                               \
+        return l op r;                                                                             \
     }
 
     OPERATOR_IMPL(+)
@@ -148,3 +148,44 @@ TEST_F(PYBIND11_TEST, logic_operators) {
     EXPECT_FALSE(a >= b);
 }
 
+TEST_F(PYBIND11_TEST, item_operators) {
+    py::module_ m = py::module_::import("__main__");
+
+    py::class_<std::vector<int>>(m, "vector")
+        .def(py::init<>())
+        .def("__getitem__",
+             [](std::vector<int>& v, int i) {
+                 return v[i];
+             })
+        .def("__setitem__",
+             [](std::vector<int>& v, int i, int x) {
+                 v[i] = x;
+             })
+        .def("push_back",
+             [](std::vector<int>& v, int x) {
+                 v.push_back(x);
+             })
+        .def("__str__", [](const std::vector<int>& v) {
+            std::ostringstream os;
+            os << "[";
+            for(size_t i = 0; i < v.size(); i++) {
+                if(i > 0) os << ", ";
+                os << v[i];
+            }
+            os << "]";
+            return os.str();
+        });
+
+    py::exec(R"(
+v = vector()
+v.push_back(1)
+v.push_back(2)
+v.push_back(3)
+print(v)
+assert v[0] == 1
+assert v[1] == 2
+assert v[2] == 3
+v[1] = 4
+assert v[1] == 4
+)");
+}

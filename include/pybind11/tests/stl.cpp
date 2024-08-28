@@ -1,5 +1,5 @@
 #include "test.h"
-#include <pybind11/stl.h>
+#include "pybind11/stl.h"
 
 namespace {
 
@@ -119,7 +119,8 @@ TEST_F(PYBIND11_TEST, dict_like) {
         py::object obj = py::cast(m);
         EXPECT_EVAL_EQ("{'a': Point(1, 2), 'b': Point(3, 4)}", obj);
 
-        std::unordered_map<std::string, Point> m2 = obj.cast<std::unordered_map<std::string, Point>>();
+        std::unordered_map<std::string, Point> m2 =
+            obj.cast<std::unordered_map<std::string, Point>>();
         EXPECT_EQ(m, m2);
     }
 }
