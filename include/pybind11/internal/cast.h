@@ -99,12 +99,12 @@ struct type_caster<T, std::enable_if_t<is_floating_point_v<T>>> {
 
     bool load(handle src, bool convert) {
         if(isinstance<pkbind::float_>(src)) {
-            data = py_tofloat(src.ptr());
+            data = static_cast<T>(py_tofloat(src.ptr()));
             return true;
         }
 
         if(convert && isinstance<pkbind::int_>(src)) {
-            data = py_toint(src.ptr());
+            data = static_cast<T>(py_toint(src.ptr()));
             return true;
         }
 
