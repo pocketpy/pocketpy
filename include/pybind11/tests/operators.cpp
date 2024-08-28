@@ -1,7 +1,5 @@
-#include "pybind11/internal/builtins.h"
 #include "test.h"
-#include <pybind11/operators.h>
-#include <vector>
+#include "pybind11/operators.h"
 
 namespace {
 
