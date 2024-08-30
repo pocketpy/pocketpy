@@ -233,6 +233,8 @@ PK_EXPORT py_f64 py_tofloat(py_Ref);
 /// If successful, return true and set the value to `out`.
 /// Otherwise, return false and raise `TypeError`.
 PK_EXPORT bool py_castfloat(py_Ref, py_f64* out) PY_RAISE;
+/// 32-bit version of `py_castfloat`.
+PK_EXPORT bool py_castfloat32(py_Ref, float* out) PY_RAISE;
 /// Cast a `int` object in python to `int64_t`.
 PK_EXPORT bool py_castint(py_Ref, py_i64* out) PY_RAISE;
 /// Convert a `bool` object in python to `bool`.

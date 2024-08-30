@@ -24,6 +24,14 @@ bool py_castfloat(py_Ref self, double* out) {
     }
 }
 
+bool py_castfloat32(py_Ref self, float *out){
+    switch(self->type) {
+        case tp_int: *out = (float)self->_i64; return true;
+        case tp_float: *out = (float)self->_f64; return true;
+        default: return TypeError("expected 'int' or 'float', got '%t'", self->type);
+    }
+}
+
 bool py_castint(py_Ref self, int64_t* out) {
     if(self->type == tp_int) {
         *out = self->_i64;
