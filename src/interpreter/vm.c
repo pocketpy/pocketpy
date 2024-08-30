@@ -71,6 +71,7 @@ void VM__ctor(VM* self) {
     self->curr_exception = *py_NIL;
     self->is_curr_exc_handled = false;
 
+    self->ctx = NULL;
     self->__curr_class = NULL;
     self->__curr_function = NULL;
 

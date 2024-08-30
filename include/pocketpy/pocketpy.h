@@ -92,6 +92,10 @@ PK_EXPORT int py_currentvm();
 PK_EXPORT void py_switchvm(int index);
 /// Reset the current VM.
 PK_EXPORT void py_resetvm();
+/// Get the current VM context. This is used for user-defined data.
+PK_EXPORT void* py_getvmctx();
+/// Set the current VM context. This is used for user-defined data.
+PK_EXPORT void py_setvmctx(void* ctx);
 /// Set `sys.argv`. Used for storing command-line arguments.
 PK_EXPORT void py_sys_setargv(int argc, char** argv);
 /// Setup the callbacks for the current VM.

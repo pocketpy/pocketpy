@@ -75,6 +75,14 @@ int py_currentvm() {
     return -1;
 }
 
+void* py_getvmctx(){
+    return pk_current_vm->ctx;
+}
+
+void py_setvmctx(void* ctx){
+    pk_current_vm->ctx = ctx;
+}
+
 void py_sys_setargv(int argc, char** argv) {
     py_GlobalRef sys = py_getmodule("sys");
     py_Ref argv_list = py_getdict(sys, py_name("argv"));
