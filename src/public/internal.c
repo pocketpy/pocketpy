@@ -118,7 +118,7 @@ bool py_call(py_Ref f, int argc, py_Ref argv) {
     }
 }
 
-#if PK_DEBUG
+#ifndef NDEBUG
 bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
     py_StackRef p0 = py_peek(0);
     py_newnil(py_retval());

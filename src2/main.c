@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     if(argc == 1) {
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
         printf("[%d bit] on %s", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
-#if PK_DEBUG
+#ifndef NDEBUG
         printf(" (DEBUG)");
 #endif
         printf("\n");

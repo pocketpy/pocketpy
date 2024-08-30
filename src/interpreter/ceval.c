@@ -87,7 +87,7 @@ FrameResult VM__run_top_frame(VM* self) {
     __NEXT_STEP:
         byte = *frame->ip;
 
-#if PK_DEBUG
+#ifndef NDEBUG
         pk_print_stack(self, frame, byte);
         // assert(!py_checkexc(true));
 #endif

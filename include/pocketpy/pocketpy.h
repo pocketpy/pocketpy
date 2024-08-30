@@ -548,7 +548,7 @@ PK_EXPORT bool py_isidentical(py_Ref, py_Ref);
 /// The stack remains unchanged after the operation.
 PK_EXPORT bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE PY_RETURN;
 
-#if PK_DEBUG
+#ifndef NDEBUG
 /// Call a `py_CFunction` in a safe way.
 /// This function does extra checks to help you debug `py_CFunction`.
 PK_EXPORT bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) PY_RAISE PY_RETURN;

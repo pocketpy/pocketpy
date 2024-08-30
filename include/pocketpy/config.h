@@ -13,11 +13,6 @@
 #define PK_ENABLE_OS                1
 #endif
 
-// Enable `line_profiler` module and `breakpoint()` function
-#ifndef PK_ENABLE_PROFILER          // can be overridden by cmake
-#define PK_ENABLE_PROFILER          0
-#endif
-
 // GC min threshold
 #ifndef PK_GC_MIN_THRESHOLD         // can be overridden by cmake
 #define PK_GC_MIN_THRESHOLD         16384
@@ -45,10 +40,4 @@
     #define PK_PLATFORM_SEP '\\'
 #else
     #define PK_PLATFORM_SEP '/'
-#endif
-
-#ifdef NDEBUG
-    #define PK_DEBUG 0
-#else
-    #define PK_DEBUG 1
 #endif
