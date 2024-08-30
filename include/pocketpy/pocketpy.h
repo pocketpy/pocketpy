@@ -115,13 +115,13 @@ PK_EXPORT bool py_eval(const char* source, py_Ref module) PY_RAISE PY_RETURN;
 /// Example:
 /// `py_newstr(py_r0(), "abc");`
 /// `py_newint(py_r1(), 123);`
-/// `py_smartexec("print(_1, _2)", NULL, py_r0(), py_r1());`
+/// `py_smartexec("print(_0, _1)", NULL, py_r0(), py_r1());`
 /// `// "abc 123" will be printed`.
 PK_EXPORT bool py_smartexec(const char* source, py_Ref module, ...) PY_RAISE PY_RETURN;
 /// Evaluate a source string with smart interpretation.
 /// Example:
 /// `py_newstr(py_r0(), "abc");`
-/// `py_smarteval("len(_1)", NULL, py_r0());`
+/// `py_smarteval("len(_)", NULL, py_r0());`
 /// `int res = py_toint(py_retval());`
 /// `// res will be 3`.
 PK_EXPORT bool py_smarteval(const char* source, py_Ref module, ...) PY_RAISE PY_RETURN;

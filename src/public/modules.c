@@ -536,14 +536,14 @@ static bool
     // [globals, locals, code]
     CodeObject* co = py_touserdata(py_peek(-1));
     py_StackRef locals = py_peek(-2);
-    int max_index = 0;
+    int max_index = -1;
     c11__foreach(Bytecode, &co->codes, bc) {
         if(bc->op == OP_LOAD_NAME) {
             c11_sv name = py_name2sv(bc->arg);
             if(name.data[0] != '_') continue;
             int index;
             if(name.size == 1) {
-                index = 1;
+                index = 0;
             } else if(name.size == 2 && isdigit(name.data[1])) {
                 index = name.data[1] - '0';
             } else {
@@ -553,17 +553,17 @@ static bool
         }
     }
 
-    if(max_index == 0) { return ValueError("no placeholder found in the source"); }
+    if(max_index == -1) return ValueError("no placeholder found in the source");
 
-    for(int i = 1; i <= max_index; i++) {
+    for(int i = 0; i <= max_index; i++) {
         py_Ref val = va_arg(args, py_Ref);
         char buf[3];
         buf[0] = '_';
         buf[1] = '0' + i;
         buf[2] = '\0';
         py_dict_setitem_by_str(locals, buf, val);
-        if(i == 1) {
-            // _ => _1
+        if(i == 0) {
+            // _ => _0
             py_dict_setitem_by_str(locals, "_", val);
         }
     }
