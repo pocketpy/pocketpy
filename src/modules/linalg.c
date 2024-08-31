@@ -147,13 +147,14 @@ static bool vec2__mul__(int argc, py_Ref argv) {
 
 static bool vec2__truediv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    if(argv[1].type != tp_float) {
+    float divisor;
+    if(!py_castfloat32(&argv[1], &divisor)) {
         py_newnotimplemented(py_retval());
         return true;
     }
     c11_vec2 res;
-    res.x = argv[0]._vec2.x / argv[1]._f64;
-    res.y = argv[0]._vec2.y / argv[1]._f64;
+    res.x = argv[0]._vec2.x / divisor;
+    res.y = argv[0]._vec2.y / divisor;
     py_newvec2(py_retval(), res);
     return true;
 }
@@ -254,15 +255,16 @@ static bool vec2_smoothdamp_STATIC(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_vec2);   // current: vec2
     PY_CHECK_ARG_TYPE(1, tp_vec2);   // target: vec2
     PY_CHECK_ARG_TYPE(2, tp_vec2);   // current_velocity: vec2
-    PY_CHECK_ARG_TYPE(3, tp_float);  // smooth_time: float
-    PY_CHECK_ARG_TYPE(4, tp_float);  // max_speed: float
-    PY_CHECK_ARG_TYPE(5, tp_float);  // delta_time: float
+
+    float smoothTime;
+    if(!py_castfloat32(&argv[3], &smoothTime)) return false;
+    float maxSpeed;
+    if(!py_castfloat32(&argv[4], &maxSpeed)) return false;
+    float deltaTime;
+    if(!py_castfloat32(&argv[5], &deltaTime)) return false;
     c11_vec2 current = argv[0]._vec2;
     c11_vec2 target = argv[1]._vec2;
     c11_vec2 currentVelocity = argv[2]._vec2;
-    float smoothTime = argv[3]._f64;
-    float maxSpeed = argv[4]._f64;
-    float deltaTime = argv[5]._f64;
 
     // https://github.com/Unity-Technologies/UnityCsReference/blob/master/Runtime/Export/Math/Vector2.cs#L289
     // Based on Game Programming Gems 4 Chapter 1.10
