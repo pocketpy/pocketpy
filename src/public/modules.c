@@ -327,18 +327,21 @@ static bool builtins_issubclass(int argc, py_Ref argv) {
     return true;
 }
 
+bool py_callable(py_Ref val) {
+    switch(val->type) {
+        case tp_nativefunc: return true;
+        case tp_function: return true;
+        case tp_type: return true;
+        case tp_boundmethod: return true;
+        case tp_staticmethod: return true;
+        case tp_classmethod: return true;
+        default: return py_tpfindmagic(val->type, __call__);
+    }
+}
+
 static bool builtins_callable(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    bool res;
-    switch(argv->type) {
-        case tp_nativefunc: res = true; break;
-        case tp_function: res = true; break;
-        case tp_type: res = true; break;
-        case tp_boundmethod: res = true; break;
-        case tp_staticmethod: res = true; break;
-        case tp_classmethod: res = true; break;
-        default: res = py_tpfindmagic(argv->type, __call__); break;
-    }
+    bool res = py_callable(py_arg(0));
     py_newbool(py_retval(), res);
     return true;
 }

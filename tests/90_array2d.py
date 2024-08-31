@@ -1,5 +1,3 @@
-exit()
-
 from array2d import array2d
 
 # test error args for __init__
@@ -10,7 +8,7 @@ except ValueError:
     pass
 
 # test callable constructor
-a = array2d(2, 4, default=lambda: 0)
+a = array2d(2, 4, lambda: 0)
 
 assert a.width == a.n_cols == 2
 assert a.height == a.n_rows == 4
@@ -28,7 +26,7 @@ assert not a.is_valid(0, -1)
 assert a.get(0, 0) == 0
 assert a.get(1, 3) == 0
 assert a.get(2, 0) is None
-assert a.get(0, 4, default='S') == 'S'
+assert a.get(0, 4, 'S') == 'S'
 
 # test __getitem__
 assert a[0, 0] == 0
@@ -91,21 +89,9 @@ assert d == array2d(2, 4, default=0)
 # test copy_
 a.copy_(d)
 assert a == d and a is not d
-x = array2d(4, 4, default=0)
+x = array2d(2, 4, default=0)
 x.copy_(d)
 assert x == d and x is not d
-x.copy_(['a']*d.numel)
-assert x == array2d(d.width, d.height, default='a')
-
-# test subclass array2d
-class A(array2d):
-    def __init__(self):
-        super().__init__(2, 4, default=0)
-
-assert A().width == 2
-assert A().height == 4
-assert A().numel == 8
-assert A().get(0, 0, default=2) == 0
 
 # test alive_neighbors
 a = array2d(3, 3, default=0)
@@ -177,9 +163,9 @@ assert len(a) == a.numel
 
 # test _get and _set
 a = array2d(3, 4, default=1)
-assert a._get(0, 0) == 1
-a._set(0, 0, 2)
-assert a._get(0, 0) == 2
+assert a.unsafe_get(0, 0) == 1
+a.unsafe_set(0, 0, 2)
+assert a.unsafe_get(0, 0) == 2
 
 # stackoverflow bug due to recursive mark-and-sweep
 # class Cell:

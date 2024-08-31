@@ -535,6 +535,8 @@ PK_EXPORT int py_less(py_Ref lhs, py_Ref rhs) PY_RAISE;
 #define py_gt(lhs, rhs) py_binaryop(lhs, rhs, __gt__, __lt__)
 #define py_ge(lhs, rhs) py_binaryop(lhs, rhs, __ge__, __le__)
 
+/// Python equivalent to `callable(val)`.
+PK_EXPORT bool py_callable(py_Ref val);
 /// Get the hash value of the object.
 PK_EXPORT bool py_hash(py_Ref, py_i64* out) PY_RAISE;
 /// Get the iterator of the object.
@@ -698,12 +700,15 @@ enum py_PredefinedTypes {
     tp_ImportError,
     tp_AssertionError,
     tp_KeyError,
-    /* Extended */
+    /* linalg */
     tp_vec2,
     tp_vec3,
     tp_vec2i,
     tp_vec3i,
     tp_mat3x3,
+    /* array2d */
+    tp_array2d,
+    tp_array2d_iterator,
 };
 
 #ifdef __cplusplus
