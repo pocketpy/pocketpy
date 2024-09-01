@@ -1,0 +1,77 @@
+name: numpy Build and Test
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - 'web/**'
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'web/**'
+      - '**.md'
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up GCC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++
+
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1.10
+
+      - name: Test
+        run: |
+          cd 3rd/numpy/tests
+          cmake -B build
+          cmake --build build --config Release --parallel
+          ./build/numpy_bindings
+
+  build_mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Clang
+        run: |
+          brew install llvm
+          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
+          source ~/.zshrc
+
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1.10
+
+      - name: Test
+        run: |
+          cd 3rd/numpy/tests
+          cmake -B build -DENABLE_TEST=ON
+          cmake --build build --config Release --parallel
+          ./build/numpy_bindings
+
+  build_windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up MSVC
+        run: |
+          ilammy/msvc-dev-cmd@v1
+
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v1.10
+
+      - name: Test
+        run: |
+          cd 3rd\numpy\tests
+          cmake -B build
+          cmake --build build --config Release --parallel
+          build\Release\numpy_bindings.exe
