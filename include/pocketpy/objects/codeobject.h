@@ -120,13 +120,14 @@ void FuncDecl__add_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value);
 void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name);
+void FuncDecl__gc_mark(const FuncDecl* self);
 
 // runtime function
 typedef struct Function {
     FuncDecl_ decl;
     py_TValue module;      // weak ref
     PyObject* clazz;       // weak ref
-    NameDict* closure;  // strong ref
+    NameDict* closure;     // strong ref
     py_CFunction cfunc;    // wrapped C function
 } Function;
 

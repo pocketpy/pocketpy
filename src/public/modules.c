@@ -685,7 +685,7 @@ py_TValue pk_builtins__register() {
 static void function__gc_mark(void* ud) {
     Function* func = ud;
     if(func->closure) pk__mark_namedict(func->closure);
-    CodeObject__gc_mark(&func->decl->code);
+    FuncDecl__gc_mark(func->decl);
 }
 
 static bool function__doc__(int argc, py_Ref argv) {

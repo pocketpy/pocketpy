@@ -602,6 +602,14 @@ static void mark_object(PyObject* obj) {
     if(ti->gc_mark) ti->gc_mark(PyObject__userdata(obj));
 }
 
+void FuncDecl__gc_mark(const FuncDecl* self) {
+    CodeObject__gc_mark(&self->code);
+    for(int j = 0; j < self->kwargs.length; j++) {
+        FuncDeclKwArg* kw = c11__at(FuncDeclKwArg, &self->kwargs, j);
+        pk__mark_value(&kw->value);
+    }
+}
+
 void CodeObject__gc_mark(const CodeObject* self) {
     for(int i = 0; i < self->consts.length; i++) {
         py_TValue* p = c11__at(py_TValue, &self->consts, i);
@@ -609,12 +617,7 @@ void CodeObject__gc_mark(const CodeObject* self) {
     }
     for(int i = 0; i < self->func_decls.length; i++) {
         FuncDecl_ decl = c11__getitem(FuncDecl_, &self->func_decls, i);
-        CodeObject__gc_mark(&decl->code);
-
-        for(int j = 0; j < decl->kwargs.length; j++) {
-            FuncDeclKwArg* kw = c11__at(FuncDeclKwArg, &decl->kwargs, j);
-            pk__mark_value(&kw->value);
-        }
+        FuncDecl__gc_mark(decl);
     }
 }
 
