@@ -278,6 +278,7 @@ static bool builtins_round(int argc, py_Ref argv) {
 }
 
 static bool builtins_print(int argc, py_Ref argv) {
+    // print(*args, sep=' ', end='\n')
     py_TValue* args;
     int length = pk_arrayview(argv, &args);
     assert(length != -1);

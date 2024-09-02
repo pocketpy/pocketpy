@@ -603,8 +603,19 @@ static void mark_object(PyObject* obj) {
 }
 
 void CodeObject__gc_mark(const CodeObject* self) {
-    c11__foreach(py_TValue, &self->consts, i) { pk__mark_value(i); }
-    c11__foreach(FuncDecl_, &self->func_decls, i) { CodeObject__gc_mark(&(*i)->code); }
+    for(int i = 0; i < self->consts.length; i++) {
+        py_TValue* p = c11__at(py_TValue, &self->consts, i);
+        pk__mark_value(p);
+    }
+    for(int i = 0; i < self->func_decls.length; i++) {
+        FuncDecl_ decl = c11__getitem(FuncDecl_, &self->func_decls, i);
+        CodeObject__gc_mark(&decl->code);
+
+        for(int j = 0; j < decl->kwargs.length; j++) {
+            FuncDeclKwArg* kw = c11__at(FuncDeclKwArg, &decl->kwargs, j);
+            pk__mark_value(&kw->value);
+        }
+    }
 }
 
 void ManagedHeap__mark(ManagedHeap* self) {
