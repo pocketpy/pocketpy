@@ -2,6 +2,7 @@
 #include <tuple>
 #include <string_view>
 #include <type_traits>
+#include <memory>
 
 namespace pybind11 {
 
@@ -195,4 +196,11 @@ constexpr inline overload_cast_t<Args...> overload_cast;
 ///  - regular: static_cast<Return (Class::*)(Arg) const>(&Class::func)
 ///  - sweet:   overload_cast<Arg>(&Class::func, const_)
 constexpr static auto const_ = std::true_type{};
+
+template <typename T>
+constexpr bool is_unique_ptr_v = false;
+
+template <typename T>
+constexpr bool is_unique_ptr_v<std::unique_ptr<T>> = true;
+
 }  // namespace pybind11

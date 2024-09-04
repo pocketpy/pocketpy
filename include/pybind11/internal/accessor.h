@@ -54,7 +54,7 @@ public:
 
     template <typename Value>
     accessor& operator= (Value&& value) && {
-        policy::set(m_obj, m_key, std::forward<Value>(value));
+        policy::set(m_obj, m_key, pybind11::cast(std::forward<Value>(value)));
         return *this;
     }
 

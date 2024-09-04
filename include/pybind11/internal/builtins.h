@@ -95,6 +95,10 @@ handle cast(T&& value, return_value_policy policy, handle parent) {
 
     if constexpr(std::is_convertible_v<underlying_type, handle>) {
         return std::forward<T>(value);
+    } else if constexpr(is_unique_ptr_v<underlying_type>) {
+        return impl::type_caster<typename underlying_type::pointer>::cast(value.release(),
+                                                                          return_value_policy::take_ownership,
+                                                                          parent);
     } else {
         static_assert(!is_multiple_pointer_v<underlying_type>, "multiple pointer is not supported.");
         static_assert(!std::is_void_v<std::remove_pointer_t<underlying_type>>,
