@@ -86,8 +86,14 @@ struct type_caster<T, std::enable_if_t<is_py_list_like_v<T>>> {
     template <typename U>
     static handle cast(U&& src, return_value_policy policy, handle parent) {
         auto list = pybind11::list();
-        for(auto& item: src) {
-            list.append(pybind11::cast(item, policy, parent));
+        if constexpr(std::is_same_v<T, std::vector<bool>>) {
+            for(auto item: src) {
+                list.append(pybind11::cast(bool(item), policy, parent));
+            }
+        } else {
+            for(auto& item: src) {
+                list.append(pybind11::cast(item, policy, parent));
+            }
         }
         return list;
     }

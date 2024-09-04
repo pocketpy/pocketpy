@@ -177,7 +177,7 @@ struct type_visitor {
             } else {
                 // some type, like iterable, iterator, they don't have according type in python
                 // but they have a function to check the type, then just call the function
-                return T::type_or_check(obj);
+                return T::type_or_check()(obj);
             }
         } else {
             return vm->isinstance(obj.ptr(), type<T>());
