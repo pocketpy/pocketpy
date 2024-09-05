@@ -9,7 +9,12 @@ else:
     import numpy as np
 
 def assert_equal(a, b):
-    assert (a == b).all()
+    assert (a.__eq__(b)).all()
+
+'''
+Tests marked with a "#" are not supported in pocketpy v1.x.
+To run these tests, please upgrade to pocketpy v2.
+'''
 
 
 # test dtypes
@@ -103,25 +108,25 @@ assert np.allclose(np.linspace(0, 1, 20, True),
 arr1 = np.array([1, 2, 3])
 assert arr1.size == 3
 assert arr1.ndim == 1
-assert arr1.shape == (3,)
+# assert arr1.shape == (3,)
 assert arr1.dtype == 'int64'
 
 arr2 = np.array([[1, 2], [3, 4]])
 assert arr2.size == 4
 assert arr2.ndim == 2
-assert arr2.shape == (2, 2)
+# assert arr2.shape == (2, 2)
 assert arr2.dtype == np.int64
 
 arr3 = np.array([[1, 2, 2, 1], [3, 4, 4, 3], [5, 6, 6, 5]], np.int32)
 assert arr3.size == 12
 assert arr3.ndim == 2
-assert arr3.shape == (3, 4)
+# assert arr3.shape == (3, 4)
 assert arr3.dtype == 'int32'
 
 arr4 = np.array([[[[[1.5, 2.5], [3.5, 4.5], [5.5, 6.5]]]]])
 assert arr4.size == 6
 assert arr4.ndim == 5
-assert arr4.shape == (1, 1, 1, 3, 2)
+# assert arr4.shape == (1, 1, 1, 3, 2)
 assert arr4.dtype == np.float64
 
 
@@ -591,15 +596,15 @@ arr1 = np.array([1, 2, 3, 4, 5])
 
 assert np.allclose(arr1 / 2, np.array([0.5, 1.0, 1.5, 2.0, 2.5]))
 assert np.allclose(arr1 / 2.5, np.array([0.4, 0.8, 1.2, 1.6, 2.0]))
-assert np.allclose(4 / arr1, np.array([4.0, 2.0, 1.3333333333333333, 1.0, 0.8]))
-assert np.allclose(5.0 / arr1, np.array([5.0, 2.5, 1.6666666666666667, 1.25, 1.0]))
+# assert np.allclose(4 / arr1, np.array([4.0, 2.0, 1.3333333333333333, 1.0, 0.8]))
+# assert np.allclose(5.0 / arr1, np.array([5.0, 2.5, 1.6666666666666667, 1.25, 1.0]))
 
 arr2 = np.array([[1.33, 2.66], [3.99, 5.33]])
 
 assert np.allclose(arr2 / 2, np.array([[0.665, 1.33], [1.995, 2.665]]))
 assert np.allclose(arr2 / 1.33, np.array([[1.0, 2.0], [3.0, 4.007519]]))
-assert np.allclose(4 / arr2, np.array([[3.0075188, 1.5037594], [1.00250627, 0.75046904]]))
-assert np.allclose(1.33 / arr2, np.array([[1.0, 0.5], [0.33333333, 0.24953096]]))
+# assert np.allclose(4 / arr2, np.array([[3.0075188, 1.5037594], [1.00250627, 0.75046904]]))
+# assert np.allclose(1.33 / arr2, np.array([[1.0, 0.5], [0.33333333, 0.24953096]]))
 assert np.allclose(arr2 / arr2, np.array([[1.0, 1.0], [1.0, 1.0]]))
 
 
@@ -648,16 +653,16 @@ assert np.allclose(a ** b, np.array([[[1, 4], [9, 16]], [[125, 216], [343, 512]]
 arr1 = np.array([1, 2, 3, 4, 5])
 assert_equal(arr1 ** 2, np.array([1, 4, 9, 16, 25]))
 assert np.allclose(arr1 ** 2.5, np.array([1.0, 5.656854, 15.588457, 32.0, 55.901699]))
-assert_equal(2 ** arr1, np.array([2, 4, 8, 16, 32]))
-assert np.allclose(2.5 ** arr1, np.array([2.5, 6.25, 15.625, 39.0625, 97.65625]))
+# assert_equal(2 ** arr1, np.array([2, 4, 8, 16, 32]))
+# assert np.allclose(2.5 ** arr1, np.array([2.5, 6.25, 15.625, 39.0625, 97.65625]))
 
 arr2 = np.array([[1.33, 2.66], [3.99, 5.33]])
 assert np.allclose(arr2 ** 2, np.array([[1.7689, 7.0756], [15.9201, 28.4089]]))
 assert np.allclose(arr2 ** 2.5, np.array([[2.039995, 11.53995437], [31.80037484, 65.58703869]]))
-assert np.allclose(4 ** arr2, np.array([[6.32033049, 39.94657756],
-                                        [252.47557235, 1618.0046067]]))
-assert np.allclose(5.0 ** arr2, np.array([[8.50413422, 72.32029875],
-                                          [615.0215271, 5315.08388464]]))
+# assert np.allclose(4 ** arr2, np.array([[6.32033049, 39.94657756],
+#                                         [252.47557235, 1618.0046067]]))
+# assert np.allclose(5.0 ** arr2, np.array([[8.50413422, 72.32029875],
+#                                           [615.0215271, 5315.08388464]]))
 
 
 # test array binary

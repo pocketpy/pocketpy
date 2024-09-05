@@ -30,7 +30,7 @@ int main() {
     }
     catch (const py::error_already_set& e) {
         // Catch and print Python exceptions
-        std::cerr << "Python error: " << e.what() << std::endl;
+        std::cerr << "Python error: " << e.summary() << std::endl;
         return 1;
     }
     catch (const std::exception& e) {
