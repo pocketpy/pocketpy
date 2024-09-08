@@ -1,7 +1,6 @@
 #pragma once
 
 #include "function.h"
-#include "object.h"
 
 namespace pkbind {
 
