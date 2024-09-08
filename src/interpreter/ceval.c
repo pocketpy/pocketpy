@@ -242,6 +242,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_LOAD_CLASS_GLOBAL: {
+                assert(self->__curr_class);
                 py_Name name = byte.arg;
                 py_Ref tmp = py_getdict(self->__curr_class, name);
                 if(tmp) {
@@ -902,6 +903,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_STORE_CLASS_ATTR: {
+                assert(self->__curr_class);
                 py_Name name = byte.arg;
                 if(py_istype(TOP(), tp_function)) {
                     Function* ud = py_touserdata(TOP());
@@ -912,6 +914,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_ADD_CLASS_ANNOTATION: {
+                assert(self->__curr_class);
                 // [type_hint string]
                 py_Type type = py_totype(self->__curr_class);
                 py_TypeInfo* ti = TypeList__get(&self->types, type);

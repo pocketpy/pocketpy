@@ -137,3 +137,9 @@ assert (g == 1), g
 
 assert list.__new__(list) == []
 assert a.__new__ == list.__new__
+
+
+class A:
+    x: list[int] = [i for i in range(1, 4)]
+
+assert A.x == [1, 2, 3]
