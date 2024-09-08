@@ -58,7 +58,7 @@ class Point:
 )";
 
 TEST_F(PYBIND11_TEST, object) {
-    py::module_ m = py::module_::import("__main__");
+    py::module m = py::module::import("__main__");
     py::exec(source);
     py::exec("p = Point(3, 4)");
     py::object p = py::eval("p");

@@ -53,7 +53,7 @@ struct Line {
 };
 
 TEST_F(PYBIND11_TEST, class) {
-    py::module_ m = py::module_::import("__main__");
+    py::module m = py::module::import("__main__");
     py::class_<Point>(m, "Point")
         .def(py::init<>())
         .def(py::init<int, int, int>())
@@ -121,7 +121,7 @@ TEST_F(PYBIND11_TEST, inheritance) {
         Point3D(int x, int y, int z) : Point(x, y), z(z) { constructor_calls++; }
     };
 
-    py::module_ m = py::module_::import("__main__");
+    py::module m = py::module::import("__main__");
 
     py::class_<Point>(m, "Point")
         .def(py::init<>())
@@ -160,7 +160,7 @@ assert p.z == 30
 }
 
 TEST_F(PYBIND11_TEST, dynamic_attr) {
-    py::module_ m = py::module_::import("__main__");
+    py::module m = py::module::import("__main__");
 
     struct Point {
         int x;
@@ -185,7 +185,7 @@ TEST_F(PYBIND11_TEST, dynamic_attr) {
 TEST_F(PYBIND11_TEST, enum) {
     enum class Color { RED, Yellow, GREEN, BLUE };
 
-    py::module_ m = py::module_::import("__main__");
+    py::module m = py::module::import("__main__");
 
     py::enum_<Color> color(m, "Color");
 

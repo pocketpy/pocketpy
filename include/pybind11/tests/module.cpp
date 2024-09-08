@@ -1,4 +1,5 @@
 #include "test.h"
+#include <gtest/gtest.h>
 
 PYBIND11_EMBEDDED_MODULE(example, m) {
     m.def("add", [](int a, int b) {
@@ -23,9 +24,32 @@ TEST_F(PYBIND11_TEST, module) {
     py::exec("from example.math import sub");
     EXPECT_EVAL_EQ("sub(1, 2)", -1);
 
-    auto math = py::module_::import("example.math");
+    auto math = py::module::import("example.math");
     EXPECT_EQ(math.attr("sub")(4, 3).cast<int>(), 1);
 }
 
-}  // namespace
+TEST_F(PYBIND11_TEST, raw_module) {
+    auto m = py::module::create("example2");
+    m.def("add", [](int a, int b) {
+        return a + b;
+    });
 
+    auto math = m.def_submodule("math");
+    math.def("sub", [](int a, int b) {
+        return a - b;
+    });
+
+    py::exec("import example2");
+    EXPECT_EVAL_EQ("example2.add(1, 2)", 3);
+
+    py::exec("from example2 import math");
+    EXPECT_EVAL_EQ("math.sub(1, 2)", -1);
+
+    py::exec("from example2.math import sub");
+    EXPECT_EVAL_EQ("sub(1, 2)", -1);
+
+    auto math2 = py::module::import("example2.math");
+    EXPECT_EQ(math2.attr("sub")(4, 3).cast<int>(), 1);
+}
+
+}  // namespace

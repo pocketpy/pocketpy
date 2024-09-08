@@ -1,6 +1,7 @@
 #pragma once
 
 #include "function.h"
+#include "object.h"
 
 namespace pkbind {
 
@@ -11,11 +12,17 @@ class module : public object {
 
     static module import(const char* name) {
         raise_call<py_import>(name);
-        return module(py_retval(), object::realloc_t{});
+        return borrow<module>(py_retval());
+    }
+
+    static module create(const char* name) {
+        auto m = py_newmodule(name);
+        return steal<module>(m);
     }
 
     module def_submodule(const char* name, const char* doc = nullptr) {
-        // auto package = (attr("__package__").cast<std::string>() += ".") += attr("__name__").cast<std::string_view>();
+        // auto package = (attr("__package__").cast<std::string>() += ".") +=
+        // attr("__name__").cast<std::string_view>();
         auto fname = (attr("__name__").cast<std::string>() += ".") += name;
         auto m = py_newmodule(fname.c_str());
         setattr(*this, name, m);
@@ -31,17 +38,17 @@ class module : public object {
 
 using module_ = module;
 
-#define PYBIND11_EMBEDDED_MODULE(name, variable)                                                                       \
-    static void _pkbind_register_##name(::pkbind::module& variable);                                                   \
-    namespace pkbind::impl {                                                                                           \
-    auto _module_##name = [] {                                                                                         \
-        ::pkbind::action::register_start([] {                                                                          \
-            auto m = ::pkbind::module(py_newmodule(#name), ::pkbind::object::ref_t{});                                 \
-            _pkbind_register_##name(m);                                                                                \
-        });                                                                                                            \
-        return 1;                                                                                                      \
-    }();                                                                                                               \
-    }                                                                                                                  \
+#define PYBIND11_EMBEDDED_MODULE(name, variable)                                                   \
+    static void _pkbind_register_##name(::pkbind::module& variable);                               \
+    namespace pkbind::impl {                                                                       \
+    auto _module_##name = [] {                                                                     \
+        ::pkbind::action::register_start([] {                                                      \
+            auto m = ::pkbind::module(py_newmodule(#name), ::pkbind::object::ref_t{});             \
+            _pkbind_register_##name(m);                                                            \
+        });                                                                                        \
+        return 1;                                                                                  \
+    }();                                                                                           \
+    }                                                                                              \
     static void _pkbind_register_##name(::pkbind::module& variable)
 
 }  // namespace pkbind

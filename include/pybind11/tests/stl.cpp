@@ -41,7 +41,7 @@ TEST_F(PYBIND11_TEST, vector_bool) {
 }
 
 TEST_F(PYBIND11_TEST, list_like) {
-    py::class_<Point>(py::module_::__main__(), "Point")
+    py::class_<Point>(py::module::__main__(), "Point")
         .def(py::init<int, int>())
         .def_readwrite("x", &Point::x)
         .def_readwrite("y", &Point::y)
@@ -89,7 +89,7 @@ TEST_F(PYBIND11_TEST, list_like) {
 }
 
 TEST_F(PYBIND11_TEST, dict_like) {
-    py::class_<Point>(py::module_::__main__(), "Point")
+    py::class_<Point>(py::module::__main__(), "Point")
         .def(py::init<int, int>())
         .def_readwrite("x", &Point::x)
         .def_readwrite("y", &Point::y)

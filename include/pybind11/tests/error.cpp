@@ -17,7 +17,7 @@ TEST_F(PYBIND11_TEST, exception_python_to_cpp) {
 }
 
 TEST_F(PYBIND11_TEST, exception_cpp_to_python) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
 #define TEST_EXCEPTION(cppe, pye)                                                                                      \
     m.def("test_" #cppe, []() {                                                                                        \

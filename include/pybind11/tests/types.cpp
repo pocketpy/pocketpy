@@ -152,7 +152,7 @@ TEST_F(PYBIND11_TEST, capsule) {
         delete static_cast<NotTrivial*>(ptr);
     });
 
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     m.def("foo", [](int x) {
         return py::capsule(new int(x));
