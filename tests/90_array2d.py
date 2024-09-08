@@ -92,6 +92,8 @@ assert a == d and a is not d
 x = array2d(2, 4, default=0)
 x.copy_(d)
 assert x == d and x is not d
+x.copy_([1, 2, 3, 4, 5, 6, 7, 8])
+assert x.tolist() == [[1, 2], [3, 4], [5, 6], [7, 8]]
 
 # test alive_neighbors
 a = array2d(3, 3, default=0)
