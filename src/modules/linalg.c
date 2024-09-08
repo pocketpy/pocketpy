@@ -149,6 +149,7 @@ static bool vec2__truediv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     float divisor;
     if(!py_castfloat32(&argv[1], &divisor)) {
+        py_clearexc(NULL);
         py_newnotimplemented(py_retval());
         return true;
     }
