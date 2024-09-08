@@ -136,7 +136,7 @@ iterator interface<Dervied>::end() const {
 class str : public object {
     PKBIND_TYPE_IMPL(object, str, tp_str);
 
-    str(const char* data, int size) : object(alloc_t{}) { py_newstrn(m_ptr, data, size); }
+    str(const char* data, int size) : object(alloc_t{}) { py_newstrv(m_ptr, (c11_sv){data, size}); }
 
     str(const char* data) : str(data, static_cast<int>(strlen(data))) {}
 

@@ -148,7 +148,7 @@ c11_string* c11_sbuf__submit(c11_sbuf* self) {
 
 void c11_sbuf__py_submit(c11_sbuf* self, py_Ref out) {
     c11_string* res = c11_sbuf__submit(self);
-    py_newstrn(out, res->data, res->size);
+    py_newstrv(out, (c11_sv){res->data, res->size});
     c11_string__delete(res);
 }
 

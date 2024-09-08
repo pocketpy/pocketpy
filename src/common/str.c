@@ -38,6 +38,12 @@ void c11_string__ctor2(c11_string* self, const char* data, int size) {
     p[size] = '\0';
 }
 
+void c11_string__ctor3(c11_string* self, int size) {
+    self->size = size;
+    char* p = (char*)self->data;
+    p[size] = '\0';
+}
+
 c11_string* c11_string__copy(c11_string* self) {
     int total_size = sizeof(c11_string) + self->size + 1;
     c11_string* retval = malloc(total_size);

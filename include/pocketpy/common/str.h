@@ -7,16 +7,16 @@
 #include <stdarg.h>
 
 /* string */
-typedef struct c11_string{
+typedef struct c11_string {
     // int size | char[] | '\0'
     int size;
-    const char data[];      // flexible array member
+    char data[];  // flexible array member
 } c11_string;
 
 /* bytes */
-typedef struct c11_bytes{
+typedef struct c11_bytes {
     int size;
-    unsigned char data[];   // flexible array member
+    unsigned char data[];  // flexible array member
 } c11_bytes;
 
 bool c11_bytes__eq(c11_bytes* self, c11_bytes* other);
@@ -33,6 +33,7 @@ c11_string* c11_string__new2(const char* data, int size);
 c11_string* c11_string__new3(const char* fmt, ...);
 void c11_string__ctor(c11_string* self, const char* data);
 void c11_string__ctor2(c11_string* self, const char* data, int size);
+void c11_string__ctor3(c11_string* self, int size);
 c11_string* c11_string__copy(c11_string* self);
 void c11_string__delete(c11_string* self);
 c11_sv c11_string__sv(c11_string* self);
@@ -55,8 +56,8 @@ bool c11_sv__endswith(c11_sv self, c11_sv suffix);
 c11_string* c11_sv__replace(c11_sv self, char old, char new_);
 c11_string* c11_sv__replace2(c11_sv self, c11_sv old, c11_sv new_);
 
-c11_vector/* T=c11_sv */ c11_sv__split(c11_sv self, char sep);
-c11_vector/* T=c11_sv */ c11_sv__split2(c11_sv self, c11_sv sep);
+c11_vector /* T=c11_sv */ c11_sv__split(c11_sv self, char sep);
+c11_vector /* T=c11_sv */ c11_sv__split2(c11_sv self, c11_sv sep);
 
 // misc
 int c11__unicode_index_to_byte(const char* data, int i);
@@ -65,7 +66,7 @@ int c11__byte_index_to_unicode(const char* data, int n);
 bool c11__is_unicode_Lo_char(int c);
 int c11__u8_header(unsigned char c, bool suppress);
 
-typedef enum IntParsingResult{
+typedef enum IntParsingResult {
     IntParsing_SUCCESS,
     IntParsing_FAILURE,
     IntParsing_OVERFLOW,

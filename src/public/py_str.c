@@ -6,17 +6,23 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 
-void py_newstr(py_Ref out, const char* data) { py_newstrn(out, data, strlen(data)); }
+void py_newstr(py_Ref out, const char* data) { py_newstrv(out, (c11_sv){data, strlen(data)}); }
 
-void py_newstrn(py_Ref out, const char* data, int size) {
+char* py_newstrn(py_Ref out, int size) {
     ManagedHeap* heap = &pk_current_vm->heap;
     int total_size = sizeof(c11_string) + size + 1;
     PyObject* obj = ManagedHeap__gcnew(heap, tp_str, 0, total_size);
     c11_string* ud = PyObject__userdata(obj);
-    c11_string__ctor2(ud, data, size);
+    c11_string__ctor3(ud, size);
     out->type = tp_str;
     out->is_ptr = true;
     out->_obj = obj;
+    return ud->data;
+}
+
+void py_newstrv(py_OutRef out, c11_sv sv) {
+    char* data = py_newstrn(out, sv.size);
+    memcpy(data, sv.data, sv.size);
 }
 
 unsigned char* py_newbytes(py_Ref out, int size) {
@@ -97,7 +103,7 @@ static bool str__add__(int argc, py_Ref argv) {
         int total_size = sizeof(c11_string) + self->size + other->size + 1;
         c11_string* res = py_newobject(py_retval(), tp_str, 0, total_size);
         res->size = self->size + other->size;
-        char* p = (char*)res->data;
+        char* p = res->data;
         memcpy(p, self->data, self->size);
         memcpy(p + self->size, other->data, other->size);
         p[res->size] = '\0';
@@ -118,7 +124,7 @@ static bool str__mul__(int argc, py_Ref argv) {
             int total_size = sizeof(c11_string) + self->size * n + 1;
             c11_string* res = py_newobject(py_retval(), tp_str, 0, total_size);
             res->size = self->size * n;
-            char* p = (char*)res->data;
+            char* p = res->data;
             for(int i = 0; i < n; i++) {
                 memcpy(p + i * self->size, self->data, self->size);
             }
@@ -174,14 +180,14 @@ static bool str__getitem__(int argc, py_Ref argv) {
         int index = py_toint(py_arg(1));
         if(!pk__normalize_index(&index, self.size)) return false;
         c11_sv res = c11_sv__u8_getitem(self, index);
-        py_newstrn(py_retval(), res.data, res.size);
+        py_newstrv(py_retval(), res);
         return true;
     } else if(_1->type == tp_slice) {
         int start, stop, step;
         bool ok = pk__parse_int_slice(_1, c11_sv__u8_length(self), &start, &stop, &step);
         if(!ok) return false;
         c11_string* res = c11_sv__u8_slice(self, start, stop, step);
-        py_newstrn(py_retval(), res->data, res->size);
+        py_newstrv(py_retval(), (c11_sv){res->data, res->size});
         c11_string__delete(res);
         return true;
     } else {
@@ -218,7 +224,7 @@ static bool str_lower(int argc, py_Ref argv) {
     int total_size = sizeof(c11_string) + self->size + 1;
     c11_string* res = py_newobject(py_retval(), tp_str, 0, total_size);
     res->size = self->size;
-    char* p = (char*)res->data;
+    char* p = res->data;
     for(int i = 0; i < self->size; i++) {
         char c = self->data[i];
         p[i] = c >= 'A' && c <= 'Z' ? c + 32 : c;
@@ -233,7 +239,7 @@ static bool str_upper(int argc, py_Ref argv) {
     int total_size = sizeof(c11_string) + self->size + 1;
     c11_string* res = py_newobject(py_retval(), tp_str, 0, total_size);
     res->size = self->size;
-    char* p = (char*)res->data;
+    char* p = res->data;
     for(int i = 0; i < self->size; i++) {
         char c = self->data[i];
         p[i] = c >= 'a' && c <= 'z' ? c - 32 : c;
@@ -303,7 +309,7 @@ static bool str_replace(int argc, py_Ref argv) {
     c11_string* new_ = py_touserdata(&argv[2]);
     c11_string* res =
         c11_sv__replace2(c11_string__sv(self), c11_string__sv(old), c11_string__sv(new_));
-    py_newstrn(py_retval(), res->data, res->size);
+    py_newstrv(py_retval(), (c11_sv){res->data, res->size});
     c11_string__delete(res);
     return true;
 }
@@ -325,7 +331,7 @@ static bool str_split(int argc, py_Ref argv) {
     py_newlistn(py_retval(), res.length);
     for(int i = 0; i < res.length; i++) {
         c11_sv item = c11__getitem(c11_sv, &res, i);
-        py_newstrn(py_list_getitem(py_retval(), i), item.data, item.size);
+        py_newstrv(py_list_getitem(py_retval(), i), item);
     }
     c11_vector__dtor(&res);
     return true;
@@ -353,7 +359,7 @@ static bool str__strip_impl(bool left, bool right, int argc, py_Ref argv) {
         return TypeError("strip() takes at most 2 arguments");
     }
     c11_sv res = c11_sv__strip(self, chars, left, right);
-    py_newstrn(py_retval(), res.data, res.size);
+    py_newstrv(py_retval(), res);
     return true;
 }
 
@@ -506,7 +512,7 @@ static bool str_iterator__next__(int argc, py_Ref argv) {
     int start = *ud;
     int len = c11__u8_header(data[*ud], false);
     *ud += len;
-    py_newstrn(py_retval(), data + start, len);
+    py_newstrv(py_retval(), (c11_sv){data + start, len});
     return true;
 }
 
@@ -629,7 +635,7 @@ static bool bytes_decode(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int size;
     unsigned char* data = py_tobytes(&argv[0], &size);
-    py_newstrn(py_retval(), (const char*)data, size);
+    py_newstrv(py_retval(), (c11_sv){(const char*)data, size});
     return true;
 }
 

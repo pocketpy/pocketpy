@@ -43,7 +43,7 @@ py_Ref py_newmodule(const char* path) {
         const char* start = path + last_dot + 1;
         py_newstr(r1, start);
         py_setdict(r0, __name__, r1);
-        py_newstrn(r1, path, last_dot);
+        py_newstrv(r1, (c11_sv){path, last_dot});
         py_setdict(r0, __package__, r1);
     }
 
@@ -404,7 +404,8 @@ static bool builtins_chr(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_int);
     py_i64 val = py_toint(py_arg(0));
     if(val < 0 || val > 128) { return ValueError("chr() arg not in range(128)"); }
-    py_newstrn(py_retval(), (const char*)&val, 1);
+    char* data = py_newstrn(py_retval(), 1);
+    data[0] = (char)val;
     return true;
 }
 

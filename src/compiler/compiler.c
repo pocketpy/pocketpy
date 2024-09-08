@@ -1209,7 +1209,7 @@ static int Ctx__add_const_string(Ctx* self, c11_sv key) {
         return *val;
     } else {
         py_TValue tmp;
-        py_newstrn(&tmp, key.data, key.size);
+        py_newstrv(&tmp, key);
         c11_vector__push(py_TValue, &self->co->consts, tmp);
         int index = self->co->consts.length - 1;
         c11_smallmap_s2n__set(&self->co_consts_string_dedup_map,

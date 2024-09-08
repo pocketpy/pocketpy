@@ -163,7 +163,7 @@ static bool vec2__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     char buf[64];
     int size = snprintf(buf, 64, "vec2(%.4f, %.4f)", argv[0]._vec2.x, argv[0]._vec2.y);
-    py_newstrn(py_retval(), buf, size);
+    py_newstrv(py_retval(), (c11_sv){buf, size});
     return true;
 }
 
@@ -355,7 +355,7 @@ static bool mat3x3__repr__(int argc, py_Ref argv) {
                         m->data[6],
                         m->data[7],
                         m->data[8]);
-    py_newstrn(py_retval(), buf, size);
+    py_newstrv(py_retval(), (c11_sv){buf, size});
     return true;
 }
 
@@ -660,7 +660,7 @@ static bool vec2i__repr__(int argc, py_Ref argv) {
     c11_vec2i data = py_tovec2i(argv);
     char buf[64];
     int size = snprintf(buf, 64, "vec2i(%d, %d)", data.x, data.y);
-    py_newstrn(py_retval(), buf, size);
+    py_newstrv(py_retval(), (c11_sv){buf, size});
     return true;
 }
 
@@ -693,7 +693,7 @@ static bool vec3i__repr__(int argc, py_Ref argv) {
     c11_vec3i data = py_tovec3i(argv);
     char buf[64];
     int size = snprintf(buf, 64, "vec3i(%d, %d, %d)", data.x, data.y, data.z);
-    py_newstrn(py_retval(), buf, size);
+    py_newstrv(py_retval(), (c11_sv){buf, size});
     return true;
 }
 
@@ -730,7 +730,7 @@ static bool vec3__repr__(int argc, py_Ref argv) {
     c11_vec3 data = py_tovec3(argv);
     char buf[64];
     int size = snprintf(buf, 64, "vec3(%.4f, %.4f, %.4f)", data.x, data.y, data.z);
-    py_newstrn(py_retval(), buf, size);
+    py_newstrv(py_retval(), (c11_sv){buf, size});
     return true;
 }
 

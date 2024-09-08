@@ -153,8 +153,10 @@ PK_EXPORT void py_newfloat(py_OutRef, py_f64);
 PK_EXPORT void py_newbool(py_OutRef, bool);
 /// Create a `str` object from a null-terminated string (utf-8).
 PK_EXPORT void py_newstr(py_OutRef, const char*);
-/// Create a `str` object from a char array (utf-8).
-PK_EXPORT void py_newstrn(py_OutRef, const char*, int);
+/// Create a `str` object with `n` UNINITIALIZED bytes plus `'\0'`.
+PK_EXPORT char* py_newstrn(py_OutRef, int);
+/// Create a `str` object from a `c11_sv`.
+PK_EXPORT void py_newstrv(py_OutRef, c11_sv);
 /// Create a `bytes` object with `n` UNINITIALIZED bytes.
 PK_EXPORT unsigned char* py_newbytes(py_OutRef, int n);
 /// Create a `None` object.
@@ -504,6 +506,7 @@ PK_EXPORT void py_clearexc(py_StackRef p0);
 #define NameError(n) py_exception(tp_NameError, "name '%n' is not defined", (n))
 #define TypeError(...) py_exception(tp_TypeError, __VA_ARGS__)
 #define RuntimeError(...) py_exception(tp_RuntimeError, __VA_ARGS__)
+#define IOError(...) py_exception(tp_IOError, __VA_ARGS__)
 #define ValueError(...) py_exception(tp_ValueError, __VA_ARGS__)
 #define IndexError(...) py_exception(tp_IndexError, __VA_ARGS__)
 #define ImportError(...) py_exception(tp_ImportError, __VA_ARGS__)
