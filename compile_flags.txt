@@ -9,3 +9,4 @@
 -Iinclude/
 -I3rd/cjson/include/
 -I3rd/lua_bridge/include/
+-I3rd/numpy/include/
