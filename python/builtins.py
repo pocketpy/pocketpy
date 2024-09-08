@@ -1,5 +1,3 @@
-from pkpy import next as __pkpy_next
-
 def all(iterable):
     for i in iterable:
         if not i:
@@ -37,9 +35,10 @@ def zip(a, b):
     a = iter(a)
     b = iter(b)
     while True:
-        ai = __pkpy_next(a)
-        bi = __pkpy_next(b)
-        if ai is StopIteration or bi is StopIteration:
+        try:
+            ai = next(a)
+            bi = next(b)
+        except StopIteration:
             break
         yield ai, bi
 

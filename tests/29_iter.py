@@ -1,13 +1,12 @@
-from pkpy import next
-
 a = [1, 2, 3]
 a = iter(a)
 
 total = 0
 
 while True:
-    obj = next(a)
-    if obj is StopIteration:
+    try:
+        obj = next(a)
+    except StopIteration:
         break
     total += obj
 
@@ -36,11 +35,11 @@ assert next(i) == 2
 assert next(i) == 3
 assert next(i) == 4
 assert next(i) == 5
-assert next(i) == StopIteration
-assert next(i) == StopIteration
-
-# test normal next
-from builtins import next
+try:
+    next(i)
+    exit(1)
+except StopIteration:
+    pass
 
 a = iter([1])
 assert next(a) == 1
