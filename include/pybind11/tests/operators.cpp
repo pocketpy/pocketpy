@@ -54,7 +54,7 @@ struct Int {
 }  // namespace
 
 TEST_F(PYBIND11_TEST, arithmetic_operators) {
-    py::module_ m = py::module_::import("__main__");
+    py::module m = py::module::import("__main__");
     py::class_<Int>(m, "Int")
         .def(py::init<int>())
         .def(py::self + py::self)
@@ -126,7 +126,7 @@ TEST_F(PYBIND11_TEST, arithmetic_operators) {
 }
 
 TEST_F(PYBIND11_TEST, logic_operators) {
-    py::module_ m = py::module_::import("__main__");
+    py::module m = py::module::import("__main__");
     py::class_<Int>(m, "Int")
         .def(py::init<int>())
         .def_readwrite("x", &Int::x)
@@ -149,7 +149,7 @@ TEST_F(PYBIND11_TEST, logic_operators) {
 }
 
 TEST_F(PYBIND11_TEST, item_operators) {
-    py::module_ m = py::module_::import("__main__");
+    py::module m = py::module::import("__main__");
 
     py::class_<std::vector<int>>(m, "vector")
         .def(py::init<>())

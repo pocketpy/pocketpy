@@ -3,7 +3,7 @@
 namespace {
 
 TEST_F(PYBIND11_TEST, vectorcall) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     py::exec(R"(
 def add(a, b):
@@ -28,7 +28,7 @@ def add2(a, *args):
 }
 
 TEST_F(PYBIND11_TEST, constructor) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     struct Point {
         int x, y;
@@ -52,7 +52,7 @@ TEST_F(PYBIND11_TEST, constructor) {
 }
 
 TEST_F(PYBIND11_TEST, args) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     // test for binding function with args
     m.def("sum", [](py::args args) {
@@ -67,7 +67,7 @@ TEST_F(PYBIND11_TEST, args) {
 }
 
 TEST_F(PYBIND11_TEST, kwargs) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     // test for binding function with kwargs
     m.def("cal", [](py::kwargs kwargs) {
@@ -79,7 +79,7 @@ TEST_F(PYBIND11_TEST, kwargs) {
 }
 
 TEST_F(PYBIND11_TEST, defaults) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     // test for binding function with defaults
     m.def(
@@ -99,7 +99,7 @@ TEST_F(PYBIND11_TEST, defaults) {
 }
 
 TEST_F(PYBIND11_TEST, defaults_with_args) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     // test for binding function with defaults
     m.def(
@@ -123,7 +123,7 @@ TEST_F(PYBIND11_TEST, defaults_with_args) {
 }
 
 TEST_F(PYBIND11_TEST, default_with_args_and_kwargs) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     // test for binding function with defaults
     m.def(
@@ -182,7 +182,7 @@ TEST_F(PYBIND11_TEST, default_with_args_and_kwargs) {
 }
 
 TEST_F(PYBIND11_TEST, overload) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     // test for binding function with overloads
     m.def("cal", [](int a, int b) {
@@ -231,7 +231,7 @@ TEST_F(PYBIND11_TEST, return_value_policy) {
         move_constructor_calls = 0;
         destructor_calls = 0;
 
-        auto m = py::module_::__main__();
+        auto m = py::module::__main__();
 
         py::class_<Point>(m, "Point")
             .def(py::init<int, int>())
@@ -292,7 +292,7 @@ TEST_F(PYBIND11_TEST, default_return_value_policy) {
         bool operator== (const Point& p) const { return x == p.x && y == p.y; }
     };
 
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     py::class_<Point>(m, "Point")
         .def(py::init<int, int>())
@@ -333,7 +333,7 @@ TEST_F(PYBIND11_TEST, default_return_value_policy) {
 }
 
 TEST_F(PYBIND11_TEST, lambda) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     static int destructor_calls = 0;
 
@@ -373,7 +373,7 @@ int add(int a, int b) { return a + b; }
 int add(int a, int b, int c) { return a + b + c; }
 
 TEST_F(PYBIND11_TEST, overload_cast) {
-    auto m = py::module_::__main__();
+    auto m = py::module::__main__();
 
     m.def("add", py::overload_cast<int, int>(add));
     m.def("add", py::overload_cast<int, int, int>(add));
