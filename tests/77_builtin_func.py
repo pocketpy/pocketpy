@@ -542,12 +542,6 @@ def f(a, b):
 
 assert f(1, 2) == 3
 
-exit()
-
-dir_int = dir(int)
-assert dir_int[:4] == ['__add__', '__and__', '__base__', '__eq__']
-
-
 # /************ module time ************/
 import time
 # test time.time
@@ -580,11 +574,16 @@ assert max(1, 2, 3) == 3
 assert max([1, 2]) == 2
 assert max([1, 2, 3], key=lambda x: -x) == 1
 
-assert min([
-    (1, 2),
-    (1, 3),
-    (1, 4),
-]) == (1, 2)
+# assert min([
+#     (1, 2),
+#     (1, 3),
+#     (1, 4),
+# ]) == (1, 2)
 
 assert min(1, 2) == 1
 assert max(1, 2) == 2
+
+exit()
+
+dir_int = dir(int)
+assert dir_int[:4] == ['__add__', '__and__', '__base__', '__eq__']

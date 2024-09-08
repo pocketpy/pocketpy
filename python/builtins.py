@@ -16,6 +16,35 @@ def enumerate(iterable, start=0):
         yield n, elem
         n += 1
 
+def __minmax_reduce(op, args):
+    if len(args) == 2:  # min(1, 2)
+        return args[0] if op(args[0], args[1]) else args[1]
+    if len(args) == 0:  # min()
+        raise TypeError('expected 1 arguments, got 0')
+    if len(args) == 1:  # min([1, 2, 3, 4]) -> min(1, 2, 3, 4)
+        args = args[0]
+    args = iter(args)
+    try:
+        res = next(args)
+    except StopIteration:
+        raise ValueError('args is an empty sequence')
+    while True:
+        try:
+            i = next(args)
+        except StopIteration:
+            break
+        if op(i, res):
+            res = i
+    return res
+
+def min(*args, key=None):
+    key = key or (lambda x: x)
+    return __minmax_reduce(lambda x,y: key(x)<key(y), args)
+
+def max(*args, key=None):
+    key = key or (lambda x: x)
+    return __minmax_reduce(lambda x,y: key(x)>key(y), args)
+
 def sum(iterable):
     res = 0
     for i in iterable:
