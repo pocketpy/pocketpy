@@ -26,9 +26,7 @@ APPS
 build
 
 main
-pocketpy.dSYM
-libpocketpy.dylib.dSYM/
-main.dSYM/
+*.dSYM
 
 docs/references.md
 
