@@ -4,7 +4,7 @@ python prebuild.py
 
 SRC=$(find src/ -name "*.c")
 
-FLAGS="-std=c11 -lm -Iinclude -O0 -Wfatal-errors -g -DDEBUG -DPK_ENABLE_OS=1"
+FLAGS="-std=c11 -lm -ldl -Iinclude -O0 -Wfatal-errors -g -DDEBUG -DPK_ENABLE_OS=1"
 
 SANITIZE_FLAGS="-fsanitize=address,leak,undefined"
 
