@@ -20,7 +20,7 @@ static VM pk_default_vm;
 static VM* pk_all_vm[16];
 
 void py_initialize() {
-    if(!pk_current_vm){
+    if(pk_current_vm){
         c11__abort("py_initialize() can only be called once!");
     }
 
