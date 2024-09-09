@@ -69,7 +69,7 @@ else()
     target_link_libraries(main ${PROJECT_NAME})
 endif()
 
-# link math library
 if(UNIX)
     target_link_libraries(${PROJECT_NAME} m)
+    target_link_libraries(${PROJECT_NAME} dl)
 endif()

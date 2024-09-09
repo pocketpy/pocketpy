@@ -3,7 +3,8 @@
 #if PK_IS_DESKTOP_PLATFORM
 
 #ifdef _WIN32
-#include <windows.h>
+void* LoadLibraryA(const char*);
+void* GetProcAddress(void*, const char*);
 #else
 #include <dlfcn.h>
 #endif
@@ -13,9 +14,9 @@ typedef bool (*py_module_initialize_t)() PY_RAISE PY_RETURN;
 int load_module_from_dll_desktop_only(const char* path) PY_RAISE PY_RETURN {
     const char* f_init_name = "py_module_initialize";
 #ifdef _WIN32
-    HMODULE dll = LoadLibraryA(path);
+    void* dll = LoadLibraryA(path);
     if(dll == NULL) return 0;
-    py_module_initialize_t f_init = (py_module_initialize_t)GetProcAddress(dll, init_func);
+    py_module_initialize_t f_init = (py_module_initialize_t)GetProcAddress(dll, f_init_name);
 #else
     void* dll = dlopen(path, RTLD_LAZY);
     if(dll == NULL) return 0;
