@@ -19,7 +19,7 @@ SRC=$(find src/ -name "*.c")
 
 echo "> Compiling and linking source files... "
 
-clang -std=c11 -O2 -Wfatal-errors -Iinclude -DNDEBUG -o main src2/main.c $SRC -lm
+clang -std=c11 -O2 -Wfatal-errors -Iinclude -DNDEBUG -o main src2/main.c $SRC -lm -ldl
 
 if [ $? -eq 0 ]; then
     echo "Build completed. Type \"./main\" to enter REPL."

@@ -63,9 +63,9 @@ py_Ref py_newmodule(const char* path) {
     return py_getmodule(path);
 }
 
-int py_import(const char* path_cstr) {
-    // printf("importing %s\n", path_cstr);
+int load_module_from_dll_desktop_only(const char* path) PY_RAISE PY_RETURN;
 
+int py_import(const char* path_cstr) {
     VM* vm = pk_current_vm;
     c11_sv path = {path_cstr, strlen(path_cstr)};
     if(path.size == 0) return ValueError("empty module name");
@@ -142,7 +142,8 @@ int py_import(const char* path_cstr) {
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
-    return 0;
+    // not found
+    return load_module_from_dll_desktop_only(path_cstr);
 
 __SUCCESS:
     do {
