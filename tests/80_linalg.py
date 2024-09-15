@@ -360,3 +360,12 @@ assert a == vec3i(1, 2, 3)
 assert a.with_x(2) == vec3i(2, 2, 3)
 assert a.with_y(3) == vec3i(1, 3, 3)
 assert a.with_z(4) == vec3i(1, 2, 4)
+
+# test vec2.with_z
+assert vec2(1, 2).with_z(3) == vec3(1, 2, 3)
+# test vec3.xy
+assert vec3(1, 2, 3).xy == vec2(1, 2)
+# test vec3.ONE
+assert vec3.ONE == vec3(1, 1, 1)
+# test vec3.ZERO
+assert vec3.ZERO == vec3(0, 0, 0)

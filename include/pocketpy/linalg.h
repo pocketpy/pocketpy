@@ -1,25 +1,23 @@
 #pragma once
 
-typedef struct c11_vec2i {
-    int x;
-    int y;
+typedef union c11_vec2i {
+    struct { int x, y; };
+    int data[2];
 } c11_vec2i;
 
-typedef struct c11_vec3i {
-    int x;
-    int y;
-    int z;
+typedef union c11_vec3i {
+    struct { int x, y, z; };
+    int data[3];
 } c11_vec3i;
 
-typedef struct c11_vec2 {
-    float x;
-    float y;
+typedef union c11_vec2 {
+    struct { float x, y; };
+    float data[2];
 } c11_vec2;
 
-typedef struct c11_vec3 {
-    float x;
-    float y;
-    float z;
+typedef union c11_vec3 {
+    struct { float x, y, z; };
+    float data[3];
 } c11_vec3;
 
 typedef union c11_mat3x3 {

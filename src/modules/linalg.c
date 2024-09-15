@@ -88,141 +88,158 @@ c11_mat3x3* py_tomat3x3(py_Ref self) {
     return py_touserdata(self);
 }
 
-static bool vec2__new__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(3);
-    py_f64 x, y;
-    if(!py_castfloat(&argv[1], &x) || !py_castfloat(&argv[2], &y)) return false;
-    py_newvec2(py_retval(), (c11_vec2){x, y});
-    return true;
-}
-
-static bool vec2__add__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    if(argv[1].type != tp_vec2) {
-        py_newnotimplemented(py_retval());
-        return true;
+#define DEF_VECTOR_OPS(D)                                                                          \
+    static bool vec##D##__new__(int argc, py_Ref argv) {                                           \
+        PY_CHECK_ARGC(D + 1);                                                                      \
+        c11_vec##D res;                                                                            \
+        for(int i = 0; i < D; i++) {                                                               \
+            if(!py_castfloat32(&argv[i + 1], &res.data[i])) return false;                          \
+        }                                                                                          \
+        py_newvec##D(py_retval(), res);                                                            \
+        return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##__add__(int argc, py_Ref argv) {                                           \
+        PY_CHECK_ARGC(2);                                                                          \
+        if(argv[1].type != tp_vec##D) {                                                            \
+            py_newnotimplemented(py_retval());                                                     \
+            return true;                                                                           \
+        }                                                                                          \
+        c11_vec##D a = py_tovec##D(&argv[0]);                                                      \
+        c11_vec##D b = py_tovec##D(&argv[1]);                                                      \
+        c11_vec##D res;                                                                            \
+        for(int i = 0; i < D; i++)                                                                 \
+            res.data[i] = a.data[i] + b.data[i];                                                   \
+        py_newvec##D(py_retval(), res);                                                            \
+        return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##__sub__(int argc, py_Ref argv) {                                           \
+        PY_CHECK_ARGC(2);                                                                          \
+        if(argv[1].type != tp_vec##D) {                                                            \
+            py_newnotimplemented(py_retval());                                                     \
+            return true;                                                                           \
+        }                                                                                          \
+        c11_vec##D a = py_tovec##D(&argv[0]);                                                      \
+        c11_vec##D b = py_tovec##D(&argv[1]);                                                      \
+        c11_vec##D res;                                                                            \
+        for(int i = 0; i < D; i++)                                                                 \
+            res.data[i] = a.data[i] - b.data[i];                                                   \
+        py_newvec##D(py_retval(), res);                                                            \
+        return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##__mul__(int argc, py_Ref argv) {                                           \
+        PY_CHECK_ARGC(2);                                                                          \
+        c11_vec##D res;                                                                            \
+        switch(argv[1].type) {                                                                     \
+            case tp_vec##D: {                                                                      \
+                c11_vec##D a = py_tovec##D(&argv[0]);                                              \
+                c11_vec##D b = py_tovec##D(&argv[1]);                                              \
+                for(int i = 0; i < D; i++)                                                         \
+                    res.data[i] = a.data[i] * b.data[i];                                           \
+                py_newvec##D(py_retval(), res);                                                    \
+                return true;                                                                       \
+            }                                                                                      \
+            case tp_int: {                                                                         \
+                c11_vec##D a = py_tovec##D(&argv[0]);                                              \
+                py_i64 b = argv[1]._i64;                                                           \
+                for(int i = 0; i < D; i++)                                                         \
+                    res.data[i] = a.data[i] * b;                                                   \
+                py_newvec##D(py_retval(), res);                                                    \
+                return true;                                                                       \
+            }                                                                                      \
+            case tp_float: {                                                                       \
+                c11_vec##D a = py_tovec##D(&argv[0]);                                              \
+                py_f64 b = argv[1]._f64;                                                           \
+                for(int i = 0; i < D; i++)                                                         \
+                    res.data[i] = a.data[i] * b;                                                   \
+                py_newvec##D(py_retval(), res);                                                    \
+                return true;                                                                       \
+            }                                                                                      \
+            default: py_newnotimplemented(py_retval()); return true;                               \
+        }                                                                                          \
+    }                                                                                              \
+    static bool vec##D##__truediv__(int argc, py_Ref argv) {                                       \
+        PY_CHECK_ARGC(2);                                                                          \
+        float divisor;                                                                             \
+        if(!py_castfloat32(&argv[1], &divisor)) {                                                  \
+            py_clearexc(NULL);                                                                     \
+            py_newnotimplemented(py_retval());                                                     \
+            return true;                                                                           \
+        }                                                                                          \
+        c11_vec##D res;                                                                            \
+        c11_vec##D a = py_tovec##D(&argv[0]);                                                      \
+        for(int i = 0; i < D; i++)                                                                 \
+            res.data[i] = a.data[i] / divisor;                                                     \
+        py_newvec##D(py_retval(), res);                                                            \
+        return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##__eq__(int argc, py_Ref argv) {                                            \
+        PY_CHECK_ARGC(2);                                                                          \
+        if(argv[1].type != tp_vec##D) {                                                            \
+            py_newnotimplemented(py_retval());                                                     \
+            return true;                                                                           \
+        }                                                                                          \
+        c11_vec##D lhs = py_tovec##D(&argv[0]);                                                    \
+        c11_vec##D rhs = py_tovec##D(&argv[1]);                                                    \
+        bool ok = true;                                                                            \
+        for(int i = 0; i < D; i++) {                                                               \
+            if(!isclose(lhs.data[i], rhs.data[i])) ok = false;                                     \
+        }                                                                                          \
+        py_newbool(py_retval(), ok);                                                               \
+        return true;                                                                               \
+    }                                                                                              \
+    DEFINE_BOOL_NE(vec##D, vec##D##__eq__)                                                         \
+    static bool vec##D##_length(int argc, py_Ref argv) {                                           \
+        PY_CHECK_ARGC(1);                                                                          \
+        c11_vec##D v = py_tovec##D(argv);                                                          \
+        float sum = 0;                                                                             \
+        for(int i = 0; i < D; i++)                                                                 \
+            sum += v.data[i] * v.data[i];                                                          \
+        py_newfloat(py_retval(), sqrtf(sum));                                                      \
+        return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##_length_squared(int argc, py_Ref argv) {                                   \
+        PY_CHECK_ARGC(1);                                                                          \
+        c11_vec##D v = py_tovec##D(argv);                                                          \
+        float sum = 0;                                                                             \
+        for(int i = 0; i < D; i++)                                                                 \
+            sum += v.data[i] * v.data[i];                                                          \
+        py_newfloat(py_retval(), sum);                                                             \
+        return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##_dot(int argc, py_Ref argv) {                                              \
+        PY_CHECK_ARGC(2);                                                                          \
+        PY_CHECK_ARG_TYPE(1, tp_vec##D);                                                           \
+        c11_vec##D a = py_tovec##D(&argv[0]);                                                      \
+        c11_vec##D b = py_tovec##D(&argv[1]);                                                      \
+        float sum = 0;                                                                             \
+        for(int i = 0; i < D; i++)                                                                 \
+            sum += a.data[i] * b.data[i];                                                          \
+        py_newfloat(py_retval(), sum);                                                             \
+        return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##_normalize(int argc, py_Ref argv) {                                        \
+        PY_CHECK_ARGC(1);                                                                          \
+        c11_vec##D self = py_tovec##D(argv);                                                       \
+        float len = 0;                                                                             \
+        for(int i = 0; i < D; i++)                                                                 \
+            len += self.data[i] * self.data[i];                                                    \
+        if(isclose(len, 0)) return ZeroDivisionError("cannot normalize zero vector");              \
+        len = sqrtf(len);                                                                          \
+        c11_vec##D res;                                                                            \
+        for(int i = 0; i < D; i++)                                                                 \
+            res.data[i] = self.data[i] / len;                                                      \
+        py_newvec##D(py_retval(), res);                                                            \
+        return true;                                                                               \
     }
-    c11_vec2 res;
-    res.x = argv[0]._vec2.x + argv[1]._vec2.x;
-    res.y = argv[0]._vec2.y + argv[1]._vec2.y;
-    py_newvec2(py_retval(), res);
-    return true;
-}
 
-static bool vec2__sub__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    if(argv[1].type != tp_vec2) {
-        py_newnotimplemented(py_retval());
-        return true;
-    }
-    c11_vec2 res;
-    res.x = argv[0]._vec2.x - argv[1]._vec2.x;
-    res.y = argv[0]._vec2.y - argv[1]._vec2.y;
-    py_newvec2(py_retval(), res);
-    return true;
-}
-
-static bool vec2__mul__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    c11_vec2 res;
-    switch(argv[1].type) {
-        case tp_vec2:
-            res.x = argv[0]._vec2.x * argv[1]._vec2.x;
-            res.y = argv[0]._vec2.y * argv[1]._vec2.y;
-            py_newvec2(py_retval(), res);
-            return true;
-        case tp_int:
-            res.x = argv[0]._vec2.x * argv[1]._i64;
-            res.y = argv[0]._vec2.y * argv[1]._i64;
-            py_newvec2(py_retval(), res);
-            return true;
-        case tp_float:
-            res.x = argv[0]._vec2.x * argv[1]._f64;
-            res.y = argv[0]._vec2.y * argv[1]._f64;
-            py_newvec2(py_retval(), res);
-            return true;
-        default: py_newnotimplemented(py_retval()); return true;
-    }
-}
-
-static bool vec2__truediv__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    float divisor;
-    if(!py_castfloat32(&argv[1], &divisor)) {
-        py_clearexc(NULL);
-        py_newnotimplemented(py_retval());
-        return true;
-    }
-    c11_vec2 res;
-    res.x = argv[0]._vec2.x / divisor;
-    res.y = argv[0]._vec2.y / divisor;
-    py_newvec2(py_retval(), res);
-    return true;
-}
+DEF_VECTOR_OPS(2)
+DEF_VECTOR_OPS(3)
 
 static bool vec2__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     char buf[64];
     int size = snprintf(buf, 64, "vec2(%.4f, %.4f)", argv[0]._vec2.x, argv[0]._vec2.y);
     py_newstrv(py_retval(), (c11_sv){buf, size});
-    return true;
-}
-
-static bool vec2__eq__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    if(argv[1].type != tp_vec2) {
-        py_newnotimplemented(py_retval());
-        return true;
-    }
-    c11_vec2 lhs = argv[0]._vec2;
-    c11_vec2 rhs = argv[1]._vec2;
-    py_newbool(py_retval(), isclose(lhs.x, rhs.x) && isclose(lhs.y, rhs.y));
-    return true;
-}
-
-DEFINE_BOOL_NE(vec2, vec2__eq__)
-
-static bool vec2_dot(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    PY_CHECK_ARG_TYPE(1, tp_vec2);
-    float x = argv[0]._vec2.x * argv[1]._vec2.x;
-    float y = argv[0]._vec2.y * argv[1]._vec2.y;
-    py_newfloat(py_retval(), x + y);
-    return true;
-}
-
-static bool vec2_cross(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    PY_CHECK_ARG_TYPE(1, tp_vec2);
-    float x = argv[0]._vec2.x * argv[1]._vec2.y;
-    float y = argv[0]._vec2.y * argv[1]._vec2.x;
-    py_newfloat(py_retval(), x - y);
-    return true;
-}
-
-static bool vec2_length(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    float x = argv[0]._vec2.x;
-    float y = argv[0]._vec2.y;
-    py_newfloat(py_retval(), sqrtf(x * x + y * y));
-    return true;
-}
-
-static bool vec2_length_squared(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    float x = argv[0]._vec2.x;
-    float y = argv[0]._vec2.y;
-    py_newfloat(py_retval(), x * x + y * y);
-    return true;
-}
-
-static bool vec2_normalize(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    float x = argv[0]._vec2.x;
-    float y = argv[0]._vec2.y;
-    float len = sqrtf(x * x + y * y);
-    if(isclose(len, 0)) return ZeroDivisionError("cannot normalize zero vector");
-    py_newvec2(py_retval(), (c11_vec2){x / len, y / len});
     return true;
 }
 
@@ -253,9 +270,9 @@ static bool vec2_angle_STATIC(int argc, py_Ref argv) {
 
 static bool vec2_smoothdamp_STATIC(int argc, py_Ref argv) {
     PY_CHECK_ARGC(6);
-    PY_CHECK_ARG_TYPE(0, tp_vec2);   // current: vec2
-    PY_CHECK_ARG_TYPE(1, tp_vec2);   // target: vec2
-    PY_CHECK_ARG_TYPE(2, tp_vec2);   // current_velocity: vec2
+    PY_CHECK_ARG_TYPE(0, tp_vec2);  // current: vec2
+    PY_CHECK_ARG_TYPE(1, tp_vec2);  // target: vec2
+    PY_CHECK_ARG_TYPE(2, tp_vec2);  // current_velocity: vec2
 
     float smoothTime;
     if(!py_castfloat32(&argv[3], &smoothTime)) return false;
@@ -318,13 +335,27 @@ static bool vec2_smoothdamp_STATIC(int argc, py_Ref argv) {
 
     py_Ref ret = py_retval();
     py_newtuple(ret, 2);
-    py_newvec2(py_tuple_getitem(ret, 0), (c11_vec2){output_x, output_y});
+    py_newvec2(py_tuple_getitem(ret, 0),
+               (c11_vec2){
+                   {output_x, output_y}
+    });
     py_newvec2(py_tuple_getitem(ret, 1), currentVelocity);
     return true;
 }
 
 DEFINE_VEC_FIELD(vec2, float, py_f64, x)
 DEFINE_VEC_FIELD(vec2, float, py_f64, y)
+
+static bool vec2__with_z(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    float z;
+    if(!py_castfloat32(&argv[1], &z)) return false;
+    c11_vec3 v = {
+        {argv->_vec2.x, argv->_vec2.y, z}
+    };
+    py_newvec3(py_retval(), v);
+    return true;
+}
 
 /* mat3x3 */
 static bool mat3x3__new__(int argc, py_Ref argv) {
@@ -649,7 +680,10 @@ static bool vec2i__new__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
-    py_newvec2i(py_retval(), (c11_vec2i){argv[1]._i64, argv[2]._i64});
+    py_newvec2i(py_retval(),
+                (c11_vec2i){
+                    {argv[1]._i64, argv[2]._i64}
+    });
     return true;
 }
 
@@ -685,7 +719,10 @@ static bool vec3i__new__(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
     PY_CHECK_ARG_TYPE(3, tp_int);
-    py_newvec3i(py_retval(), (c11_vec3i){argv[1]._i64, argv[2]._i64, argv[3]._i64});
+    py_newvec3i(py_retval(),
+                (c11_vec3i){
+                    {argv[1]._i64, argv[2]._i64, argv[3]._i64}
+    });
     return true;
 }
 
@@ -717,15 +754,6 @@ DEFINE_VEC_FIELD(vec3i, int, py_i64, y)
 DEFINE_VEC_FIELD(vec3i, int, py_i64, z)
 
 /* vec3 */
-static bool vec3__new__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(4);
-    py_f64 x, y, z;
-    if(!py_castfloat(&argv[1], &x) || !py_castfloat(&argv[2], &y) || !py_castfloat(&argv[3], &z))
-        return false;
-    py_newvec3(py_retval(), (c11_vec3){x, y, z});
-    return true;
-}
-
 static bool vec3__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_vec3 data = py_tovec3(argv);
@@ -735,24 +763,19 @@ static bool vec3__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool vec3__eq__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    if(argv[1].type != tp_vec3) {
-        py_newnotimplemented(py_retval());
-        return true;
-    }
-    c11_vec3 lhs = py_tovec3(argv);
-    c11_vec3 rhs = py_tovec3(&argv[1]);
-    py_newbool(py_retval(),
-               isclose(lhs.x, rhs.x) && isclose(lhs.y, rhs.y) && isclose(lhs.z, rhs.z));
-    return true;
-}
-
-DEFINE_BOOL_NE(vec3, vec3__eq__)
-
 DEFINE_VEC_FIELD(vec3, float, py_f64, x)
 DEFINE_VEC_FIELD(vec3, float, py_f64, y)
 DEFINE_VEC_FIELD(vec3, float, py_f64, z)
+
+static bool vec3__xy(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_vec3 data = py_tovec3(argv);
+    c11_vec2 res = {
+        {data.x, data.y}
+    };
+    py_newvec2(py_retval(), res);
+    return true;
+}
 
 void pk__add_module_linalg() {
     py_Ref mod = py_newmodule("linalg");
@@ -785,14 +808,19 @@ void pk__add_module_linalg() {
     py_bindmagic(vec2, __eq__, vec2__eq__);
     py_bindmagic(vec2, __ne__, vec2__ne__);
     py_bindmethod(vec2, "dot", vec2_dot);
-    py_bindmethod(vec2, "cross", vec2_cross);
     py_bindmethod(vec2, "length", vec2_length);
     py_bindmethod(vec2, "length_squared", vec2_length_squared);
     py_bindmethod(vec2, "normalize", vec2_normalize);
     py_bindmethod(vec2, "rotate", vec2_rotate);
 
-    py_newvec2(py_emplacedict(py_tpobject(vec2), py_name("ZERO")), (c11_vec2){0, 0});
-    py_newvec2(py_emplacedict(py_tpobject(vec2), py_name("ONE")), (c11_vec2){1, 1});
+    py_newvec2(py_emplacedict(py_tpobject(vec2), py_name("ZERO")),
+               (c11_vec2){
+                   {0, 0}
+    });
+    py_newvec2(py_emplacedict(py_tpobject(vec2), py_name("ONE")),
+               (c11_vec2){
+                   {1, 1}
+    });
 
     py_bindmethod(vec2, "angle", vec2_angle_STATIC);
     py_bindmethod(vec2, "smooth_damp", vec2_smoothdamp_STATIC);
@@ -801,6 +829,7 @@ void pk__add_module_linalg() {
     py_bindproperty(vec2, "y", vec2__y, NULL);
     py_bindmethod(vec2, "with_x", vec2__with_x);
     py_bindmethod(vec2, "with_y", vec2__with_y);
+    py_bindmethod(vec2, "with_z", vec2__with_z);
 
     /* mat3x3 */
     py_bindmagic(mat3x3, __new__, mat3x3__new__);
@@ -851,13 +880,31 @@ void pk__add_module_linalg() {
 
     /* vec3 */
     py_bindmagic(vec3, __new__, vec3__new__);
+    py_bindmagic(vec3, __add__, vec3__add__);
+    py_bindmagic(vec3, __sub__, vec3__sub__);
+    py_bindmagic(vec3, __mul__, vec3__mul__);
+    py_bindmagic(vec3, __truediv__, vec3__truediv__);
     py_bindmagic(vec3, __repr__, vec3__repr__);
     py_bindmagic(vec3, __eq__, vec3__eq__);
     py_bindmagic(vec3, __ne__, vec3__ne__);
+    py_bindmethod(vec3, "dot", vec3_dot);
+    py_bindmethod(vec3, "length", vec3_length);
+    py_bindmethod(vec3, "length_squared", vec3_length_squared);
+    py_bindmethod(vec3, "normalize", vec3_normalize);
     py_bindproperty(vec3, "x", vec3__x, NULL);
     py_bindproperty(vec3, "y", vec3__y, NULL);
     py_bindproperty(vec3, "z", vec3__z, NULL);
+    py_bindproperty(vec3, "xy", vec3__xy, NULL);
     py_bindmethod(vec3, "with_x", vec3__with_x);
     py_bindmethod(vec3, "with_y", vec3__with_y);
     py_bindmethod(vec3, "with_z", vec3__with_z);
+
+    py_newvec3(py_emplacedict(py_tpobject(vec3), py_name("ZERO")),
+               (c11_vec3){
+                   {0, 0, 0}
+    });
+    py_newvec3(py_emplacedict(py_tpobject(vec3), py_name("ONE")),
+               (c11_vec3){
+                   {1, 1, 1}
+    });
 }
