@@ -777,6 +777,17 @@ static bool vec3__xy(int argc, py_Ref argv) {
     return true;
 }
 
+static bool vec3__with_xy(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(1, tp_vec2);
+    c11_vec2 xy = py_tovec2(&argv[1]);
+    c11_vec3 res = {
+        {xy.x, xy.y, py_tovec3(argv).z}
+    };
+    py_newvec3(py_retval(), res);
+    return true;
+}
+
 void pk__add_module_linalg() {
     py_Ref mod = py_newmodule("linalg");
 
@@ -898,6 +909,7 @@ void pk__add_module_linalg() {
     py_bindmethod(vec3, "with_x", vec3__with_x);
     py_bindmethod(vec3, "with_y", vec3__with_y);
     py_bindmethod(vec3, "with_z", vec3__with_z);
+    py_bindmethod(vec3, "with_xy", vec3__with_xy);
 
     py_newvec3(py_emplacedict(py_tpobject(vec3), py_name("ZERO")),
                (c11_vec3){

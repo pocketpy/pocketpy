@@ -369,3 +369,5 @@ assert vec3(1, 2, 3).xy == vec2(1, 2)
 assert vec3.ONE == vec3(1, 1, 1)
 # test vec3.ZERO
 assert vec3.ZERO == vec3(0, 0, 0)
+# test vec3.with_xy
+assert vec3(1, 2, 3).with_xy(vec2(4, 5)) == vec3(4, 5, 3)
