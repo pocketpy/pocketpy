@@ -52,3 +52,10 @@ You can sponsor this project via these ways.
 + [Buy me a coffee](https://www.buymeacoffee.com/blueloveth)
 
 Your sponsorship will help us develop pkpy continuously.
+
+## Upgrade to v2.0
+
+pkpy v2.0 is a C11 project instead of C++17. All your existing code for v1.x won't work anymore.
+
+We provide two API sets for v2.0, C-API and pybind11 API (C\+\+17). If you are a C user, use the C-API. If you are a C\+\+ user, use the pybind11 API.
+

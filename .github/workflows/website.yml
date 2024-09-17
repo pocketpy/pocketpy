@@ -20,7 +20,7 @@ jobs:
       run: |
         python scripts/gen_docs.py
         cd docs
-        npm install retypeapp --global
+        npm install retypeapp -g
         retype build
     ###################################################
     - name: Setup emsdk

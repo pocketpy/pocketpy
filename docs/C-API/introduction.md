@@ -4,7 +4,7 @@ icon: dot
 order: 10
 ---
 
-TBA
+All public functions in the C API are prefixed with `py_` in [pocketpy.h](https://github.com/pocketpy/pocketpy/blob/main/include/pocketpy/pocketpy.h).
 
 
 ### `PY_RAISE` macro

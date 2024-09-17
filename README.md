@@ -25,7 +25,7 @@
 </p>
 
 ---
-## This branch is in alpha stage. Old implementation was moved to v1.x branch.
+## This branch is in beta stage. Old implementation was moved to v1.x branch.
 ---
 
 pkpy is a lightweight(~15K LOC) Python 3.x interpreter for game scripting, written in C11.
@@ -56,8 +56,8 @@ You have two options to integrate pkpy into your project.
 
 #### Use the single header file
 
-Download the `pocketpy.h` on our [GitHub Release](https://github.com/pocketpy/pocketpy/releases) page.
-And `#include` it in your project. The header can only be included once.
+Download the `pocketpy.h` and `pocketpy.c` on our [GitHub Release](https://github.com/pocketpy/pocketpy/releases) page.
+And `#include` it in your project.
 
 #### Use CMake
 

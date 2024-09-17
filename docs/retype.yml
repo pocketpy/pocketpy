@@ -7,7 +7,7 @@ branding:
   logo: "./static/logo.png"
 favicon: "./static/logo.png"
 meta:
-  title: " | Open Source Python interpreter in 1 file"
+  title: " | Portable Python 3.x Interpreter in Modern C"
 links:
   - text: "Home"
     icon: home
