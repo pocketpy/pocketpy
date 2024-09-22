@@ -55,6 +55,7 @@ using module_ = module;
     extern "C" PK_EXPORT bool py_module_initialize() {                                             \
         auto m = ::pkbind::module::create(#name);                                                  \
         _pkbind_register_##name(m);                                                                \
+        py_assign(py_retval(), m.ptr());                                                           \
         return true;                                                                               \
     }                                                                                              \
     static void _pkbind_register_##name(::pkbind::module& variable)
