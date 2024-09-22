@@ -247,6 +247,7 @@ bool py_delitem(py_Ref self, py_Ref key) {
 }
 
 int py_equal(py_Ref lhs, py_Ref rhs) {
+    if(py_isidentical(lhs, rhs)) return 1;
     if(!py_eq(lhs, rhs)) return -1;
     return py_bool(py_retval());
 }
