@@ -64,7 +64,7 @@ TEST_F(PYBIND11_TEST, raw_module) {
 }
 
 TEST_F(PYBIND11_TEST, module3) {
-    pybind_module_initialize();
+    py_module_initialize();
 
     py::exec("import example3");
     EXPECT_EVAL_EQ("example3.add(1, 2)", 3);

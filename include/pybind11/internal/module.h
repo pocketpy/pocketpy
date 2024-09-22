@@ -52,7 +52,7 @@ using module_ = module;
 
 #define PYBIND11_MODULE(name, variable)                                                            \
     static void _pkbind_register_##name(::pkbind::module& variable);                               \
-    extern "C" bool pybind_module_initialize() {                                                   \
+    extern "C" bool py_module_initialize() {                                                       \
         auto m = ::pkbind::module::create(#name);                                                  \
         _pkbind_register_##name(m);                                                                \
         return true;                                                                               \
