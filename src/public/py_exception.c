@@ -134,8 +134,8 @@ bool py_matchexc(py_Type type) {
 
 void py_clearexc(py_StackRef p0) {
     VM* vm = pk_current_vm;
-    vm->last_retval = *py_NIL;
-    vm->curr_exception = *py_NIL;
+    vm->last_retval = *py_NIL();
+    vm->curr_exception = *py_NIL();
     vm->is_curr_exc_handled = false;
 
     /* Don't clear this, because StopIteration() may corrupt the class defination */

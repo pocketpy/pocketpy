@@ -106,7 +106,7 @@ static bool array2d_get(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
     if(argc == 3) {
-        default_ = py_None;
+        default_ = py_None();
     } else if(argc == 4) {
         default_ = py_arg(3);
     } else {

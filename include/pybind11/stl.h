@@ -56,40 +56,6 @@ constexpr bool is_py_list_like_v<std::list<T, Allocator>> = true;
 template <typename T, typename Allocator>
 constexpr bool is_py_list_like_v<std::deque<T, Allocator>> = true;
 
-template <>
-struct type_caster<std::vector<bool>> {
-    std::vector<bool> data;
-
-    template <typename U>
-    static object cast(U&& src, return_value_policy policy, handle parent) {
-        auto list = pkbind::list();
-        for(auto&& item: src) {
-            list.append(pkbind::cast(bool(item), policy, parent));
-        }
-        return list;
-    }
-
-    bool load(handle src, bool convert) {
-        if(!isinstance<list>(src)) { return false; }
-
-        auto list = src.cast<pkbind::list>();
-        data.clear();
-        data.reserve(list.size());
-
-        for(auto item: list) {
-            type_caster<bool> caster;
-            if(!caster.load(item, convert)) { return false; }
-            data.push_back(caster.value());
-        }
-
-        return true;
-    }
-
-    std::vector<bool>& value() { return data; }
-
-    constexpr inline static bool is_temporary_v = true;
-};
-
 template <typename T>
 struct type_caster<T, std::enable_if_t<is_py_list_like_v<T>>> {
     T data;
@@ -98,7 +64,11 @@ struct type_caster<T, std::enable_if_t<is_py_list_like_v<T>>> {
     static object cast(U&& src, return_value_policy policy, handle parent) {
         auto list = pkbind::list();
         for(auto&& item: src) {
-            list.append(pkbind::cast(std::move(item), policy, parent));
+            if constexpr(std::is_same_v<T, std::vector<bool>>) {
+                list.append(pkbind::cast(bool(item), policy, parent));
+            } else {
+                list.append(pkbind::cast(std::move(item), policy, parent));
+            }
         }
         return list;
     }

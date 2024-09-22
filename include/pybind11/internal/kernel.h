@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
+#include <optional>
 #include <typeindex>
 #include <stdexcept>
 #include <unordered_map>
@@ -17,40 +18,18 @@ namespace pkbind {
 
 class handle;
 
-/// hold the object temporarily
-template <int N>
-struct reg_t {
-    py_Ref value;
+struct action {
+    using function = void (*)();
+    inline static std::vector<function> starts;
 
-    void operator= (py_Ref ref) & { py_setreg(N, ref); }
-
-    operator py_Ref () & {
-        assert(value && "register is not initialized");
-        return value;
+    static void initialize() noexcept {
+        for(auto func: starts) {
+            func();
+        }
     }
 
-    void operator= (handle value) &;
-
-    operator handle () &;
-
-    // pkpy provide user 8 registers.
-    // 8th register is used for object pool, so N is limited to [0, 7).
-    static_assert(N >= 0 && N <= 6, "N must be in [0, 7)");
-};
-
-struct retv_t {
-    py_Ref value;
-
-    void operator= (py_Ref ref) & { py_assign(value, ref); }
-
-    operator py_Ref () & {
-        assert(value && "return value is not initialized");
-        return value;
-    }
-
-    void operator= (handle value) &;
-
-    operator handle () &;
+    // register a function to be called at the start of the vm.
+    static void register_start(function func) { starts.push_back(func); }
 };
 
 /// hold the object long time.
@@ -78,6 +57,7 @@ struct object_pool {
 
     /// alloc an object from pool, note that the object is uninitialized.
     static object_ref alloc() {
+        if(!indices_) { initialize(1024); }
         auto& indices = *indices_;
         if(cache != -1) {
             auto index = cache;
@@ -126,25 +106,27 @@ struct object_pool {
     }
 };
 
-struct action {
-    using function = void (*)();
-    inline static std::vector<function> starts;
+template <typename T>
+class lazy {
+public:
+    lazy(void (*init)(T&)) : init(init) {}
 
-    static void initialize() noexcept {
-        for(auto func: starts) {
-            func();
+    operator T& () {
+        if(!initialized) {
+            if(init) { init(value); }
+            initialized = true;
         }
+        return value;
     }
 
-    // register a function to be called at the start of the vm.
-    static void register_start(function func) { starts.push_back(func); }
+    T& operator* () { return static_cast<T&>(*this); }
+
+    void reset() { initialized = false; }
+
+private:
+    T value;
+    bool initialized = false;
+    void (*init)(T&) = nullptr;
 };
-
-template <int N>
-inline reg_t<N> reg;
-
-inline retv_t retv;
-
-inline std::unordered_map<std::type_index, py_Type>* m_type_map = nullptr;
 
 }  // namespace pkbind

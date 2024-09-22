@@ -100,7 +100,7 @@ py_Type pk_slice__register() {
     py_bindmagic(type, __eq__, slice__eq__);
     py_bindmagic(type, __ne__, slice__ne__);
 
-    py_setdict(py_tpobject(type), __hash__, py_None);
+    py_setdict(py_tpobject(type), __hash__, py_None());
 
     py_bindproperty(type, "start", slice_start, NULL);
     py_bindproperty(type, "stop", slice_stop, NULL);

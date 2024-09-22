@@ -29,6 +29,8 @@ public:
     using object ::object;
     using object ::operator=;
 
+    inline static std::unordered_map<std::type_index, py_Type> m_type_map;
+
     // note: type is global instance, so we use ref_t.
     explicit type(py_Type type) : object(py_tpobject(type), ref_t{}) {}
 
@@ -49,14 +51,14 @@ class none : public object {
     PKBIND_TYPE_IMPL(object, none, tp_NoneType);
 
     // note: none is global instance, so we use ref_t.
-    none() : object(py_None, ref_t{}) {}
+    none() : object(py_None(), ref_t{}) {}
 };
 
 class bool_ : public object {
     PKBIND_TYPE_IMPL(object, bool_, tp_bool);
 
     // same as none, bool is a singleton.
-    bool_(bool value) : object(value ? py_True : py_False, ref_t{}) {}
+    bool_(bool value) : object(value ? py_True() : py_False(), ref_t{}) {}
 
     explicit operator bool () { return py_tobool(ptr()); }
 };
@@ -101,7 +103,7 @@ public:
     iterator& operator++ () {
         int result = raise_call<py_next>(m_ptr);
         if(result == 1) {
-            m_value = object(retv, realloc_t{});
+            m_value = object::from_ret();
         } else if(result == 0) {
             m_value = object();
         }
@@ -125,7 +127,7 @@ private:
 template <typename Dervied>
 iterator interface<Dervied>::begin() const {
     raise_call<py_iter>(ptr());
-    return iterator(retv);
+    return iterator(py_retval());
 }
 
 template <typename Dervied>
@@ -330,24 +332,22 @@ class kwargs : public dict {
 
 // TODO:
 class capsule : public object {
+    PKBIND_TYPE_IMPL(object, capsule, *tp_capsule);
+
     struct capsule_impl {
         void* data;
         void (*destructor)(void*);
     };
 
-    inline static py_Type m_type = 0;
-
-    PKBIND_TYPE_IMPL(object, capsule, m_type);
-
-    static void register_() {
-        m_type = py_newtype("capsule", tp_object, nullptr, [](void* data) {
+    inline static lazy<py_Type> tp_capsule = +[](py_Type& type) {
+        type = py_newtype("capsule", tp_object, nullptr, [](void* data) {
             auto impl = static_cast<capsule_impl*>(data);
             if(impl->data && impl->destructor) { impl->destructor(impl->data); }
         });
-    }
+    };
 
     capsule(void* data, void (*destructor)(void*) = nullptr) : object(alloc_t{}) {
-        void* impl = py_newobject(m_ptr, m_type, 0, sizeof(capsule_impl));
+        void* impl = py_newobject(m_ptr, tp_capsule, 0, sizeof(capsule_impl));
         new (impl) capsule_impl{data, destructor};
     }
 

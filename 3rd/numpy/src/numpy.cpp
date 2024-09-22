@@ -2869,7 +2869,7 @@ void array_creation_registry(py::module_& m) {
 }
 
 
-PYBIND11_EMBEDDED_MODULE(numpy_bindings, m) {
+PYBIND11_MODULE(numpy, m) {
     m.doc() = "Python bindings for pkpy::numpy::ndarray using pybind11";
 
     m.attr("bool_") = "bool";

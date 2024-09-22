@@ -1,17 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
-project(numpy_bindings)
+project(numpy)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Add pocketpy as a subdirectory
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../../.." "${CMAKE_CURRENT_BINARY_DIR}/pocketpy")
 
 # Include pybind11 and numpy
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../../include")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../include")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/../../include")
+include_directories("${CMAKE_CURRENT_LIST_DIR}/include")
 
 # Control xtensor warnings (OFF by default)
 option(SHOW_XTENSOR_WARNINGS "Show warnings from xtensor" OFF)
@@ -32,14 +28,17 @@ if(NOT SHOW_XTENSOR_WARNINGS)
 endif()
 
 # Add numpy source and test files
-file (GLOB SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../src/numpy.cpp")
-file (GLOB TESTS "${CMAKE_CURRENT_SOURCE_DIR}/test_numpy.cpp")
+file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp)
 
-# Create numpy executables
-add_executable(numpy_bindings ${TESTS} ${SOURCES})
+# Create numpy dynamic library
+add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
-# Set VS debugger working directory (if relevant)
-set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY CMAKE_CURRENT_LIST_DIR)
+# Define PY_DYNAMIC_MODULE for numpy
+target_compile_definitions(${PROJECT_NAME} PRIVATE PY_DYNAMIC_MODULE)
 
 # Link numpy with pocketpy
-target_link_libraries(${PROJECT_NAME} PRIVATE pocketpy)
+target_link_libraries(
+    ${PROJECT_NAME}
+    PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../..//build/Release/pocketpy.lib
+)

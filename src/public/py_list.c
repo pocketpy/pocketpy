@@ -444,6 +444,6 @@ py_Type pk_list__register() {
 
     py_bind(py_tpobject(type), "sort(self, key=None, reverse=False)", list_sort);
 
-    py_setdict(py_tpobject(type), __hash__, py_None);
+    py_setdict(py_tpobject(type), __hash__, py_None());
     return type;
 }

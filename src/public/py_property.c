@@ -8,7 +8,7 @@ static bool property__new__(int argc, py_Ref argv) {
     py_newobject(py_retval(), tp_property, 2, 0);
     if(argc == 1 + 1) {
         py_setslot(py_retval(), 0, py_arg(1));
-        py_setslot(py_retval(), 1, py_None);
+        py_setslot(py_retval(), 1, py_None());
     } else if(argc == 1 + 2) {
         py_setslot(py_retval(), 0, py_arg(1));
         py_setslot(py_retval(), 1, py_arg(2));

@@ -13,7 +13,7 @@ class Function:
     is_py_return: bool
 
     def signature(self):
-        tmp = f"PK_EXPORT {self.ret} {self.name}{self.args}"
+        tmp = f"PK_API {self.ret} {self.name}{self.args}"
         return tmp + ';'
     
     def badges(self):
@@ -37,7 +37,7 @@ class Function:
 with open('include/pocketpy/pocketpy.h') as f:
     header = f.read()
 
-matches = re.finditer(r"((?:/// [^\n]+[\n])*?)PK_EXPORT\s+(\w+\*?)\s+(\w+)(\(.*?\))\s*(PY_RAISE)?\s*(PY_RETURN)?\s*;", header, re.DOTALL)
+matches = re.finditer(r"((?:/// [^\n]+[\n])*?)PK_API\s+(\w+\*?)\s+(\w+)(\(.*?\))\s*(PY_RAISE)?\s*(PY_RETURN)?\s*;", header, re.DOTALL)
 #                       ^1 comment                        ^2 ret     ^3 n ^4 args     ^5 py_raise?  ^6 py_return?
 
 functions: list[Function] = []

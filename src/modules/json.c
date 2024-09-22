@@ -21,9 +21,9 @@ static bool json_dumps(int argc, py_Ref argv) {
 void pk__add_module_json() {
     py_Ref mod = py_newmodule("json");
 
-    py_setdict(mod, py_name("null"), py_None);
-    py_setdict(mod, py_name("true"), py_True);
-    py_setdict(mod, py_name("false"), py_False);
+    py_setdict(mod, py_name("null"), py_None());
+    py_setdict(mod, py_name("true"), py_True());
+    py_setdict(mod, py_name("false"), py_False());
 
     py_bindfunc(mod, "loads", json_loads);
     py_bindfunc(mod, "dumps", json_dumps);

@@ -261,7 +261,7 @@ public:
 
     object(handle h, ref_t) : handle(h) {}
 
-    static object from_ret() { return object(retv, realloc_t{}); }
+    static object from_ret() { return object(py_retval(), realloc_t{}); }
 
     operator object_pool::object_ref () const { return {m_ptr, m_index}; }
 
@@ -279,24 +279,6 @@ T steal(handle h) {
 template <typename T = object>
 T borrow(handle h) {
     return T(h, object::realloc_t{});
-}
-
-template <int N>
-void reg_t<N>::operator= (handle h) & {
-    py_setreg(N, h.ptr());
-}
-
-template <int N>
-reg_t<N>::operator handle () & {
-    assert(value && "register is not initialized");
-    return value;
-}
-
-inline void retv_t::operator= (handle h) & { py_assign(value, h.ptr()); }
-
-inline retv_t::operator handle () & {
-    assert(value && "return value is not initialized");
-    return value;
 }
 
 static_assert(std::is_trivially_copyable_v<name>);

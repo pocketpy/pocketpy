@@ -52,23 +52,23 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
     };
 
     self->module = module;
-    self->annotations = *py_NIL;
+    self->annotations = *py_NIL();
 }
 
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
 
-    ModuleDict__ctor(&self->modules, NULL, *py_NIL);
+    ModuleDict__ctor(&self->modules, NULL, *py_NIL());
     TypeList__ctor(&self->types);
 
-    self->builtins = *py_NIL;
-    self->main = *py_NIL;
+    self->builtins = *py_NIL();
+    self->main = *py_NIL();
 
     self->callbacks.importfile = pk_default_importfile;
     self->callbacks.print = pk_default_print;
 
-    self->last_retval = *py_NIL;
-    self->curr_exception = *py_NIL;
+    self->last_retval = *py_NIL();
+    self->curr_exception = *py_NIL();
     self->is_curr_exc_handled = false;
 
     self->ctx = NULL;
@@ -329,7 +329,7 @@ py_Type pk_newtype(const char* name,
     if(base_ti && base_ti->is_sealed) {
         c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
     }
-    py_TypeInfo__ctor(ti, py_name(name), index, base, base_ti, module ? *module : *py_NIL);
+    py_TypeInfo__ctor(ti, py_name(name), index, base, base_ti, module ? *module : *py_NIL());
     if(!dtor && base) dtor = base_ti->dtor;
     ti->dtor = dtor;
     ti->is_python = is_python;
