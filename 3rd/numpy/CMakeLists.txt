@@ -37,8 +37,17 @@ add_library(${PROJECT_NAME} SHARED ${SOURCES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE PY_DYNAMIC_MODULE)
 
 # Link numpy with pocketpy
-target_link_libraries(
-    ${PROJECT_NAME}
-    PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}/../..//build/Release/pocketpy.lib
-)
+if(WIN32)
+    target_link_libraries(
+        ${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/../../build/Release/pocketpy.lib
+    )
+else()
+    target_link_libraries(
+        ${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/../../build/libpocketpy.so
+    )
+endif()
+

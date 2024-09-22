@@ -1,10 +1,15 @@
 import math
+import sys
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import numpy as np
 else:
-    np = __import__('E:/pocketpy/3rd/numpy/build/Release/numpy.dll')
+    if sys.platform == 'win32':
+        path = 'E:/pocketpy/3rd/numpy/build/Release/numpy.dll'
+    else:
+        path = '/mnt/e/pocketpy/3rd/numpy/build/libnumpy.so'
+    np = __import__(path)
 
 def assert_equal(a, b):
     assert (a == b).all()
