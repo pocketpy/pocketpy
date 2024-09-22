@@ -34,13 +34,9 @@ inline auto raise_call(Args&&... args) {
 
     using type = decltype(result);
     if constexpr(std::is_same_v<type, bool>) {
-        if(result != false) {
-            return result;
-        }
+        if(result != false) { return result; }
     } else if constexpr(std::is_same_v<type, int>) {
-        if(result != -1) {
-            return result;
-        }
+        if(result != -1) { return result; }
     } else {
         static_assert(dependent_false<type>, "invalid return type");
     }
@@ -84,10 +80,10 @@ class attribute_error : public std::runtime_error {
 
 inline object::operator bool () const { return raise_call<py_bool>(m_ptr); }
 
-#define PKBIND_BINARY_OPERATOR(name, lop, rop)                                                                         \
-    inline object operator name (handle lhs, handle rhs) {                                                             \
-        raise_call<py_binaryop>(lhs.ptr(), rhs.ptr(), lop, rop);                                                       \
-        return object(retv, object::realloc_t{});                                                                      \
+#define PKBIND_BINARY_OPERATOR(name, lop, rop)                                                     \
+    inline object operator name (handle lhs, handle rhs) {                                         \
+        raise_call<py_binaryop>(lhs.ptr(), rhs.ptr(), lop, rop);                                   \
+        return object::from_ret();                                                                 \
     }
 
 PKBIND_BINARY_OPERATOR(==, __eq__, __eq__)

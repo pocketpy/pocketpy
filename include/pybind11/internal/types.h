@@ -101,7 +101,7 @@ public:
     iterator& operator++ () {
         int result = raise_call<py_next>(m_ptr);
         if(result == 1) {
-            m_value = object(retv, realloc_t{});
+            m_value = object::from_ret();
         } else if(result == 0) {
             m_value = object();
         }
@@ -125,7 +125,7 @@ private:
 template <typename Dervied>
 iterator interface<Dervied>::begin() const {
     raise_call<py_iter>(ptr());
-    return iterator(retv);
+    return iterator(py_retval());
 }
 
 template <typename Dervied>

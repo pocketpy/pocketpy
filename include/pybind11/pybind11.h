@@ -16,9 +16,6 @@ inline bool initialized = false;
 inline void initialize(int object_pool_size = 1024) {
     if(!initialized) { py_initialize(); }
 
-    // initialize ret.
-    retv.value = py_retval();
-
     // initialize object pool.
     object_pool::initialize(object_pool_size);
 
