@@ -22,7 +22,10 @@ int load_module_from_dll_desktop_only(const char* path) PY_RAISE PY_RETURN {
     if(dll == NULL) return 0;
     py_module_initialize_t f_init = (py_module_initialize_t)dlsym(dll, f_init_name);
 #endif
-    if(f_init == NULL) return 0;
+    if(f_init == NULL) {
+        RuntimeError("%s() not found in '%s'", f_init_name, path);
+        return -1;
+    }
     bool success = f_init();
     if(!success) return -1;
     return 1;

@@ -389,7 +389,7 @@ static bool dict_update(int argc, py_Ref argv) {
 static bool dict_get(int argc, py_Ref argv) {
     Dict* self = py_touserdata(argv);
     if(argc > 3) return TypeError("get() takes at most 3 arguments (%d given)", argc);
-    py_Ref default_val = argc == 3 ? py_arg(2) : py_None;
+    py_Ref default_val = argc == 3 ? py_arg(2) : py_None();
     DictEntry* entry;
     if(!Dict__try_get(self, py_arg(1), &entry)) return false;
     *py_retval() = entry ? entry->val : *default_val;
@@ -399,7 +399,7 @@ static bool dict_get(int argc, py_Ref argv) {
 static bool dict_pop(int argc, py_Ref argv) {
     Dict* self = py_touserdata(argv);
     if(argc < 2 || argc > 3) return TypeError("pop() takes 1 or 2 arguments (%d given)", argc - 1);
-    py_Ref default_val = argc == 3 ? py_arg(2) : py_None;
+    py_Ref default_val = argc == 3 ? py_arg(2) : py_None();
     int res = Dict__pop(self, py_arg(1));
     if(res == -1) return false;
     if(res == 0) { py_assign(py_retval(), default_val); }
@@ -482,7 +482,7 @@ py_Type pk_dict__register() {
     py_bindmethod(type, "keys", dict_keys);
     py_bindmethod(type, "values", dict_values);
 
-    py_setdict(py_tpobject(type), __hash__, py_None);
+    py_setdict(py_tpobject(type), __hash__, py_None());
     return type;
 }
 

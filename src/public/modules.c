@@ -676,11 +676,11 @@ py_TValue pk_builtins__register() {
 
     // some patches
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);
-    *py_tpgetmagic(tp_NoneType, __hash__) = *py_None;
+    *py_tpgetmagic(tp_NoneType, __hash__) = *py_None();
     py_bindmagic(tp_ellipsis, __repr__, ellipsis__repr__);
-    *py_tpgetmagic(tp_ellipsis, __hash__) = *py_None;
+    *py_tpgetmagic(tp_ellipsis, __hash__) = *py_None();
     py_bindmagic(tp_NotImplementedType, __repr__, NotImplementedType__repr__);
-    *py_tpgetmagic(tp_NotImplementedType, __hash__) = *py_None;
+    *py_tpgetmagic(tp_NotImplementedType, __hash__) = *py_None();
     return *builtins;
 }
 

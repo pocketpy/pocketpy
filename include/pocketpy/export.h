@@ -3,8 +3,12 @@
 // clang-format off
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-    //define something for Windows (32-bit and 64-bit, this part is common)
-    #define PK_EXPORT __declspec(dllexport)
+    // define something for Windows (32-bit and 64-bit, this part is common)
+    #ifdef PY_DYNAMIC_MODULE
+        #define PK_EXPORT __declspec(dllimport)
+    #else
+        #define PK_EXPORT __declspec(dllexport)
+    #endif
     #define PY_SYS_PLATFORM     0
     #define PY_SYS_PLATFORM_STRING "win32"
 #elif __EMSCRIPTEN__

@@ -14,7 +14,6 @@
 // 4. stack balance guanrantee
 // 5. stack effect of each opcode
 // 6. py_TypeInfo
-// 7. Direct assignment of py_NIL, py_True, py_False, py_None. They are slow.
 
 typedef struct VM {
     Frame* top_frame;

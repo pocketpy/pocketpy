@@ -11,13 +11,9 @@
 
 VM* pk_current_vm;
 
-py_GlobalRef py_True;
-py_GlobalRef py_False;
-py_GlobalRef py_None;
-py_GlobalRef py_NIL;
-
 static VM pk_default_vm;
 static VM* pk_all_vm[16];
+static py_TValue _True, _False, _None, _NIL;
 
 void py_initialize() {
     if(pk_current_vm){
@@ -30,17 +26,17 @@ void py_initialize() {
     pk_current_vm = pk_all_vm[0] = &pk_default_vm;
 
     // initialize some convenient references
-    static py_TValue _True, _False, _None, _NIL;
     py_newbool(&_True, true);
     py_newbool(&_False, false);
     py_newnone(&_None);
     py_newnil(&_NIL);
-    py_True = &_True;
-    py_False = &_False;
-    py_None = &_None;
-    py_NIL = &_NIL;
     VM__ctor(&pk_default_vm);
 }
+
+py_GlobalRef py_True() { return &_True; }
+py_GlobalRef py_False() { return &_False; }
+py_GlobalRef py_None() { return &_None; }
+py_GlobalRef py_NIL() { return &_NIL; }
 
 void py_finalize() {
     for(int i = 1; i < 16; i++) {
@@ -169,7 +165,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
         py_Ref cls_var = py_tpfindmagic(py_totype(self), name);
         if(cls_var) {
             self[0] = *cls_var;
-            self[1] = *py_NIL;
+            self[1] = *py_NIL();
             return true;
         }
         return false;
@@ -197,7 +193,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
             }
             case tp_staticmethod:
                 self[0] = *py_getslot(cls_var, 0);
-                self[1] = *py_NIL;
+                self[1] = *py_NIL();
                 break;
             case tp_classmethod:
                 self[0] = *py_getslot(cls_var, 0);

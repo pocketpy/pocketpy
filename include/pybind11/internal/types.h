@@ -51,14 +51,14 @@ class none : public object {
     PKBIND_TYPE_IMPL(object, none, tp_NoneType);
 
     // note: none is global instance, so we use ref_t.
-    none() : object(py_None, ref_t{}) {}
+    none() : object(py_None(), ref_t{}) {}
 };
 
 class bool_ : public object {
     PKBIND_TYPE_IMPL(object, bool_, tp_bool);
 
     // same as none, bool is a singleton.
-    bool_(bool value) : object(value ? py_True : py_False, ref_t{}) {}
+    bool_(bool value) : object(value ? py_True() : py_False(), ref_t{}) {}
 
     explicit operator bool () { return py_tobool(ptr()); }
 };

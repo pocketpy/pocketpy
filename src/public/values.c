@@ -67,7 +67,7 @@ void py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFu
     if(setter) {
         py_newnativefunc(py_getslot(&tmp, 1), setter);
     } else {
-        py_setslot(&tmp, 1, py_None);
+        py_setslot(&tmp, 1, py_None());
     }
     py_setdict(py_tpobject(type), py_name(name), &tmp);
 }

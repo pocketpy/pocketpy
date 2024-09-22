@@ -70,15 +70,6 @@ typedef bool (*py_CFunction)(int argc, py_StackRef argv) PY_RAISE PY_RETURN;
 /// + `SINGLE_MODE`: for REPL or jupyter notebook execution.
 enum py_CompileMode { EXEC_MODE, EVAL_MODE, SINGLE_MODE };
 
-/// A shorthand for `True`.
-PK_EXPORT extern py_GlobalRef py_True;
-/// A shorthand for `False`.
-PK_EXPORT extern py_GlobalRef py_False;
-/// A shorthand for `None`.
-PK_EXPORT extern py_GlobalRef py_None;
-/// A shorthand for `nil`. `nil` is not a valid python object.
-PK_EXPORT extern py_GlobalRef py_NIL;
-
 /************* Global Setup *************/
 
 /// Initialize pocketpy and the default VM.
@@ -144,6 +135,15 @@ PK_EXPORT void py_newglobals(py_OutRef);
 PK_EXPORT void py_newlocals(py_OutRef);
 
 /************* Values Creation *************/
+
+/// A shorthand for `True`.
+PK_EXPORT py_GlobalRef py_True();
+/// A shorthand for `False`.
+PK_EXPORT py_GlobalRef py_False();
+/// A shorthand for `None`.
+PK_EXPORT py_GlobalRef py_None();
+/// A shorthand for `nil`. `nil` is not a valid python object.
+PK_EXPORT py_GlobalRef py_NIL();
 
 /// Create an `int` object.
 PK_EXPORT void py_newint(py_OutRef, py_i64);
