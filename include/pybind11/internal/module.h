@@ -50,4 +50,13 @@ using module_ = module;
     }                                                                                              \
     static void _pkbind_register_##name(::pkbind::module& variable)
 
+#define PYBIND11_MODULE(name, variable)                                                            \
+    static void _pkbind_register_##name(::pkbind::module& variable);                               \
+    extern "C" bool pybind_module_initialize() {                                                   \
+        auto m = ::pkbind::module::create(#name);                                                  \
+        _pkbind_register_##name(m);                                                                \
+        return true;                                                                               \
+    }                                                                                              \
+    static void _pkbind_register_##name(::pkbind::module& variable)
+
 }  // namespace pkbind
