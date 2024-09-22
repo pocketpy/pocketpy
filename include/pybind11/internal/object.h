@@ -281,17 +281,6 @@ T borrow(handle h) {
     return T(h, object::realloc_t{});
 }
 
-template <int N>
-void reg_t<N>::operator= (handle h) & {
-    py_setreg(N, h.ptr());
-}
-
-template <int N>
-reg_t<N>::operator handle () & {
-    assert(value && "register is not initialized");
-    return value;
-}
-
 inline void retv_t::operator= (handle h) & { py_assign(value, h.ptr()); }
 
 inline retv_t::operator handle () & {

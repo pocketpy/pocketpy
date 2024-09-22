@@ -515,20 +515,18 @@ struct template_parser<Callable,
 }  // namespace impl
 
 class cpp_function : public function {
-    inline static py_Type m_type = 0;
-
     PKBIND_TYPE_IMPL(function, cpp_function, tp_function);
 
-    static void register_() {
-        m_type = py_newtype("function_record", tp_object, nullptr, [](void* data) {
+    inline static lazy<py_Type> tp_function_record = +[](py_Type& type) {
+        type = py_newtype("function_record", tp_object, nullptr, [](void* data) {
             static_cast<impl::function_record*>(data)->~function_record();
         });
-    }
+    };
 
     static bool is_function_record(handle h) {
         if(isinstance<function>(h)) {
             auto slot = py_getslot(h.ptr(), 0);
-            if(slot) { return py_typeof(slot) == m_type; }
+            if(slot) { return py_typeof(slot) == tp_function_record; }
         }
         return false;
     }
@@ -539,47 +537,42 @@ class cpp_function : public function {
         // bind the function
         std::string sig = name;
         sig += is_method ? "(self, *args, **kwargs)" : "(*args, **kwargs)";
-        auto call = [](int argc, py_Ref stack) {
-            handle func = py_inspect_currentfunction();
-            auto data = py_touserdata(py_getslot(func.ptr(), 0));
-            auto& record = *static_cast<impl::function_record*>(data);
-            try {
-                record(argc, stack);
-                return true;
-            } catch(std::domain_error& e) {
-                py_exception(tp_ValueError, e.what());
-            } catch(std::invalid_argument& e) {
-                py_exception(tp_ValueError, e.what());
-            } catch(std::length_error& e) {
-                py_exception(tp_ValueError, e.what());
-            } catch(std::out_of_range& e) {
-                py_exception(tp_IndexError, e.what());
-            } catch(std::range_error& e) {
-                py_exception(tp_ValueError, e.what());
-            } catch(stop_iteration&) { StopIteration(); } catch(index_error& e) {
-                py_exception(tp_IndexError, e.what());
-            } catch(key_error& e) { py_exception(tp_KeyError, e.what()); } catch(value_error& e) {
-                py_exception(tp_ValueError, e.what());
-            } catch(type_error& e) {
-                py_exception(tp_TypeError, e.what());
-            } catch(import_error& e) {
-                py_exception(tp_ImportError, e.what());
-            } catch(attribute_error& e) {
-                py_exception(tp_AttributeError, e.what());
-            } catch(std::exception& e) { py_exception(tp_RuntimeError, e.what()); }
-            return false;
-        };
-        py_newfunction(m_ptr, sig.c_str(), call, nullptr, 1);
 
-        assert(m_type != 0 && "function record type not registered");
+        py_newfunction(m_ptr, sig.c_str(), call, nullptr, 1);
         auto slot = py_getslot(m_ptr, 0);
-        void* data = py_newobject(slot, m_type, 0, sizeof(impl::function_record));
+        void* data = py_newobject(slot, tp_function_record, 0, sizeof(impl::function_record));
         new (data) impl::function_record(std::forward<Fn>(fn), extras...);
     }
 
-    template <typename Fn, typename... Extras>
-    cpp_function(Fn&& fn, const Extras&... extras) :
-        cpp_function("lambda", std::forward<Fn>(fn), extras...) {}
+private:
+    static bool call(int argc, py_Ref stack) {
+        handle func = py_inspect_currentfunction();
+        auto data = py_touserdata(py_getslot(func.ptr(), 0));
+        auto& record = *static_cast<impl::function_record*>(data);
+        try {
+            record(argc, stack);
+            return true;
+        } catch(std::domain_error& e) {
+            py_exception(tp_ValueError, e.what());
+        } catch(std::invalid_argument& e) {
+            py_exception(tp_ValueError, e.what());
+        } catch(std::length_error& e) {
+            py_exception(tp_ValueError, e.what());
+        } catch(std::out_of_range& e) {
+            py_exception(tp_IndexError, e.what());
+        } catch(std::range_error& e) {
+            py_exception(tp_ValueError, e.what());
+        } catch(stop_iteration&) { StopIteration(); } catch(index_error& e) {
+            py_exception(tp_IndexError, e.what());
+        } catch(key_error& e) { py_exception(tp_KeyError, e.what()); } catch(value_error& e) {
+            py_exception(tp_ValueError, e.what());
+        } catch(type_error& e) { py_exception(tp_TypeError, e.what()); } catch(import_error& e) {
+            py_exception(tp_ImportError, e.what());
+        } catch(attribute_error& e) {
+            py_exception(tp_AttributeError, e.what());
+        } catch(std::exception& e) { py_exception(tp_RuntimeError, e.what()); }
+        return false;
+    };
 };
 
 class property : public object {

@@ -330,24 +330,22 @@ class kwargs : public dict {
 
 // TODO:
 class capsule : public object {
+    PKBIND_TYPE_IMPL(object, capsule, *tp_capsule);
+
     struct capsule_impl {
         void* data;
         void (*destructor)(void*);
     };
 
-    inline static py_Type m_type = 0;
-
-    PKBIND_TYPE_IMPL(object, capsule, m_type);
-
-    static void register_() {
-        m_type = py_newtype("capsule", tp_object, nullptr, [](void* data) {
+    inline static lazy<py_Type> tp_capsule = +[](py_Type& type) {
+        type = py_newtype("capsule", tp_object, nullptr, [](void* data) {
             auto impl = static_cast<capsule_impl*>(data);
             if(impl->data && impl->destructor) { impl->destructor(impl->data); }
         });
-    }
+    };
 
     capsule(void* data, void (*destructor)(void*) = nullptr) : object(alloc_t{}) {
-        void* impl = py_newobject(m_ptr, m_type, 0, sizeof(capsule_impl));
+        void* impl = py_newobject(m_ptr, tp_capsule, 0, sizeof(capsule_impl));
         new (impl) capsule_impl{data, destructor};
     }
 

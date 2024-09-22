@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
+#include <optional>
 #include <typeindex>
 #include <stdexcept>
 #include <unordered_map>
@@ -16,27 +17,6 @@
 namespace pkbind {
 
 class handle;
-
-/// hold the object temporarily
-template <int N>
-struct reg_t {
-    py_Ref value;
-
-    void operator= (py_Ref ref) & { py_setreg(N, ref); }
-
-    operator py_Ref () & {
-        assert(value && "register is not initialized");
-        return value;
-    }
-
-    void operator= (handle value) &;
-
-    operator handle () &;
-
-    // pkpy provide user 8 registers.
-    // 8th register is used for object pool, so N is limited to [0, 7).
-    static_assert(N >= 0 && N <= 6, "N must be in [0, 7)");
-};
 
 struct retv_t {
     py_Ref value;
@@ -140,8 +120,28 @@ struct action {
     static void register_start(function func) { starts.push_back(func); }
 };
 
-template <int N>
-inline reg_t<N> reg;
+template <typename T>
+class lazy {
+public:
+    lazy(void (*init)(T&)) : init(init) {}
+
+    operator T& () {
+        if(!initialized) {
+            if(init) { init(value); }
+            initialized = true;
+        }
+        return value;
+    }
+
+    T& operator* () { return static_cast<T&>(*this); }
+
+    void reset() { initialized = false; }
+
+private:
+    T value;
+    bool initialized = false;
+    void (*init)(T&) = nullptr;
+};
 
 inline retv_t retv;
 
