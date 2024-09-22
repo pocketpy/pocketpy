@@ -63,7 +63,7 @@ TEST_F(PYBIND11_TEST, raw_module) {
     EXPECT_EQ(math2.attr("sub")(4, 3).cast<int>(), 1);
 }
 
-TEST_F(PYBIND11_TEST, module3) {
+TEST_F(PYBIND11_TEST, dynamic_module) {
     py_module_initialize();
 
     py::exec("import example3");
