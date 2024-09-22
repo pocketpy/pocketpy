@@ -1,8 +1,6 @@
 #pragma once
 
 #include "internal/class.h"
-#include "internal/function.h"
-#include "internal/types.h"
 
 namespace pkbind {
 
