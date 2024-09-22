@@ -18,6 +18,20 @@ namespace pkbind {
 
 class handle;
 
+struct action {
+    using function = void (*)();
+    inline static std::vector<function> starts;
+
+    static void initialize() noexcept {
+        for(auto func: starts) {
+            func();
+        }
+    }
+
+    // register a function to be called at the start of the vm.
+    static void register_start(function func) { starts.push_back(func); }
+};
+
 /// hold the object long time.
 struct object_pool {
     inline static int cache = -1;
@@ -43,6 +57,7 @@ struct object_pool {
 
     /// alloc an object from pool, note that the object is uninitialized.
     static object_ref alloc() {
+        if(!indices_) { initialize(1024); }
         auto& indices = *indices_;
         if(cache != -1) {
             auto index = cache;
@@ -89,20 +104,6 @@ struct object_pool {
             throw std::runtime_error("object_ref is invalid");
         }
     }
-};
-
-struct action {
-    using function = void (*)();
-    inline static std::vector<function> starts;
-
-    static void initialize() noexcept {
-        for(auto func: starts) {
-            func();
-        }
-    }
-
-    // register a function to be called at the start of the vm.
-    static void register_start(function func) { starts.push_back(func); }
 };
 
 template <typename T>

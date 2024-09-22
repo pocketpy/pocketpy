@@ -15,10 +15,6 @@ inline bool initialized = false;
 /// initialize the vm.
 inline void initialize(int object_pool_size = 1024) {
     if(!initialized) { py_initialize(); }
-
-    // initialize object pool.
-    object_pool::initialize(object_pool_size);
-
     action::initialize();
     initialized = true;
 }
@@ -27,10 +23,10 @@ inline void initialize(int object_pool_size = 1024) {
 inline void finalize(bool test = false) {
     if(!initialized) { return; }
     object_pool::finalize();
+    type::m_type_map.clear();
+    capsule::tp_capsule.reset();
+    cpp_function::tp_function_record.reset();
     if(test) {
-        type::m_type_map.clear();
-        capsule::tp_capsule.reset();
-        cpp_function::tp_function_record.reset();
         py_resetvm();
     } else {
         py_finalize();
