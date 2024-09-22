@@ -17,7 +17,9 @@ inline object eval(std::string_view code, handle globals = none(), handle locals
         return object::from_ret();
     } else {
         handle eval = py_getbuiltin(py_name("eval"));
-        return eval(str(code), globals.is_none() ? dict() : globals, locals.is_none() ? dict() : locals);
+        return eval(str(code),
+                    globals.is_none() ? dict() : globals,
+                    locals.is_none() ? dict() : locals);
     }
 }
 
@@ -75,7 +77,8 @@ inline bool isinstance(handle obj, type type) { return py_isinstance(obj.ptr(), 
 inline bool python_error::match(type type) const { return isinstance(m_exception.ptr(), type); }
 
 template <typename T>
-constexpr inline bool is_pyobject_v = std::is_base_of_v<object, std::decay_t<T>> || std::is_same_v<type, T>;
+constexpr inline bool is_pyobject_v =
+    std::is_base_of_v<object, std::decay_t<T>> || std::is_same_v<type, T>;
 
 template <typename T>
 inline type type::of() {
@@ -86,8 +89,8 @@ inline type type::of() {
             return type(T::type_or_check());
         }
     } else {
-        auto it = m_type_map->find(typeid(T));
-        if(it != m_type_map->end()) {
+        auto it = m_type_map.find(typeid(T));
+        if(it != m_type_map.end()) {
             return type(it->second);
         } else {
             // if not found, raise error
@@ -104,8 +107,8 @@ inline bool type::isinstance(handle obj) {
     if constexpr(is_pyobject_v<T>) {
         // for every python object wrapper type, there must be a `type_or_check` method.
         // for some types, it returns the underlying type in pkpy, e.g., `int_` -> `tp_int`.
-        // for other types that may not have a corresponding type in pkpy, it returns a check function.
-        // e.g., `iterable` -> `[](handle h){ return hasattr(h, "iter"); }`.
+        // for other types that may not have a corresponding type in pkpy, it returns a check
+        // function. e.g., `iterable` -> `[](handle h){ return hasattr(h, "iter"); }`.
         auto type_or_check = T::type_or_check();
         if constexpr(is_check_v<T>) {
             return type_or_check(obj);
@@ -117,7 +120,9 @@ inline bool type::isinstance(handle obj) {
     }
 }
 
-inline bool issubclass(type derived, type base) { return py_issubclass(derived.index(), base.index()); }
+inline bool issubclass(type derived, type base) {
+    return py_issubclass(derived.index(), base.index());
+}
 
 template <typename T>
 inline bool isinstance(handle obj) {
@@ -131,17 +136,23 @@ template <typename T, typename SFINAE = void>
 struct type_caster;
 
 template <typename T>
-object cast(T&& value, return_value_policy policy = return_value_policy::automatic_reference, handle parent = {}) {
+object cast(T&& value,
+            return_value_policy policy = return_value_policy::automatic_reference,
+            handle parent = {}) {
     // decay_t can resolve c-array type, but remove_cv_ref_t can't.
     using underlying_type = std::decay_t<T>;
 
-    if constexpr(std::is_convertible_v<underlying_type, handle> && !is_pyobject_v<underlying_type>) {
+    if constexpr(std::is_convertible_v<underlying_type, handle> &&
+                 !is_pyobject_v<underlying_type>) {
         return object(std::forward<T>(value), object::realloc_t{});
     } else if constexpr(is_unique_pointer_v<underlying_type>) {
         using pointer = typename underlying_type::pointer;
-        return type_caster<pointer>::cast(value.release(), return_value_policy::take_ownership, parent);
+        return type_caster<pointer>::cast(value.release(),
+                                          return_value_policy::take_ownership,
+                                          parent);
     } else {
-        static_assert(!is_multiple_pointer_v<underlying_type>, "multiple pointer is not supported.");
+        static_assert(!is_multiple_pointer_v<underlying_type>,
+                      "multiple pointer is not supported.");
         static_assert(!std::is_void_v<std::remove_pointer_t<underlying_type>>,
                       "void* is not supported, consider using py::capsule.");
 
@@ -163,7 +174,8 @@ object cast(T&& value, return_value_policy policy = return_value_policy::automat
 template <typename T>
 T cast(handle obj, bool convert = true) {
     using caster_t = type_caster<T>;
-    constexpr auto is_dangling_v = (std::is_reference_v<T> || is_pointer_v<T>) && caster_t::is_temporary_v;
+    constexpr auto is_dangling_v =
+        (std::is_reference_v<T> || is_pointer_v<T>) && caster_t::is_temporary_v;
     static_assert(!is_dangling_v, "dangling reference or pointer is not allowed.");
     assert(obj.ptr() != nullptr);
 

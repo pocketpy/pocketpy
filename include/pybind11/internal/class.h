@@ -25,7 +25,7 @@ public:
                             static_cast<instance*>(data)->~instance();
                         })),
         m_scope(scope) {
-        m_type_map->try_emplace(typeid(T), this->index());
+        m_type_map.try_emplace(typeid(T), this->index());
 
         auto& info = type_info::of<T>();
         info.name = name;

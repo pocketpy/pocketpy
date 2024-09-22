@@ -128,6 +128,4 @@ private:
     void (*init)(T&) = nullptr;
 };
 
-inline std::unordered_map<std::type_index, py_Type>* m_type_map = nullptr;
-
 }  // namespace pkbind

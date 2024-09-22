@@ -29,6 +29,8 @@ public:
     using object ::object;
     using object ::operator=;
 
+    inline static std::unordered_map<std::type_index, py_Type> m_type_map;
+
     // note: type is global instance, so we use ref_t.
     explicit type(py_Type type) : object(py_tpobject(type), ref_t{}) {}
 

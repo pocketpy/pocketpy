@@ -19,8 +19,6 @@ inline void initialize(int object_pool_size = 1024) {
     // initialize object pool.
     object_pool::initialize(object_pool_size);
 
-    m_type_map = new std::unordered_map<std::type_index, py_Type>();
-
     action::initialize();
     initialized = true;
 }
@@ -28,10 +26,9 @@ inline void initialize(int object_pool_size = 1024) {
 /// finalize the vm.
 inline void finalize(bool test = false) {
     if(!initialized) { return; }
-    delete m_type_map;
-    m_type_map = nullptr;
     object_pool::finalize();
     if(test) {
+        type::m_type_map.clear();
         capsule::tp_capsule.reset();
         cpp_function::tp_function_record.reset();
         py_resetvm();
