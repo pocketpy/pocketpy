@@ -6,7 +6,7 @@
 
 static bool get_ns(int64_t* out) {
     struct timespec tms;
-#ifdef __ANDROID__
+#if defined( __ANDROID__) || defined(__MINGW32__) || defined(__MINGW64__)
     clock_gettime(CLOCK_REALTIME, &tms);
 #else
     /* The C11 way */
