@@ -160,11 +160,6 @@ __SUCCESS:
 
 //////////////////////////
 
-static bool builtins_repr(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    return py_repr(argv);
-}
-
 static bool builtins_exit(int argc, py_Ref argv) {
     int code = 0;
     if(argc > 1) return TypeError("exit() takes at most 1 argument");
@@ -179,6 +174,26 @@ static bool builtins_exit(int argc, py_Ref argv) {
     // bool ok = py_tpcall(tp_SystemExit, 1, &sso_code);
     // if(!ok) return false;
     // return py_raise(py_retval());
+}
+
+static bool builtins_input(int argc, py_Ref argv) {
+    if(argc > 1) return TypeError("input() takes at most 1 argument");
+    const char* prompt = "";
+    if(argc == 1) {
+        if(!py_checkstr(argv)) return false;
+        prompt = py_tostr(argv);
+    }
+    printf("%s", prompt);
+    char buf[2048];
+    scanf("%s", buf);
+    getchar();
+    py_newstr(py_retval(), buf);
+    return true;
+}
+
+static bool builtins_repr(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    return py_repr(argv);
 }
 
 static bool builtins_len(int argc, py_Ref argv) {
@@ -640,8 +655,9 @@ static bool NotImplementedType__repr__(int argc, py_Ref argv) {
 
 py_TValue pk_builtins__register() {
     py_Ref builtins = py_newmodule("builtins");
-    py_bindfunc(builtins, "repr", builtins_repr);
     py_bindfunc(builtins, "exit", builtins_exit);
+    py_bindfunc(builtins, "input", builtins_input);
+    py_bindfunc(builtins, "repr", builtins_repr);
     py_bindfunc(builtins, "len", builtins_len);
     py_bindfunc(builtins, "hex", builtins_hex);
     py_bindfunc(builtins, "iter", builtins_iter);
