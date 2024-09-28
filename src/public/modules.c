@@ -184,10 +184,16 @@ static bool builtins_input(int argc, py_Ref argv) {
         prompt = py_tostr(argv);
     }
     printf("%s", prompt);
-    char buf[2048];
-    scanf("%s", buf);
-    getchar();
-    py_newstr(py_retval(), buf);
+
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    while(true) {
+        int c = getchar();
+        if(c == '\n') break;
+        if(c == EOF) break;
+        c11_sbuf__write_char(&buf, c);
+    }
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 
