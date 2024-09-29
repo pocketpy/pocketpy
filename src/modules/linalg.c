@@ -88,6 +88,22 @@ c11_mat3x3* py_tomat3x3(py_Ref self) {
     return py_touserdata(self);
 }
 
+#define DEF_VECTOR_ELEMENT_WISE(D, T, name, op)                                                    \
+    static bool T##name(int argc, py_Ref argv) {                                                   \
+        PY_CHECK_ARGC(2);                                                                          \
+        if(argv[1].type != tp_##T) {                                                               \
+            py_newnotimplemented(py_retval());                                                     \
+            return true;                                                                           \
+        }                                                                                          \
+        c11_##T a = py_to##T(&argv[0]);                                                            \
+        c11_##T b = py_to##T(&argv[1]);                                                            \
+        c11_##T res;                                                                               \
+        for(int i = 0; i < D; i++)                                                                 \
+            res.data[i] = a.data[i] op b.data[i];                                                  \
+        py_new##T(py_retval(), res);                                                               \
+        return true;                                                                               \
+    }
+
 #define DEF_VECTOR_OPS(D)                                                                          \
     static bool vec##D##__new__(int argc, py_Ref argv) {                                           \
         PY_CHECK_ARGC(D + 1);                                                                      \
@@ -98,34 +114,8 @@ c11_mat3x3* py_tomat3x3(py_Ref self) {
         py_newvec##D(py_retval(), res);                                                            \
         return true;                                                                               \
     }                                                                                              \
-    static bool vec##D##__add__(int argc, py_Ref argv) {                                           \
-        PY_CHECK_ARGC(2);                                                                          \
-        if(argv[1].type != tp_vec##D) {                                                            \
-            py_newnotimplemented(py_retval());                                                     \
-            return true;                                                                           \
-        }                                                                                          \
-        c11_vec##D a = py_tovec##D(&argv[0]);                                                      \
-        c11_vec##D b = py_tovec##D(&argv[1]);                                                      \
-        c11_vec##D res;                                                                            \
-        for(int i = 0; i < D; i++)                                                                 \
-            res.data[i] = a.data[i] + b.data[i];                                                   \
-        py_newvec##D(py_retval(), res);                                                            \
-        return true;                                                                               \
-    }                                                                                              \
-    static bool vec##D##__sub__(int argc, py_Ref argv) {                                           \
-        PY_CHECK_ARGC(2);                                                                          \
-        if(argv[1].type != tp_vec##D) {                                                            \
-            py_newnotimplemented(py_retval());                                                     \
-            return true;                                                                           \
-        }                                                                                          \
-        c11_vec##D a = py_tovec##D(&argv[0]);                                                      \
-        c11_vec##D b = py_tovec##D(&argv[1]);                                                      \
-        c11_vec##D res;                                                                            \
-        for(int i = 0; i < D; i++)                                                                 \
-            res.data[i] = a.data[i] - b.data[i];                                                   \
-        py_newvec##D(py_retval(), res);                                                            \
-        return true;                                                                               \
-    }                                                                                              \
+    DEF_VECTOR_ELEMENT_WISE(D, vec##D, __add__, +)                                                 \
+    DEF_VECTOR_ELEMENT_WISE(D, vec##D, __sub__, -)                                                 \
     static bool vec##D##__mul__(int argc, py_Ref argv) {                                           \
         PY_CHECK_ARGC(2);                                                                          \
         c11_vec##D res;                                                                            \
@@ -234,6 +224,73 @@ c11_mat3x3* py_tomat3x3(py_Ref self) {
 
 DEF_VECTOR_OPS(2)
 DEF_VECTOR_OPS(3)
+
+#define DEF_VECTOR_INT_OPS(D)                                                                      \
+    static bool vec##D##i__new__(int argc, py_Ref argv) {                                          \
+        PY_CHECK_ARGC(D + 1);                                                                      \
+        c11_vec##D##i res;                                                                         \
+        for(int i = 0; i < D; i++) {                                                               \
+            if(!py_checkint(&argv[i + 1])) return false;                                           \
+            res.data[i] = py_toint(&argv[i + 1]);                                                  \
+        }                                                                                          \
+        py_newvec##D##i(py_retval(), res);                                                         \
+        return true;                                                                               \
+    }                                                                                              \
+    DEF_VECTOR_ELEMENT_WISE(D, vec##D##i, __add__, +)                                              \
+    DEF_VECTOR_ELEMENT_WISE(D, vec##D##i, __sub__, -)                                              \
+    static bool vec##D##i__mul__(int argc, py_Ref argv) {                                          \
+        PY_CHECK_ARGC(2);                                                                          \
+        c11_vec##D##i res;                                                                         \
+        switch(argv[1].type) {                                                                     \
+            case tp_vec##D##i: {                                                                   \
+                c11_vec##D##i a = py_tovec##D##i(&argv[0]);                                        \
+                c11_vec##D##i b = py_tovec##D##i(&argv[1]);                                        \
+                for(int i = 0; i < D; i++)                                                         \
+                    res.data[i] = a.data[i] * b.data[i];                                           \
+                py_newvec##D##i(py_retval(), res);                                                 \
+                return true;                                                                       \
+            }                                                                                      \
+            case tp_int: {                                                                         \
+                c11_vec##D##i a = py_tovec##D##i(&argv[0]);                                        \
+                py_i64 b = argv[1]._i64;                                                           \
+                for(int i = 0; i < D; i++)                                                         \
+                    res.data[i] = a.data[i] * b;                                                   \
+                py_newvec##D##i(py_retval(), res);                                                 \
+                return true;                                                                       \
+            }                                                                                      \
+            default: py_newnotimplemented(py_retval()); return true;                               \
+        }                                                                                          \
+    }                                                                                              \
+    static bool vec##D##i__eq__(int argc, py_Ref argv) {                                           \
+        PY_CHECK_ARGC(2);                                                                          \
+        if(argv[1].type != tp_vec##D##i) {                                                         \
+            py_newnotimplemented(py_retval());                                                     \
+            return true;                                                                           \
+        }                                                                                          \
+        c11_vec##D##i lhs = py_tovec##D##i(&argv[0]);                                              \
+        c11_vec##D##i rhs = py_tovec##D##i(&argv[1]);                                              \
+        bool ok = true;                                                                            \
+        for(int i = 0; i < D; i++) {                                                               \
+            if(lhs.data[i] != rhs.data[i]) ok = false;                                             \
+        }                                                                                          \
+        py_newbool(py_retval(), ok);                                                               \
+        return true;                                                                               \
+    }                                                                                              \
+    DEFINE_BOOL_NE(vec##D##i, vec##D##i__eq__)                                                     \
+    static bool vec##D##i##_dot(int argc, py_Ref argv) {                                           \
+        PY_CHECK_ARGC(2);                                                                          \
+        PY_CHECK_ARG_TYPE(1, tp_vec##D##i);                                                        \
+        c11_vec##D##i a = py_tovec##D##i(&argv[0]);                                                \
+        c11_vec##D##i b = py_tovec##D##i(&argv[1]);                                                \
+        py_i64 sum = 0;                                                                            \
+        for(int i = 0; i < D; i++)                                                                 \
+            sum += a.data[i] * b.data[i];                                                          \
+        py_newint(py_retval(), sum);                                                               \
+        return true;                                                                               \
+    }
+
+DEF_VECTOR_INT_OPS(2)
+DEF_VECTOR_INT_OPS(3)
 
 static bool vec2__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -676,17 +733,6 @@ static bool mat3x3_transform_vector(int argc, py_Ref argv) {
 }
 
 /* vec2i */
-static bool vec2i__new__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(3);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
-    py_newvec2i(py_retval(),
-                (c11_vec2i){
-                    {argv[1]._i64, argv[2]._i64}
-    });
-    return true;
-}
-
 DEFINE_VEC_FIELD(vec2i, int, py_i64, x)
 DEFINE_VEC_FIELD(vec2i, int, py_i64, y)
 
@@ -699,33 +745,7 @@ static bool vec2i__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool vec2i__eq__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    if(argv[1].type != tp_vec2i) {
-        py_newnotimplemented(py_retval());
-        return true;
-    }
-    c11_vec2i lhs = py_tovec2i(argv);
-    c11_vec2i rhs = py_tovec2i(&argv[1]);
-    py_newbool(py_retval(), lhs.x == rhs.x && lhs.y == rhs.y);
-    return true;
-}
-
-DEFINE_BOOL_NE(vec2i, vec2i__eq__)
-
 /* vec3i */
-static bool vec3i__new__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(4);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
-    PY_CHECK_ARG_TYPE(3, tp_int);
-    py_newvec3i(py_retval(),
-                (c11_vec3i){
-                    {argv[1]._i64, argv[2]._i64, argv[3]._i64}
-    });
-    return true;
-}
-
 static bool vec3i__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_vec3i data = py_tovec3i(argv);
@@ -734,20 +754,6 @@ static bool vec3i__repr__(int argc, py_Ref argv) {
     py_newstrv(py_retval(), (c11_sv){buf, size});
     return true;
 }
-
-static bool vec3i__eq__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    if(argv[1].type != tp_vec3i) {
-        py_newnotimplemented(py_retval());
-        return true;
-    }
-    c11_vec3i lhs = py_tovec3i(argv);
-    c11_vec3i rhs = py_tovec3i(&argv[1]);
-    py_newbool(py_retval(), lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z);
-    return true;
-}
-
-DEFINE_BOOL_NE(vec3i, vec3i__eq__)
 
 DEFINE_VEC_FIELD(vec3i, int, py_i64, x)
 DEFINE_VEC_FIELD(vec3i, int, py_i64, y)
@@ -870,16 +876,32 @@ void pk__add_module_linalg() {
     /* vec2i */
     py_bindmagic(vec2i, __new__, vec2i__new__);
     py_bindmagic(vec2i, __repr__, vec2i__repr__);
+    py_bindmagic(vec2i, __add__, vec2i__add__);
+    py_bindmagic(vec2i, __sub__, vec2i__sub__);
+    py_bindmagic(vec2i, __mul__, vec2i__mul__);
     py_bindmagic(vec2i, __eq__, vec2i__eq__);
     py_bindmagic(vec2i, __ne__, vec2i__ne__);
     py_bindproperty(vec2i, "x", vec2i__x, NULL);
     py_bindproperty(vec2i, "y", vec2i__y, NULL);
     py_bindmethod(vec2i, "with_x", vec2i__with_x);
     py_bindmethod(vec2i, "with_y", vec2i__with_y);
+    py_bindmethod(vec2i, "dot", vec2i_dot);
+
+    py_newvec2i(py_emplacedict(py_tpobject(vec2i), py_name("ZERO")),
+                (c11_vec2i){
+                    {0, 0}
+    });
+    py_newvec2i(py_emplacedict(py_tpobject(vec2i), py_name("ONE")),
+                (c11_vec2i){
+                    {1, 1}
+    });
 
     /* vec3i */
     py_bindmagic(vec3i, __new__, vec3i__new__);
     py_bindmagic(vec3i, __repr__, vec3i__repr__);
+    py_bindmagic(vec3i, __add__, vec3i__add__);
+    py_bindmagic(vec3i, __sub__, vec3i__sub__);
+    py_bindmagic(vec3i, __mul__, vec3i__mul__);
     py_bindmagic(vec3i, __eq__, vec3i__eq__);
     py_bindmagic(vec3i, __ne__, vec3i__ne__);
     py_bindproperty(vec3i, "x", vec3i__x, NULL);
@@ -888,6 +910,16 @@ void pk__add_module_linalg() {
     py_bindmethod(vec3i, "with_x", vec3i__with_x);
     py_bindmethod(vec3i, "with_y", vec3i__with_y);
     py_bindmethod(vec3i, "with_z", vec3i__with_z);
+    py_bindmethod(vec3i, "dot", vec3i_dot);
+
+    py_newvec3i(py_emplacedict(py_tpobject(vec3i), py_name("ZERO")),
+                (c11_vec3i){
+                    {0, 0, 0}
+    });
+    py_newvec3i(py_emplacedict(py_tpobject(vec3i), py_name("ONE")),
+                (c11_vec3i){
+                    {1, 1, 1}
+    });
 
     /* vec3 */
     py_bindmagic(vec3, __new__, vec3__new__);

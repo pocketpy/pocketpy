@@ -371,3 +371,21 @@ assert vec3.ONE == vec3(1, 1, 1)
 assert vec3.ZERO == vec3(0, 0, 0)
 # test vec3.with_xy
 assert vec3(1, 2, 3).with_xy(vec2(4, 5)) == vec3(4, 5, 3)
+
+# test vec2i and vec3i
+assert vec2i.ONE == vec2i(1, 1)
+assert vec2i.ZERO == vec2i(0, 0)
+assert vec3i.ONE == vec3i(1, 1, 1)
+assert vec3i.ZERO == vec3i(0, 0, 0)
+
+assert vec2i(1, 2) + vec2i(3, 4) == vec2i(4, 6)
+assert vec2i(1, 2) - vec2i(3, 4) == vec2i(-2, -2)
+assert vec2i(1, 2) * vec2i(3, 4) == vec2i(3, 8)
+assert vec2i(1, 2) * 2 == vec2i(2, 4)
+assert vec2i(1, 2).dot(vec2i(3, 4)) == 11
+
+assert vec3i(1, 2, 3) + vec3i(4, 5, 6) == vec3i(5, 7, 9)
+assert vec3i(1, 2, 3) - vec3i(4, 5, 6) == vec3i(-3, -3, -3)
+assert vec3i(1, 2, 3) * vec3i(4, 5, 6) == vec3i(4, 10, 18)
+assert vec3i(1, 2, 3) * 2 == vec3i(2, 4, 6)
+assert vec3i(1, 2, 3).dot(vec3i(4, 5, 6)) == 32

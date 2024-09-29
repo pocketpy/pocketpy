@@ -1,6 +1,6 @@
 from typing import overload
 
-class _vecD[T]:
+class _vecF[T]:
     ONE: T
     ZERO: T
 
@@ -17,7 +17,21 @@ class _vecD[T]:
     def length_squared(self) -> float: ...
     def normalize(self) -> T: ...
 
-class vec2(_vecD['vec2']):
+class _vecI[T]:
+    ONE: T
+    ZERO: T
+
+    def __add__(self, other: T) -> T: ...
+    def __sub__(self, other: T) -> T: ...
+    @overload
+    def __mul__(self, other: int) -> T: ...
+    @overload
+    def __mul__(self, other: T) -> T: ...
+
+    def dot(self, other: T) -> int: ...
+
+
+class vec2(_vecF['vec2']):
     @property
     def x(self) -> float: ...
     @property
@@ -90,7 +104,7 @@ class mat3x3:
     def transform_vector(self, v: vec2) -> vec2: ...
 
 
-class vec2i:
+class vec2i(_vecI['vec2i']):
     @property
     def x(self) -> int: ...
     @property
@@ -102,7 +116,7 @@ class vec2i:
     def __init__(self, x: int, y: int) -> None: ...
 
 
-class vec3i:
+class vec3i(_vecI['vec3i']):
     @property
     def x(self) -> int: ...
     @property
@@ -117,7 +131,7 @@ class vec3i:
     def __init__(self, x: int, y: int, z: int) -> None: ...
 
 
-class vec3(_vecD['vec3']):
+class vec3(_vecF['vec3']):
     @property
     def x(self) -> float: ...
     @property
