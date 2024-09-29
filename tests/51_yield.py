@@ -1,10 +1,12 @@
 def g():
     yield 1
     yield 2
+    yield
 
 a = g()
 assert next(a) == 1
 assert next(a, None) == 2
+assert next(a) == None
 
 try:
     next(a)

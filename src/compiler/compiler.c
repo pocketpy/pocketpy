@@ -2498,10 +2498,14 @@ static Error* compile_stmt(Compiler* self) {
             break;
         case TK_YIELD:
             if(self->contexts.length <= 1) return SyntaxError(self, "'yield' outside function");
-            check(EXPR_TUPLE(self));
-            Ctx__s_emit_top(ctx());
-            Ctx__emit_(ctx(), OP_YIELD_VALUE, BC_NOARG, kw_line);
-            consume_end_stmt();
+            if(match_end_stmt(self)) {
+                Ctx__emit_(ctx(), OP_YIELD_VALUE, 1, kw_line);
+            } else {
+                check(EXPR_TUPLE(self));
+                Ctx__s_emit_top(ctx());
+                Ctx__emit_(ctx(), OP_YIELD_VALUE, BC_NOARG, kw_line);
+                consume_end_stmt();
+            }
             break;
         case TK_YIELD_FROM:
             check(compile_yield_from(self, kw_line));

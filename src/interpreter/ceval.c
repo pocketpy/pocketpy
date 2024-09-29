@@ -715,8 +715,12 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_YIELD_VALUE: {
-                py_assign(py_retval(), TOP());
-                POP();
+                if(byte.arg == 1) {
+                    py_newnone(py_retval());
+                } else {
+                    py_assign(py_retval(), TOP());
+                    POP();
+                }
                 return RES_YIELD;
             }
             /////////
