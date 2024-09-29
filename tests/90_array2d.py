@@ -108,8 +108,11 @@ moore_result[1, 1] = 0
 
 von_neumann_result = array2d(3, 3, default=0)
 von_neumann_result[0, 1] = von_neumann_result[1, 0] = von_neumann_result[1, 2] = von_neumann_result[2, 1] = 1
-a.count_neighbors(0, 'Moore') == moore_result
-a.count_neighbors(0, 'von Neumann') == von_neumann_result
+
+_0 = a.count_neighbors(1, 'Moore')
+assert _0 == moore_result
+_1 = a.count_neighbors(1, 'von Neumann')
+assert _1 == von_neumann_result
 
 # test slice get
 a = array2d(5, 5, default=0)
@@ -152,7 +155,7 @@ except ValueError:
     pass
 
 try:
-    a[:, :] = []
+    a[:, :] = ...
     exit(1)
 except TypeError:
     pass
