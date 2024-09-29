@@ -4,13 +4,16 @@ def g():
 
 a = g()
 assert next(a) == 1
-assert next(a) == 2
+assert next(a, None) == 2
 
 try:
     next(a)
     exit(1)
 except StopIteration:
     pass
+
+assert next(a, 3) == 3
+assert next(a, 4) == 4
 
 def f(n):
     for i in range(n):

@@ -243,12 +243,17 @@ static bool builtins_iter(int argc, py_Ref argv) {
 }
 
 static bool builtins_next(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
+    if(argc == 0 || argc > 2) return TypeError("next() takes 1 or 2 arguments");
     int res = py_next(argv);
     if(res == -1) return false;
     if(res) return true;
-    // StopIteration stored in py_retval()
-    return py_raise(py_retval());
+    if(argc == 1) {
+        // StopIteration stored in py_retval()
+        return py_raise(py_retval());
+    } else {
+        py_assign(py_retval(), py_arg(1));
+        return true;
+    }
 }
 
 static bool builtins_hash(int argc, py_Ref argv) {
