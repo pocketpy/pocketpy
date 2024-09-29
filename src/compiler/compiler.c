@@ -1494,19 +1494,12 @@ static Error* pop_context(Compiler* self) {
         int codes_length = func->code.codes.length;
 
         for(int i = 0; i < codes_length; i++) {
-            if(codes[i].op == OP_YIELD_VALUE) {
+            if(codes[i].op == OP_YIELD_VALUE || codes[i].op == OP_FOR_ITER_YIELD_VALUE) {
                 func->type = FuncType_GENERATOR;
-                for(int j = 0; j < codes_length; j++) {
-                    if(codes[j].op == OP_RETURN_VALUE && codes[j].arg == BC_NOARG) {
-                        Error* err =
-                            SyntaxError(self, "'return' with argument inside generator function");
-                        err->lineno = c11__at(BytecodeEx, &func->code.codes_ex, j)->lineno;
-                        return err;
-                    }
-                }
                 break;
             }
         }
+
         if(func->type == FuncType_UNSET) {
             bool is_simple = true;
             if(func->kwargs.length > 0) is_simple = false;
@@ -2035,6 +2028,20 @@ static Error* compile_for_loop(Compiler* self) {
     return NULL;
 }
 
+static Error* compile_yield_from(Compiler* self, int kw_line) {
+    Error* err;
+    if(self->contexts.length <= 1) return SyntaxError(self, "'yield from' outside function");
+    check(EXPR_TUPLE(self));
+    Ctx__s_emit_top(ctx());
+    Ctx__emit_(ctx(), OP_GET_ITER, BC_NOARG, kw_line);
+    Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
+    Ctx__emit_(ctx(), OP_FOR_ITER_YIELD_VALUE, ctx()->curr_iblock, kw_line);
+    Ctx__emit_(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), kw_line);
+    Ctx__exit_block(ctx());
+    // StopIteration.value will be pushed onto the stack
+    return NULL;
+}
+
 Error* try_compile_assignment(Compiler* self, bool* is_assign) {
     Error* err;
     switch(curr()->type) {
@@ -2074,15 +2081,24 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
             return NULL;
         }
         case TK_ASSIGN: {
+            consume(TK_ASSIGN);
             int n = 0;
-            while(match(TK_ASSIGN)) {
-                check(EXPR_TUPLE(self));
-                n += 1;
+
+            if(match(TK_YIELD_FROM)) {
+                check(compile_yield_from(self, prev()->line));
+                n = 1;
+            } else {
+                do {
+                    check(EXPR_TUPLE(self));
+                    n += 1;
+                } while(match(TK_ASSIGN));
+
+                // stack size is n+1
+                Ctx__s_emit_top(ctx());
+                for(int j = 1; j < n; j++)
+                    Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             }
-            // stack size is n+1
-            Ctx__s_emit_top(ctx());
-            for(int j = 1; j < n; j++)
-                Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
+
             for(int j = 0; j < n; j++) {
                 if(Ctx__s_top(ctx())->vt->is_starred)
                     return SyntaxError(self, "can't use starred expression here");
@@ -2488,16 +2504,8 @@ static Error* compile_stmt(Compiler* self) {
             consume_end_stmt();
             break;
         case TK_YIELD_FROM:
-            if(self->contexts.length <= 1)
-                return SyntaxError(self, "'yield from' outside function");
-            check(EXPR_TUPLE(self));
-            Ctx__s_emit_top(ctx());
-            Ctx__emit_(ctx(), OP_GET_ITER, BC_NOARG, kw_line);
-            Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
-            Ctx__emit_(ctx(), OP_FOR_ITER, ctx()->curr_iblock, kw_line);
-            Ctx__emit_(ctx(), OP_YIELD_VALUE, BC_NOARG, kw_line);
-            Ctx__emit_(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), kw_line);
-            Ctx__exit_block(ctx());
+            check(compile_yield_from(self, kw_line));
+            Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, kw_line);
             consume_end_stmt();
             break;
         case TK_RETURN:

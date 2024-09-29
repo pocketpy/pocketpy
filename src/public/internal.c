@@ -255,4 +255,8 @@ bool pk_callmagic(py_Name name, int argc, py_Ref argv) {
     return py_call(tmp, argc, argv);
 }
 
-bool StopIteration() { return py_exception(tp_StopIteration, ""); }
+bool StopIteration() {
+    bool ok = py_tpcall(tp_StopIteration, 0, NULL);
+    if(!ok) return false;
+    return py_raise(py_retval());
+}

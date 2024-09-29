@@ -115,6 +115,7 @@ py_Type pk_range__register();
 py_Type pk_range_iterator__register();
 py_Type pk_BaseException__register();
 py_Type pk_Exception__register();
+py_Type pk_StopIteration__register();
 py_Type pk_super__register();
 py_Type pk_property__register();
 py_Type pk_staticmethod__register();

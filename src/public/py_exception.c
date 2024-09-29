@@ -96,6 +96,17 @@ static bool BaseException_args(int argc, py_Ref argv){
     return true;
 }
 
+static bool StopIteration_value(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_Ref arg = py_getslot(argv, 0);
+    if(py_isnil(arg)) {
+        py_newnone(py_retval());
+    }else{
+        py_assign(py_retval(), arg);
+    }
+    return true;
+}
+
 py_Type pk_BaseException__register() {
     py_Type type = pk_newtype("BaseException", tp_object, NULL, BaseException__dtor, false, false);
 
@@ -109,6 +120,12 @@ py_Type pk_BaseException__register() {
 
 py_Type pk_Exception__register() {
     py_Type type = pk_newtype("Exception", tp_BaseException, NULL, NULL, false, false);
+    return type;
+}
+
+py_Type pk_StopIteration__register() {
+    py_Type type = pk_newtype("StopIteration", tp_Exception, NULL, NULL, false, false);
+    py_bindproperty(type, "value", StopIteration_value, NULL);
     return type;
 }
 
@@ -134,13 +151,10 @@ bool py_matchexc(py_Type type) {
 
 void py_clearexc(py_StackRef p0) {
     VM* vm = pk_current_vm;
-    vm->last_retval = *py_NIL();
     vm->curr_exception = *py_NIL();
     vm->is_curr_exc_handled = false;
-
     /* Don't clear this, because StopIteration() may corrupt the class defination */
     // vm->__curr_class = NULL;
-
     vm->__curr_function = NULL;
     if(p0) vm->stack.sp = p0;
 }

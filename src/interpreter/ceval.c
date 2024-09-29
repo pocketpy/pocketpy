@@ -781,7 +781,22 @@ FrameResult VM__run_top_frame(VM* self) {
                     PUSH(py_retval());
                     DISPATCH();
                 } else {
+                    assert(self->last_retval.type == tp_StopIteration);
                     int target = Frame__prepare_loop_break(frame, &self->stack);
+                    DISPATCH_JUMP_ABSOLUTE(target);
+                }
+            }
+            case OP_FOR_ITER_YIELD_VALUE: {
+                int res = py_next(TOP());
+                if(res == -1) goto __ERROR;
+                if(res) {
+                    return RES_YIELD;
+                } else {
+                    assert(self->last_retval.type == tp_StopIteration);
+                    py_ObjectRef value = py_getslot(&self->last_retval, 0);
+                    int target = Frame__prepare_loop_break(frame, &self->stack);
+                    if(py_isnil(value)) value = py_None();
+                    PUSH(value);
                     DISPATCH_JUMP_ABSOLUTE(target);
                 }
             }

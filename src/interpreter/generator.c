@@ -67,7 +67,10 @@ static bool generator__next__(int argc, py_Ref argv) {
     } else {
         assert(res == RES_RETURN);
         ud->state = 2;
-        return StopIteration();
+        // raise StopIteration(<retval>)
+        bool ok = py_tpcall(tp_StopIteration, 1, py_retval());
+        if(!ok) return false;
+        return py_raise(py_retval());
     }
 }
 

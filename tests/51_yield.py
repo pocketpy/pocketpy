@@ -99,16 +99,27 @@ def f():
 
 assert list(f()) == [1, 2]
 
-src = '''
 def g():
     yield 1
     yield 2
     return 3
     yield 4
-'''
+
+assert StopIteration().value == None
+assert StopIteration(3).value == 3
 
 try:
-    exec(src)
+    iter = g()
+    assert next(iter) == 1
+    assert next(iter) == 2
+    next(iter)  # raises StopIteration
+    print('UNREACHABLE!!')
     exit(1)
-except SyntaxError:
-    pass
+except StopIteration as e:
+    assert e.value == 3
+
+def f():
+    a = yield from g()
+    yield a
+
+assert list(f()) == [1, 2, 3]

@@ -247,7 +247,8 @@ static bool builtins_next(int argc, py_Ref argv) {
     int res = py_next(argv);
     if(res == -1) return false;
     if(res) return true;
-    return py_exception(tp_StopIteration, "");
+    // StopIteration stored in py_retval()
+    return py_raise(py_retval());
 }
 
 static bool builtins_hash(int argc, py_Ref argv) {

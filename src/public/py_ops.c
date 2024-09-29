@@ -77,6 +77,7 @@ int py_next(py_Ref val) {
     }
     if(py_call(tmp, 1, val)) return 1;
     if(vm->curr_exception.type == tp_StopIteration) {
+        vm->last_retval = vm->curr_exception;
         py_clearexc(NULL);
         return 0;
     }

@@ -147,7 +147,10 @@ void VM__ctor(VM* self) {
     INJECT_BUILTIN_EXC(SystemExit, tp_BaseException);
     INJECT_BUILTIN_EXC(KeyboardInterrupt, tp_BaseException);
 
-    INJECT_BUILTIN_EXC(StopIteration, tp_Exception);
+    // INJECT_BUILTIN_EXC(StopIteration, tp_Exception);
+    validate(tp_StopIteration, pk_StopIteration__register());
+    py_setdict(&self->builtins, py_name("StopIteration"), py_tpobject(tp_StopIteration));
+    
     INJECT_BUILTIN_EXC(SyntaxError, tp_Exception);
     INJECT_BUILTIN_EXC(StackOverflowError, tp_Exception);
     INJECT_BUILTIN_EXC(IOError, tp_Exception);
