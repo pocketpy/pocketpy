@@ -110,6 +110,37 @@ static bool tuple__ne__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool tuple__lt__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(!py_istype(py_arg(1), tp_tuple)) {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    py_TValue *p0, *p1;
+    int lhs_length = py_tuple_len(py_arg(0));
+    int rhs_length = py_tuple_len(py_arg(1));
+    p0 = py_tuple_data(py_arg(0));
+    p1 = py_tuple_data(py_arg(1));
+    int length = lhs_length < rhs_length ? lhs_length : rhs_length;
+    for(int i = 0; i < length; i++) {
+        int res_lt = py_less(p0 + i, p1 + i);
+        if(res_lt == -1) return false;
+        if(res_lt) {
+            py_newbool(py_retval(), true);
+            return true;
+        } else {
+            int res_eq = py_equal(p0 + i, p1 + i);
+            if(res_eq == -1) return false;
+            if(!res_eq) {
+                py_newbool(py_retval(), false);
+                return true;
+            }
+        }
+    }
+    py_newbool(py_retval(), lhs_length < rhs_length);
+    return true;
+}
+
 static bool tuple__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     return pk_arrayiter(argv);
@@ -144,6 +175,7 @@ py_Type pk_tuple__register() {
     py_bindmagic(type, __getitem__, tuple__getitem__);
     py_bindmagic(type, __eq__, tuple__eq__);
     py_bindmagic(type, __ne__, tuple__ne__);
+    py_bindmagic(type, __lt__, tuple__lt__);
     py_bindmagic(type, __iter__, tuple__iter__);
     py_bindmagic(type, __contains__, tuple__contains__);
     py_bindmagic(type, __hash__, tuple__hash__);

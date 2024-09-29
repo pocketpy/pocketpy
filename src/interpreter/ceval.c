@@ -1040,6 +1040,33 @@ FrameResult VM__run_top_frame(VM* self) {
     return RES_RETURN;
 }
 
+const static char* op2str(py_Name op) {
+    switch(op) {
+        case __eq__: return "==";
+        case __ne__: return "!=";
+        case __lt__: return "<";
+        case __le__: return "<=";
+        case __gt__: return ">";
+        case __ge__: return ">=";
+        case __add__: return "+";
+        case __sub__: return "-";
+        case __mul__: return "*";
+        case __truediv__: return "/";
+        case __floordiv__: return "//";
+        case __mod__: return "%";
+        case __pow__: return "**";
+        case __lshift__: return "<<";
+        case __rshift__: return ">>";
+        case __and__: return "&";
+        case __or__: return "|";
+        case __xor__: return "^";
+        case __neg__: return "-";
+        case __invert__: return "~";
+        case __matmul__: return "@";
+        default: return py_name2str(op);
+    }
+}
+
 bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
     // [a, b]
     py_Ref magic = py_tpfindmagic(SECOND()->type, op);
@@ -1071,7 +1098,7 @@ bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
         py_newbool(py_retval(), !res);
         return true;
     }
-    return TypeError("unsupported operand type(s) for '%n'", op);
+    return TypeError("unsupported operand type(s) for '%s'", op2str(op));
 }
 
 bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {

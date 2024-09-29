@@ -574,11 +574,12 @@ assert max(1, 2, 3) == 3
 assert max([1, 2]) == 2
 assert max([1, 2, 3], key=lambda x: -x) == 1
 
-# assert min([
-#     (1, 2),
-#     (1, 3),
-#     (1, 4),
-# ]) == (1, 2)
+assert min([
+    (3, 1),
+    (1, 2),
+    (1, 3),
+    (1, 4),
+]) == (1, 2)
 
 assert min(1, 2) == 1
 assert max(1, 2) == 2
