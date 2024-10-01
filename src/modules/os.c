@@ -43,10 +43,24 @@ static bool os_getcwd(int argc, py_Ref argv) {
     return true;
 }
 
+static bool os_system(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+#if PK_IS_DESKTOP_PLATFORM
+    const char* cmd = py_tostr(py_arg(0));
+    int code = system(cmd);
+    py_newint(py_retval(), code);
+    return true;
+#else
+    return py_exception(tp_OSError, "system() is not supported on this platform");
+#endif
+}
+
 void pk__add_module_os() {
     py_Ref mod = py_newmodule("os");
     py_bindfunc(mod, "chdir", os_chdir);
     py_bindfunc(mod, "getcwd", os_getcwd);
+    py_bindfunc(mod, "system", os_system);
 }
 
 void pk__add_module_sys() {
