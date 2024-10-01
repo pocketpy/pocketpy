@@ -1,5 +1,6 @@
 {
     "stubPath": "include/typings",
     "reportMissingModuleSource": "none",
+    "reportArgumentType": "none",
     "pythonVersion": "3.10"
 }
