@@ -316,6 +316,25 @@ static bool array2d_tolist(int argc, py_Ref argv) {
     return true;
 }
 
+static bool array2d_render(int argc, py_Ref argv){
+    PY_CHECK_ARGC(1);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    c11_array2d* self = py_touserdata(argv);
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            py_Ref item = py_array2d__get(self, i, j);
+            if(!py_str(item)) return false;
+            c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
+        }
+        if(j < self->n_rows - 1){
+            c11_sbuf__write_char(&buf, '\n');
+        }
+    }
+    c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
 static bool array2d_count(int argc, py_Ref argv) {
     // def count(self, value: T) -> int: ...
     PY_CHECK_ARGC(2);
@@ -586,6 +605,7 @@ void pk__add_module_array2d() {
     py_bindmethod(array2d, "copy_", array2d_copy_);
 
     py_bindmethod(array2d, "tolist", array2d_tolist);
+    py_bindmethod(array2d, "render", array2d_render);
     py_bindmethod(array2d, "count", array2d_count);
     py_bindmethod(array2d, "find_bounding_rect", array2d_find_bounding_rect);
     py_bindmethod(array2d, "count_neighbors", array2d_count_neighbors);
