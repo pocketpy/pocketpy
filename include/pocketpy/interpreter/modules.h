@@ -1,6 +1,7 @@
 #pragma once
 
 void pk__add_module_pkpy();
+void pk__add_module_conio();
 void pk__add_module_os();
 void pk__add_module_sys();
 void pk__add_module_math();
