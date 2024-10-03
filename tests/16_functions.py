@@ -141,6 +141,21 @@ assert f() == (((1,2),3), (4,))
 def f(a, b):
     return a + b
 
+# test multiple lines
+def f(
+    a,
+    b: int
+):
+    return a + b
+
+assert f(1, 2) == 3
+
+def f(a,
+      b: int):
+    return a + b
+
+assert f(1, 2) == 3
+
 # try:
 #     f(a=1)
 #     exit(1)

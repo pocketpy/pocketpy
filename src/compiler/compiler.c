@@ -1575,7 +1575,7 @@ static Error* exprImag(Compiler* self) {
 }
 
 static FuncDecl_ push_f_context(Compiler* self, c11_sv name, int* out_index);
-static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_hints);
+static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool is_lambda);
 
 static Error* exprLambda(Compiler* self) {
     Error* err;
@@ -1583,7 +1583,7 @@ static Error* exprLambda(Compiler* self) {
     int decl_index;
     FuncDecl_ decl = push_f_context(self, (c11_sv){"<lambda>", 8}, &decl_index);
     if(!match(TK_COLON)) {
-        check(_compile_f_args(self, decl, false));
+        check(_compile_f_args(self, decl, true));
         consume(TK_COLON);
     }
     // https://github.com/pocketpy/pocketpy/issues/37
@@ -2177,12 +2177,12 @@ static Error* read_literal(Compiler* self, py_Ref out) {
     }
 }
 
-static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_hints) {
+static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool is_lambda) {
     int state = 0;  // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
     Error* err;
     do {
+        if(!is_lambda) match_newlines();
         if(state >= 3) return SyntaxError(self, "**kwargs should be the last argument");
-        match_newlines();
         if(match(TK_MUL)) {
             if(state < 1)
                 state = 1;
@@ -2200,7 +2200,7 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
         }
 
         // eat type hints
-        if(enable_type_hints && match(TK_COLON)) check(consume_type_hints(self));
+        if(!is_lambda && match(TK_COLON)) check(consume_type_hints(self));
         if(state == 0 && curr()->type == TK_ASSIGN) state = 2;
         switch(state) {
             case 0: FuncDecl__add_arg(decl, name); break;
@@ -2221,6 +2221,7 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
                 break;
         }
     } while(match(TK_COMMA));
+    if(!is_lambda) match_newlines();
     return NULL;
 }
 
@@ -2246,7 +2247,7 @@ static Error* compile_function(Compiler* self, int decorators) {
     consume_pep695_py312(self);
     consume(TK_LPAREN);
     if(!match(TK_RPAREN)) {
-        check(_compile_f_args(self, decl, true));
+        check(_compile_f_args(self, decl, false));
         consume(TK_RPAREN);
     }
     if(match(TK_ARROW)) check(consume_type_hints(self));
