@@ -34,3 +34,12 @@ f()
 
 from math import *
 assert pi > 3
+
+from math import (pi, pow, sin, cos)
+
+from math import (
+    pi,
+    pow,
+    sin,
+    cos
+)

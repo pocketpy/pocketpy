@@ -2224,12 +2224,26 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool enable_type_h
     return NULL;
 }
 
+static Error* consume_pep695_py312(Compiler* self) {
+    // https://peps.python.org/pep-0695/
+    Error* err;
+    if(match(TK_LBRACKET)) {
+        consume(TK_ID);
+        if(match(TK_COLON)){
+            check(consume_type_hints(self));
+        }
+        consume(TK_RBRACKET);
+    }
+    return NULL;
+}
+
 static Error* compile_function(Compiler* self, int decorators) {
     Error* err;
     consume(TK_ID);
     c11_sv decl_name_sv = Token__sv(prev());
     int decl_index;
     FuncDecl_ decl = push_f_context(self, decl_name_sv, &decl_index);
+    consume_pep695_py312(self);
     consume(TK_LPAREN);
     if(!match(TK_RPAREN)) {
         check(_compile_f_args(self, decl, true));
@@ -2281,6 +2295,7 @@ static Error* compile_class(Compiler* self, int decorators) {
     consume(TK_ID);
     py_Name name = py_namev(Token__sv(prev()));
     bool has_base = false;
+    consume_pep695_py312(self);
     if(match(TK_LPAREN)) {
         if(is_expression(self, false)) {
             check(EXPR(self));
@@ -2405,7 +2420,9 @@ __EAT_DOTS_END:
         return NULL;
     }
 
+    bool has_bracket = match(TK_LPAREN);
     do {
+        if(has_bracket) match_newlines();
         Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
         consume(TK_ID);
         c11_sv name = Token__sv(prev());
@@ -2416,6 +2433,10 @@ __EAT_DOTS_END:
         }
         Ctx__emit_store_name(ctx(), name_scope(self), py_namev(name), prev()->line);
     } while(match(TK_COMMA));
+    if(has_bracket) {
+        match_newlines();
+        consume(TK_RPAREN);
+    }
     Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
     consume_end_stmt();
     return NULL;
