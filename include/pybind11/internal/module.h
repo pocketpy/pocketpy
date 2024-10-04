@@ -42,7 +42,7 @@ using module = module_;
     namespace pkbind::impl {                                                                       \
     auto _module_##name = [] {                                                                     \
         ::pkbind::action::register_start([] {                                                      \
-            auto m = ::pkbind::module_(py_newmodule(#name), ::pkbind::object::ref_t{});            \
+            auto m = ::pkbind::module_::create(#name);                                             \
             _pkbind_register_##name(m);                                                            \
         });                                                                                        \
         return 1;                                                                                  \
