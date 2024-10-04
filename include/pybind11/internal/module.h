@@ -38,26 +38,26 @@ class module_ : public object {
 using module = module_;
 
 #define PYBIND11_EMBEDDED_MODULE(name, variable)                                                   \
-    static void _pkbind_register_##name(::pkbind::module& variable);                               \
+    static void _pkbind_register_##name(::pkbind::module_& variable);                              \
     namespace pkbind::impl {                                                                       \
     auto _module_##name = [] {                                                                     \
         ::pkbind::action::register_start([] {                                                      \
-            auto m = ::pkbind::module(py_newmodule(#name), ::pkbind::object::ref_t{});             \
+            auto m = ::pkbind::module_(py_newmodule(#name), ::pkbind::object::ref_t{});            \
             _pkbind_register_##name(m);                                                            \
         });                                                                                        \
         return 1;                                                                                  \
     }();                                                                                           \
     }                                                                                              \
-    static void _pkbind_register_##name(::pkbind::module& variable)
+    static void _pkbind_register_##name(::pkbind::module_& variable)
 
 #define PYBIND11_MODULE(name, variable)                                                            \
-    static void _pkbind_register_##name(::pkbind::module& variable);                               \
+    static void _pkbind_register_##name(::pkbind::module_& variable);                              \
     extern "C" PK_EXPORT bool py_module_initialize() {                                             \
-        auto m = ::pkbind::module::create(#name);                                                  \
+        auto m = ::pkbind::module_::create(#name);                                                 \
         _pkbind_register_##name(m);                                                                \
         py_assign(py_retval(), m.ptr());                                                           \
         return true;                                                                               \
     }                                                                                              \
-    static void _pkbind_register_##name(::pkbind::module& variable)
+    static void _pkbind_register_##name(::pkbind::module_& variable)
 
 }  // namespace pkbind
