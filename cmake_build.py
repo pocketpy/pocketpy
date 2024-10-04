@@ -7,28 +7,36 @@ assert os.system("python prebuild.py") == 0
 if not os.path.exists("build"):
     os.mkdir("build")
 
-assert len(sys.argv) <= 2
+# python cmake_build.py [Debug|Release|RelWithDebInfo] ...
 
-if len(sys.argv) == 2:
+if len(sys.argv) > 1:
     config = sys.argv[1]
 else:
     config = 'Release'
+
+extra_flags = " ".join(sys.argv[2:])
 
 assert config in ['Debug', 'Release', 'RelWithDebInfo']
 
 os.chdir("build")
 
-code = os.system(f"cmake .. -DPK_ENABLE_OS=ON -DCMAKE_BUILD_TYPE={config}")
+code = os.system(f"cmake .. -DPK_ENABLE_OS=ON -DCMAKE_BUILD_TYPE={config} {extra_flags}")
 assert code == 0
 code = os.system(f"cmake --build . --config {config}")
 assert code == 0
 
 if sys.platform == "win32":
     shutil.copy(f"{config}/main.exe", "../main.exe")
-    shutil.copy(f"{config}/pocketpy.dll", "../pocketpy.dll")
+    dll_path = f"{config}/pocketpy.dll"
+    if os.path.exists(dll_path):
+        shutil.copy(dll_path, "../pocketpy.dll")
 elif sys.platform == "darwin":
     shutil.copy("main", "../main")
-    shutil.copy("libpocketpy.dylib", "../libpocketpy.dylib")
+    dll_path = "libpocketpy.dylib"
+    if os.path.exists(dll_path):
+        shutil.copy(dll_path, "../libpocketpy.dylib")
 else:
     shutil.copy("main", "../main")
-    shutil.copy("libpocketpy.so", "../libpocketpy.so")
+    dll_path = "libpocketpy.so"
+    if os.path.exists(dll_path):
+        shutil.copy(dll_path, "../libpocketpy.so")
