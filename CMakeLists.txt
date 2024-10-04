@@ -44,6 +44,11 @@ if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
 endif()
 
+option(PK_MODULE_WIN32 "" OFF)
+if(PK_MODULE_WIN32)
+    add_definitions(-DPK_MODULE_WIN32=1)
+endif()
+
 # PK_IS_MAIN determines whether the project is being used from root
 # or if it is added as a dependency (through add_subdirectory for example).
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -72,4 +77,8 @@ endif()
 if(UNIX)
     target_link_libraries(${PROJECT_NAME} m)
     target_link_libraries(${PROJECT_NAME} dl)
+endif()
+
+if(PK_MODULE_WIN32)
+    target_link_libraries(${PROJECT_NAME} winmm.lib)
 endif()
