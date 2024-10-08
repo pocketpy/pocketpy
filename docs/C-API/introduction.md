@@ -32,6 +32,19 @@ Also, `py_retval()` is a special register that is used to store the return value
 Registers are shared so they could be overwritten easily.
 If you want to store python objects across function calls, you should store them into the stack via `py_push()` and `py_pop()`.
 
+## Data Types
+
+You can do conversions between C types and python objects using the following functions:
+
+| C type              | Python type | C to Python     | Python to C                      |
+| ------------------- | ----------- | --------------- | -------------------------------- |
+| char,short,int,long | int         | `py_newint()`   | `py_toint()`                     |
+| float,double        | float       | `py_newfloat()` | `py_tofloat()`, `py_castfloat()` |
+| bool                | bool        | `py_newbool()`  | `py_tobool()`                    |
+| const char*         | str         | `py_newstr()`   | `py_tostr()`                     |
+| void*,intptr_t      | int         | `py_newint()`   | `(void*)py_toint()`              |
+
+---
 
 ### `PY_RAISE` macro
 

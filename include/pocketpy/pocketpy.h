@@ -459,8 +459,10 @@ PK_API py_StackRef py_pushtmp();
 /// If return true:  `[self] -> [unbound, self]`.
 /// If return false: `[self] -> [self]` (no change).
 PK_API bool py_pushmethod(py_Name name);
-/// Call a callable object.
-/// Assume `argc + kwargc` arguments are already pushed to the stack.
+/// Call a callable object via pocketpy's calling convention.
+/// You need to prepare the stack using this form: `callable, self/nil, arg1, arg2, ..., k1, v1, k2, v2, ...`
+/// `argc` is the number of positional arguments excluding `self`.
+/// `kwargc` is the number of keyword arguments, i.e. the number of key-value pairs.
 /// The result will be set to `py_retval()`.
 /// The stack size will be reduced by `argc + kwargc`.
 PK_API bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE PY_RETURN;
