@@ -639,6 +639,13 @@ static bool bytes_decode(int argc, py_Ref argv) {
     return true;
 }
 
+static bool bytes__len__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_bytes* self = py_touserdata(&argv[0]);
+    py_newint(py_retval(), self->size);
+    return true;
+}
+
 py_Type pk_bytes__register() {
     py_Type type = pk_newtype("bytes", tp_object, NULL, NULL, false, true);
     // no need to dtor because the memory is controlled by the object
@@ -650,6 +657,7 @@ py_Type pk_bytes__register() {
     py_bindmagic(tp_bytes, __ne__, bytes__ne__);
     py_bindmagic(tp_bytes, __add__, bytes__add__);
     py_bindmagic(tp_bytes, __hash__, bytes__hash__);
+    py_bindmagic(tp_bytes, __len__, bytes__len__);
 
     py_bindmethod(tp_bytes, "decode", bytes_decode);
     return type;

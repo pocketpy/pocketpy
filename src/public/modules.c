@@ -441,10 +441,15 @@ static bool builtins_ord(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
     c11_sv sv = py_tosv(py_arg(0));
-    if(sv.size != 1) {
-        return TypeError("ord() expected a character, but string of length %d found", sv.size);
+    if(c11_sv__u8_length(sv) != 1) {
+        return TypeError("ord() expected a character, but string of length %d found", c11_sv__u8_length(sv));
     }
-    py_newint(py_retval(), sv.data[0]);
+    int u8bytes = c11__u8_header(sv.data[0], true);
+    if (u8bytes == 0) {
+        return ValueError("invalid char: %c", sv.data[0]);
+    }
+    int value = c11__u8_value(u8bytes, sv.data);
+    py_newint(py_retval(), value);
     return true;
 }
 

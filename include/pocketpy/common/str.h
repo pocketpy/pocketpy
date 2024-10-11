@@ -65,6 +65,7 @@ int c11__byte_index_to_unicode(const char* data, int n);
 
 bool c11__is_unicode_Lo_char(int c);
 int c11__u8_header(unsigned char c, bool suppress);
+int c11__u8_value(int u8bytes, const char* data);
 
 typedef enum IntParsingResult {
     IntParsing_SUCCESS,

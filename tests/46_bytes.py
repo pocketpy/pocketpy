@@ -9,6 +9,8 @@ assert b'' + b'' == b''
 
 assert b'\xff\xee' != b'1234'
 assert b'\xff\xee' == b'\xff\xee'
+assert len(b'\xff\xee') == 2
+assert len(b'') == 0
 
 a = '测试123'
 assert a == a.encode().decode()

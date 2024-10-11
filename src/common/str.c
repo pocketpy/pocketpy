@@ -297,6 +297,26 @@ int c11__u8_header(unsigned char c, bool suppress) {
     return 0;
 }
 
+int c11__u8_value(int u8bytes, const char* data) {
+    assert(u8bytes != 0);
+    if(u8bytes == 1) return (int)data[0];
+    uint32_t value = 0;
+    for(int k = 0; k < u8bytes; k++) {
+        uint8_t b = data[k];
+        if(k == 0) {
+            if(u8bytes == 2)
+                value = (b & 0b00011111) << 6;
+            else if(u8bytes == 3)
+                value = (b & 0b00001111) << 12;
+            else if(u8bytes == 4)
+                value = (b & 0b00000111) << 18;
+        } else {
+            value |= (b & 0b00111111) << (6 * (u8bytes - k - 1));
+        }
+    }
+    return (int)value;
+}
+
 IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base) {
     *out = 0;
 

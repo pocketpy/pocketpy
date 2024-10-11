@@ -225,21 +225,7 @@ static Error* eat_name(Lexer* self) {
                 break;
             }
         }
-        // handle multibyte char
-        uint32_t value = 0;
-        for(int k = 0; k < u8bytes; k++) {
-            uint8_t b = self->curr_char[k];
-            if(k == 0) {
-                if(u8bytes == 2)
-                    value = (b & 0b00011111) << 6;
-                else if(u8bytes == 3)
-                    value = (b & 0b00001111) << 12;
-                else if(u8bytes == 4)
-                    value = (b & 0b00000111) << 18;
-            } else {
-                value |= (b & 0b00111111) << (6 * (u8bytes - k - 1));
-            }
-        }
+        int value = c11__u8_value(u8bytes, self->curr_char);
         if(c11__is_unicode_Lo_char(value)) {
             self->curr_char += u8bytes;
         } else {

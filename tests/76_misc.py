@@ -34,3 +34,19 @@ for i in range(ord('a'), ord('z')+1):
 
 assert A.a == ord('a')
 assert A.z == ord('z')
+
+assert ord('测') == 27979
+
+try:
+    assert ord('测试')
+    print("Should not reach here")
+    exit(1)
+except TypeError:
+    pass
+
+try:
+    assert ord('12')
+    print("Should not reach here")
+    exit(1)
+except TypeError:
+    pass
