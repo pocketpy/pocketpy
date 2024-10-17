@@ -155,9 +155,5 @@ if sys.platform in ['linux', 'darwin']:
 
 print("amalgamated/pocketpy.h")
 
-# def sync(path):
-# 	shutil.copy("amalgamated/pocketpy.h", os.path.join(path, "pocketpy.h"))
-# 	with open(os.path.join(path, "pocketpy.cpp"), "wt", encoding='utf-8', newline='\n') as f:
-# 		f.write("#include \"pocketpy.h\"\n")
-
-# sync("plugins/macos/pocketpy")
+shutil.copy("amalgamated/pocketpy.h", "plugins/flutter/pocketpy/src/pocketpy.h")
+shutil.copy("amalgamated/pocketpy.c", "plugins/flutter/pocketpy/src/pocketpy.c")
