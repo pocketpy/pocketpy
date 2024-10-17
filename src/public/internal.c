@@ -13,7 +13,8 @@ static py_TValue _True, _False, _None, _NIL;
 
 void py_initialize() {
     if(pk_current_vm){
-        c11__abort("py_initialize() can only be called once!");
+        // c11__abort("py_initialize() can only be called once!");
+        return;
     }
 
     MemoryPools__initialize();
