@@ -1,13 +1,9 @@
 #include "pocketpy/interpreter/typeinfo.h"
 #include "pocketpy/objects/codeobject.h"
-#include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
-#include "pocketpy/common/sstream.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
-#include "pocketpy/compiler/compiler.h"
 
 VM* pk_current_vm;
 
