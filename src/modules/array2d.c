@@ -1,7 +1,6 @@
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 
@@ -371,7 +370,7 @@ static bool array2d_find_bounding_rect(int argc, py_Ref argv) {
     int width = right - left + 1;
     int height = bottom - top + 1;
     if(width <= 0 || height <= 0) {
-        py_newnone(py_retval());
+        return ValueError("value not found");
     } else {
         py_newtuple(py_retval(), 4);
         py_TValue* data = py_tuple_data(py_retval());

@@ -134,8 +134,12 @@ assert a.count(1) == 3*2
 
 assert a.find_bounding_rect(1) == (1, 1, 3, 2)
 assert a.find_bounding_rect(0) == (0, 0, 5, 5)
-assert a.find_bounding_rect(2) == None
 
+try:
+    a.find_bounding_rect(2)
+    exit(1)
+except ValueError:
+    pass
 
 a = array2d(3, 2, default='?')
 # int/float/str/bool/None
