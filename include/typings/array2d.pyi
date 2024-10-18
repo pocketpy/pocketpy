@@ -64,5 +64,5 @@ class array2d(Generic[T]):
     def find_bounding_rect(self, value: T) -> tuple[int, int, int, int]:
         """Finds the bounding rectangle of the given value.
         
-        Returns a tuple `(x, y, width, height)` or `None` if the value is not found.
+        Returns a tuple `(x, y, width, height)` or raise `ValueError` if the value is not found.
         """
