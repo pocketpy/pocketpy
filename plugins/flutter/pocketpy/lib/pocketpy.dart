@@ -11,7 +11,7 @@ void flutterPrint(Pointer<Char> text) {
   print(text.cast<Utf8>().toDartString());
 }
 
-final PocketpyBindings pkpy = () {
+final PocketpyBindings pocket = () {
   DynamicLibrary dylib;
   if (Platform.isMacOS || Platform.isIOS) {
     dylib = DynamicLibrary.open('$_libName.framework/$_libName');
