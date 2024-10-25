@@ -207,10 +207,30 @@ def finally_no_match():
     finally:
         ok = True
 
+ok_2 = False
 try:
     finally_no_match()
 except KeyError:
     assert ok
-    exit(0)
+    ok_2 = True
 
-exit(1)
+assert ok_2
+
+# finally, return (SyntaxError)
+err ='''
+def finally_return():
+    try:
+        raise KeyError
+    finally:
+        # This leaves a handled exception (it should be cleared but not)
+        # Completely unsafe!
+        return 1
+'''
+
+try:
+    exec(err)
+    exit(1)
+except SyntaxError as e:
+    pass
+
+

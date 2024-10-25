@@ -72,8 +72,8 @@ typedef struct Expr Expr;
 
 static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level);
 static void Ctx__dtor(Ctx* self);
-static int Ctx__get_loop(Ctx* self);
-static CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type);
+static int Ctx__get_loop(Ctx* self, bool* has_context);
+static int Ctx__enter_block(Ctx* self, CodeBlockType type);
 static void Ctx__exit_block(Ctx* self);
 static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
 static int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool virtual);
@@ -581,9 +581,8 @@ void CompExpr__emit_(Expr* self_, Ctx* ctx) {
     Ctx__emit_(ctx, self->op0, 0, self->line);
     vtemit_(self->iter, ctx);
     Ctx__emit_(ctx, OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
-    Ctx__enter_block(ctx, CodeBlockType_FOR_LOOP);
-    int curr_iblock = ctx->curr_iblock;
-    Ctx__emit_(ctx, OP_FOR_ITER, curr_iblock, BC_KEEPLINE);
+    int block = Ctx__enter_block(ctx, CodeBlockType_FOR_LOOP);
+    Ctx__emit_(ctx, OP_FOR_ITER, block, BC_KEEPLINE);
     bool ok = vtemit_store(self->vars, ctx);
     // this error occurs in `vars` instead of this line, but...nevermind
     assert(ok);  // this should raise a SyntaxError, but we just assert it
@@ -597,7 +596,7 @@ void CompExpr__emit_(Expr* self_, Ctx* ctx) {
         vtemit_(self->expr, ctx);
         Ctx__emit_(ctx, self->op1, BC_NOARG, BC_KEEPLINE);
     }
-    Ctx__emit_(ctx, OP_LOOP_CONTINUE, curr_iblock, BC_KEEPLINE);
+    Ctx__emit_(ctx, OP_LOOP_CONTINUE, block, BC_KEEPLINE);
     Ctx__exit_block(ctx);
 }
 
@@ -1107,22 +1106,28 @@ static void Ctx__dtor(Ctx* self) {
 
 static bool is_small_int(int64_t value) { return value >= INT16_MIN && value <= INT16_MAX; }
 
-static int Ctx__get_loop(Ctx* self) {
+static bool is_context_block(CodeBlock* block) {
+    return block->type >= CodeBlockType_WITH && block->type <= CodeBlockType_FINALLY;
+}
+
+static int Ctx__get_loop(Ctx* self, bool* has_context) {
     int index = self->curr_iblock;
+    *has_context = false;
     while(index >= 0) {
         CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, index);
         if(block->type == CodeBlockType_FOR_LOOP) break;
         if(block->type == CodeBlockType_WHILE_LOOP) break;
+        if(is_context_block(block)) *has_context = true;
         index = block->parent;
     }
     return index;
 }
 
-static CodeBlock* Ctx__enter_block(Ctx* self, CodeBlockType type) {
+static int Ctx__enter_block(Ctx* self, CodeBlockType type) {
     CodeBlock block = {type, self->curr_iblock, self->co->codes.length, -1, -1};
     c11_vector__push(CodeBlock, &self->co->blocks, block);
     self->curr_iblock = self->co->blocks.length - 1;
-    return c11__at(CodeBlock, &self->co->blocks, self->curr_iblock);
+    return self->curr_iblock;
 }
 
 static void Ctx__exit_block(Ctx* self) {
@@ -1336,6 +1341,18 @@ Error* SyntaxError(Compiler* self, const char* fmt, ...) {
     return err;
 }
 
+static Error* not_in_context(Compiler* self) {
+    int index = ctx()->curr_iblock;
+    while(index >= 0) {
+        CodeBlock* block = c11__at(CodeBlock, &(ctx()->co->blocks), index);
+        if(is_context_block(block)) {
+            return SyntaxError(self, "can't use flow control statements inside context block");
+        }
+        index = block->parent;
+    }
+    return NULL;
+}
+
 /* Matchers */
 static bool is_expression(Compiler* self, bool allow_slice) {
     PrattCallback prefix = rules[curr()->type].prefix;
@@ -1465,7 +1482,7 @@ static Error* pop_context(Compiler* self) {
     if(co->consts.length > 65530) {
         return SyntaxError(self, "maximum number of constants exceeded");
     }
-    // pre-compute LOOP_BREAK and LOOP_CONTINUE
+    // pre-compute block.end or block.end2
     for(int i = 0; i < codes->length; i++) {
         Bytecode* bc = c11__at(Bytecode, codes, i);
         if(bc->op == OP_LOOP_CONTINUE) {
@@ -1474,6 +1491,9 @@ static Error* pop_context(Compiler* self) {
         } else if(bc->op == OP_LOOP_BREAK) {
             CodeBlock* block = c11__at(CodeBlock, &ctx()->co->blocks, bc->arg);
             Bytecode__set_signed_arg(bc, (block->end2 != -1 ? block->end2 : block->end) - i);
+        } else if(bc->op == OP_FOR_ITER || bc->op == OP_FOR_ITER_YIELD_VALUE) {
+            CodeBlock* block = c11__at(CodeBlock, &ctx()->co->blocks, bc->arg);
+            Bytecode__set_signed_arg(bc, block->end - i);
         }
     }
     // pre-compute func->is_simple
@@ -1975,18 +1995,19 @@ static Error* compile_if_stmt(Compiler* self) {
 
 static Error* compile_while_loop(Compiler* self) {
     Error* err;
-    CodeBlock* block = Ctx__enter_block(ctx(), CodeBlockType_WHILE_LOOP);
+    int block = Ctx__enter_block(ctx(), CodeBlockType_WHILE_LOOP);
     check(EXPR(self));  // condition
     Ctx__s_emit_top(ctx());
     int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, prev()->line);
     check(compile_block_body(self, compile_stmt));
-    Ctx__emit_virtual(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), BC_KEEPLINE, true);
+    Ctx__emit_virtual(ctx(), OP_LOOP_CONTINUE, block, BC_KEEPLINE, true);
     Ctx__patch_jump(ctx(), patch);
     Ctx__exit_block(ctx());
     // optional else clause
     if(match(TK_ELSE)) {
         check(compile_block_body(self, compile_stmt));
-        block->end2 = ctx()->co->codes.length;
+        CodeBlock* p_block = c11__at(CodeBlock, &ctx()->co->blocks, block);
+        p_block->end2 = ctx()->co->codes.length;
     }
     return NULL;
 }
@@ -1998,8 +2019,8 @@ static Error* compile_for_loop(Compiler* self) {
     check(EXPR_TUPLE(self));  // [vars, iter]
     Ctx__s_emit_top(ctx());   // [vars]
     Ctx__emit_(ctx(), OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
-    CodeBlock* block = Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
-    Ctx__emit_(ctx(), OP_FOR_ITER, ctx()->curr_iblock, BC_KEEPLINE);
+    int block = Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
+    Ctx__emit_(ctx(), OP_FOR_ITER, block, BC_KEEPLINE);
     Expr* vars = Ctx__s_popx(ctx());
     bool ok = vtemit_store(vars, ctx());
     vtdelete(vars);
@@ -2008,12 +2029,13 @@ static Error* compile_for_loop(Compiler* self) {
         return SyntaxError(self, "invalid syntax");
     }
     check(compile_block_body(self, compile_stmt));
-    Ctx__emit_virtual(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), BC_KEEPLINE, true);
+    Ctx__emit_virtual(ctx(), OP_LOOP_CONTINUE, block, BC_KEEPLINE, true);
     Ctx__exit_block(ctx());
     // optional else clause
     if(match(TK_ELSE)) {
         check(compile_block_body(self, compile_stmt));
-        block->end2 = ctx()->co->codes.length;
+        CodeBlock* p_block = c11__at(CodeBlock, &ctx()->co->blocks, block);
+        p_block->end2 = ctx()->co->codes.length;
     }
     return NULL;
 }
@@ -2021,12 +2043,13 @@ static Error* compile_for_loop(Compiler* self) {
 static Error* compile_yield_from(Compiler* self, int kw_line) {
     Error* err;
     if(self->contexts.length <= 1) return SyntaxError(self, "'yield from' outside function");
+    check(not_in_context(self));
     check(EXPR_TUPLE(self));
     Ctx__s_emit_top(ctx());
     Ctx__emit_(ctx(), OP_GET_ITER, BC_NOARG, kw_line);
-    Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
-    Ctx__emit_(ctx(), OP_FOR_ITER_YIELD_VALUE, ctx()->curr_iblock, kw_line);
-    Ctx__emit_(ctx(), OP_LOOP_CONTINUE, Ctx__get_loop(ctx()), kw_line);
+    int block = Ctx__enter_block(ctx(), CodeBlockType_FOR_LOOP);
+    Ctx__emit_(ctx(), OP_FOR_ITER_YIELD_VALUE, block, kw_line);
+    Ctx__emit_(ctx(), OP_LOOP_CONTINUE, block, kw_line);
     Ctx__exit_block(ctx());
     // StopIteration.value will be pushed onto the stack
     return NULL;
@@ -2436,19 +2459,24 @@ static Error* compile_try_except(Compiler* self) {
     int patches[8];
     int patches_length = 0;
 
-    Ctx__enter_block(ctx(), CodeBlockType_TRY_EXCEPT);
+    Ctx__enter_block(ctx(), CodeBlockType_TRY);
     Ctx__emit_(ctx(), OP_TRY_ENTER, BC_NOARG, prev()->line);
     check(compile_block_body(self, compile_stmt));
 
-    bool finally_matched = match(TK_FINALLY);
-    if(!finally_matched) {
+    bool has_finally = curr()->type == TK_FINALLY;
+    if(!has_finally) {
         patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
     }
     Ctx__exit_block(ctx());
 
-    if(finally_matched) {
+    if(has_finally) {
+        consume(TK_FINALLY);
+        Ctx__emit_(ctx(), OP_BEGIN_FINALLY, BC_NOARG, prev()->line);
         // finally only, no except block
-        compile_block_body(self, compile_stmt);
+        Ctx__enter_block(ctx(), CodeBlockType_FINALLY);
+        check(compile_block_body(self, compile_stmt));
+        Ctx__exit_block(ctx());
+        Ctx__emit_(ctx(), OP_END_FINALLY, BC_NOARG, BC_KEEPLINE);
         // re-raise if needed
         Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
         return NULL;
@@ -2481,7 +2509,9 @@ static Error* compile_try_except(Compiler* self) {
             Ctx__emit_(ctx(), OP_PUSH_EXCEPTION, BC_NOARG, BC_KEEPLINE);
             Ctx__emit_store_name(ctx(), name_scope(self), as_name, BC_KEEPLINE);
         }
+        Ctx__enter_block(ctx(), CodeBlockType_EXCEPT);
         check(compile_block_body(self, compile_stmt));
+        Ctx__exit_block(ctx());
         Ctx__emit_(ctx(), OP_END_EXC_HANDLING, BC_NOARG, BC_KEEPLINE);
         patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
         Ctx__patch_jump(ctx(), patch);
@@ -2494,7 +2524,13 @@ static Error* compile_try_except(Compiler* self) {
     for(int i = 0; i < patches_length; i++)
         Ctx__patch_jump(ctx(), patches[i]);
 
-    if(match(TK_FINALLY)) compile_block_body(self, compile_stmt);
+    if(match(TK_FINALLY)) {
+        Ctx__emit_(ctx(), OP_BEGIN_FINALLY, BC_NOARG, prev()->line);
+        Ctx__enter_block(ctx(), CodeBlockType_FINALLY);
+        check(compile_block_body(self, compile_stmt));
+        Ctx__exit_block(ctx());
+        Ctx__emit_(ctx(), OP_END_FINALLY, BC_NOARG, BC_KEEPLINE);
+    }
     // re-raise if needed
     Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
     return NULL;
@@ -2508,7 +2544,8 @@ static Error* compile_stmt(Compiler* self) {
     }
     advance();
     int kw_line = prev()->line;  // backup line number
-    int curr_loop_block = Ctx__get_loop(ctx());
+    bool has_context = false;
+    int curr_loop_block = Ctx__get_loop(ctx(), &has_context);
     switch(prev()->type) {
         case TK_BREAK:
             if(curr_loop_block < 0) return SyntaxError(self, "'break' outside loop");
@@ -2522,6 +2559,7 @@ static Error* compile_stmt(Compiler* self) {
             break;
         case TK_YIELD:
             if(self->contexts.length <= 1) return SyntaxError(self, "'yield' outside function");
+            check(not_in_context(self));
             if(match_end_stmt(self)) {
                 Ctx__emit_(ctx(), OP_YIELD_VALUE, 1, kw_line);
             } else {
@@ -2538,6 +2576,7 @@ static Error* compile_stmt(Compiler* self) {
             break;
         case TK_RETURN:
             if(self->contexts.length <= 1) return SyntaxError(self, "'return' outside function");
+            check(not_in_context(self));
             if(match_end_stmt(self)) {
                 Ctx__emit_(ctx(), OP_RETURN_VALUE, 1, kw_line);
             } else {
@@ -2604,7 +2643,7 @@ static Error* compile_stmt(Compiler* self) {
         case TK_WITH: {
             check(EXPR(self));  // [ <expr> ]
             Ctx__s_emit_top(ctx());
-            Ctx__enter_block(ctx(), CodeBlockType_CONTEXT_MANAGER);
+            Ctx__enter_block(ctx(), CodeBlockType_WITH);
             NameExpr* as_name = NULL;
             if(match(TK_AS)) {
                 consume(TK_ID);

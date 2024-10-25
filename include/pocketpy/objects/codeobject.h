@@ -30,8 +30,11 @@ typedef enum CodeBlockType {
     CodeBlockType_NO_BLOCK,
     CodeBlockType_FOR_LOOP,
     CodeBlockType_WHILE_LOOP,
-    CodeBlockType_CONTEXT_MANAGER,
-    CodeBlockType_TRY_EXCEPT,
+    CodeBlockType_TRY,
+    /* context blocks */
+    CodeBlockType_WITH,
+    CodeBlockType_EXCEPT,
+    CodeBlockType_FINALLY,
 } CodeBlockType;
 
 typedef enum Opcode {

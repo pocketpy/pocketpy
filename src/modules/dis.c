@@ -91,7 +91,7 @@ static void disassemble(CodeObject* co) {
                 }
                 case OP_BINARY_OP: {
                     py_Name name = byte.arg & 0xFF;
-                    pk_sprintf(&ss, " (%n)", name);
+                    pk_sprintf(&ss, " (%s)", pk_op2str(name));
                     break;
                 }
             }

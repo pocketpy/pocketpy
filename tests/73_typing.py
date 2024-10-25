@@ -40,7 +40,8 @@ def converter(raw, mapper: Type[T] = None, default: T = None) -> T:
     try:
         return mapper(raw)
     except:
-        return default
+        pass
+    return default
 
 raw: str = '4'
 result: int = converter(raw, mapper=int, default=0)
@@ -53,19 +54,8 @@ def converter(raw, mapper: Callable[[Any], T] = None, default: T = None) -> T:
     try:
         return mapper(raw)
     except:
-        return default
-
-# Callable[[Any], ReturnType] means a function declare like:
-# def func(arg: Any) -> ReturnType:
-#     pass
-
-# Callable[[str, int], ReturnType] means a function declare like:
-# def func(string: str, times: int) -> ReturnType:
-#     pass
-
-# Callable[..., ReturnType] means a function declare like:
-# def func(*args, **kwargs) -> ReturnType:
-#     pass
+        pass
+    return default
 
 def is_success(value) -> bool:
     return value in (0, "OK", True, "success")

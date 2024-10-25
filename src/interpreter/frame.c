@@ -70,7 +70,7 @@ int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {
     int iblock = Frame__iblock(self);
     while(iblock >= 0) {
         CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, iblock);
-        if(block->type == CodeBlockType_TRY_EXCEPT) break;
+        if(block->type == CodeBlockType_TRY) break;
         iblock = block->parent;
     }
     if(iblock < 0) return -1;
@@ -97,18 +97,11 @@ void Frame__prepare_jump_break(Frame* self, ValueStack* _s, int target) {
     }
 }
 
-int Frame__prepare_loop_break(Frame* self, ValueStack* _s) {
-    int iblock = Frame__iblock(self);
-    int target = c11__getitem(CodeBlock, &self->co->blocks, iblock).end;
-    Frame__prepare_jump_break(self, _s, target);
-    return target;
-}
-
 int Frame__exit_block(Frame* self, ValueStack* _s, int iblock) {
     CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, iblock);
     if(block->type == CodeBlockType_FOR_LOOP) {
         _s->sp--;  // pop iterator
-    } else if(block->type == CodeBlockType_CONTEXT_MANAGER) {
+    } else if(block->type == CodeBlockType_WITH) {
         _s->sp--;  // pop context variable
     }
     return block->parent;
