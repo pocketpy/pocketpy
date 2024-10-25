@@ -2,7 +2,6 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/vm.h"
-#include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
@@ -623,20 +622,6 @@ FrameResult VM__run_top_frame(VM* self) {
                 Frame__prepare_jump_break(frame, &self->stack, target);
                 DISPATCH_JUMP((int16_t)byte.arg);
             }
-            case OP_JUMP_ABSOLUTE_TOP: {
-                int target = py_toint(TOP());
-                POP();
-                DISPATCH_JUMP_ABSOLUTE(target);
-            }
-            case OP_GOTO: {
-                int target = c11_smallmap_n2i__get(&frame->co->labels, byte.arg, -1);
-                if(target < 0) {
-                    RuntimeError("label '%n' not found", byte.arg);
-                    goto __ERROR;
-                }
-                Frame__prepare_jump_break(frame, &self->stack, target);
-                DISPATCH_JUMP_ABSOLUTE(target);
-            }
                 /*****************************************/
             case OP_CALL: {
                 ManagedHeap__collect_if_needed(&self->heap);
@@ -1002,8 +987,10 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_RE_RAISE: {
-                assert(self->curr_exception.type);
-                goto __ERROR_RE_RAISE;
+                if(self->curr_exception.type && !self->is_curr_exc_handled) {
+                    goto __ERROR_RE_RAISE;
+                }
+                DISPATCH();
             }
             case OP_PUSH_EXCEPTION: {
                 assert(self->curr_exception.type);

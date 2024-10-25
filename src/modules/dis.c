@@ -1,7 +1,4 @@
 #include "pocketpy/pocketpy.h"
-
-#include "pocketpy/common/utils.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 
@@ -75,7 +72,6 @@ static void disassemble(CodeObject* co) {
                 case OP_STORE_ATTR:
                 case OP_DELETE_ATTR:
                 case OP_BEGIN_CLASS:
-                case OP_GOTO:
                 case OP_DELETE_GLOBAL:
                 case OP_STORE_CLASS_ATTR: {
                     pk_sprintf(&ss, " (%n)", byte.arg);

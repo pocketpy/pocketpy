@@ -3,11 +3,9 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/objects/object.h"
-#include "pocketpy/common/strname.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/memorypool.h"
 #include <assert.h>
-#include <ctype.h>
 #include <stdbool.h>
 
 /* expr.h */
@@ -82,7 +80,6 @@ static int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, b
 static void Ctx__revert_last_emit_(Ctx* self);
 static int Ctx__emit_int(Ctx* self, int64_t value, int line);
 static void Ctx__patch_jump(Ctx* self, int index);
-static bool Ctx__add_label(Ctx* self, py_Name name);
 static int Ctx__add_varname(Ctx* self, py_Name name);
 static int Ctx__add_const(Ctx* self, py_Ref);
 static int Ctx__add_const_string(Ctx* self, c11_sv);
@@ -1191,13 +1188,6 @@ static void Ctx__patch_jump(Ctx* self, int index) {
     Bytecode__set_signed_arg(&co_codes[index], target - index);
 }
 
-static bool Ctx__add_label(Ctx* self, py_Name name) {
-    bool ok = c11_smallmap_n2i__contains(&self->co->labels, name);
-    if(ok) return false;
-    c11_smallmap_n2i__set(&self->co->labels, name, self->co->codes.length);
-    return true;
-}
-
 static int Ctx__add_varname(Ctx* self, py_Name name) {
     // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
     return CodeObject__add_varname(self->co, name);
@@ -2230,9 +2220,7 @@ static Error* consume_pep695_py312(Compiler* self) {
     Error* err;
     if(match(TK_LBRACKET)) {
         consume(TK_ID);
-        if(match(TK_COLON)){
-            check(consume_type_hints(self));
-        }
+        if(match(TK_COLON)) { check(consume_type_hints(self)); }
         consume(TK_RBRACKET);
     }
     return NULL;
@@ -2445,18 +2433,25 @@ __EAT_DOTS_END:
 
 static Error* compile_try_except(Compiler* self) {
     Error* err;
+    int patches[8];
+    int patches_length = 0;
+
     Ctx__enter_block(ctx(), CodeBlockType_TRY_EXCEPT);
     Ctx__emit_(ctx(), OP_TRY_ENTER, BC_NOARG, prev()->line);
     check(compile_block_body(self, compile_stmt));
 
-    int patches[8];
-    int patches_length = 0;
-
-    patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
+    bool finally_matched = match(TK_FINALLY);
+    if(!finally_matched) {
+        patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
+    }
     Ctx__exit_block(ctx());
 
-    if(curr()->type == TK_FINALLY) {
-        return SyntaxError(self, "finally clause is not supported yet");
+    if(finally_matched) {
+        // finally only, no except block
+        compile_block_body(self, compile_stmt);
+        // re-raise if needed
+        Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
+        return NULL;
     }
 
     do {
@@ -2466,14 +2461,17 @@ static Error* compile_try_except(Compiler* self) {
         py_Name as_name = 0;
         consume(TK_EXCEPT);
         if(is_expression(self, false)) {
-            check(EXPR(self));  // push assumed type on to the stack
+            // except <expr>:
+            check(EXPR(self));
             Ctx__s_emit_top(ctx());
             Ctx__emit_(ctx(), OP_EXCEPTION_MATCH, BC_NOARG, prev()->line);
             if(match(TK_AS)) {
+                // except <expr> as <name>:
                 consume(TK_ID);
                 as_name = py_namev(Token__sv(prev()));
             }
         } else {
+            // except:
             Ctx__emit_(ctx(), OP_LOAD_TRUE, BC_NOARG, BC_KEEPLINE);
         }
         int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
@@ -2490,11 +2488,15 @@ static Error* compile_try_except(Compiler* self) {
     } while(curr()->type == TK_EXCEPT);
 
     // no match, re-raise
-    Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
+    // ...
 
-    // no exception or no match, jump to the end
+    // match one & handled, jump to the end
     for(int i = 0; i < patches_length; i++)
         Ctx__patch_jump(ctx(), patches[i]);
+
+    if(match(TK_FINALLY)) compile_block_body(self, compile_stmt);
+    // re-raise if needed
+    Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
     return NULL;
 }
 
@@ -2622,25 +2624,6 @@ static Error* compile_stmt(Compiler* self) {
             Ctx__emit_(ctx(), OP_WITH_EXIT, BC_NOARG, prev()->line);
             Ctx__exit_block(ctx());
         } break;
-        /*************************************************/
-        case TK_EQ: {
-            consume(TK_ID);
-            if(mode() != EXEC_MODE)
-                return SyntaxError(self, "'label' is only available in EXEC_MODE");
-            c11_sv name = Token__sv(prev());
-            bool ok = Ctx__add_label(ctx(), py_namev(name));
-            if(!ok) return SyntaxError(self, "label %q already exists", name);
-            consume(TK_EQ);
-            consume_end_stmt();
-        } break;
-        case TK_ARROW:
-            consume(TK_ID);
-            if(mode() != EXEC_MODE)
-                return SyntaxError(self, "'goto' is only available in EXEC_MODE");
-            py_Name name = py_namev(Token__sv(prev()));
-            Ctx__emit_(ctx(), OP_GOTO, name, prev()->line);
-            consume_end_stmt();
-            break;
         /*************************************************/
         // handle dangling expression or assignment
         default: {

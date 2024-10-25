@@ -75,7 +75,6 @@ typedef struct CodeObject {
     int nlocals;                        // cached varnames.size()
 
     c11_smallmap_n2i varnames_inv;
-    c11_smallmap_n2i labels;
 
     c11_vector /*T=CodeBlock*/ blocks;
     c11_vector /*T=FuncDecl_*/ func_decls;

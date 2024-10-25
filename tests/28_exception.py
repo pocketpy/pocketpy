@@ -138,32 +138,38 @@ except Exception:
     exit(1)
 assert ok
 
-# ok = False
-# try:
-#     eval('1+')
-# except SyntaxError as e:
-#     assert type(e) is SyntaxError
-#     ok = True
-# assert ok
+ok = False
+try:
+    eval('1+')
+except SyntaxError as e:
+    assert type(e) is SyntaxError
+    ok = True
+assert ok
 
-"""
+
 # finally, only
 def finally_only():
     try:
         raise KeyError
     finally:
-        return True
-    
-assert finally_only() is True
+        x = 1
+
+try:
+    finally_only()
+    exit(1)
+except KeyError:
+    pass
 
 def finally_only_2():
+    x = 0
     try:
         pass
     finally:
-        return True
+        x = 1
+    return x
     
-assert finally_only_2() is True
-    
+assert finally_only_2() == 1
+
 # finally, no exception
 def finally_no_exception():
     ok = False
@@ -208,4 +214,3 @@ except KeyError:
     exit(0)
 
 exit(1)
-"""

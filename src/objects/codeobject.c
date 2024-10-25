@@ -125,7 +125,6 @@ void CodeObject__ctor(CodeObject* self, SourceData_ src, c11_sv name) {
     self->nlocals = 0;
 
     c11_smallmap_n2i__ctor(&self->varnames_inv);
-    c11_smallmap_n2i__ctor(&self->labels);
 
     c11_vector__ctor(&self->blocks, sizeof(CodeBlock));
     c11_vector__ctor(&self->func_decls, sizeof(FuncDecl_));
@@ -148,7 +147,6 @@ void CodeObject__dtor(CodeObject* self) {
     c11_vector__dtor(&self->varnames);
 
     c11_smallmap_n2i__dtor(&self->varnames_inv);
-    c11_smallmap_n2i__dtor(&self->labels);
 
     c11_vector__dtor(&self->blocks);
 

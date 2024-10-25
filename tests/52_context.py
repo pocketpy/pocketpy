@@ -27,11 +27,4 @@ assert path == ['enter', 'in', 'exit']
 
 path.clear()
 
-with A(123) as a:
-    assert path == ['enter']
-    -> end
-    path.append('in')
-
-== end ==
-assert path == ['enter']
 
