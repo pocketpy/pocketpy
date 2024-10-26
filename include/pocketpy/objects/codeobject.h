@@ -28,11 +28,12 @@ typedef enum NameScope {
 
 typedef enum CodeBlockType {
     CodeBlockType_NO_BLOCK,
-    CodeBlockType_FOR_LOOP,
     CodeBlockType_WHILE_LOOP,
     CodeBlockType_TRY,
-    /* context blocks */
+    /* context blocks (stack-based) */
+    CodeBlockType_FOR_LOOP,
     CodeBlockType_WITH,
+    /* context blocks (flag-based) */
     CodeBlockType_EXCEPT,
     CodeBlockType_FINALLY,
 } CodeBlockType;

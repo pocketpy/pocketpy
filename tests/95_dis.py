@@ -13,4 +13,4 @@ def f(a):
 def g(a):
     return f([1,2,3] + a)
 
-assert dis(g) is None
+assert dis(f) is None

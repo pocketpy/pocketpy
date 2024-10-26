@@ -1,8 +1,9 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
+#include <stdbool.h>
 
-static void disassemble(CodeObject* co) {
+static bool disassemble(CodeObject* co) {
     c11_vector /*T=int*/ jumpTargets;
     c11_vector__ctor(&jumpTargets, sizeof(int));
     for(int i = 0; i < co->codes.length; i++) {
@@ -56,7 +57,15 @@ static void disassemble(CodeObject* co) {
 
             c11_sbuf__write_int(&ss, byte.arg);
             switch(byte.op) {
-                case OP_LOAD_CONST:
+                case OP_LOAD_CONST: {
+                    py_Ref value = c11__at(py_TValue, &co->consts, byte.arg);
+                    if(py_repr(value)) {
+                        pk_sprintf(&ss, " (%s)", py_tosv(py_retval()));
+                    } else {
+                        return false;
+                    }
+                    break;
+                }
                 case OP_FORMAT_STRING:
                 case OP_IMPORT_PATH: {
                     py_Ref path = c11__at(py_TValue, &co->consts, byte.arg);
@@ -105,6 +114,7 @@ static void disassemble(CodeObject* co) {
     pk_current_vm->callbacks.print("\n");
     c11_string__delete(output);
     c11_vector__dtor(&jumpTargets);
+    return true;
 }
 
 static bool dis_dis(int argc, py_Ref argv) {
@@ -119,7 +129,7 @@ static bool dis_dis(int argc, py_Ref argv) {
     } else {
         return TypeError("dis() expected a code object");
     }
-    disassemble(code);
+    if(!disassemble(code)) return false;
     py_newnone(py_retval());
     return true;
 }

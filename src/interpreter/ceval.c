@@ -11,6 +11,8 @@
 static bool stack_unpack_sequence(VM* self, uint16_t arg);
 static bool stack_format_object(VM* self, c11_sv spec);
 
+#define CHECK_RETURN_FROM_EXCEPT_OR_FINALLY() if(self->is_curr_exc_handled) py_clearexc(NULL)
+
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
@@ -613,15 +615,17 @@ FrameResult VM__run_top_frame(VM* self) {
                     DISPATCH();
                 }
             }
-            case OP_LOOP_CONTINUE:
-                // just an alias of OP_JUMP_FORWARD
-                DISPATCH_JUMP((int16_t)byte.arg);
-            case OP_LOOP_BREAK: {
-                int target = Frame__ip(frame) + byte.arg;
+            case OP_LOOP_CONTINUE: {
+                int target = Frame__ip(frame) + (int16_t)byte.arg;
                 Frame__prepare_jump_break(frame, &self->stack, target);
                 DISPATCH_JUMP((int16_t)byte.arg);
             }
-                /*****************************************/
+            case OP_LOOP_BREAK: {
+                int target = Frame__ip(frame) + (int16_t)byte.arg;
+                Frame__prepare_jump_break(frame, &self->stack, target);
+                DISPATCH_JUMP((int16_t)byte.arg);
+            }
+            /*****************************************/
             case OP_CALL: {
                 ManagedHeap__collect_if_needed(&self->heap);
                 vectorcall_opcall(byte.arg & 0xFF, byte.arg >> 8);
@@ -683,6 +687,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_RETURN_VALUE: {
+                CHECK_RETURN_FROM_EXCEPT_OR_FINALLY();
                 if(byte.arg == BC_NOARG) {
                     self->last_retval = POPX();
                 } else {
@@ -699,6 +704,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_YIELD_VALUE: {
+                CHECK_RETURN_FROM_EXCEPT_OR_FINALLY();
                 if(byte.arg == 1) {
                     py_newnone(py_retval());
                 } else {
@@ -708,6 +714,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 return RES_YIELD;
             }
             case OP_FOR_ITER_YIELD_VALUE: {
+                CHECK_RETURN_FROM_EXCEPT_OR_FINALLY();
                 int res = py_next(TOP());
                 if(res == -1) goto __ERROR;
                 if(res) {
@@ -716,7 +723,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     assert(self->last_retval.type == tp_StopIteration);
                     py_ObjectRef value = py_getslot(&self->last_retval, 0);
                     if(py_isnil(value)) value = py_None();
-                    *TOP() = *value;    // [iter] -> [retval]
+                    *TOP() = *value;  // [iter] -> [retval]
                     DISPATCH_JUMP((int16_t)byte.arg);
                 }
             }
@@ -1000,7 +1007,6 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_END_EXC_HANDLING: {
-                assert(self->curr_exception.type);
                 py_clearexc(NULL);
                 DISPATCH();
             }

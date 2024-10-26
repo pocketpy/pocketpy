@@ -11,7 +11,9 @@ void Bytecode__set_signed_arg(Bytecode* self, int arg) {
 }
 
 bool Bytecode__is_forward_jump(const Bytecode* self) {
-    return self->op >= OP_JUMP_FORWARD && self->op <= OP_LOOP_BREAK;
+    Opcode op = self->op;
+    return (op >= OP_JUMP_FORWARD && op <= OP_LOOP_BREAK) ||
+           (op == OP_FOR_ITER || op == OP_FOR_ITER_YIELD_VALUE);
 }
 
 static void FuncDecl__dtor(FuncDecl* self) {
@@ -177,7 +179,8 @@ int CodeObject__add_varname(CodeObject* self, py_Name name) {
 }
 
 void Function__dtor(Function* self) {
-    // printf("%s() in %s freed!\n", self->decl->code.name->data, self->decl->code.src->filename->data);
+    // printf("%s() in %s freed!\n", self->decl->code.name->data,
+    // self->decl->code.src->filename->data);
     PK_DECREF(self->decl);
     if(self->closure) NameDict__delete(self->closure);
 }
