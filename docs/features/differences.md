@@ -37,4 +37,5 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 6. A `Tab` is equivalent to 4 spaces. You can mix `Tab` and spaces in indentation, but it is not recommended.
 7. `%`, `&`, `//`, `^` and `|` for `int` behave the same as C, not python.
 8. `str.split` and `str.splitlines` will remove all empty entries.
+9. A return, break, continue in try/except block will make the finally block not executed.
 

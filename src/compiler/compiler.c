@@ -2466,6 +2466,19 @@ static Error* compile_try_except(Compiler* self) {
     Ctx__emit_(ctx(), OP_TRY_ENTER, BC_NOARG, prev()->line);
     check(compile_block_body(self, compile_stmt));
 
+    // https://docs.python.org/3/reference/compound_stmts.html#finally-clause
+    /* If finally is present, it specifies a ‘cleanup’ handler. The try clause is executed,
+     * including any except and else clauses. If an exception occurs in any of the clauses and is
+     * not handled, the exception is temporarily saved. The finally clause is executed. If there is
+     * a saved exception it is re-raised at the end of the finally clause. If the finally clause
+     * raises another exception, the saved exception is set as the context of the new exception. If
+     * the finally clause executes a return, break or continue statement, the saved exception is
+     * discarded.
+     */
+
+    // known issue:
+    // A return, break, continue in try/except block will make the finally block not executed
+
     bool has_finally = curr()->type == TK_FINALLY;
     if(!has_finally) {
         patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
