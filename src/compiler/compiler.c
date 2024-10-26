@@ -72,7 +72,7 @@ typedef struct Expr Expr;
 
 static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level);
 static void Ctx__dtor(Ctx* self);
-static int Ctx__get_loop(Ctx* self, bool* has_context);
+static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break);
 static int Ctx__enter_block(Ctx* self, CodeBlockType type);
 static void Ctx__exit_block(Ctx* self);
 static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
@@ -1107,18 +1107,30 @@ static void Ctx__dtor(Ctx* self) {
 
 static bool is_small_int(int64_t value) { return value >= INT16_MIN && value <= INT16_MAX; }
 
-static bool is_context_block(CodeBlock* block) {
-    return block->type >= CodeBlockType_FOR_LOOP && block->type <= CodeBlockType_FINALLY;
-}
-
-static int Ctx__get_loop(Ctx* self, bool* has_context) {
+static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break) {
     int index = self->curr_iblock;
-    *has_context = false;
     while(index >= 0) {
         CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, index);
-        if(block->type == CodeBlockType_FOR_LOOP) break;
-        if(block->type == CodeBlockType_WHILE_LOOP) break;
-        if(is_context_block(block)) *has_context = true;
+        switch(block->type) {
+            case CodeBlockType_WHILE_LOOP: return index;
+            case CodeBlockType_FOR_LOOP: {
+                if(is_break) Ctx__emit_(self, OP_POP_TOP, BC_NOARG, line);
+                return index;
+            }
+            case CodeBlockType_WITH: {
+                Ctx__emit_(self, OP_POP_TOP, BC_NOARG, line);
+                break;
+            }
+            case CodeBlockType_EXCEPT: {
+                Ctx__emit_(self, OP_END_EXC_HANDLING, 1, line);
+                break;
+            }
+            case CodeBlockType_FINALLY: {
+                Ctx__emit_(self, OP_END_FINALLY, 1, line);
+                break;
+            }
+            default: break;
+        }
         index = block->parent;
     }
     return index;
@@ -1133,14 +1145,9 @@ static int Ctx__enter_block(Ctx* self, CodeBlockType type) {
 
 static void Ctx__exit_block(Ctx* self) {
     CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, self->curr_iblock);
-    CodeBlockType curr_type = block->type;
     block->end = self->co->codes.length;
     self->curr_iblock = block->parent;
     assert(self->curr_iblock >= 0);
-    if(curr_type == CodeBlockType_FOR_LOOP) {
-        // add a no op here to make block check work
-        Ctx__emit_virtual(self, OP_NO_OP, BC_NOARG, BC_KEEPLINE, true);
-    }
 }
 
 static void Ctx__s_emit_decorators(Ctx* self, int count) {
@@ -2540,19 +2547,21 @@ static Error* compile_stmt(Compiler* self) {
     }
     advance();
     int kw_line = prev()->line;  // backup line number
-    bool has_context = false;
-    int curr_loop_block = Ctx__get_loop(ctx(), &has_context);
     switch(prev()->type) {
-        case TK_BREAK:
+        case TK_BREAK: {
+            int curr_loop_block = Ctx__prepare_loop_divert(ctx(), kw_line, true);
             if(curr_loop_block < 0) return SyntaxError(self, "'break' outside loop");
             Ctx__emit_(ctx(), OP_LOOP_BREAK, curr_loop_block, kw_line);
             consume_end_stmt();
             break;
-        case TK_CONTINUE:
+        }
+        case TK_CONTINUE: {
+            int curr_loop_block = Ctx__prepare_loop_divert(ctx(), kw_line, false);
             if(curr_loop_block < 0) return SyntaxError(self, "'continue' not properly in loop");
             Ctx__emit_(ctx(), OP_LOOP_CONTINUE, curr_loop_block, kw_line);
             consume_end_stmt();
             break;
+        }
         case TK_YIELD:
             if(self->contexts.length <= 1) return SyntaxError(self, "'yield' outside function");
             if(match_end_stmt(self)) {

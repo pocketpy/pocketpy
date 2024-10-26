@@ -617,13 +617,9 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
             }
             case OP_LOOP_CONTINUE: {
-                int target = Frame__ip(frame) + (int16_t)byte.arg;
-                Frame__prepare_jump_break(frame, &self->stack, target);
                 DISPATCH_JUMP((int16_t)byte.arg);
             }
             case OP_LOOP_BREAK: {
-                int target = Frame__ip(frame) + (int16_t)byte.arg;
-                Frame__prepare_jump_break(frame, &self->stack, target);
                 DISPATCH_JUMP((int16_t)byte.arg);
             }
             /*****************************************/
@@ -1023,10 +1019,15 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_END_FINALLY: {
-                if(self->curr_exception.type) {
-                    assert(self->is_curr_exc_handled);
-                    // revert the exception handling if needed
-                    self->is_curr_exc_handled = false;
+                if(byte.arg == BC_NOARG) {
+                    if(self->curr_exception.type) {
+                        assert(self->is_curr_exc_handled);
+                        // revert the exception handling if needed
+                        self->is_curr_exc_handled = false;
+                    }
+                } else {
+                    // break or continue inside finally block
+                    py_clearexc(NULL);
                 }
                 DISPATCH();
             }

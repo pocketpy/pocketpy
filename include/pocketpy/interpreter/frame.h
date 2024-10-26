@@ -56,8 +56,6 @@ py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name);
 py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name);
 
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack*);
-void Frame__prepare_jump_break(Frame* self, ValueStack*, int);
-int Frame__exit_block(Frame* self, ValueStack*, int);
 
 UnwindTarget* Frame__find_unwind_target(Frame* self, int iblock);
 void Frame__set_unwind_target(Frame* self, py_TValue* sp);

@@ -79,34 +79,6 @@ int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {
     return c11__at(CodeBlock, &self->co->blocks, iblock)->end;
 }
 
-void Frame__prepare_jump_break(Frame* self, ValueStack* _s, int target) {
-    int iblock = Frame__iblock(self);
-    if(target >= self->co->codes.length) {
-        while(iblock >= 0)
-            iblock = Frame__exit_block(self, _s, iblock);
-    } else {
-        // BUG (solved)
-        // for i in range(4):
-        //     _ = 0
-        // # if there is no op here, the block check will fail
-        // while i: --i
-        int next_block = c11__at(BytecodeEx, &self->co->codes_ex, target)->iblock;
-        while(iblock >= 0 && iblock != next_block)
-            iblock = Frame__exit_block(self, _s, iblock);
-        assert(iblock == next_block);
-    }
-}
-
-int Frame__exit_block(Frame* self, ValueStack* _s, int iblock) {
-    CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, iblock);
-    if(block->type == CodeBlockType_FOR_LOOP || block->type == CodeBlockType_WITH) {
-        _s->sp--;  // pop iterator or context variable
-    } else if(block->type == CodeBlockType_EXCEPT || block->type == CodeBlockType_FINALLY) {
-        py_clearexc(NULL);
-    }
-    return block->parent;
-}
-
 UnwindTarget* Frame__find_unwind_target(Frame* self, int iblock) {
     UnwindTarget* uw;
     for(uw = self->uw_list; uw; uw = uw->next) {
