@@ -1108,7 +1108,7 @@ static void Ctx__dtor(Ctx* self) {
 static bool is_small_int(int64_t value) { return value >= INT16_MIN && value <= INT16_MAX; }
 
 static bool is_context_block(CodeBlock* block) {
-    return block->type >= CodeBlockType_WITH && block->type <= CodeBlockType_FINALLY;
+    return block->type >= CodeBlockType_FOR_LOOP && block->type <= CodeBlockType_FINALLY;
 }
 
 static int Ctx__get_loop(Ctx* self, bool* has_context) {

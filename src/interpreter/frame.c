@@ -1,7 +1,7 @@
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/objects/codeobject.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
 
@@ -99,10 +99,10 @@ void Frame__prepare_jump_break(Frame* self, ValueStack* _s, int target) {
 
 int Frame__exit_block(Frame* self, ValueStack* _s, int iblock) {
     CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, iblock);
-    if(block->type == CodeBlockType_FOR_LOOP) {
-        _s->sp--;  // pop iterator
-    } else if(block->type == CodeBlockType_WITH) {
-        _s->sp--;  // pop context variable
+    if(block->type == CodeBlockType_FOR_LOOP || block->type == CodeBlockType_WITH) {
+        _s->sp--;  // pop iterator or context variable
+    } else if(block->type == CodeBlockType_EXCEPT || block->type == CodeBlockType_FINALLY) {
+        py_clearexc(NULL);
     }
     return block->parent;
 }

@@ -1010,6 +1010,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_END_EXC_HANDLING: {
+                assert(self->curr_exception.type);
                 py_clearexc(NULL);
                 DISPATCH();
             }
