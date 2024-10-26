@@ -11,7 +11,8 @@
 static bool stack_unpack_sequence(VM* self, uint16_t arg);
 static bool stack_format_object(VM* self, c11_sv spec);
 
-#define CHECK_RETURN_FROM_EXCEPT_OR_FINALLY() if(self->is_curr_exc_handled) py_clearexc(NULL)
+#define CHECK_RETURN_FROM_EXCEPT_OR_FINALLY()                                                      \
+    if(self->is_curr_exc_handled) py_clearexc(NULL)
 
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
@@ -992,7 +993,8 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_RE_RAISE: {
-                if(self->curr_exception.type && !self->is_curr_exc_handled) {
+                if(self->curr_exception.type) {
+                    assert(!self->is_curr_exc_handled);
                     goto __ERROR_RE_RAISE;
                 }
                 DISPATCH();
@@ -1003,6 +1005,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_BEGIN_EXC_HANDLING: {
+                assert(self->curr_exception.type);
                 self->is_curr_exc_handled = true;
                 DISPATCH();
             }
@@ -1012,13 +1015,15 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_BEGIN_FINALLY: {
                 if(self->curr_exception.type) {
+                    assert(!self->is_curr_exc_handled);
                     // temporarily handle the exception if any
                     self->is_curr_exc_handled = true;
                 }
                 DISPATCH();
             }
             case OP_END_FINALLY: {
-                if(self->curr_exception.type && self->is_curr_exc_handled) {
+                if(self->curr_exception.type) {
+                    assert(self->is_curr_exc_handled);
                     // revert the exception handling if needed
                     self->is_curr_exc_handled = false;
                 }
