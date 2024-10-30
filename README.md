@@ -16,9 +16,6 @@
 <!-- Github Release -->
 <a href="https://github.com/blueloveth/pocketpy/releases">
 <img alt="GitHub release" src="https://img.shields.io/github/release/blueloveth/pocketpy.svg"></a>
-<!-- docs -->
-<a href="https://pocketpy.dev">
-<img alt="Website" src="https://img.shields.io/website/https/pocketpy.dev.svg?down_color=red&down_message=offline&up_color=blue&up_message=online"></a>
 <!-- Discord -->
 <a title="Discord" href="https://discord.gg/WWaq72GzXv" >
 <img src="https://img.shields.io/discord/1048978026131640390.svg" /></a>
