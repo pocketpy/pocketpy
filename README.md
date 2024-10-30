@@ -22,11 +22,9 @@
 <!-- Discord -->
 <a title="Discord" href="https://discord.gg/WWaq72GzXv" >
 <img src="https://img.shields.io/discord/1048978026131640390.svg" /></a>
+<!-- HelloGithub -->
+<a href="https://hellogithub.com/repository/dd9c509d72a64caca03d99d5b1991a33" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=dd9c509d72a64caca03d99d5b1991a33&claim_uid=jhOYmWGE75AL0Bp&theme=small" alt="Featured｜HelloGitHub" /></a>
 </p>
-
----
-## This branch is in beta stage. Old implementation was moved to v1.x branch.
----
 
 pkpy is a lightweight(~15K LOC) Python 3.x interpreter for game scripting, written in C11.
 
