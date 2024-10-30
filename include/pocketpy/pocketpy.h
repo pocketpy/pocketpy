@@ -464,7 +464,7 @@ PK_API bool py_pushmethod(py_Name name);
 /// `argc` is the number of positional arguments excluding `self`.
 /// `kwargc` is the number of keyword arguments, i.e. the number of key-value pairs.
 /// The result will be set to `py_retval()`.
-/// The stack size will be reduced by `argc + kwargc`.
+/// The stack size will be reduced by `2 + argc + kwargc * 2`.
 PK_API bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE PY_RETURN;
 /// Evaluate an expression and push the result to the stack.
 /// This function is used for testing.
