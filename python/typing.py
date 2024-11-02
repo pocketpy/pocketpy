@@ -24,7 +24,6 @@ Union = _PLACEHOLDER
 Optional = _PLACEHOLDER
 Callable = _PLACEHOLDER
 Type = _PLACEHOLDER
-Protocol = _PLACEHOLDER
 
 Literal = _PLACEHOLDER
 LiteralString = _PLACEHOLDER
@@ -37,8 +36,8 @@ Hashable = _PLACEHOLDER
 TypeVar = _PLACEHOLDER
 Self = _PLACEHOLDER
 
-class Generic:
-    pass
+Protocol = object
+Generic = object
 
 TYPE_CHECKING = False
 
