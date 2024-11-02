@@ -2,6 +2,8 @@
 #include "pocketpy/pocketpy.h"
 #include <time.h>
 
+int64_t time_ns();  // from random.c
+
 /* https://github.com/clibs/mt19937ar
 
 Copyright (c) 2011 Mutsuo Saito, Makoto Matsumoto, Hiroshima
@@ -76,7 +78,8 @@ static uint32_t mt19937__next_uint32(mt19937* self) {
         int kk;
 
         if(self->mti == N + 1) { /* if init_genrand() has not been called, */
-            mt19937__seed(self, clock());
+            int64_t seed = time_ns();
+            mt19937__seed(self, (uint32_t)seed);
             // seed(5489UL); /* a default initial seed is used */
         }
 

@@ -4,7 +4,7 @@
 
 #define NANOS_PER_SEC 1000000000
 
-static bool get_ns(int64_t* out) {
+int64_t time_ns() {
     struct timespec tms;
 #if defined( __ANDROID__) || defined(__MINGW32__) || defined(__MINGW64__)
     clock_gettime(CLOCK_REALTIME, &tms);
@@ -16,22 +16,19 @@ static bool get_ns(int64_t* out) {
     int64_t nanos = tms.tv_sec * NANOS_PER_SEC;
     /* Add full nanoseconds */
     nanos += tms.tv_nsec;
-    *out = nanos;
-    return true;
+    return nanos;
 }
 
 static bool time_time(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
-    int64_t nanos;
-    if(!get_ns(&nanos)) return false;
+    int64_t nanos = time_ns();
     py_newfloat(py_retval(), (double)nanos / NANOS_PER_SEC);
     return true;
 }
 
 static bool time_time_ns(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
-    int64_t nanos;
-    if(!get_ns(&nanos)) return false;
+    int64_t nanos = time_ns();
     py_newint(py_retval(), nanos);
     return true;
 }
@@ -41,12 +38,10 @@ static bool time_sleep(int argc, py_Ref argv) {
     py_f64 secs;
     if(!py_castfloat(argv, &secs)) return false;
 
-    int64_t start;
-    if(!get_ns(&start)) return false;
+    int64_t start = time_ns();
     const int64_t end = start + secs * 1000000000;
     while(true) {
-        int64_t now;
-        if(!get_ns(&now)) return false;
+        int64_t now = time_ns();
         if(now >= end) break;
     }
     py_newnone(py_retval());
