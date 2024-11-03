@@ -149,7 +149,7 @@ write_file('amalgamated/pocketpy.h', merge_h_files())
 shutil.copy("src2/main.c", "amalgamated/main.c")
 
 if sys.platform in ['linux', 'darwin']:
-	ok = os.system("clang -o main amalgamated/pocketpy.c amalgamated/main.c -O1 --std=c11 -lm")
+	ok = os.system("clang -o main amalgamated/pocketpy.c amalgamated/main.c -O1 --std=c11 -lm -ldl")
 	if ok == 0:
 		print("Test build success!")
 

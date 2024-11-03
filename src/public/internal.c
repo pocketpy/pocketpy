@@ -39,10 +39,14 @@ void py_finalize() {
     for(int i = 1; i < 16; i++) {
         VM* vm = pk_all_vm[i];
         if(vm) {
+            // temp fix https://github.com/pocketpy/pocketpy/issues/315
+            // TODO: refactor VM__ctor and VM__dtor
+            pk_current_vm = vm;
             VM__dtor(vm);
             free(vm);
         }
     }
+    pk_current_vm = &pk_default_vm;
     VM__dtor(&pk_default_vm);
     pk_current_vm = NULL;
     py_Name__finalize();
@@ -52,10 +56,12 @@ void py_finalize() {
 void py_switchvm(int index) {
     if(index < 0 || index >= 16) c11__abort("invalid vm index");
     if(!pk_all_vm[index]) {
-        pk_all_vm[index] = malloc(sizeof(VM));
+        pk_current_vm = pk_all_vm[index] = malloc(sizeof(VM));
+        memset(pk_current_vm, 0, sizeof(VM));
         VM__ctor(pk_all_vm[index]);
+    }else{
+        pk_current_vm = pk_all_vm[index];
     }
-    pk_current_vm = pk_all_vm[index];
 }
 
 void py_resetvm() {
