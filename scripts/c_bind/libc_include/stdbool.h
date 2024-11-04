@@ -1,0 +1,1 @@
+#define bool _Bool

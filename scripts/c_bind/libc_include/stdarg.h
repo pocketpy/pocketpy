@@ -1,0 +1,1 @@
+#define va_list int
