@@ -1,4 +1,5 @@
 from array2d import array2d
+from linalg import vec2i
 
 # test error args for __init__
 try:
@@ -15,12 +16,12 @@ assert a.height == a.n_rows == 4
 assert a.numel == 8
 
 # test is_valid
-assert a.is_valid(0, 0)
-assert a.is_valid(1, 3)
-assert not a.is_valid(2, 0)
-assert not a.is_valid(0, 4)
-assert not a.is_valid(-1, 0)
-assert not a.is_valid(0, -1)
+assert a.is_valid(0, 0) and a.is_valid(vec2i(0, 0))
+assert a.is_valid(1, 3) and a.is_valid(vec2i(1, 3))
+assert not a.is_valid(2, 0) and not a.is_valid(vec2i(2, 0))
+assert not a.is_valid(0, 4) and not a.is_valid(vec2i(0, 4))
+assert not a.is_valid(-1, 0) and not a.is_valid(vec2i(-1, 0))
+assert not a.is_valid(0, -1) and not a.is_valid(vec2i(0, -1))
 
 # test get
 assert a.get(0, 0) == 0

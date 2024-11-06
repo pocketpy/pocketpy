@@ -89,12 +89,21 @@ static bool array2d_numel(int argc, py_Ref argv) {
 }
 
 static bool array2d_is_valid(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(3);
     c11_array2d* self = py_touserdata(argv);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
-    int col = py_toint(py_arg(1));
-    int row = py_toint(py_arg(2));
+    int col, row;
+    if(argc == 2) {
+        PY_CHECK_ARG_TYPE(1, tp_vec2i);
+        c11_vec2i pos = py_tovec2i(py_arg(1));
+        col = pos.x;
+        row = pos.y;
+    } else if(argc == 3) {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        PY_CHECK_ARG_TYPE(2, tp_int);
+        col = py_toint(py_arg(1));
+        row = py_toint(py_arg(2));
+    } else {
+        return TypeError("is_valid() expected 2 or 3 arguments");
+    }
     py_newbool(py_retval(), py_array2d_is_valid(self, col, row));
     return true;
 }
@@ -315,7 +324,7 @@ static bool array2d_tolist(int argc, py_Ref argv) {
     return true;
 }
 
-static bool array2d_render(int argc, py_Ref argv){
+static bool array2d_render(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
@@ -326,9 +335,7 @@ static bool array2d_render(int argc, py_Ref argv){
             if(!py_str(item)) return false;
             c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
         }
-        if(j < self->n_rows - 1){
-            c11_sbuf__write_char(&buf, '\n');
-        }
+        if(j < self->n_rows - 1) c11_sbuf__write_char(&buf, '\n');
     }
     c11_sbuf__py_submit(&buf, py_retval());
     return true;
