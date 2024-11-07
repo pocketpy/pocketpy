@@ -216,8 +216,7 @@ void VM__ctor(VM* self) {
     pk__add_module_traceback();
     pk__add_module_enum();
 
-    // add win32 module
-    pk__add_module_win32();
+    pk__add_module_conio();
 
     // add python builtins
     do {
