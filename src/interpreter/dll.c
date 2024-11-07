@@ -1,6 +1,6 @@
 #include "pocketpy/pocketpy.h"
 
-#if PK_IS_DESKTOP_PLATFORM
+#if PK_IS_DESKTOP_PLATFORM && PK_ENABLE_OS
 
 #ifdef _WIN32
 void* LoadLibraryA(const char*);
