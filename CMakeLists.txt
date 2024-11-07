@@ -83,7 +83,9 @@ endif()
 
 if(UNIX)
     target_link_libraries(${PROJECT_NAME} m)
-    target_link_libraries(${PROJECT_NAME} dl)
+    if(PK_ENABLE_OS)
+        target_link_libraries(${PROJECT_NAME} dl)
+    endif()
 endif()
 
 if(PK_MODULE_WIN32)
