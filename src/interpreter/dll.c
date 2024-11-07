@@ -3,8 +3,12 @@
 #if PK_IS_DESKTOP_PLATFORM && PK_ENABLE_OS
 
 #ifdef _WIN32
+
+#ifndef _WINDOWS_
 void* LoadLibraryA(const char*);
 void* GetProcAddress(void*, const char*);
+#endif
+
 #else
 #include <dlfcn.h>
 #endif
