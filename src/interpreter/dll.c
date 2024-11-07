@@ -4,10 +4,8 @@
 
 #ifdef _WIN32
 
-#ifndef _WINDOWS_
-void* LoadLibraryA(const char*);
-void* GetProcAddress(void*, const char*);
-#endif
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 
 #else
 #include <dlfcn.h>
