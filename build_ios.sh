@@ -6,7 +6,7 @@ rm -rf build
 mkdir build
 cd build
 
-FLAGS="-DCMAKE_TOOLCHAIN_FILE=3rd/ios.toolchain.cmake -DPK_BUILD_STATIC_LIB=ON -DDEPLOYMENT_TARGET=13.0"
+FLAGS="-DCMAKE_TOOLCHAIN_FILE=3rd/ios.toolchain.cmake -DPK_BUILD_STATIC_LIB=ON -DDEPLOYMENT_TARGET=13.0 -DPK_BUILD_WITH_IPO=OFF"
 
 cmake -B os64 -G Xcode $FLAGS -DPLATFORM=OS64 ..
 cmake --build os64 --config Release
