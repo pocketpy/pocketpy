@@ -4,20 +4,26 @@
 
 #define NANOS_PER_SEC 1000000000
 
-int64_t time_ns() {
-    struct timespec tms;
-#ifdef CLOCK_REALTIME
-    clock_gettime(CLOCK_REALTIME, &tms);
+#ifndef __circle__
+    int64_t time_ns() {
+        struct timespec tms;
+    #ifdef CLOCK_REALTIME
+        clock_gettime(CLOCK_REALTIME, &tms);
+    #else
+        /* The C11 way */
+        timespec_get(&tms, TIME_UTC);
+    #endif
+        /* seconds, multiplied with 1 billion */
+        int64_t nanos = tms.tv_sec * NANOS_PER_SEC;
+        /* Add full nanoseconds */
+        nanos += tms.tv_nsec;
+        return nanos;
+    }
 #else
-    /* The C11 way */
-    timespec_get(&tms, TIME_UTC);
+    int64_t time_ns() {
+        return 0;
+    }
 #endif
-    /* seconds, multiplied with 1 billion */
-    int64_t nanos = tms.tv_sec * NANOS_PER_SEC;
-    /* Add full nanoseconds */
-    nanos += tms.tv_nsec;
-    return nanos;
-}
 
 static bool time_time(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
