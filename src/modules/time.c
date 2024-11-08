@@ -1,12 +1,12 @@
 #include "pocketpy/pocketpy.h"
-#include "pocketpy/interpreter/vm.h"
 #include <time.h>
+#include <assert.h>
 
 #define NANOS_PER_SEC 1000000000
 
 int64_t time_ns() {
     struct timespec tms;
-#if defined( __ANDROID__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(__ANDROID__) || defined(__MINGW32__) || defined(__MINGW64__) || !defined(TIME_UTC)
     clock_gettime(CLOCK_REALTIME, &tms);
 #else
     /* The C11 way */
