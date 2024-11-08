@@ -6,10 +6,11 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # use IPO
+option(PK_BUILD_WITH_IPO "" TRUE)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result)
 
-if(result AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
+if(result AND PK_BUILD_WITH_IPO)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 else()
     message(WARNING ">> IPO disabled. You will not get the best performance.")
