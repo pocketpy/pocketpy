@@ -6,11 +6,11 @@
 
 int64_t time_ns() {
     struct timespec tms;
-#ifdef _MSC_VER
+#ifdef CLOCK_REALTIME
+    clock_gettime(CLOCK_REALTIME, &tms);
+#else
     /* The C11 way */
     timespec_get(&tms, TIME_UTC);
-#else
-    clock_gettime(CLOCK_REALTIME, &tms);
 #endif
     /* seconds, multiplied with 1 billion */
     int64_t nanos = tms.tv_sec * NANOS_PER_SEC;
