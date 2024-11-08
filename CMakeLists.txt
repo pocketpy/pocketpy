@@ -82,12 +82,4 @@ if(UNIX)
     if(PK_ENABLE_OS)
         target_link_libraries(${PROJECT_NAME} dl)
     endif()
-
-    # for very old linux systems
-    include(CheckLibraryExists)
-    check_library_exists(rt clock_gettime "" HAVE_LIBRT)
-
-    if(HAVE_LIBRT)
-        target_link_libraries(${PROJECT_NAME} rt)
-    endif()
 endif()
