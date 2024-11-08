@@ -6,11 +6,11 @@
 
 int64_t time_ns() {
     struct timespec tms;
-#if defined(__ANDROID__) || defined(__MINGW32__) || defined(__MINGW64__) || !defined(TIME_UTC)
-    clock_gettime(CLOCK_REALTIME, &tms);
-#else
+#ifdef _MSC_VER
     /* The C11 way */
     timespec_get(&tms, TIME_UTC);
+#else
+    clock_gettime(CLOCK_REALTIME, &tms);
 #endif
     /* seconds, multiplied with 1 billion */
     int64_t nanos = tms.tv_sec * NANOS_PER_SEC;
