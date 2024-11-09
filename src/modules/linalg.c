@@ -1,9 +1,9 @@
 #include "pocketpy/pocketpy.h"
 
-#include "pocketpy/common/utils.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
+#include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/objects/object.h"
 #include <math.h>
 
 static bool isclose(float a, float b) { return fabs(a - b) < 1e-4; }
@@ -86,6 +86,10 @@ c11_mat3x3* py_newmat3x3(py_OutRef out) {
 c11_mat3x3* py_tomat3x3(py_Ref self) {
     assert(self->type == tp_mat3x3);
     return py_touserdata(self);
+}
+
+static py_Ref _const(py_Type type, const char* name) {
+    return py_emplacedict(py_tpobject(type), py_name(name));
 }
 
 #define DEF_VECTOR_ELEMENT_WISE(D, T, name, op)                                                    \
@@ -287,6 +291,15 @@ DEF_VECTOR_OPS(3)
             sum += a.data[i] * b.data[i];                                                          \
         py_newint(py_retval(), sum);                                                               \
         return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##i##__hash__(int argc, py_Ref argv) {                                       \
+        PY_CHECK_ARGC(1);                                                                          \
+        c11_vec##D##i v = py_tovec##D##i(argv);                                                    \
+        py_i64 hash = 0;                                                                           \
+        for(int i = 0; i < D; i++)                                                                 \
+            hash = hash * 31 + v.data[i];                                                          \
+        py_newint(py_retval(), hash);                                                              \
+        return true;                                                                               \
     }
 
 DEF_VECTOR_INT_OPS(2)
@@ -431,7 +444,8 @@ static bool mat3x3__repr__(int argc, py_Ref argv) {
     c11_mat3x3* m = py_tomat3x3(argv);
     char buf[256];
     const char* fmt =
-        "mat3x3(%.4f, %.4f, %.4f,\n       %.4f, %.4f, %.4f,\n       %.4f, %.4f, %.4f)";
+        "mat3x3(%.4f, %.4f, %.4f,\n       %.4f, %.4f, %.4f,\n      "
+        " %.4f, %.4f, %.4f)";
     int size = snprintf(buf,
                         256,
                         fmt,
@@ -830,14 +844,14 @@ void pk__add_module_linalg() {
     py_bindmethod(vec2, "normalize", vec2_normalize);
     py_bindmethod(vec2, "rotate", vec2_rotate);
 
-    py_newvec2(py_emplacedict(py_tpobject(vec2), py_name("ZERO")),
-               (c11_vec2){
-                   {0, 0}
-    });
-    py_newvec2(py_emplacedict(py_tpobject(vec2), py_name("ONE")),
-               (c11_vec2){
-                   {1, 1}
-    });
+    // clang-format off
+    py_newvec2(_const(vec2, "ZERO"), (c11_vec2){{0, 0}});
+    py_newvec2(_const(vec2, "ONE"), (c11_vec2){{1, 1}});
+    py_newvec2(_const(vec2, "LEFT"), (c11_vec2){{-1, 0}});
+    py_newvec2(_const(vec2, "RIGHT"), (c11_vec2){{1, 0}});
+    py_newvec2(_const(vec2, "UP"), (c11_vec2){{0, -1}});
+    py_newvec2(_const(vec2, "DOWN"), (c11_vec2){{0, 1}});
+    // clang-format on
 
     py_bindmethod(vec2, "angle", vec2_angle_STATIC);
     py_bindmethod(vec2, "smooth_damp", vec2_smoothdamp_STATIC);
@@ -881,20 +895,21 @@ void pk__add_module_linalg() {
     py_bindmagic(vec2i, __mul__, vec2i__mul__);
     py_bindmagic(vec2i, __eq__, vec2i__eq__);
     py_bindmagic(vec2i, __ne__, vec2i__ne__);
+    py_bindmagic(vec2i, __hash__, vec2i__hash__);
     py_bindproperty(vec2i, "x", vec2i__x, NULL);
     py_bindproperty(vec2i, "y", vec2i__y, NULL);
     py_bindmethod(vec2i, "with_x", vec2i__with_x);
     py_bindmethod(vec2i, "with_y", vec2i__with_y);
     py_bindmethod(vec2i, "dot", vec2i_dot);
 
-    py_newvec2i(py_emplacedict(py_tpobject(vec2i), py_name("ZERO")),
-                (c11_vec2i){
-                    {0, 0}
-    });
-    py_newvec2i(py_emplacedict(py_tpobject(vec2i), py_name("ONE")),
-                (c11_vec2i){
-                    {1, 1}
-    });
+    // clang-format off
+    py_newvec2i(_const(vec2i, "ZERO"), (c11_vec2i){{0, 0}});
+    py_newvec2i(_const(vec2i, "ONE"), (c11_vec2i){{1, 1}});
+    py_newvec2i(_const(vec2i, "LEFT"), (c11_vec2i){{-1, 0}});
+    py_newvec2i(_const(vec2i, "RIGHT"), (c11_vec2i){{1, 0}});
+    py_newvec2i(_const(vec2i, "UP"), (c11_vec2i){{0, -1}});
+    py_newvec2i(_const(vec2i, "DOWN"), (c11_vec2i){{0, 1}});
+    // clang-format on
 
     /* vec3i */
     py_bindmagic(vec3i, __new__, vec3i__new__);
@@ -904,6 +919,7 @@ void pk__add_module_linalg() {
     py_bindmagic(vec3i, __mul__, vec3i__mul__);
     py_bindmagic(vec3i, __eq__, vec3i__eq__);
     py_bindmagic(vec3i, __ne__, vec3i__ne__);
+    py_bindmagic(vec3i, __hash__, vec3i__hash__);
     py_bindproperty(vec3i, "x", vec3i__x, NULL);
     py_bindproperty(vec3i, "y", vec3i__y, NULL);
     py_bindproperty(vec3i, "z", vec3i__z, NULL);
@@ -912,11 +928,11 @@ void pk__add_module_linalg() {
     py_bindmethod(vec3i, "with_z", vec3i__with_z);
     py_bindmethod(vec3i, "dot", vec3i_dot);
 
-    py_newvec3i(py_emplacedict(py_tpobject(vec3i), py_name("ZERO")),
+    py_newvec3i(_const(vec3i, "ZERO"),
                 (c11_vec3i){
                     {0, 0, 0}
     });
-    py_newvec3i(py_emplacedict(py_tpobject(vec3i), py_name("ONE")),
+    py_newvec3i(_const(vec3i, "ONE"),
                 (c11_vec3i){
                     {1, 1, 1}
     });
@@ -943,11 +959,11 @@ void pk__add_module_linalg() {
     py_bindmethod(vec3, "with_z", vec3__with_z);
     py_bindmethod(vec3, "with_xy", vec3__with_xy);
 
-    py_newvec3(py_emplacedict(py_tpobject(vec3), py_name("ZERO")),
+    py_newvec3(_const(vec3, "ZERO"),
                (c11_vec3){
                    {0, 0, 0}
     });
-    py_newvec3(py_emplacedict(py_tpobject(vec3), py_name("ONE")),
+    py_newvec3(_const(vec3, "ONE"),
                (c11_vec3){
                    {1, 1, 1}
     });

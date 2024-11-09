@@ -28,10 +28,17 @@ class _vecI[T]:
     @overload
     def __mul__(self, other: T) -> T: ...
 
+    def __hash__(self) -> int: ...
+
     def dot(self, other: T) -> int: ...
 
 
 class vec2(_vecF['vec2']):
+    LEFT: vec2
+    RIGHT: vec2
+    UP: vec2
+    DOWN: vec2
+
     @property
     def x(self) -> float: ...
     @property
@@ -105,6 +112,11 @@ class mat3x3:
 
 
 class vec2i(_vecI['vec2i']):
+    LEFT: vec2i
+    RIGHT: vec2i
+    UP: vec2i
+    DOWN: vec2i
+
     @property
     def x(self) -> int: ...
     @property

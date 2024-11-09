@@ -375,6 +375,11 @@ assert vec3(1, 2, 3).with_xy(vec2(4, 5)) == vec3(4, 5, 3)
 # test vec2i and vec3i
 assert vec2i.ONE == vec2i(1, 1)
 assert vec2i.ZERO == vec2i(0, 0)
+assert vec2i.LEFT == vec2i(-1, 0)
+assert vec2i.RIGHT == vec2i(1, 0)
+assert vec2i.UP == vec2i(0, -1)
+assert vec2i.DOWN == vec2i(0, 1)
+
 assert vec3i.ONE == vec3i(1, 1, 1)
 assert vec3i.ZERO == vec3i(0, 0, 0)
 
@@ -389,3 +394,9 @@ assert vec3i(1, 2, 3) - vec3i(4, 5, 6) == vec3i(-3, -3, -3)
 assert vec3i(1, 2, 3) * vec3i(4, 5, 6) == vec3i(4, 10, 18)
 assert vec3i(1, 2, 3) * 2 == vec3i(2, 4, 6)
 assert vec3i(1, 2, 3).dot(vec3i(4, 5, 6)) == 32
+
+a = {}
+a[vec2i(1, 2)] = 1
+assert a[vec2i(1, 2)] == 1
+a[vec3i(1, 2, 3)] = 2
+assert a[vec3i(1, 2, 3)] == 2
