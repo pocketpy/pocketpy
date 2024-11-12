@@ -1401,7 +1401,7 @@ static Error* parse_expression(Compiler* self, int precedence, bool allow_slice)
         advance();
         PrattCallback infix = rules[op].infix;
         if(infix == NULL){
-            return SyntaxError(self, "expected an expression, got %s", TokenSymbols[op]);
+            return SyntaxError(self, "expected an infix operator, got %s", TokenSymbols[op]);
         }
         check(infix(self));
     }
