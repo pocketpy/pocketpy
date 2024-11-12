@@ -1400,7 +1400,9 @@ static Error* parse_expression(Compiler* self, int precedence, bool allow_slice)
         TokenIndex op = curr()->type;
         advance();
         PrattCallback infix = rules[op].infix;
-        assert(infix != NULL);
+        if(infix == NULL){
+            return SyntaxError(self, "expected an expression, got %s", TokenSymbols[op]);
+        }
         check(infix(self));
     }
     return NULL;
