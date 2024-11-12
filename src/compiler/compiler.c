@@ -1400,7 +1400,7 @@ static Error* parse_expression(Compiler* self, int precedence, bool allow_slice)
         TokenIndex op = curr()->type;
         advance();
         PrattCallback infix = rules[op].infix;
-        if(infix == NULL){
+        if(infix == NULL) {
             return SyntaxError(self, "expected an infix operator, got %s", TokenSymbols[op]);
         }
         check(infix(self));
@@ -1652,7 +1652,12 @@ static Error* exprBinaryOp(Compiler* self) {
     Error* err;
     int line = prev()->line;
     TokenIndex op = prev()->type;
-    check(parse_expression(self, rules[op].precedence + 1, false));
+    int precedence = rules[op].precedence;
+    if(op != TK_POW) {
+        // if not right associative, increase precedence
+        precedence += 1;
+    }
+    check(parse_expression(self, precedence, false));
     BinaryExpr* e = BinaryExpr__new(line, op, false);
     if(op == TK_IN || op == TK_NOT_IN) {
         e->lhs = Ctx__s_popx(ctx());

@@ -47,3 +47,7 @@ assert A()[::, :] == (slice(None, None, None), slice(None, None, None))
 assert A()[::, :2] == (slice(None, None, None), slice(None, 2, None))
 assert A()['b':'c':1, :] == (slice('b', 'c', 1), slice(None, None, None))
 assert A()[1:2, :A()[3:4, ::-1]] == (slice(1, 2, None), slice(None, (slice(3, 4, None), slice(None, None, -1)), None))
+
+# test right associative
+assert 2**2**3 == 256
+assert (2**2**3)**2 == 65536
