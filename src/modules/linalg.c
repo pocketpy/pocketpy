@@ -110,10 +110,17 @@ static py_Ref _const(py_Type type, const char* name) {
 
 #define DEF_VECTOR_OPS(D)                                                                          \
     static bool vec##D##__new__(int argc, py_Ref argv) {                                           \
-        PY_CHECK_ARGC(D + 1);                                                                      \
         c11_vec##D res;                                                                            \
-        for(int i = 0; i < D; i++) {                                                               \
-            if(!py_castfloat32(&argv[i + 1], &res.data[i])) return false;                          \
+        if(argc == 2) {                                                                            \
+            PY_CHECK_ARG_TYPE(1, tp_vec##D##i);                                                    \
+            c11_vec##D##i v = py_tovec##D##i(&argv[1]);                                            \
+            for(int i = 0; i < D; i++)                                                             \
+                res.data[i] = v.data[i];                                                           \
+        } else {                                                                                   \
+            PY_CHECK_ARGC(D + 1);                                                                  \
+            for(int i = 0; i < D; i++) {                                                           \
+                if(!py_castfloat32(&argv[i + 1], &res.data[i])) return false;                      \
+            }                                                                                      \
         }                                                                                          \
         py_newvec##D(py_retval(), res);                                                            \
         return true;                                                                               \

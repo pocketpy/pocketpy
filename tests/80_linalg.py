@@ -400,3 +400,8 @@ a[vec2i(1, 2)] = 1
 assert a[vec2i(1, 2)] == 1
 a[vec3i(1, 2, 3)] = 2
 assert a[vec3i(1, 2, 3)] == 2
+
+assert vec2(vec2i.LEFT) == vec2(-1, 0)
+assert vec2(vec2i.RIGHT) == vec2(1, 0)
+assert vec3(vec3i.ONE) == vec3(1, 1, 1)
+assert vec3(vec3i.ZERO) == vec3(0, 0, 0)
