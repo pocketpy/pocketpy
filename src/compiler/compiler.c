@@ -781,9 +781,7 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
         case TK_DIV: arg = __truediv__ | (__rtruediv__ << 8); break;
         case TK_FLOORDIV: arg = __floordiv__ | (__rfloordiv__ << 8); break;
         case TK_MOD: arg = __mod__ | (__rmod__ << 8); break;
-        // right-associated
         case TK_POW: arg = __pow__ | (__rpow__ << 8); break;
-        case TK_DECORATOR: arg = __matmul__; break;
 
         case TK_LT: arg = __lt__ | (__gt__ << 8); break;
         case TK_LE: arg = __le__ | (__ge__ << 8); break;
@@ -814,6 +812,7 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
         case TK_AND: arg = __and__; break;
         case TK_OR: arg = __or__; break;
         case TK_XOR: arg = __xor__; break;
+        case TK_DECORATOR: arg = __matmul__; break;
         default: assert(false);
     }
 
@@ -1396,7 +1395,7 @@ static Error* parse_expression(Compiler* self, int precedence, bool allow_slice)
     advance();
     Error* err;
     check(prefix(self));
-    while(rules[curr()->type].precedence > precedence &&
+    while(rules[curr()->type].precedence >= precedence &&
           (allow_slice || curr()->type != TK_COLON)) {
         TokenIndex op = curr()->type;
         advance();
@@ -1411,14 +1410,14 @@ static Error* parse_expression(Compiler* self, int precedence, bool allow_slice)
 
 static Error* EXPR_TUPLE_ALLOW_SLICE(Compiler* self, bool allow_slice) {
     Error* err;
-    check(parse_expression(self, PREC_LOWEST, allow_slice));
+    check(parse_expression(self, PREC_LOWEST + 1, allow_slice));
     if(!match(TK_COMMA)) return NULL;
     // tuple expression     // (a, )
     int count = 1;
     do {
         if(curr()->brackets_level) match_newlines();
         if(!is_expression(self, allow_slice)) break;
-        check(parse_expression(self, PREC_LOWEST, allow_slice));
+        check(parse_expression(self, PREC_LOWEST + 1, allow_slice));
         count += 1;
         if(curr()->brackets_level) match_newlines();
     } while(match(TK_COMMA));
@@ -1433,7 +1432,7 @@ static Error* EXPR_TUPLE_ALLOW_SLICE(Compiler* self, bool allow_slice) {
 }
 
 /// Parse a simple expression.
-static Error* EXPR(Compiler* self) { return parse_expression(self, PREC_LOWEST, false); }
+static Error* EXPR(Compiler* self) { return parse_expression(self, PREC_LOWEST + 1, false); }
 
 /// Parse a simple expression or a tuple of expressions.
 static Error* EXPR_TUPLE(Compiler* self) { return EXPR_TUPLE_ALLOW_SLICE(self, false); }
@@ -1603,7 +1602,7 @@ static Error* exprLambda(Compiler* self) {
         consume(TK_COLON);
     }
     // https://github.com/pocketpy/pocketpy/issues/37
-    check(parse_expression(self, PREC_LAMBDA, false));
+    check(parse_expression(self, PREC_LAMBDA + 1, false));
     Ctx__s_emit_top(ctx());
     Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
     check(pop_context(self));
@@ -1615,7 +1614,7 @@ static Error* exprLambda(Compiler* self) {
 static Error* exprOr(Compiler* self) {
     Error* err;
     int line = prev()->line;
-    check(parse_expression(self, PREC_LOGICAL_OR, false));
+    check(parse_expression(self, PREC_LOGICAL_OR + 1, false));
     LogicBinaryExpr* e = LogicBinaryExpr__new(line, OP_JUMP_IF_TRUE_OR_POP);
     e->rhs = Ctx__s_popx(ctx());
     e->lhs = Ctx__s_popx(ctx());
@@ -1626,7 +1625,7 @@ static Error* exprOr(Compiler* self) {
 static Error* exprAnd(Compiler* self) {
     Error* err;
     int line = prev()->line;
-    check(parse_expression(self, PREC_LOGICAL_AND, false));
+    check(parse_expression(self, PREC_LOGICAL_AND + 1, false));
     LogicBinaryExpr* e = LogicBinaryExpr__new(line, OP_JUMP_IF_FALSE_OR_POP);
     e->rhs = Ctx__s_popx(ctx());
     e->lhs = Ctx__s_popx(ctx());
@@ -1638,9 +1637,9 @@ static Error* exprTernary(Compiler* self) {
     // [true_expr]
     Error* err;
     int line = prev()->line;
-    check(parse_expression(self, PREC_TERNARY, false));  // [true_expr, cond]
+    check(parse_expression(self, PREC_TERNARY + 1, false));  // [true_expr, cond]
     consume(TK_ELSE);
-    check(parse_expression(self, PREC_TERNARY, false));  // [true_expr, cond, false_expr]
+    check(parse_expression(self, PREC_TERNARY + 1, false));  // [true_expr, cond, false_expr]
     TernaryExpr* e = TernaryExpr__new(line);
     e->false_expr = Ctx__s_popx(ctx());
     e->cond = Ctx__s_popx(ctx());
@@ -1653,7 +1652,7 @@ static Error* exprBinaryOp(Compiler* self) {
     Error* err;
     int line = prev()->line;
     TokenIndex op = prev()->type;
-    check(parse_expression(self, rules[op].precedence, false));
+    check(parse_expression(self, rules[op].precedence + 1, false));
     BinaryExpr* e = BinaryExpr__new(line, op, false);
     if(op == TK_IN || op == TK_NOT_IN) {
         e->lhs = Ctx__s_popx(ctx());
@@ -1669,7 +1668,7 @@ static Error* exprBinaryOp(Compiler* self) {
 static Error* exprNot(Compiler* self) {
     Error* err;
     int line = prev()->line;
-    check(parse_expression(self, PREC_LOGICAL_NOT, false));
+    check(parse_expression(self, PREC_LOGICAL_NOT + 1, false));
     UnaryExpr* e = UnaryExpr__new(line, Ctx__s_popx(ctx()), OP_UNARY_NOT);
     Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
@@ -1679,7 +1678,7 @@ static Error* exprUnaryOp(Compiler* self) {
     Error* err;
     int line = prev()->line;
     TokenIndex op = prev()->type;
-    check(parse_expression(self, PREC_UNARY, false));
+    check(parse_expression(self, PREC_UNARY + 1, false));
     Expr* e = Ctx__s_popx(ctx());
     switch(op) {
         case TK_SUB: {
@@ -1750,10 +1749,10 @@ static Error* consume_comp(Compiler* self, Opcode op0, Opcode op1) {
     bool has_cond = false;
     check(EXPR_VARS(self));  // [expr, vars]
     consume(TK_IN);
-    check(parse_expression(self, PREC_TERNARY, false));  // [expr, vars, iter]
+    check(parse_expression(self, PREC_TERNARY + 1, false));  // [expr, vars, iter]
     match_newlines();
     if(match(TK_IF)) {
-        check(parse_expression(self, PREC_TERNARY, false));  // [expr, vars, iter, cond]
+        check(parse_expression(self, PREC_TERNARY + 1, false));  // [expr, vars, iter, cond]
         has_cond = true;
     }
     CompExpr* ce = CompExpr__new(line, op0, op1);
