@@ -297,7 +297,7 @@ static bool int__new__(int argc, py_Ref argv) {
                 return true;
             }
             case tp_str: break;  // leave to the next block
-            default: return TypeError("invalid arguments for int()");
+            default: return pk_callmagic(__int__, 1, argv+1);
         }
     }
     // 2+ args -> error
@@ -350,26 +350,27 @@ static bool float__new__(int argc, py_Ref argv) {
             py_newfloat(py_retval(), py_tobool(&argv[1]));
             return true;
         }
-        case tp_str: break;  // leave to the next block
-        default: return TypeError("invalid arguments for float()");
-    }
-    // str to float
-    c11_sv sv = py_tosv(py_arg(1));
+        case tp_str: {
+            // str to float
+            c11_sv sv = py_tosv(py_arg(1));
 
-    if(c11__sveq2(sv, "inf")) {
-        py_newfloat(py_retval(), INFINITY);
-        return true;
-    }
-    if(c11__sveq2(sv, "-inf")) {
-        py_newfloat(py_retval(), -INFINITY);
-        return true;
-    }
+            if(c11__sveq2(sv, "inf")) {
+                py_newfloat(py_retval(), INFINITY);
+                return true;
+            }
+            if(c11__sveq2(sv, "-inf")) {
+                py_newfloat(py_retval(), -INFINITY);
+                return true;
+            }
 
-    char* p_end;
-    py_f64 float_out = strtod(sv.data, &p_end);
-    if(p_end != sv.data + sv.size) return ValueError("invalid literal for float(): %q", sv);
-    py_newfloat(py_retval(), float_out);
-    return true;
+            char* p_end;
+            py_f64 float_out = strtod(sv.data, &p_end);
+            if(p_end != sv.data + sv.size) return ValueError("invalid literal for float(): %q", sv);
+            py_newfloat(py_retval(), float_out);
+            return true;
+        }
+        default: return pk_callmagic(__float__, 1, argv+1);
+    }
 }
 
 // tp_bool

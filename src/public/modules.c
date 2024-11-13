@@ -287,22 +287,23 @@ static bool builtins_round(int argc, py_Ref argv) {
         return TypeError("round() takes 1 or 2 arguments");
     }
 
-    if(py_isint(py_arg(0))) {
+    if(argv->type == tp_int) {
         py_assign(py_retval(), py_arg(0));
         return true;
-    }
-
-    PY_CHECK_ARG_TYPE(0, tp_float);
-    py_f64 x = py_tofloat(py_arg(0));
-    py_f64 offset = x >= 0 ? 0.5 : -0.5;
-    if(ndigits == -1) {
-        py_newint(py_retval(), (py_i64)(x + offset));
+    } else if(argv->type == tp_float) {
+        PY_CHECK_ARG_TYPE(0, tp_float);
+        py_f64 x = py_tofloat(py_arg(0));
+        py_f64 offset = x >= 0 ? 0.5 : -0.5;
+        if(ndigits == -1) {
+            py_newint(py_retval(), (py_i64)(x + offset));
+            return true;
+        }
+        py_f64 factor = pow(10, ndigits);
+        py_newfloat(py_retval(), (py_i64)(x * factor + offset) / factor);
         return true;
     }
 
-    py_f64 factor = pow(10, ndigits);
-    py_newfloat(py_retval(), (py_i64)(x * factor + offset) / factor);
-    return true;
+    return pk_callmagic(__round__, argc, argv);
 }
 
 static bool builtins_print(int argc, py_Ref argv) {
@@ -442,12 +443,11 @@ static bool builtins_ord(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_str);
     c11_sv sv = py_tosv(py_arg(0));
     if(c11_sv__u8_length(sv) != 1) {
-        return TypeError("ord() expected a character, but string of length %d found", c11_sv__u8_length(sv));
+        return TypeError("ord() expected a character, but string of length %d found",
+                         c11_sv__u8_length(sv));
     }
     int u8bytes = c11__u8_header(sv.data[0], true);
-    if (u8bytes == 0) {
-        return ValueError("invalid char: %c", sv.data[0]);
-    }
+    if(u8bytes == 0) { return ValueError("invalid char: %c", sv.data[0]); }
     int value = c11__u8_value(u8bytes, sv.data);
     py_newint(py_retval(), value);
     return true;

@@ -51,3 +51,28 @@ assert A()[1:2, :A()[3:4, ::-1]] == (slice(1, 2, None), slice(None, (slice(3, 4,
 # test right associative
 assert 2**2**3 == 256
 assert (2**2**3)**2 == 65536
+
+class Number:
+    def __float__(self):
+        return 1.0
+    
+    def __int__(self):
+        return 2
+    
+    def __divmod__(self, other):
+        return 3, 4
+    
+    def __round__(self, *args):
+        return args
+
+assert divmod(Number(), 0) == (3, 4)
+assert float(Number()) == 1.0
+assert int(Number()) == 2
+
+assert round(Number()) == tuple()
+assert round(Number(), 1) == (1,)
+
+
+
+
+    
