@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "algorithm.h"
+#include "pocketpy/common/algorithm.h"
 
 typedef struct c11_vector {
     void* data;
