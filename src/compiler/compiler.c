@@ -445,23 +445,26 @@ static DictItemExpr* DictItemExpr__new(int line) {
 // ListExpr, DictExpr, SetExpr, TupleExpr
 typedef struct SequenceExpr {
     EXPR_COMMON_HEADER
-    c11_array /*T=Expr* */ items;
+    Expr** items;
+    int itemCount;
     Opcode opcode;
 } SequenceExpr;
 
 static void SequenceExpr__emit_(Expr* self_, Ctx* ctx) {
     SequenceExpr* self = (SequenceExpr*)self_;
-    for(int i = 0; i < self->items.length; i++) {
-        Expr* item = c11__getitem(Expr*, &self->items, i);
+    for(int i = 0; i < self->itemCount; i++) {
+        Expr* item = self->items[i];
         vtemit_(item, ctx);
     }
-    Ctx__emit_(ctx, self->opcode, self->items.length, self->line);
+    Ctx__emit_(ctx, self->opcode, self->itemCount, self->line);
 }
 
 void SequenceExpr__dtor(Expr* self_) {
     SequenceExpr* self = (SequenceExpr*)self_;
-    c11__foreach(Expr*, &self->items, e) vtdelete(*e);
-    c11_array__dtor(&self->items);
+    for(int i = 0; i < self->itemCount; i++) {
+        vtdelete(self->items[i]);
+    }
+    free(self->items);
 }
 
 bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
@@ -469,8 +472,8 @@ bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
     // TOS is an iterable
     // items may contain StarredExpr, we should check it
     int starred_i = -1;
-    for(int i = 0; i < self->items.length; i++) {
-        Expr* e = c11__getitem(Expr*, &self->items, i);
+    for(int i = 0; i < self->itemCount; i++) {
+        Expr* e = self->items[i];
         if(e->vt->is_starred) {
             if(((StarredExpr*)e)->level > 0) {
                 if(starred_i == -1)
@@ -483,24 +486,24 @@ bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
 
     if(starred_i == -1) {
         Bytecode* prev = c11__at(Bytecode, &ctx->co->codes, ctx->co->codes.length - 1);
-        if(prev->op == OP_BUILD_TUPLE && prev->arg == self->items.length) {
+        if(prev->op == OP_BUILD_TUPLE && prev->arg == self->itemCount) {
             // build tuple and unpack it is meaningless
             Ctx__revert_last_emit_(ctx);
         } else {
-            Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->items.length, self->line);
+            Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->itemCount, self->line);
         }
     } else {
         // starred assignment target must be in a tuple
-        if(self->items.length == 1) return false;
+        if(self->itemCount == 1) return false;
         // starred assignment target must be the last one (differ from cpython)
-        if(starred_i != self->items.length - 1) return false;
+        if(starred_i != self->itemCount - 1) return false;
         // a,*b = [1,2,3]
         // stack is [1,2,3] -> [1,[2,3]]
-        Ctx__emit_(ctx, OP_UNPACK_EX, self->items.length - 1, self->line);
+        Ctx__emit_(ctx, OP_UNPACK_EX, self->itemCount - 1, self->line);
     }
     // do reverse emit
-    for(int i = self->items.length - 1; i >= 0; i--) {
-        Expr* e = c11__getitem(Expr*, &self->items, i);
+    for(int i = self->itemCount - 1; i >= 0; i--) {
+        Expr* e = self->items[i];
         bool ok = vtemit_store(e, ctx);
         if(!ok) return false;
     }
@@ -509,8 +512,9 @@ bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
 
 bool TupleExpr__emit_del(Expr* self_, Ctx* ctx) {
     SequenceExpr* self = (SequenceExpr*)self_;
-    c11__foreach(Expr*, &self->items, e) {
-        bool ok = vtemit_del(*e, ctx);
+    for(int i = 0; i < self->itemCount; i++) {
+        Expr* e = self->items[i];
+        bool ok = vtemit_del(e, ctx);
         if(!ok) return false;
     }
     return true;
@@ -522,7 +526,8 @@ static SequenceExpr* SequenceExpr__new(int line, const ExprVt* vt, int count, Op
     self->vt = vt;
     self->line = line;
     self->opcode = opcode;
-    c11_array__ctor(&self->items, sizeof(Expr*), count);
+    self->items = malloc(sizeof(Expr*) * count);
+    self->itemCount = count;
     return self;
 }
 
@@ -1295,29 +1300,41 @@ const static PrattRule rules[TK__COUNT__];
 
 typedef struct Compiler {
     SourceData_ src;  // weakref
-    TokenArray tokens;
-    int i;
+
+    Token* tokens;
+    int tokens_length;
+
+    int i;  // current token index
     c11_vector /*T=CodeEmitContext*/ contexts;
 } Compiler;
 
-static void Compiler__ctor(Compiler* self, SourceData_ src, TokenArray tokens) {
+static void Compiler__ctor(Compiler* self, SourceData_ src, Token* tokens, int tokens_length) {
     self->src = src;
     self->tokens = tokens;
+    self->tokens_length = tokens_length;
     self->i = 0;
     c11_vector__ctor(&self->contexts, sizeof(Ctx));
 }
 
 static void Compiler__dtor(Compiler* self) {
-    TokenArray__dtor(&self->tokens);
+    // free tokens
+    for(int i = 0; i < self->tokens_length; i++) {
+        if(self->tokens[i].value.index == TokenValue_STR) {
+            // free internal string
+            c11_string__delete(self->tokens[i].value._str);
+        }
+    }
+    free(self->tokens);
+    // free contexts
     c11__foreach(Ctx, &self->contexts, ctx) Ctx__dtor(ctx);
     c11_vector__dtor(&self->contexts);
 }
 
 /**************************************/
-#define tk(i) c11__at(Token, &self->tokens, i)
-#define prev() tk(self->i - 1)
-#define curr() tk(self->i)
-#define next() tk(self->i + 1)
+#define tk(i) (&self->tokens[i])
+#define prev() (&self->tokens[self->i - 1])
+#define curr() (&self->tokens[self->i])
+#define next() (&self->tokens[self->i + 1])
 
 #define advance() self->i++
 #define mode() self->src->mode
@@ -1347,7 +1364,7 @@ Error* SyntaxError(Compiler* self, const char* fmt, ...) {
     Error* err = malloc(sizeof(Error));
     err->src = self->src;
     PK_INCREF(self->src);
-    Token* t = self->i == self->tokens.length ? prev() : curr();
+    Token* t = self->i == self->tokens_length ? prev() : curr();
     err->lineno = t->line;
     va_list args;
     va_start(args, fmt);
@@ -1424,8 +1441,7 @@ static Error* EXPR_TUPLE_ALLOW_SLICE(Compiler* self, bool allow_slice) {
     // pop `count` expressions from the stack and merge them into a TupleExpr
     SequenceExpr* e = TupleExpr__new(prev()->line, count);
     for(int i = count - 1; i >= 0; i--) {
-        Expr* item = Ctx__s_popx(ctx());
-        c11__setitem(Expr*, &e->items, i, item);
+        e->items[i] = Ctx__s_popx(ctx());
     }
     Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
@@ -1450,8 +1466,7 @@ static Error* EXPR_VARS(Compiler* self) {
     if(count > 1) {
         SequenceExpr* e = TupleExpr__new(prev()->line, count);
         for(int i = count - 1; i >= 0; i--) {
-            Expr* item = Ctx__s_popx(ctx());
-            c11__setitem(Expr*, &e->items, i, item);
+            e->items[i] = Ctx__s_popx(ctx());
         }
         Ctx__s_push(ctx(), (Expr*)e);
     }
@@ -1556,8 +1571,7 @@ static Error* exprFString(Compiler* self) {
         if(match(TK_FSTR_END)) {
             SequenceExpr* e = FStringExpr__new(line, count);
             for(int i = count - 1; i >= 0; i--) {
-                Expr* item = Ctx__s_popx(ctx());
-                c11__setitem(Expr*, &e->items, i, item);
+                e->items[i] = Ctx__s_popx(ctx());
             }
             Ctx__s_push(ctx(), (Expr*)e);
             return NULL;
@@ -1790,7 +1804,7 @@ static Error* exprList(Compiler* self) {
     consume(TK_RBRACKET);
     SequenceExpr* e = ListExpr__new(line, count);
     for(int i = count - 1; i >= 0; i--) {
-        c11__setitem(Expr*, &e->items, i, Ctx__s_popx(ctx()));
+        e->items[i] = Ctx__s_popx(ctx());
     }
     Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
@@ -1836,7 +1850,7 @@ static Error* exprMap(Compiler* self) {
         se = SetExpr__new(line, count);
     }
     for(int i = count - 1; i >= 0; i--) {
-        c11__setitem(Expr*, &se->items, i, Ctx__s_popx(ctx()));
+        se->items[i] = Ctx__s_popx(ctx());
     }
     Ctx__s_push(ctx(), (Expr*)se);
     return NULL;
@@ -2766,8 +2780,9 @@ Error* Compiler__compile(Compiler* self, CodeObject* out) {
 }
 
 Error* pk_compile(SourceData_ src, CodeObject* out) {
-    TokenArray tokens;
-    Error* err = Lexer__process(src, &tokens);
+    Token* tokens;
+    int tokens_length;
+    Error* err = Lexer__process(src, &tokens, &tokens_length);
     if(err) return err;
 
 #if 0
@@ -2791,7 +2806,7 @@ Error* pk_compile(SourceData_ src, CodeObject* out) {
 #endif
 
     Compiler compiler;
-    Compiler__ctor(&compiler, src, tokens);
+    Compiler__ctor(&compiler, src, tokens, tokens_length);
     CodeObject__ctor(out, src, c11_string__sv(src->filename));
     err = Compiler__compile(&compiler, out);
     if(err) {

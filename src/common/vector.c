@@ -3,24 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-void c11_array__ctor(c11_array* self, int elem_size, int length){
-    self->data = malloc(elem_size * length);
-    self->length = length;
-    self->elem_size = elem_size;
-}
-
-void c11_array__dtor(c11_array* self){
-    free(self->data);
-    self->data = NULL;
-    self->length = 0;
-}
-
-c11_array c11_array__copy(const c11_array* self){
-    c11_array retval;
-    c11_array__ctor(&retval, self->elem_size, self->length);
-    memcpy(retval.data, self->data, self->elem_size * self->length);
-    return retval;
-}
 
 void c11_vector__ctor(c11_vector* self, int elem_size){
     self->data = NULL;
@@ -71,12 +53,9 @@ bool c11_vector__contains(const c11_vector *self, void *elem){
     return false;
 }
 
-c11_array c11_vector__submit(c11_vector* self){
-    c11_array retval = {
-        .data = self->data,
-        .length = self->length,
-        .elem_size = self->elem_size
-    };
+void* c11_vector__submit(c11_vector* self, int* length){
+    void* retval = self->data;
+    *length = self->length;
     self->data = NULL;
     self->length = 0;
     self->capacity = 0;

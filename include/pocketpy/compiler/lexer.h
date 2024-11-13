@@ -84,9 +84,6 @@ enum Precedence {
     PREC_HIGHEST,
 };
 
-typedef c11_array TokenArray;
-
-Error* Lexer__process(SourceData_ src, TokenArray* out_tokens);
-void TokenArray__dtor(TokenArray* self);
+Error* Lexer__process(SourceData_ src, Token** out_tokens, int* out_length);
 
 #define Token__sv(self) (c11_sv){(self)->start, (self)->length}

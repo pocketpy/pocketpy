@@ -1,21 +1,11 @@
 #pragma once
 
-#include "pocketpy/common/algorithm.h"
-
-#include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <assert.h>
+#include <string.h>
+#include <stdbool.h>
 
-typedef struct c11_array {
-    void* data;
-    int length;
-    int elem_size;
-} c11_array;
-
-void c11_array__ctor(c11_array* self, int elem_size, int length);
-void c11_array__dtor(c11_array* self);
-c11_array c11_array__copy(const c11_array* self);
+#include "algorithm.h"
 
 typedef struct c11_vector {
     void* data;
@@ -31,7 +21,7 @@ void c11_vector__reserve(c11_vector* self, int capacity);
 void c11_vector__clear(c11_vector* self);
 void* c11_vector__emplace(c11_vector* self);
 bool c11_vector__contains(const c11_vector* self, void* elem);
-c11_array c11_vector__submit(c11_vector* self);
+void* c11_vector__submit(c11_vector* self, int* length);
 
 #define c11__getitem(T, self, index) (((T*)(self)->data)[index])
 #define c11__setitem(T, self, index, value) ((T*)(self)->data)[index] = value;

@@ -18,19 +18,6 @@ typedef struct Lexer {
     c11_vector /*T=int*/ indents;
 } Lexer;
 
-typedef struct TokenDeserializer {
-    const char* curr;
-    const char* source;
-} TokenDeserializer;
-
-void TokenDeserializer__ctor(TokenDeserializer* self, const char* source);
-bool TokenDeserializer__match_char(TokenDeserializer* self, char c);
-c11_sv TokenDeserializer__read_string(TokenDeserializer* self, char c);
-c11_string* TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c);
-int TokenDeserializer__read_count(TokenDeserializer* self);
-int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c);
-double TokenDeserializer__read_float(TokenDeserializer* self, char c);
-
 const static TokenValue EmptyTokenValue;
 
 static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring);
@@ -186,7 +173,7 @@ static bool eat_indentation(Lexer* self) {
 
 static bool is_possible_number_char(char c) {
     switch(c) {
-        // clang-format off
+            // clang-format off
         case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
         case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
         case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
@@ -593,7 +580,7 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
     return NULL;
 }
 
-Error* Lexer__process(SourceData_ src, TokenArray* out_tokens) {
+Error* Lexer__process(SourceData_ src, Token** out_tokens, int* out_length) {
     Lexer lexer;
     Lexer__ctor(&lexer, src);
 
@@ -612,18 +599,10 @@ Error* Lexer__process(SourceData_ src, TokenArray* out_tokens) {
         }
     }
     // set out_tokens
-    *out_tokens = c11_vector__submit(&lexer.nexts);
+    *out_tokens = c11_vector__submit(&lexer.nexts, out_length);
 
     Lexer__dtor(&lexer);
     return NULL;
-}
-
-void TokenArray__dtor(TokenArray* self) {
-    Token* data = self->data;
-    for(int i = 0; i < self->length; i++) {
-        if(data[i].value.index == TokenValue_STR) { c11_string__delete(data[i].value._str); }
-    }
-    c11_array__dtor(self);
 }
 
 const char* TokenSymbols[] = {
@@ -729,76 +708,3 @@ const char* TokenSymbols[] = {
     "yield",
 };
 
-void TokenDeserializer__ctor(TokenDeserializer* self, const char* source) {
-    self->curr = source;
-    self->source = source;
-}
-
-bool TokenDeserializer__match_char(TokenDeserializer* self, char c) {
-    if(*self->curr == c) {
-        self->curr++;
-        return true;
-    }
-    return false;
-}
-
-c11_sv TokenDeserializer__read_string(TokenDeserializer* self, char c) {
-    const char* start = self->curr;
-    while(*self->curr != c)
-        self->curr++;
-    c11_sv retval = {start, (int)(self->curr - start)};
-    self->curr++;  // skip the delimiter
-    return retval;
-}
-
-c11_string* TokenDeserializer__read_string_from_hex(TokenDeserializer* self, char c) {
-    c11_sv sv = TokenDeserializer__read_string(self, c);
-    const char* s = sv.data;
-    c11_sbuf ss;
-    c11_sbuf__ctor(&ss);
-    for(int i = 0; i < sv.size; i += 2) {
-        char c = 0;
-        if(s[i] >= '0' && s[i] <= '9')
-            c += s[i] - '0';
-        else if(s[i] >= 'a' && s[i] <= 'f')
-            c += s[i] - 'a' + 10;
-        else
-            assert(false);
-        c <<= 4;
-        if(s[i + 1] >= '0' && s[i + 1] <= '9')
-            c += s[i + 1] - '0';
-        else if(s[i + 1] >= 'a' && s[i + 1] <= 'f')
-            c += s[i + 1] - 'a' + 10;
-        else
-            assert(false);
-        c11_sbuf__write_char(&ss, c);
-    }
-    return c11_sbuf__submit(&ss);
-}
-
-int TokenDeserializer__read_count(TokenDeserializer* self) {
-    assert(*self->curr == '=');
-    self->curr++;
-    return TokenDeserializer__read_uint(self, '\n');
-}
-
-int64_t TokenDeserializer__read_uint(TokenDeserializer* self, char c) {
-    int64_t out = 0;
-    while(*self->curr != c) {
-        out = out * 10 + (*self->curr - '0');
-        self->curr++;
-    }
-    self->curr++;  // skip the delimiter
-    return out;
-}
-
-double TokenDeserializer__read_float(TokenDeserializer* self, char c) {
-    c11_sv sv = TokenDeserializer__read_string(self, c);
-    // TODO: optimize this
-    c11_string* nullterm = c11_string__new2(sv.data, sv.size);
-    char* end;
-    double retval = strtod(nullterm->data, &end);
-    c11_string__delete(nullterm);
-    assert(*end == 0);
-    return retval;
-}

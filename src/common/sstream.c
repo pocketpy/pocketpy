@@ -140,9 +140,9 @@ void c11_sbuf__write_ptr(c11_sbuf* self, void* p) {
 
 c11_string* c11_sbuf__submit(c11_sbuf* self) {
     c11_vector__push(char, &self->data, '\0');
-    c11_array arr = c11_vector__submit(&self->data);
-    c11_string* retval = arr.data;
-    retval->size = arr.length - sizeof(c11_string) - 1;
+    int arr_length;
+    c11_string* retval = c11_vector__submit(&self->data, &arr_length);
+    retval->size = arr_length - sizeof(c11_string) - 1;
     return retval;
 }
 

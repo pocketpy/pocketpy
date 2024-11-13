@@ -1,10 +1,10 @@
 #pragma once
 // clang-format off
 
-#define PK_VERSION				"2.0.1"
+#define PK_VERSION				"2.0.2"
 #define PK_VERSION_MAJOR            2
 #define PK_VERSION_MINOR            0
-#define PK_VERSION_PATCH            1
+#define PK_VERSION_PATCH            2
 
 /*************** feature settings ***************/
 
