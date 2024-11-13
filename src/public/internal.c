@@ -12,7 +12,7 @@ static VM* pk_all_vm[16];
 static py_TValue _True, _False, _None, _NIL;
 
 void py_initialize() {
-    if(pk_current_vm){
+    if(pk_current_vm) {
         // c11__abort("py_initialize() can only be called once!");
         return;
     }
@@ -31,8 +31,11 @@ void py_initialize() {
 }
 
 py_GlobalRef py_True() { return &_True; }
+
 py_GlobalRef py_False() { return &_False; }
+
 py_GlobalRef py_None() { return &_None; }
+
 py_GlobalRef py_NIL() { return &_NIL; }
 
 void py_finalize() {
@@ -59,7 +62,7 @@ void py_switchvm(int index) {
         pk_current_vm = pk_all_vm[index] = malloc(sizeof(VM));
         memset(pk_current_vm, 0, sizeof(VM));
         VM__ctor(pk_all_vm[index]);
-    }else{
+    } else {
         pk_current_vm = pk_all_vm[index];
     }
 }
@@ -78,13 +81,9 @@ int py_currentvm() {
     return -1;
 }
 
-void* py_getvmctx(){
-    return pk_current_vm->ctx;
-}
+void* py_getvmctx() { return pk_current_vm->ctx; }
 
-void py_setvmctx(void* ctx){
-    pk_current_vm->ctx = ctx;
-}
+void py_setvmctx(void* ctx) { pk_current_vm->ctx = ctx; }
 
 void py_sys_setargv(int argc, char** argv) {
     py_GlobalRef sys = py_getmodule("sys");
@@ -161,11 +160,21 @@ bool py_pushmethod(py_Name name) {
 
 bool pk_loadmethod(py_StackRef self, py_Name name) {
     // NOTE: `out` and `out_self` may overlap with `self`
+    py_Type type;
 
-    if(name == __new__ && py_istype(self, tp_type)) {
+    if(name == __new__) {
         // __new__ acts like a @staticmethod
-        // T.__new__(...)
-        py_Ref cls_var = py_tpfindmagic(py_totype(self), name);
+        if(py_istype(self, tp_type)) {
+            // T.__new__(...)
+            type = py_totype(self);
+        } else if(py_istype(self, tp_super)) {
+            // super().__new__(...)
+            type = *(py_Type*)py_touserdata(self);
+        } else {
+            // invalid usage of `__new__`
+            return false;
+        }
+        py_Ref cls_var = py_tpfindmagic(type, name);
         if(cls_var) {
             self[0] = *cls_var;
             self[1] = *py_NIL();
@@ -174,7 +183,6 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
         return false;
     }
 
-    py_Type type;
     // handle super() proxy
     if(py_istype(self, tp_super)) {
         type = *(py_Type*)py_touserdata(self);

@@ -217,6 +217,7 @@ void VM__ctor(VM* self) {
     pk__add_module_enum();
 
     pk__add_module_conio();
+    pk__add_module_pkpy();
 
     // add python builtins
     do {

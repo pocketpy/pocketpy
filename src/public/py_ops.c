@@ -87,11 +87,11 @@ int py_next(py_Ref val) {
 bool py_getattr(py_Ref self, py_Name name) {
     // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
     py_Type type = self->type;
-    // handle super() proxy
-    if(py_istype(self, tp_super)) {
-        self = py_getslot(self, 0);
-        type = *(py_Type*)py_touserdata(self);
-    }
+    // handle super() proxy (disabled)
+    // if(py_istype(self, tp_super)) {
+    //     self = py_getslot(self, 0);
+    //     type = *(py_Type*)py_touserdata(self);
+    // }
 
     py_Ref cls_var = py_tpfindname(type, name);
     if(cls_var) {
@@ -183,11 +183,11 @@ bool py_getattr(py_Ref self, py_Name name) {
 
 bool py_setattr(py_Ref self, py_Name name, py_Ref val) {
     py_Type type = self->type;
-    // handle super() proxy
-    if(py_istype(self, tp_super)) {
-        self = py_getslot(self, 0);
-        type = *(py_Type*)py_touserdata(self);
-    }
+    // handle super() proxy (disabled)
+    // if(py_istype(self, tp_super)) {
+    //     self = py_getslot(self, 0);
+    //     type = *(py_Type*)py_touserdata(self);
+    // }
 
     py_Ref cls_var = py_tpfindname(type, name);
     if(cls_var) {

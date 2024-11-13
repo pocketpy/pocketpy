@@ -6,7 +6,7 @@ except ValueError:
     pass
 
 # test some python magics
-class A:
+class TestMagics:
     def __init__(self):
         self.d = {}
 
@@ -22,7 +22,7 @@ class A:
     def __delitem__(self, index):
         del self.d[index]
 
-a = A()
+a = TestMagics()
 a['1'] = 3
 assert '1' in a
 assert '2' not in a
@@ -72,7 +72,21 @@ assert int(Number()) == 2
 assert round(Number()) == tuple()
 assert round(Number(), 1) == (1,)
 
+class Z:
+    def __new__(cls, x):
+        return cls, x
 
+class B(Z):
+    def __new__(cls, x):
+        return super().__new__(cls, x)
 
+assert Z(1) == (Z, 1)
+assert B(1) == (B, 1)
 
+from pkpy import TValue
+
+class fixed(TValue[int]):
+    def __new__(cls, value: str):
+        return super().__new__(cls, int(value))
     
+assert fixed('123').value == 123
