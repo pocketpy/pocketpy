@@ -315,16 +315,9 @@ val = vec2.angle(vec2(-1, 0), vec2(0, -1))
 assert 1.57 < val < 1.58
 
 # test about staticmethod
-# class mymat3x3(mat3x3):
-#     def f(self):
-#         _0 = self.zeros()
-#         _1 = super().zeros()
-#         _2 = mat3x3.zeros()
-#         return _0 == _1 == _2
-    
-# assert mymat3x3().f()
-
 d = mat3x3.identity()
+d1 = mat3x3(1, 2, 3, 4, 5, 6, 7, 8, 9).identity()
+assert d == d1
 assert d.copy_(mat3x3.zeros()) is None
 assert d == mat3x3.zeros()
 

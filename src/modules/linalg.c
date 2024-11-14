@@ -860,8 +860,8 @@ void pk__add_module_linalg() {
     py_newvec2(_const(vec2, "DOWN"), (c11_vec2){{0, 1}});
     // clang-format on
 
-    py_bindmethod(vec2, "angle", vec2_angle_STATIC);
-    py_bindmethod(vec2, "smooth_damp", vec2_smoothdamp_STATIC);
+    py_bindstaticmethod(vec2, "angle", vec2_angle_STATIC);
+    py_bindstaticmethod(vec2, "smooth_damp", vec2_smoothdamp_STATIC);
 
     py_bindproperty(vec2, "x", vec2__x, NULL);
     py_bindproperty(vec2, "y", vec2__y, NULL);
@@ -884,9 +884,9 @@ void pk__add_module_linalg() {
     py_bindmethod(mat3x3, "inverse", mat3x3_inverse);
     py_bindmethod(mat3x3, "copy_", mat3x3_copy_);
     py_bindmethod(mat3x3, "inverse_", mat3x3_inverse_);
-    py_bindmethod(mat3x3, "zeros", mat3x3_zeros_STATIC);
-    py_bindmethod(mat3x3, "identity", mat3x3_identity_STATIC);
-    py_bindmethod(mat3x3, "trs", mat3x3_trs_STATIC);
+    py_bindstaticmethod(mat3x3, "zeros", mat3x3_zeros_STATIC);
+    py_bindstaticmethod(mat3x3, "identity", mat3x3_identity_STATIC);
+    py_bindstaticmethod(mat3x3, "trs", mat3x3_trs_STATIC);
     py_bindmethod(mat3x3, "copy_trs_", mat3x3_copy_trs_);
     py_bindmethod(mat3x3, "t", mat3x3_t);
     py_bindmethod(mat3x3, "r", mat3x3_r);

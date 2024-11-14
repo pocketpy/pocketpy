@@ -376,6 +376,11 @@ PK_API void py_bind(py_Ref obj, const char* sig, py_CFunction f);
 /// @param name name of the method.
 /// @param f function to bind.
 PK_API void py_bindmethod(py_Type type, const char* name, py_CFunction f);
+/// Bind a static method to type via "argc-based" style.
+/// @param type the target type.
+/// @param name name of the method.
+/// @param f function to bind.
+PK_API void py_bindstaticmethod(py_Type type, const char* name, py_CFunction f);
 /// Bind a function to the object via "argc-based" style.
 /// @param obj the target object.
 /// @param name name of the function.

@@ -117,7 +117,6 @@ static bool type__annotations__(int argc, py_Ref argv) {
 }
 
 void pk_object__register() {
-    // TODO: use staticmethod
     py_bindmagic(tp_object, __new__, pk__object_new);
 
     py_bindmagic(tp_object, __hash__, object__hash__);

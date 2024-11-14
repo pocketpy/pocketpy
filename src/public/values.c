@@ -54,6 +54,17 @@ void py_bindmethod(py_Type type, const char* name, py_CFunction f) {
     py_setdict(py_tpobject(type), py_name(name), &tmp);
 }
 
+void py_bindstaticmethod(py_Type type, const char* name, py_CFunction f) {
+    py_TValue tmp;
+    py_newnativefunc(&tmp, f);
+    bool ok = py_tpcall(tp_staticmethod, 1, &tmp);
+    if(!ok) {
+        py_printexc();
+        c11__abort("py_bindstaticmethod(): failed to create staticmethod");
+    }
+    py_setdict(py_tpobject(type), py_name(name), py_retval());
+}
+
 void py_bindfunc(py_Ref obj, const char* name, py_CFunction f) {
     py_TValue tmp;
     py_newnativefunc(&tmp, f);
