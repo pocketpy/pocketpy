@@ -188,15 +188,13 @@ c11_vector /* T=c11_sv */ c11_sv__split(c11_sv self, char sep) {
     int i = 0;
     for(int j = 0; j < self.size; j++) {
         if(data[j] == sep) {
-            if(j > i) {
-                c11_sv tmp = {data + i, j - i};
-                c11_vector__push(c11_sv, &retval, tmp);
-            }
+            assert(j >= i);
+            c11_sv tmp = {data + i, j - i};
+            c11_vector__push(c11_sv, &retval, tmp);
             i = j + 1;
-            continue;
         }
     }
-    if(self.size > i) {
+    if(i <= self.size) {
         c11_sv tmp = {data + i, self.size - i};
         c11_vector__push(c11_sv, &retval, tmp);
     }
@@ -204,6 +202,7 @@ c11_vector /* T=c11_sv */ c11_sv__split(c11_sv self, char sep) {
 }
 
 c11_vector /* T=c11_sv */ c11_sv__split2(c11_sv self, c11_sv sep) {
+    if(sep.size == 1) return c11_sv__split(self, sep.data[0]);
     c11_vector retval;
     c11_vector__ctor(&retval, sizeof(c11_sv));
     int start = 0;
@@ -212,11 +211,11 @@ c11_vector /* T=c11_sv */ c11_sv__split2(c11_sv self, c11_sv sep) {
         int i = c11_sv__index2(self, sep, start);
         if(i == -1) break;
         c11_sv tmp = {data + start, i - start};
-        if(tmp.size != 0) c11_vector__push(c11_sv, &retval, tmp);
+        c11_vector__push(c11_sv, &retval, tmp);
         start = i + sep.size;
     }
     c11_sv tmp = {data + start, self.size - start};
-    if(tmp.size != 0) c11_vector__push(c11_sv, &retval, tmp);
+    c11_vector__push(c11_sv, &retval, tmp);
     return retval;
 }
 

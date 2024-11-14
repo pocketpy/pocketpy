@@ -317,21 +317,25 @@ static bool str_replace(int argc, py_Ref argv) {
 static bool str_split(int argc, py_Ref argv) {
     c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
     c11_vector res;
+    bool discard_empty = false;
     if(argc > 2) return TypeError("split() takes at most 2 arguments");
     if(argc == 1) {
-        // sep = ' '
+        // sep = None
         res = c11_sv__split(self, ' ');
+        discard_empty = true;
     }
     if(argc == 2) {
         // sep = argv[1]
         if(!py_checkstr(&argv[1])) return false;
         c11_sv sep = c11_string__sv(py_touserdata(&argv[1]));
+        if(sep.size == 0) return ValueError("empty separator");
         res = c11_sv__split2(self, sep);
     }
-    py_newlistn(py_retval(), res.length);
+    py_newlist(py_retval());
     for(int i = 0; i < res.length; i++) {
-        c11_sv item = c11__getitem(c11_sv, &res, i);
-        py_newstrv(py_list_getitem(py_retval(), i), item);
+        c11_sv part = c11__getitem(c11_sv, &res, i);
+        if(discard_empty && part.size == 0) continue;
+        py_newstrv(py_list_emplace(py_retval()), part);
     }
     c11_vector__dtor(&res);
     return true;

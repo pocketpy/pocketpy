@@ -9,7 +9,10 @@ assert 'testing5' >= 'test' + 'ing1'
 assert 'abc' + 'def' == 'abcdef'
 assert 'abc' * 3 == 'abcabcabc'
 
-assert repr('\\\n\t\'\r\b\x48') == r"'\\\n\t\'\r\bH'"
+assert repr('\\\n\t\'\r\b\x48') in [
+    r"'\\\n\t\'\r\bH'",
+    '"\\\\\\n\\t\'\\r\\x08H"',
+]
 
 a = ''
 b = 'test'
@@ -46,13 +49,19 @@ assert t.startswith('this') == True;
 
 assert t.split('w') == ['this is string example....', 'o', '!!!']
 assert "a,b,c".split(',') == ['a', 'b', 'c']
-assert 'a,'.split(',') == ['a']
+assert 'a,'.split(',') == ['a', '']
 assert 'foo!!bar!!baz'.split('!!') == ['foo', 'bar', 'baz']
 assert ' 4 3 '.split() == ['4', '3']
-assert '  4 3  '.split(' ') == ['4', '3']
+assert '  4 3  '.split(' ') == ['', '', '4', '3', '', '']
+assert 'aa bb cccc'.split('cc') == ['aa bb ', '', '']
+assert '.a.b.'.split('.') == ['', 'a', 'b', '']
+assert '.a...b.'.split('.') == ['', 'a', '', '', 'b', '']
 
-x = 'aa bb cccc'
-assert x.split('cc') == ['aa bb ']
+try:
+    'a'.split('')
+    exit(1)
+except ValueError:
+    pass
 
 assert '111'.count('1') == 3
 assert '111'.count('11') == 1
