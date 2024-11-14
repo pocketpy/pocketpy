@@ -398,3 +398,12 @@ assert vec2(vec2i.LEFT) == vec2(-1, 0)
 assert vec2(vec2i.RIGHT) == vec2(1, 0)
 assert vec3(vec3i.ONE) == vec3(1, 1, 1)
 assert vec3(vec3i.ZERO) == vec3(0, 0, 0)
+
+x, y = vec2i(1, 2)
+assert x == 1 and y == 2
+x, y, z = vec3i(1, 2, 3)
+assert x == 1 and y == 2 and z == 3
+x, y = vec2(3.0, 4.0)
+assert x == 3.0 and y == 4.0
+x, y, z = vec3(1.0, 2.0, 3.0)
+assert x == 1.0 and y == 2.0 and z == 3.0

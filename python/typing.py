@@ -30,6 +30,7 @@ LiteralString = _PLACEHOLDER
 
 Iterable = _PLACEHOLDER
 Generator = _PLACEHOLDER
+Iterator = _PLACEHOLDER
 
 Hashable = _PLACEHOLDER
 

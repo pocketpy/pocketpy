@@ -1,4 +1,4 @@
-from typing import overload
+from typing import overload, Iterator
 
 class _vecF[T]:
     ONE: T
@@ -17,6 +17,9 @@ class _vecF[T]:
     def length_squared(self) -> float: ...
     def normalize(self) -> T: ...
 
+    # dummy iter for unpacking
+    def __iter__(self) -> Iterator[float]: ...
+
 class _vecI[T]:
     ONE: T
     ZERO: T
@@ -31,6 +34,9 @@ class _vecI[T]:
     def __hash__(self) -> int: ...
 
     def dot(self, other: T) -> int: ...
+
+    # dummy iter for unpacking
+    def __iter__(self) -> Iterator[int]: ...
 
 
 class vec2(_vecF['vec2']):

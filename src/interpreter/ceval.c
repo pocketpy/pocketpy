@@ -8,7 +8,6 @@
 #include "pocketpy/objects/error.h"
 #include <stdbool.h>
 
-static bool stack_unpack_sequence(VM* self, uint16_t arg);
 static bool stack_format_object(VM* self, c11_sv spec);
 
 #define CHECK_RETURN_FROM_EXCEPT_OR_FINALLY()                                                      \
@@ -839,7 +838,71 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             ////////
             case OP_UNPACK_SEQUENCE: {
-                if(!stack_unpack_sequence(self, byte.arg)) goto __ERROR;
+                py_TValue* p;
+                int length;
+
+                switch(TOP()->type) {
+                    case tp_tuple: {
+                        length = py_tuple_len(TOP());
+                        p = py_tuple_data(TOP());
+                        break;
+                    }
+                    case tp_list: {
+                        length = py_list_len(TOP());
+                        p = py_list_data(TOP());
+                        break;
+                    }
+                    case tp_vec2i: {
+                        length = 2;
+                        if(byte.arg != length) break;
+                        c11_vec2i val = py_tovec2i(TOP());
+                        POP();
+                        py_newint(SP()++, val.x);
+                        py_newint(SP()++, val.y);
+                        DISPATCH();
+                    }
+                    case tp_vec2: {
+                        length = 2;
+                        if(byte.arg != length) break;
+                        c11_vec2 val = py_tovec2(TOP());
+                        POP();
+                        py_newfloat(SP()++, val.x);
+                        py_newfloat(SP()++, val.y);
+                        DISPATCH();
+                    }
+                    case tp_vec3i: {
+                        length = 3;
+                        if(byte.arg != length) break;
+                        c11_vec3i val = py_tovec3i(TOP());
+                        POP();
+                        py_newint(SP()++, val.x);
+                        py_newint(SP()++, val.y);
+                        py_newint(SP()++, val.z);
+                        DISPATCH();
+                    }
+                    case tp_vec3: {
+                        length = 3;
+                        if(byte.arg != length) break;
+                        c11_vec3 val = py_tovec3(TOP());
+                        POP();
+                        py_newfloat(SP()++, val.x);
+                        py_newfloat(SP()++, val.y);
+                        py_newfloat(SP()++, val.z);
+                        DISPATCH();
+                    }
+                    default: {
+                        TypeError("expected list or tuple to unpack, got %t", TOP()->type);
+                        goto __ERROR;
+                    }
+                }
+                if(length != byte.arg) {
+                    ValueError("expected %d values to unpack, got %d", byte.arg, length);
+                    goto __ERROR;
+                }
+                POP();
+                for(int i = 0; i < length; i++) {
+                    PUSH(p + i);
+                }
                 DISPATCH();
             }
             case OP_UNPACK_EX: {
@@ -1139,18 +1202,6 @@ bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
     bool ok = pk_stack_binaryop(self, op, rop);
     STACK_SHRINK(2);
     return ok;
-}
-
-static bool stack_unpack_sequence(VM* self, uint16_t arg) {
-    py_TValue* p;
-    int length = pk_arrayview(TOP(), &p);
-    if(length == -1) return TypeError("expected list or tuple to unpack, got %t", TOP()->type);
-    if(length != arg) return ValueError("expected %d values to unpack, got %d", arg, length);
-    POP();
-    for(int i = 0; i < length; i++) {
-        PUSH(p + i);
-    }
-    return true;
 }
 
 static bool stack_format_object(VM* self, c11_sv spec) {

@@ -1,9 +1,6 @@
 #include "pocketpy/pocketpy.h"
-
-#include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
-#include "pocketpy/common/sstream.h"
 
 typedef struct array_iterator {
     py_TValue* p;
