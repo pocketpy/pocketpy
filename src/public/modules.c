@@ -291,7 +291,6 @@ static bool builtins_round(int argc, py_Ref argv) {
         py_assign(py_retval(), py_arg(0));
         return true;
     } else if(argv->type == tp_float) {
-        PY_CHECK_ARG_TYPE(0, tp_float);
         py_f64 x = py_tofloat(py_arg(0));
         py_f64 offset = x >= 0 ? 0.5 : -0.5;
         if(ndigits == -1) {
