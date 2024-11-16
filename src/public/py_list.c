@@ -244,9 +244,10 @@ static bool list__repr__(int argc, py_Ref argv) {
 static bool list_extend(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     List* self = py_touserdata(py_arg(0));
-    PY_CHECK_ARG_TYPE(1, tp_list);
-    List* other = py_touserdata(py_arg(1));
-    c11_vector__extend(py_TValue, self, other->data, other->length);
+    py_TValue* p;
+    int length = pk_arrayview(py_arg(1), &p);
+    if(length == -1) return TypeError("extend() argument must be a list or tuple");
+    c11_vector__extend(py_TValue, self, p, length);
     py_newnone(py_retval());
     return true;
 }
