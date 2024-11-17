@@ -5,19 +5,19 @@
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
 
-void pk_newgenerator(py_Ref out, Frame* frame, py_TValue* backup, int backup_length) {
+void pk_newgenerator(py_Ref out, Frame* frame, py_TValue* begin, py_TValue* end) {
     Generator* ud = py_newobject(out, tp_generator, 1, sizeof(Generator));
     ud->frame = frame;
     ud->state = 0;
     py_Ref tmp = py_getslot(out, 0);
     py_newlist(tmp);
-    for(int i = 0; i < backup_length; i++) {
-        py_list_append(tmp, &backup[i]);
+    for(py_TValue* p = begin; p != end; p++) {
+        py_list_append(tmp, p);
     }
 }
 
 void Generator__dtor(Generator* ud) {
-    if(ud->frame) { Frame__delete(ud->frame); }
+    if(ud->frame) Frame__delete(ud->frame);
 }
 
 static bool generator__next__(int argc, py_Ref argv) {
@@ -28,8 +28,9 @@ static bool generator__next__(int argc, py_Ref argv) {
     if(ud->state == 2) return StopIteration();
 
     // reset frame->p0
+    int locals_offset = ud->frame->locals - ud->frame->p0;
     ud->frame->p0 = py_peek(0);
-    ud->frame->locals = py_peek(0);
+    ud->frame->locals = ud->frame->p0 + locals_offset;
 
     // restore the context
     py_Ref backup = py_getslot(argv, 0);

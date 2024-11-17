@@ -8,6 +8,6 @@ typedef struct Generator{
     int state;
 } Generator;
 
-void pk_newgenerator(py_Ref out, Frame* frame, py_TValue* backup, int backup_length);
+void pk_newgenerator(py_Ref out, Frame* frame, py_TValue* begin, py_TValue* end);
 
 void Generator__dtor(Generator* ud);

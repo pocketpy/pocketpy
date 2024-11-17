@@ -35,3 +35,29 @@ def f(n):
     return g(0)
 
 assert f(10) == 10
+
+# class closure
+class A:
+    def g(self, x):
+        def f(y):
+            return x + y
+        return f
+    
+assert A().g(1)(2) == 3
+
+# closure with yield
+def g(x):
+    def fx(y):
+        yield x
+        yield y
+        return x + y
+    return fx
+    
+gen = g(1)(2)
+assert next(gen) == 1
+assert next(gen) == 2
+try:
+    next(gen)
+    assert False
+except StopIteration as e:
+    assert e.value == 3

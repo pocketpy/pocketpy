@@ -494,9 +494,12 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
             case FuncType_GENERATOR: {
                 bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
-                Frame* frame = Frame__new(co, &fn->module, p0, argv, false);
-                pk_newgenerator(py_retval(), frame, self->__vectorcall_buffer, co->nlocals);
-                self->stack.sp = p0;
+                // copy buffer back to stack
+                self->stack.sp = argv + co->nlocals;
+                memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
+                Frame* frame = Frame__new(co, &fn->module, p0, argv, true);
+                pk_newgenerator(py_retval(), frame, p0, self->stack.sp);
+                self->stack.sp = p0;    // reset the stack
                 return RES_RETURN;
             }
             default: c11__unreachedable();
