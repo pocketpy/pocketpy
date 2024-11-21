@@ -93,6 +93,11 @@ static bool type__getitem__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool type__or__(int argc, py_Ref argv) {
+    py_assign(py_retval(), argv);
+    return true;
+}
+
 static bool type__module__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_TypeInfo* ti = pk__type_info(py_totype(argv));
@@ -127,6 +132,7 @@ void pk_object__register() {
     py_bindmagic(tp_type, __repr__, type__repr__);
     py_bindmagic(tp_type, __new__, type__new__);
     py_bindmagic(tp_type, __getitem__, type__getitem__);
+    py_bindmagic(tp_type, __or__, type__or__);
     py_bindproperty(tp_type, "__module__", type__module__, NULL);
 
     py_bindproperty(tp_type, "__base__", type__base__, NULL);
