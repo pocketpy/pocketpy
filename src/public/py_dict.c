@@ -5,7 +5,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
-#define PK_DICT_MAX_COLLISION 3
+#define PK_DICT_MAX_COLLISION 4
 
 typedef struct {
     py_i64 hash;
