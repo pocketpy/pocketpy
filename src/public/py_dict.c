@@ -74,7 +74,6 @@ static void Dict__rehash_2x(Dict* self) {
     Dict old_dict = *self;
 
     int new_capacity = self->capacity * 2;
-    assert(new_capacity <= 1073741824);
 
     do {
         Dict__ctor(self, new_capacity);
@@ -159,6 +158,9 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
         if(res == -1) return false;  // error
     }
     // no empty slot found
+    if(self->capacity >= self->entries.length * 8) {
+        return RuntimeError("dict has too much collision: %d/%d", self->entries.length, self->capacity);
+    }
     Dict__rehash_2x(self);
     return Dict__set(self, key, val);
 }

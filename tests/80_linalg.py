@@ -407,3 +407,10 @@ x, y = vec2(3.0, 4.0)
 assert x == 3.0 and y == 4.0
 x, y, z = vec3(1.0, 2.0, 3.0)
 assert x == 1.0 and y == 2.0 and z == 3.0
+
+
+d = {}
+e = {}
+for i in range(10000):
+    d[vec2i(i, 0)] = i
+    e[vec3i(i, 0, 0)] = i

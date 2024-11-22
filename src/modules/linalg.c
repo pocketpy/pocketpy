@@ -301,11 +301,12 @@ DEF_VECTOR_OPS(3)
     }                                                                                              \
     static bool vec##D##i##__hash__(int argc, py_Ref argv) {                                       \
         PY_CHECK_ARGC(1);                                                                          \
+        const uint32_t C = 2654435761;                                                             \
         c11_vec##D##i v = py_tovec##D##i(argv);                                                    \
-        py_i64 hash = 0;                                                                           \
+        uint64_t hash = 0;                                                                         \
         for(int i = 0; i < D; i++)                                                                 \
-            hash = hash * 31 + v.data[i];                                                          \
-        py_newint(py_retval(), hash);                                                              \
+            hash = hash * 31 + (uint32_t)v.data[i] * C;                                            \
+        py_newint(py_retval(), (py_i64)hash);                                                      \
         return true;                                                                               \
     }
 
