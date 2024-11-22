@@ -305,7 +305,7 @@ DEF_VECTOR_OPS(3)
         c11_vec##D##i v = py_tovec##D##i(argv);                                                    \
         uint64_t hash = 0;                                                                         \
         for(int i = 0; i < D; i++)                                                                 \
-            hash = hash * 131071 + (uint32_t)v.data[i] * C;                                        \
+            hash = hash * 31 + (uint32_t)v.data[i] * C;                                            \
         py_newint(py_retval(), (py_i64)hash);                                                      \
         return true;                                                                               \
     }
