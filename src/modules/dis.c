@@ -61,7 +61,7 @@ static bool disassemble(CodeObject* co) {
                 case OP_LOAD_CONST: {
                     py_Ref value = c11__at(py_TValue, &co->consts, byte.arg);
                     if(py_repr(value)) {
-                        pk_sprintf(&ss, " (%s)", py_tosv(py_retval()));
+                        pk_sprintf(&ss, " (%v)", py_tosv(py_retval()));
                     } else {
                         return false;
                     }
