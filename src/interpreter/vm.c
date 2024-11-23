@@ -502,10 +502,10 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 self->stack.sp = p0;    // reset the stack
                 return RES_RETURN;
             }
-            default: c11__unreachedable();
+            default: c11__unreachable();
         };
 
-        c11__unreachedable();
+        c11__unreachable();
         /*****************_py_call*****************/
     }
 

@@ -15,7 +15,7 @@ def sieve_of_eratosthenes(n: int) -> List[int]:
     primes = [num for num, prime in enumerate(is_prime) if prime]
     return primes
 
-all_primes = sieve_of_eratosthenes(2**31)
+all_primes = sieve_of_eratosthenes(2**30)
 print(len(all_primes), all_primes[:10], all_primes[-10:])
 
 index = 3
@@ -24,7 +24,10 @@ caps = [all_primes[index]]
 while True:
     for i in range(index+1, len(all_primes)):
         last_cap = caps[-1]
-        min_cap = last_cap * 2
+        if last_cap < 1000:
+            min_cap = last_cap * 2
+        else:
+            min_cap = last_cap * 1.5
         if all_primes[i] >= min_cap:
             caps.append(all_primes[i])
             index = i
@@ -34,3 +37,9 @@ while True:
 
 print('-'*20)
 print(caps)
+
+print('switch(cap) {')
+for i in range(len(caps)-1):
+    print(f'    case {caps[i]}:', f'return {caps[i+1]};')
+print('    default: c11__unreachable();')
+print('}')

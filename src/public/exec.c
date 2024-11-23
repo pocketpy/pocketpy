@@ -64,7 +64,7 @@ bool pk_exec(CodeObject* co, py_Ref module) {
     FrameResult res = VM__run_top_frame(vm);
     if(res == RES_ERROR) return false;
     if(res == RES_RETURN) return true;
-    c11__unreachedable();
+    c11__unreachable();
 }
 
 bool py_exec(const char* source, const char* filename, enum py_CompileMode mode, py_Ref module) {

@@ -12,9 +12,9 @@
 #define PK_HEX_TABLE "0123456789abcdef"
 
 #ifdef _MSC_VER
-#define c11__unreachedable() __assume(0)
+#define c11__unreachable() __assume(0)
 #else
-#define c11__unreachedable() __builtin_unreachable()
+#define c11__unreachable() __builtin_unreachable()
 #endif
 
 #define c11__abort(...)                                                                            \

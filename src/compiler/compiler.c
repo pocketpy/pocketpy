@@ -128,7 +128,7 @@ bool NameExpr__emit_del(Expr* self_, Ctx* ctx) {
             break;
         case NAME_GLOBAL: Ctx__emit_(ctx, OP_DELETE_GLOBAL, self->name, self->line); break;
         case NAME_GLOBAL_UNKNOWN: Ctx__emit_(ctx, OP_DELETE_NAME, self->name, self->line); break;
-        default: c11__unreachedable();
+        default: c11__unreachable();
     }
     return true;
 }
@@ -327,7 +327,7 @@ void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
             Ctx__emit_(ctx, OP_LOAD_CONST, index, self->line);
             break;
         }
-        default: c11__unreachedable();
+        default: c11__unreachable();
     }
 }
 
@@ -355,7 +355,7 @@ void Literal0Expr__emit_(Expr* self_, Ctx* ctx) {
         case TK_TRUE: opcode = OP_LOAD_TRUE; break;
         case TK_FALSE: opcode = OP_LOAD_FALSE; break;
         case TK_DOTDOTDOT: opcode = OP_LOAD_ELLIPSIS; break;
-        default: c11__unreachedable();
+        default: c11__unreachable();
     }
     Ctx__emit_(ctx, opcode, BC_NOARG, self->line);
 }
@@ -1245,7 +1245,7 @@ static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int l
         case NAME_LOCAL: Ctx__emit_(self, OP_STORE_FAST, Ctx__add_varname(self, name), line); break;
         case NAME_GLOBAL: Ctx__emit_(self, OP_STORE_GLOBAL, name, line); break;
         case NAME_GLOBAL_UNKNOWN: Ctx__emit_(self, OP_STORE_NAME, name, line); break;
-        default: c11__unreachedable();
+        default: c11__unreachable();
     }
 }
 
@@ -2182,7 +2182,7 @@ static Error* read_literal(Compiler* self, py_Ref out) {
             } else if(value->index == TokenValue_F64) {
                 py_newfloat(out, negated ? -value->_f64 : value->_f64);
             } else {
-                c11__unreachedable();
+                c11__unreachable();
             }
             return NULL;
         }

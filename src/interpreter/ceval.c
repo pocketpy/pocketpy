@@ -60,7 +60,7 @@ static bool stack_format_object(VM* self, c11_sv spec);
             case RES_RETURN: PUSH(&self->last_retval); break;                                      \
             case RES_CALL: frame = self->top_frame; goto __NEXT_FRAME;                             \
             case RES_ERROR: goto __ERROR;                                                          \
-            default: c11__unreachedable();                                                         \
+            default: c11__unreachable();                                                         \
         }                                                                                          \
     } while(0)
 
@@ -1101,10 +1101,10 @@ FrameResult VM__run_top_frame(VM* self) {
                 if(!ok) goto __ERROR;
                 DISPATCH();
             }
-            default: c11__unreachedable();
+            default: c11__unreachable();
         }
 
-        c11__unreachedable();
+        c11__unreachable();
 
     __ERROR:
         py_BaseException__stpush(&self->curr_exception,
@@ -1340,7 +1340,7 @@ static bool stack_format_object(VM* self, c11_sv spec) {
                 c11_sbuf__write_pad(&buf, pad_right, pad_c);
                 break;
             }
-            default: c11__unreachedable();
+            default: c11__unreachable();
         }
     } else {
         c11_sbuf__write_sv(&buf, c11_string__sv(body));
