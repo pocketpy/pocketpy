@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdbool.h>
-#include <stdint.h>
 
 #define c11__less(a, b) ((a) < (b))
 
@@ -39,5 +38,3 @@ bool c11__stable_sort(void* ptr,
                       int elem_size,
                       int (*f_lt)(const void* a, const void* b, void* extra),
                       void* extra);
-
-uint64_t cpy310_tuplehash(uint64_t* p, int len);

@@ -306,8 +306,7 @@ DEF_VECTOR_INT_OPS(3)
 static bool vec2i__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_vec2i v = py_tovec2i(argv);
-    uint64_t values[2] = {v.x, v.y};
-    uint64_t hash = cpy310_tuplehash(values, 2);
+    uint64_t hash = ((uint64_t)v.x << 32) | (uint64_t)v.y;
     py_newint(py_retval(), (py_i64)hash);
     return true;
 }
@@ -315,8 +314,10 @@ static bool vec2i__hash__(int argc, py_Ref argv) {
 static bool vec3i__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_vec3i v = py_tovec3i(argv);
-    uint64_t values[3] = {v.x, v.y, v.z};
-    uint64_t hash = cpy310_tuplehash(values, 3);
+    uint64_t x_part = (uint64_t)(v.x & 0xFFFFFF);
+    uint64_t y_part = (uint64_t)(v.y & 0xFFFFFF);
+    uint64_t z_part = (uint64_t)(v.z & 0xFFFF);
+    uint64_t hash = (x_part << 40) | (y_part << 16) | z_part;
     py_newint(py_retval(), (py_i64)hash);
     return true;
 }
