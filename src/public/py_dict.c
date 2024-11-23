@@ -5,7 +5,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
-#define PK_DICT_MAX_COLLISION 3
+#define PK_DICT_MAX_COLLISION 4
 
 static uint32_t Dict__next_cap(uint32_t cap) {
     switch(cap) {
@@ -190,8 +190,8 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
         if(res == -1) return false;  // error
     }
     // no empty slot found
-    if(self->capacity >= self->entries.length * 10) {
-        // raise error if we reach the minimum load factor (0.1)
+    if(self->capacity >= self->entries.length * 20) {
+        // raise error if we reach the minimum load factor (5%)
         return RuntimeError("dict has too much collision: %d/%d/%d",
                             self->entries.length,
                             self->entries.capacity,
