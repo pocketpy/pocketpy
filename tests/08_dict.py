@@ -138,3 +138,13 @@ for i in range(n):
 #     if i % 3 == 0:
 #         y = b.pop()
 #         delattr(a, y)
+
+d = {}
+for i in range(-1000, 1000):
+    d[i] = i
+    assert d[i] == i
+
+e = {}
+for i in range(-10000, 10000, 3):
+    e[i] = i
+    assert e[i] == i

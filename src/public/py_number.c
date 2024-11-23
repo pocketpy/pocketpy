@@ -244,9 +244,7 @@ static py_i64 c11_8bytes__hash(union c11_8bytes u) {
 
 static bool int__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_i64 val = py_toint(&argv[0]);
-    union c11_8bytes u = {._i64 = val};
-    py_newint(py_retval(), c11_8bytes__hash(u));
+    py_assign(py_retval(), argv);
     return true;
 }
 
