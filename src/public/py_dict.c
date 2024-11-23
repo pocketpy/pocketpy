@@ -190,8 +190,8 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
         if(res == -1) return false;  // error
     }
     // no empty slot found
-    if(self->capacity >= self->entries.length * 20) {
-        // raise error if we reach the minimum load factor (5%)
+    if(self->capacity >= self->entries.length * 10) {
+        // raise error if we reach the minimum load factor (10%)
         return RuntimeError("dict has too much collision: %d/%d/%d",
                             self->entries.length,
                             self->entries.capacity,
