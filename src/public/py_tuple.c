@@ -155,14 +155,19 @@ static bool tuple__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int length = py_tuple_len(argv);
     py_TValue* data = py_tuple_data(argv);
-    uint64_t x = 1000003;
+    uint64_t __buffer[8];
+    uint64_t* p = length <= 8 ? __buffer : malloc(sizeof(uint64_t) * length);
     for(int i = 0; i < length; i++) {
-        py_i64 y;
-        if(!py_hash(&data[i], &y)) return false;
-        // recommended by Github Copilot
-        x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
+        py_i64 x;
+        if(!py_hash(&data[i], &x)) {
+            if(p != __buffer) free(p);
+            return false;
+        }
+        p[i] = x;
     }
-    py_newint(py_retval(), x);
+    uint64_t hash = cpy310_tuplehash(p, length);
+    if(p != __buffer) free(p);
+    py_newint(py_retval(), (py_i64)hash);
     return true;
 }
 
