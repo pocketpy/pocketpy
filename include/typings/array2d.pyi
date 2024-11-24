@@ -70,11 +70,5 @@ class array2d(Generic[T]):
         Returns a tuple `(x, y, width, height)` or raise `ValueError` if the value is not found.
         """
 
-    def find_one(self, condition: Callable[[T], bool]) -> vec2i:
-        """Finds the position of the first cell that satisfies the condition.
-        
-        Returns a `vec2i` or raise `ValueError` if no cell satisfies the condition.
-        """
-
     def convolve(self: array2d[int], kernel: 'array2d[int]', padding: int) -> 'array2d[int]':
         """Convolves the array with the given kernel."""

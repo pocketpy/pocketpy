@@ -568,28 +568,6 @@ static bool array2d__setitem__(int argc, py_Ref argv) {
     }
 }
 
-// find_one(self, condition: Callable[[T], bool]) -> vec2i
-static bool array2d_find_one(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    c11_array2d* self = py_touserdata(argv);
-    py_Ref condition = py_arg(1);
-    for(int j = 0; j < self->n_rows; j++) {
-        for(int i = 0; i < self->n_cols; i++) {
-            bool ok = py_call(condition, 1, py_array2d__get(self, i, j));
-            if(!ok) return false;
-            if(!py_isbool(py_retval())) return TypeError("condition must return a bool");
-            if(py_tobool(py_retval())) {
-                py_newvec2i(py_retval(),
-                            (c11_vec2i){
-                                {i, j}
-                });
-                return true;
-            }
-        }
-    }
-    return ValueError("condition not met");
-}
-
 static bool _array2d_is_all_ints(c11_array2d* self) {
     for(int i = 0; i < self->numel; i++) {
         if(!py_isint(self->data + i)) return false;
@@ -684,7 +662,6 @@ void pk__add_module_array2d() {
     py_bindmethod(array2d, "count", array2d_count);
     py_bindmethod(array2d, "find_bounding_rect", array2d_find_bounding_rect);
     py_bindmethod(array2d, "count_neighbors", array2d_count_neighbors);
-    py_bindmethod(array2d, "find_one", array2d_find_one);
     py_bindmethod(array2d, "convolve", array2d_convolve);
 }
 

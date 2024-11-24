@@ -96,16 +96,6 @@ assert x == d and x is not d
 x.copy_([1, 2, 3, 4, 5, 6, 7, 8])
 assert x.tolist() == [[1, 2], [3, 4], [5, 6], [7, 8]]
 
-# test find_one
-a = array2d(3, 3, default=0)
-a[1, 1] = 1
-assert a.find_one(lambda x: x == 1) == vec2i(1, 1)
-try:
-    a.find_one(lambda x: x == 2)
-    exit(1)
-except ValueError:
-    pass
-
 # test alive_neighbors
 a = array2d[int](3, 3, default=0)
 a[1, 1] = 1
