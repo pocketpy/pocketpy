@@ -215,6 +215,7 @@ void VM__ctor(VM* self) {
     pk__add_module_easing();
     pk__add_module_traceback();
     pk__add_module_enum();
+    pk__add_module_inspect();
 
     pk__add_module_conio();
     pk__add_module_pkpy();

@@ -672,7 +672,7 @@ enum py_PredefinedTypes {
     tp_module,
     tp_function,
     tp_nativefunc,
-    tp_boundmethod,
+    tp_boundmethod,    // 2 slots (self, func)
     tp_super,          // 1 slot + py_Type
     tp_BaseException,  // 2 slots (arg + inner_exc)
     tp_Exception,

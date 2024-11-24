@@ -6,6 +6,7 @@
 #include "pocketpy/interpreter/vm.h"
 
 static bool gc_collect(int argc, py_Ref argv){
+    PY_CHECK_ARGC(0);
     ManagedHeap* heap = &pk_current_vm->heap;
     int res = ManagedHeap__collect(heap);
     py_newint(py_retval(), res);

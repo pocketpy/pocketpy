@@ -11,6 +11,8 @@ void pk__add_module_time();
 void pk__add_module_easing();
 void pk__add_module_traceback();
 void pk__add_module_enum();
+void pk__add_module_inspect();
+
 void pk__add_module_linalg();
 void pk__add_module_array2d();
 
