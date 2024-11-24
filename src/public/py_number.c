@@ -51,8 +51,6 @@ DEF_NUM_BINARY_OP(__le__, <=, py_newbool, py_newbool)
 DEF_NUM_BINARY_OP(__gt__, >, py_newbool, py_newbool)
 DEF_NUM_BINARY_OP(__ge__, >=, py_newbool, py_newbool)
 
-#undef DEF_NUM_BINARY_OP
-
 static bool int__neg__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_i64 val = py_toint(&argv[0]);
@@ -202,8 +200,6 @@ DEF_INT_BITWISE_OP(__or__, |)
 DEF_INT_BITWISE_OP(__xor__, ^)
 DEF_INT_BITWISE_OP(__lshift__, <<)
 DEF_INT_BITWISE_OP(__rshift__, >>)
-
-#undef DEF_INT_BITWISE_OP
 
 static bool int__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -442,8 +438,6 @@ DEF_BOOL_BITWISE(__and__, &&)
 DEF_BOOL_BITWISE(__or__, ||)
 DEF_BOOL_BITWISE(__xor__, !=)
 
-#undef DEF_BOOL_BITWISE
-
 void pk_number__register() {
     /****** tp_int & tp_float ******/
     py_bindmagic(tp_int, __add__, int__add__);
@@ -521,3 +515,7 @@ void pk_number__register() {
     py_bindmagic(tp_bool, __or__, bool__or__);
     py_bindmagic(tp_bool, __xor__, bool__xor__);
 }
+
+#undef DEF_NUM_BINARY_OP
+#undef DEF_INT_BITWISE_OP
+#undef DEF_BOOL_BITWISE

@@ -987,3 +987,9 @@ void pk__add_module_linalg() {
                    {1, 1, 1}
     });
 }
+
+#undef DEFINE_VEC_FIELD
+#undef DEFINE_BOOL_NE
+#undef DEF_VECTOR_ELEMENT_WISE
+#undef DEF_VECTOR_OPS
+#undef DEF_VECTOR_INT_OPS

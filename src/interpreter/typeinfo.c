@@ -39,3 +39,6 @@ void TypeList__apply(TypeList* self, void (*f)(py_TypeInfo*, void*), void* ctx) 
         f(info, ctx);
     }
 }
+
+#undef CHUNK_SIZE
+#undef LOG2_CHUNK_SIZE

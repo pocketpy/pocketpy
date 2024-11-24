@@ -708,3 +708,4 @@ const char* TokenSymbols[] = {
     "yield",
 };
 
+#undef is_raw_string_used

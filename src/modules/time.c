@@ -104,3 +104,6 @@ void pk__add_module_time() {
     py_bindfunc(mod, "sleep", time_sleep);
     py_bindfunc(mod, "localtime", time_localtime);
 }
+
+#undef NANOS_PER_SEC
+#undef DEF_STRUCT_TIME__PROPERTY

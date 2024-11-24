@@ -1351,3 +1351,20 @@ static bool stack_format_object(VM* self, c11_sv spec) {
     c11_sbuf__py_submit(&buf, val);
     return true;
 }
+
+#undef CHECK_RETURN_FROM_EXCEPT_OR_FINALLY
+#undef DISPATCH
+#undef DISPATCH_JUMP
+#undef DISPATCH_JUMP_ABSOLUTE
+#undef TOP
+#undef SECOND
+#undef THIRD
+#undef FOURTH
+#undef STACK_SHRINK
+#undef STACK_GROW
+#undef PUSH
+#undef POP
+#undef POPX
+#undef SP
+#undef INSERT_THIRD
+#undef vectorcall_opcall

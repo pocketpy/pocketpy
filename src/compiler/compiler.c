@@ -2866,3 +2866,26 @@ const static PrattRule rules[TK__COUNT__] = {
     [TK_COLON] =       { exprSlice0,    exprSlice1,      PREC_PRIMARY }
 };
 // clang-format on
+
+#undef static_assert_expr_size
+#undef vtcall
+#undef vtemit_
+#undef vtemit_del
+#undef vtemit_store
+#undef vtemit_inplace
+#undef vtemit_istore
+#undef vtdelete
+#undef EXPR_COMMON_HEADER
+#undef is_compare_expr
+#undef tk
+#undef prev
+#undef curr
+#undef next
+#undef advance
+#undef mode
+#undef ctx
+#undef match_newlines
+#undef consume
+#undef consume_end_stmt
+#undef check
+#undef match

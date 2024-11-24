@@ -303,3 +303,10 @@ __ERROR:
     py_printexc();
     c11__abort("failed to add module random");
 }
+
+#undef N
+#undef M
+#undef MATRIX_A
+#undef UPPER_MASK
+#undef LOWER_MASK
+#undef ADD_INST_BOUNDMETHOD

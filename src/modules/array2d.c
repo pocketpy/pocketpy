@@ -616,3 +616,6 @@ void pk__add_module_array2d() {
     py_bindmethod(array2d, "find_bounding_rect", array2d_find_bounding_rect);
     py_bindmethod(array2d, "count_neighbors", array2d_count_neighbors);
 }
+
+#undef INC_COUNT
+#undef HANDLE_SLICE

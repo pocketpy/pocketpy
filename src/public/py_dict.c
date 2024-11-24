@@ -167,7 +167,7 @@ static void Dict__compact_entries(Dict* self) {
     }
     self->entries.length = n;
     // update indices
-    for(int i = 0; i < self->capacity; i++) {
+    for(uint32_t i = 0; i < self->capacity; i++) {
         for(int j = 0; j < PK_DICT_MAX_COLLISION; j++) {
             int idx = self->indices[i]._[j];
             if(idx == -1) continue;
@@ -203,7 +203,7 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
         if(res == -1) return false;  // error
     }
     // no empty slot found
-    if(self->capacity >= self->entries.length * 10) {
+    if(self->capacity >= (uint32_t)self->entries.length * 10) {
         // raise error if we reach the minimum load factor (10%)
         return RuntimeError("dict has too much collision: %d/%d/%d",
                             self->entries.length,
@@ -623,3 +623,5 @@ bool py_dict_apply(py_Ref self, bool (*f)(py_Ref, py_Ref, void*), void* ctx) {
     }
     return true;
 }
+
+#undef PK_DICT_MAX_COLLISION

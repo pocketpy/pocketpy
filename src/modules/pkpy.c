@@ -67,3 +67,5 @@ void pk__add_module_pkpy() {
     py_setdict(mod, py_name("TValue"), TValue_dict);
     py_pop();
 }
+
+#undef DEF_TVALUE_METHODS

@@ -680,3 +680,5 @@ bool py_str(py_Ref val) {
 bool py_repr(py_Ref val) { return pk_callmagic(__repr__, 1, val); }
 
 bool py_len(py_Ref val) { return pk_callmagic(__len__, 1, val); }
+
+#undef DEF_STR_CMP_OP

@@ -322,3 +322,4 @@ void Pools_debug_info(char* buffer, int size) {
     );
 }
 
+#undef LinkedList__apply

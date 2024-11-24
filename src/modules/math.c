@@ -199,3 +199,6 @@ void pk__add_module_math() {
     py_bindfunc(mod, "modf", math_modf);
     py_bindfunc(mod, "factorial", math_factorial);
 }
+
+#undef ONE_ARG_FUNC
+#undef TWO_ARG_FUNC
