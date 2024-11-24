@@ -568,6 +568,75 @@ static bool array2d__setitem__(int argc, py_Ref argv) {
     }
 }
 
+// find_one(self, condition: Callable[[T], bool]) -> vec2i
+static bool array2d_find_one(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_array2d* self = py_touserdata(argv);
+    py_Ref condition = py_arg(1);
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            bool ok = py_call(condition, 1, py_array2d__get(self, i, j));
+            if(!ok) return false;
+            if(!py_isbool(py_retval())) return TypeError("condition must return a bool");
+            if(py_tobool(py_retval())) {
+                py_newvec2i(py_retval(),
+                            (c11_vec2i){
+                                {i, j}
+                });
+                return true;
+            }
+        }
+    }
+    return ValueError("condition not met");
+}
+
+static bool _array2d_is_all_ints(c11_array2d* self) {
+    for(int i = 0; i < self->numel; i++) {
+        if(!py_isint(self->data + i)) return false;
+    }
+    return true;
+}
+
+// convolve(self: array2d[int], kernel: 'array2d[int]', padding: int = 0) -> 'array2d[int]'
+static bool array2d_convolve(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(1, tp_array2d);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    c11_array2d* self = py_touserdata(argv);
+    c11_array2d* kernel = py_touserdata(py_arg(1));
+    int padding = py_toint(py_arg(2));
+    if(kernel->n_cols != kernel->n_rows) { return ValueError("kernel must be square"); }
+    int ksize = kernel->n_cols;
+    if(ksize % 2 == 0) { return ValueError("kernel size must be odd"); }
+    int ksize_half = ksize / 2;
+    if(!_array2d_is_all_ints(self)) { return TypeError("self must be `array2d[int]`"); }
+    if(!_array2d_is_all_ints(kernel)) { return TypeError("kernel must be `array2d[int]`"); }
+    c11_array2d* res = py_array2d(py_pushtmp(), self->n_cols, self->n_rows);
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            py_i64 sum = 0;
+            for(int jj = 0; jj < ksize; jj++) {
+                for(int ii = 0; ii < ksize; ii++) {
+                    int x = i + ii - ksize_half;
+                    int y = j + jj - ksize_half;
+                    py_i64 _0, _1;
+                    if(x < 0 || x >= self->n_cols || y < 0 || y >= self->n_rows) {
+                        _0 = padding;
+                    } else {
+                        _0 = py_toint(py_array2d__get(self, x, y));
+                    }
+                    _1 = py_toint(py_array2d__get(kernel, ii, jj));
+                    sum += _0 * _1;
+                }
+            }
+            py_newint(py_array2d__get(res, i, j), sum);
+        }
+    }
+    py_assign(py_retval(), py_peek(-1));
+    py_pop();
+    return true;
+}
+
 void pk__add_module_array2d() {
     py_GlobalRef mod = py_newmodule("array2d");
     py_Type array2d = pk_newtype("array2d", tp_object, mod, NULL, false, true);
@@ -615,6 +684,8 @@ void pk__add_module_array2d() {
     py_bindmethod(array2d, "count", array2d_count);
     py_bindmethod(array2d, "find_bounding_rect", array2d_find_bounding_rect);
     py_bindmethod(array2d, "count_neighbors", array2d_count_neighbors);
+    py_bindmethod(array2d, "find_one", array2d_find_one);
+    py_bindmethod(array2d, "convolve", array2d_convolve);
 }
 
 #undef INC_COUNT

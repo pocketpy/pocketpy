@@ -96,8 +96,18 @@ assert x == d and x is not d
 x.copy_([1, 2, 3, 4, 5, 6, 7, 8])
 assert x.tolist() == [[1, 2], [3, 4], [5, 6], [7, 8]]
 
-# test alive_neighbors
+# test find_one
 a = array2d(3, 3, default=0)
+a[1, 1] = 1
+assert a.find_one(lambda x: x == 1) == vec2i(1, 1)
+try:
+    a.find_one(lambda x: x == 2)
+    exit(1)
+except ValueError:
+    pass
+
+# test alive_neighbors
+a = array2d[int](3, 3, default=0)
 a[1, 1] = 1
 """     Moore    von Neumann
 0 0 0   1 1 1    0 1 0
@@ -114,6 +124,15 @@ _0 = a.count_neighbors(1, 'Moore')
 assert _0 == moore_result
 _1 = a.count_neighbors(1, 'von Neumann')
 assert _1 == von_neumann_result
+
+MOORE_KERNEL = array2d[int](3, 3, default=1)
+MOORE_KERNEL[1, 1] = 0
+VON_NEUMANN_KERNEL = array2d[int](3, 3, default=0)
+VON_NEUMANN_KERNEL[0, 1] = VON_NEUMANN_KERNEL[1, 0] = VON_NEUMANN_KERNEL[1, 2] = VON_NEUMANN_KERNEL[2, 1] = 1
+moore_conv_result = a.convolve(MOORE_KERNEL, 0)
+assert moore_conv_result == moore_result
+von_neumann_conv_result = a.convolve(VON_NEUMANN_KERNEL, 0)
+assert von_neumann_conv_result == von_neumann_result
 
 # test slice get
 a = array2d(5, 5, default=0)
@@ -176,6 +195,24 @@ a = array2d(3, 4, default=1)
 assert a.unsafe_get(0, 0) == 1
 a.unsafe_set(0, 0, 2)
 assert a.unsafe_get(0, 0) == 2
+
+# test convolve
+a = array2d[int](5, 2, default=0)
+"""
+1 0 2 4 0
+3 1 0 5 1
+"""
+a[0, 0] = 1; a[1, 0] = 0; a[2, 0] = 2; a[3, 0] = 4; a[4, 0] = 0
+a[0, 1] = 3; a[1, 1] = 1; a[2, 1] = 0; a[3, 1] = 5; a[4, 1] = 1
+assert a.tolist() == [[1, 0, 2, 4, 0], [3, 1, 0, 5, 1]]
+
+kernel = array2d[int](3, 3, default=1)
+res = a.convolve(kernel, -1)
+"""
+0 4 9 9 5
+0 4 9 9 5
+"""
+assert res.tolist() == [[0, 4, 9, 9, 5], [0, 4, 9, 9, 5]]
 
 # stackoverflow bug due to recursive mark-and-sweep
 # class Cell:
