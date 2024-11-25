@@ -9,7 +9,7 @@ except ValueError:
     pass
 
 # test callable constructor
-a = array2d(2, 4, lambda: 0)
+a = array2d[int](2, 4, lambda: 0)
 
 assert a.width == a.n_cols == 2
 assert a.height == a.n_rows == 4
@@ -49,7 +49,7 @@ try:
 except IndexError:
     pass
 
-# test __iter__
+# test tolist
 a_list = [[5, 0], [0, 0], [0, 0], [0, 6]]
 assert a_list == a.tolist()
 
@@ -59,10 +59,10 @@ assert len(a) == 4*2
 # test __eq__
 x = array2d(2, 4, default=0)
 b = array2d(2, 4, default=0)
-assert x == b
+assert (x == b).all()
 
 b[0, 0] = 1
-assert x != b
+assert (x != b).any()
 
 # test __repr__
 assert repr(a) == f'array2d(2, 4)'
@@ -77,22 +77,22 @@ assert c.numel == 8
 
 # test copy
 d = c.copy()
-assert d == c and d is not c
+assert (d == c).all() and d is not c
 
 # test fill_
 d.fill_(-3)
-assert d == array2d(2, 4, default=-3)
+assert (d == array2d(2, 4, default=-3)).all()
 
 # test apply_
 d.apply_(lambda x: x + 3)
-assert d == array2d(2, 4, default=0)
+assert (d == array2d(2, 4, default=0)).all()
 
 # test copy_
 a.copy_(d)
-assert a == d and a is not d
+assert (a == d).all() and a is not d
 x = array2d(2, 4, default=0)
 x.copy_(d)
-assert x == d and x is not d
+assert (x == d).all() and x is not d
 x.copy_([1, 2, 3, 4, 5, 6, 7, 8])
 assert x.tolist() == [[1, 2], [3, 4], [5, 6], [7, 8]]
 
@@ -115,14 +115,12 @@ assert _0 == moore_result
 _1 = a.count_neighbors(1, 'von Neumann')
 assert _1 == von_neumann_result
 
-MOORE_KERNEL = array2d[int](3, 3, default=1)
-MOORE_KERNEL[1, 1] = 0
-VON_NEUMANN_KERNEL = array2d[int](3, 3, default=0)
-VON_NEUMANN_KERNEL[0, 1] = VON_NEUMANN_KERNEL[1, 0] = VON_NEUMANN_KERNEL[1, 2] = VON_NEUMANN_KERNEL[2, 1] = 1
+MOORE_KERNEL = array2d[int].fromlist([[1, 1, 1], [1, 0, 1], [1, 1, 1]])
+VON_NEUMANN_KERNEL = array2d.fromlist([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
 moore_conv_result = a.convolve(MOORE_KERNEL, 0)
-assert moore_conv_result == moore_result
+assert (moore_conv_result == moore_result).all()
 von_neumann_conv_result = a.convolve(VON_NEUMANN_KERNEL, 0)
-assert von_neumann_conv_result == von_neumann_result
+assert (von_neumann_conv_result == von_neumann_result).all()
 
 # test slice get
 a = array2d(5, 5, default=0)
@@ -130,9 +128,9 @@ b = array2d(3, 2, default=1)
 
 assert a[1:4, 1:4] == array2d(3, 3, default=0)
 assert a[1:4, 1:3] == array2d(3, 2, default=0)
-assert a[1:4, 1:3] != b
+assert (a[1:4, 1:3] != b).any()
 a[1:4, 1:3] = b
-assert a[1:4, 1:3] == b
+assert (a[1:4, 1:3] == b).all()
 """
 0 0 0 0 0
 0 1 1 1 0
@@ -174,6 +172,7 @@ try:
 except TypeError:
     pass
 
+# test __iter__
 a = array2d(3, 4, default=1)
 for i, j, x in a:
     assert a[i, j] == x
@@ -187,13 +186,11 @@ a.unsafe_set(0, 0, 2)
 assert a.unsafe_get(0, 0) == 2
 
 # test convolve
-a = array2d[int](5, 2, default=0)
+a = array2d[int].fromlist([[1, 0, 2, 4, 0], [3, 1, 0, 5, 1]])
 """
 1 0 2 4 0
 3 1 0 5 1
 """
-a[0, 0] = 1; a[1, 0] = 0; a[2, 0] = 2; a[3, 0] = 4; a[4, 0] = 0
-a[0, 1] = 3; a[1, 1] = 1; a[2, 1] = 0; a[3, 1] = 5; a[4, 1] = 1
 assert a.tolist() == [[1, 0, 2, 4, 0], [3, 1, 0, 5, 1]]
 
 kernel = array2d[int](3, 3, default=1)
@@ -203,6 +200,23 @@ res = a.convolve(kernel, -1)
 0 4 9 9 5
 """
 assert res.tolist() == [[0, 4, 9, 9, 5], [0, 4, 9, 9, 5]]
+
+mask = res == 9
+assert mask.tolist() == [
+    [False, False, True, True, False],
+    [False, False, True, True, False]
+    ]
+assert res[mask] == [9, 9, 9, 9]
+
+mask = res != 9
+assert mask.tolist() == [
+    [True, True, False, False, True],
+    [True, True, False, False, True]
+    ]
+assert res[mask] == [0, 4, 5, 0, 4, 5]
+res[mask] = -1
+assert res.tolist() == [[-1, -1, 9, 9, -1], [-1, -1, 9, 9, -1]]
+
 
 # stackoverflow bug due to recursive mark-and-sweep
 # class Cell:
