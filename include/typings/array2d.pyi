@@ -84,3 +84,10 @@ class array2d(Generic[T]):
 
     def convolve(self: array2d[int], kernel: array2d[int], padding: int) -> array2d[int]:
         """Convolves the array with the given kernel."""
+
+    def get_connected_components(self, value: T, neighborhood: Neighborhood) -> tuple[array2d[int], int]:
+        """Gets connected components of the grid.
+
+        Returns the `visited` array and the number of connected components,
+        where `0` means unvisited, and non-zero means the index of the connected component.
+        """

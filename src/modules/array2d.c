@@ -764,6 +764,14 @@ void pk__add_module_array2d() {
     py_bindmethod(array2d, "get_bounding_rect", array2d_get_bounding_rect);
     py_bindmethod(array2d, "count_neighbors", array2d_count_neighbors);
     py_bindmethod(array2d, "convolve", array2d_convolve);
+
+    const char* scc =
+        "\ndef get_connected_components(self, value: T, neighborhood: Neighborhood) -> tuple[array2d[int], int]:\n    from collections import deque\n    from linalg import vec2i\n\n    DIRS = [vec2i.LEFT, vec2i.RIGHT, vec2i.UP, vec2i.DOWN]\n    assert neighborhood in ['Moore', 'von Neumann']\n\n    if neighborhood == 'Moore':\n        DIRS.extend([\n            vec2i.LEFT+vec2i.UP,\n            vec2i.RIGHT+vec2i.UP,\n            vec2i.LEFT+vec2i.DOWN,\n            vec2i.RIGHT+vec2i.DOWN\n            ])\n\n    visited = array2d[int](self.width, self.height, default=0)\n    queue = deque()\n    count = 0\n    for y in range(self.height):\n        for x in range(self.width):\n            if visited[x, y] or self[x, y] != value:\n                continue\n            count += 1\n            queue.append((x, y))\n            visited[x, y] = count\n            while queue:\n                cx, cy = queue.popleft()\n                for dx, dy in DIRS:\n                    nx, ny = cx+dx, cy+dy\n                    if self.is_valid(nx, ny) and not visited[nx, ny] and self[nx, ny] == value:\n                        queue.append((nx, ny))\n                        visited[nx, ny] = count\n    return visited, count\n\narray2d.get_connected_components = get_connected_components\ndel get_connected_components\n";
+
+    if(!py_exec(scc, "array2d.py", EXEC_MODE, mod)) {
+        py_printexc();
+        c11__abort("failed to execute array2d.py");
+    }
 }
 
 #undef INC_COUNT

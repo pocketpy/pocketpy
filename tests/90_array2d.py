@@ -217,6 +217,33 @@ assert res[mask] == [0, 4, 5, 0, 4, 5]
 res[mask] = -1
 assert res.tolist() == [[-1, -1, 9, 9, -1], [-1, -1, 9, 9, -1]]
 
+# test get_connected_components
+a = array2d[int].fromlist([
+    [1, 1, 0, 1],
+    [0, 2, 2, 1],
+    [0, 1, 1, 1],
+    [1, 0, 0, 0],
+])
+vis, cnt = a.get_connected_components(1, 'von Neumann')
+assert vis == [
+    [1, 1, 0, 2],
+    [0, 0, 0, 2],
+    [0, 2, 2, 2],
+    [3, 0, 0, 0]
+    ]
+assert cnt == 3
+vis, cnt = a.get_connected_components(1, 'Moore')
+assert vis == [
+    [1, 1, 0, 2],
+    [0, 0, 0, 2],
+    [0, 2, 2, 2],
+    [2, 0, 0, 0]
+    ]
+assert cnt == 2
+vis, cnt = a.get_connected_components(2, 'von Neumann')
+assert cnt == 1
+vis, cnt = a.get_connected_components(0, 'Moore')
+assert cnt == 2
 
 # stackoverflow bug due to recursive mark-and-sweep
 # class Cell:
