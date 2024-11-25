@@ -433,8 +433,8 @@ static bool array2d_count(int argc, py_Ref argv) {
     return true;
 }
 
-// find_bounding_rect(self, value: T) -> tuple[int, int, int, int]
-static bool array2d_find_bounding_rect(int argc, py_Ref argv) {
+// get_bounding_rect(self, value: T) -> tuple[int, int, int, int]
+static bool array2d_get_bounding_rect(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_array2d* self = py_touserdata(argv);
     py_Ref value = py_arg(1);
@@ -761,7 +761,7 @@ void pk__add_module_array2d() {
     py_bindmethod(array2d, "tolist", array2d_tolist);
 
     py_bindmethod(array2d, "count", array2d_count);
-    py_bindmethod(array2d, "find_bounding_rect", array2d_find_bounding_rect);
+    py_bindmethod(array2d, "get_bounding_rect", array2d_get_bounding_rect);
     py_bindmethod(array2d, "count_neighbors", array2d_count_neighbors);
     py_bindmethod(array2d, "convolve", array2d_convolve);
 }

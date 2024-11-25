@@ -140,11 +140,11 @@ assert (a[1:4, 1:3] == b).all()
 """
 assert a.count(1) == 3*2
 
-assert a.find_bounding_rect(1) == (1, 1, 3, 2)
-assert a.find_bounding_rect(0) == (0, 0, 5, 5)
+assert a.get_bounding_rect(1) == (1, 1, 3, 2)
+assert a.get_bounding_rect(0) == (0, 0, 5, 5)
 
 try:
-    a.find_bounding_rect(2)
+    a.get_bounding_rect(2)
     exit(1)
 except ValueError:
     pass
