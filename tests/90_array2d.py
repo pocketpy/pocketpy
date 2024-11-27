@@ -30,9 +30,9 @@ assert not a.is_valid(0, -1) and not a.is_valid(vec2i(0, -1))
 
 # test get
 assert a.get(0, 0, -1) == (0, 0)
-assert a.get(vec2i(1, 3), -1) == (1, 3)
-assert a.get(2, 0, None) is None
-assert a.get(vec2i(0, 4), 'S') == 'S'
+assert a.get(1, 3) == (1, 3)
+assert a.get(2, 0) is None
+assert a.get(0, 4, 'S') == 'S'
 
 # test __getitem__
 assert a[0, 0] == (0, 0)
