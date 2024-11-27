@@ -40,7 +40,7 @@ static c11_array2d* py_array2d(py_OutRef out, int n_cols, int n_rows) {
 
 /* bindings */
 static bool array2d__new__(int argc, py_Ref argv) {
-    // __new__(cls, n_cols: int, n_rows: int, default=None)
+    // __new__(cls, n_cols: int, n_rows: int, default: Callable[[vec2i], T] = None)
     py_Ref default_ = py_arg(3);
     PY_CHECK_ARG_TYPE(0, tp_type);
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -52,10 +52,17 @@ static bool array2d__new__(int argc, py_Ref argv) {
     c11_array2d* ud = py_array2d(py_pushtmp(), n_cols, n_rows);
     // setup initial values
     if(py_callable(default_)) {
-        for(int i = 0; i < numel; i++) {
-            bool ok = py_call(default_, 0, NULL);
-            if(!ok) return false;
-            ud->data[i] = *py_retval();
+        for(int j = 0; j < n_rows; j++) {
+            for(int i = 0; i < n_cols; i++) {
+                py_TValue tmp;
+                py_newvec2i(&tmp,
+                            (c11_vec2i){
+                                {i, j}
+                });
+                bool ok = py_call(default_, 1, &tmp);
+                if(!ok) return false;
+                ud->data[j * n_cols + i] = *py_retval();
+            }
         }
     } else {
         for(int i = 0; i < numel; i++) {
@@ -111,52 +118,29 @@ static bool array2d_is_valid(int argc, py_Ref argv) {
 static bool array2d_get(int argc, py_Ref argv) {
     py_Ref default_;
     c11_array2d* self = py_touserdata(argv);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
+    int col, row;
     if(argc == 3) {
-        default_ = py_None();
+        // get[R](self, pos: vec2i, default: R) -> T | R
+        PY_CHECK_ARG_TYPE(1, tp_vec2i);
+        c11_vec2i pos = py_tovec2i(py_arg(1));
+        col = pos.x;
+        row = pos.y;
+        default_ = py_arg(2);
     } else if(argc == 4) {
+        // get(self, col: int, row: int, default: T) -> T
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        PY_CHECK_ARG_TYPE(2, tp_int);
+        col = py_toint(py_arg(1));
+        row = py_toint(py_arg(2));
         default_ = py_arg(3);
     } else {
         return TypeError("get() expected 3 or 4 arguments");
     }
-    int col = py_toint(py_arg(1));
-    int row = py_toint(py_arg(2));
     if(py_array2d_is_valid(self, col, row)) {
         py_assign(py_retval(), py_array2d__get(self, col, row));
     } else {
         py_assign(py_retval(), default_);
     }
-    return true;
-}
-
-static bool array2d_unsafe_get(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(3);
-    c11_array2d* self = py_touserdata(argv);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
-    int col = py_toint(py_arg(1));
-    int row = py_toint(py_arg(2));
-    py_assign(py_retval(), py_array2d__get(self, col, row));
-    return true;
-}
-
-static bool array2d_unsafe_set(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(4);
-    c11_array2d* self = py_touserdata(argv);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
-    int col = py_toint(py_arg(1));
-    int row = py_toint(py_arg(2));
-    py_array2d__set(self, col, row, py_arg(3));
-    py_newnone(py_retval());
-    return true;
-}
-
-static bool array2d__len__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_array2d* self = py_touserdata(argv);
-    py_newint(py_retval(), self->numel);
     return true;
 }
 
@@ -273,11 +257,13 @@ static bool array2d_iterator__next__(int argc, py_Ref argv) {
     c11_array2d_iterator* self = py_touserdata(argv);
     if(self->index < self->array->numel) {
         div_t res = div(self->index, self->array->n_cols);
-        py_newtuple(py_retval(), 3);
+        py_newtuple(py_retval(), 2);
         py_TValue* data = py_tuple_data(py_retval());
-        py_newint(&data[0], res.rem);
-        py_newint(&data[1], res.quot);
-        py_assign(&data[2], self->array->data + self->index);
+        py_newvec2i(&data[0],
+                    (c11_vec2i){
+                        {res.rem, res.quot}
+        });
+        py_assign(&data[1], self->array->data + self->index);
         self->index++;
         return true;
     }
@@ -725,7 +711,6 @@ void pk__add_module_array2d() {
             "__new__(cls, n_cols: int, n_rows: int, default=None)",
             array2d__new__);
 
-    py_bindmagic(array2d, __len__, array2d__len__);
     py_bindmagic(array2d, __eq__, array2d__eq__);
     py_bindmagic(array2d, __ne__, array2d__ne__);
     py_bindmagic(array2d, __repr__, array2d__repr__);
@@ -742,8 +727,6 @@ void pk__add_module_array2d() {
 
     py_bindmethod(array2d, "is_valid", array2d_is_valid);
     py_bindmethod(array2d, "get", array2d_get);
-    py_bindmethod(array2d, "unsafe_get", array2d_unsafe_get);
-    py_bindmethod(array2d, "unsafe_set", array2d_unsafe_set);
 
     py_bindmethod(array2d, "map", array2d_map);
     py_bindmethod(array2d, "copy", array2d_copy);

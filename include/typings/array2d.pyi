@@ -1,11 +1,9 @@
 from typing import Callable, Any, Generic, TypeVar, Literal, overload, Iterator
 from linalg import vec2i
 
-T = TypeVar('T')
-
 Neighborhood = Literal['Moore', 'von Neumann']
 
-class array2d(Generic[T]):
+class array2d[T]:
     @property
     def n_cols(self) -> int: ...
     @property
@@ -17,24 +15,21 @@ class array2d(Generic[T]):
     @property
     def numel(self) -> int: ...
 
-    def __new__(cls, n_cols: int, n_rows: int, default=None): ...
-    def __len__(self) -> int: ...
+    def __new__(cls, n_cols: int, n_rows: int, default: Callable[[vec2i], T] = None): ...
     def __eq__(self, other: object) -> array2d[bool]: ... # type: ignore
     def __ne__(self, other: object) -> array2d[bool]: ... # type: ignore
     def __repr__(self) -> str: ...
-    def __iter__(self) -> Iterator[tuple[int, int, T]]: ...
+    def __iter__(self) -> Iterator[tuple[vec2i, T]]: ...
 
     @overload
     def is_valid(self, col: int, row: int) -> bool: ...
     @overload
     def is_valid(self, pos: vec2i) -> bool: ...
 
-    def get(self, col: int, row: int, default=None) -> T | None:
-        """Returns the value at the given position or the default value if out of bounds."""
-    def unsafe_get(self, col: int, row: int) -> T:
-        """Returns the value at the given position without bounds checking."""
-    def unsafe_set(self, col: int, row: int, value: T):
-        """Sets the value at the given position without bounds checking."""
+    @overload
+    def get[R](self, col: int, row: int, default: R) -> T | R: ...
+    @overload
+    def get[R](self, pos: vec2i, default: R) -> T | R: ...
 
     @overload
     def __getitem__(self, index: tuple[int, int]) -> T: ...

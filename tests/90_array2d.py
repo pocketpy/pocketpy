@@ -9,11 +9,16 @@ except ValueError:
     pass
 
 # test callable constructor
-a = array2d[int](2, 4, lambda: 0)
+a = array2d[int](2, 4, lambda pos: (pos.x, pos.y))
 
 assert a.width == a.n_cols == 2
 assert a.height == a.n_rows == 4
 assert a.numel == 8
+assert a.tolist() == [
+    [(0, 0), (1, 0)],
+    [(0, 1), (1, 1)],
+    [(0, 2), (1, 2)],
+    [(0, 3), (1, 3)]]
 
 # test is_valid
 assert a.is_valid(0, 0) and a.is_valid(vec2i(0, 0))
@@ -24,14 +29,14 @@ assert not a.is_valid(-1, 0) and not a.is_valid(vec2i(-1, 0))
 assert not a.is_valid(0, -1) and not a.is_valid(vec2i(0, -1))
 
 # test get
-assert a.get(0, 0) == 0
-assert a.get(1, 3) == 0
-assert a.get(2, 0) is None
-assert a.get(0, 4, 'S') == 'S'
+assert a.get(0, 0, -1) == (0, 0)
+assert a.get(vec2i(1, 3), -1) == (1, 3)
+assert a.get(2, 0, None) is None
+assert a.get(vec2i(0, 4), 'S') == 'S'
 
 # test __getitem__
-assert a[0, 0] == 0
-assert a[1, 3] == 0
+assert a[0, 0] == (0, 0)
+assert a[1, 3] == (1, 3)
 try:
     a[2, 0]
     exit(1)
@@ -39,6 +44,7 @@ except IndexError:
     pass
 
 # test __setitem__
+a = array2d[int](2, 4, default=0)
 a[0, 0] = 5
 assert a[0, 0] == 5
 a[1, 3] = 6
@@ -52,9 +58,6 @@ except IndexError:
 # test tolist
 a_list = [[5, 0], [0, 0], [0, 0], [0, 6]]
 assert a_list == a.tolist()
-
-# test __len__
-assert len(a) == 4*2
 
 # test __eq__
 x = array2d(2, 4, default=0)
@@ -174,16 +177,8 @@ except TypeError:
 
 # test __iter__
 a = array2d(3, 4, default=1)
-for i, j, x in a:
-    assert a[i, j] == x
-
-assert len(a) == a.numel
-
-# test _get and _set
-a = array2d(3, 4, default=1)
-assert a.unsafe_get(0, 0) == 1
-a.unsafe_set(0, 0, 2)
-assert a.unsafe_get(0, 0) == 2
+for xy, val in a:
+    assert a[xy] == x
 
 # test convolve
 a = array2d[int].fromlist([[1, 0, 2, 4, 0], [3, 1, 0, 5, 1]])
