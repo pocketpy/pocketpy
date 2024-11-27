@@ -118,24 +118,17 @@ static bool array2d_is_valid(int argc, py_Ref argv) {
 static bool array2d_get(int argc, py_Ref argv) {
     py_Ref default_;
     c11_array2d* self = py_touserdata(argv);
-    int col, row;
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
     if(argc == 3) {
-        // get[R](self, pos: vec2i, default: R) -> T | R
-        PY_CHECK_ARG_TYPE(1, tp_vec2i);
-        c11_vec2i pos = py_tovec2i(py_arg(1));
-        col = pos.x;
-        row = pos.y;
-        default_ = py_arg(2);
+        default_ = py_None();
     } else if(argc == 4) {
-        // get(self, col: int, row: int, default: T) -> T
-        PY_CHECK_ARG_TYPE(1, tp_int);
-        PY_CHECK_ARG_TYPE(2, tp_int);
-        col = py_toint(py_arg(1));
-        row = py_toint(py_arg(2));
         default_ = py_arg(3);
     } else {
-        return TypeError("get() expected 3 or 4 arguments");
+        return TypeError("get() expected 2 or 3 arguments");
     }
+    int col = py_toint(py_arg(1));
+    int row = py_toint(py_arg(2));
     if(py_array2d_is_valid(self, col, row)) {
         py_assign(py_retval(), py_array2d__get(self, col, row));
     } else {
