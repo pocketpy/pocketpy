@@ -756,9 +756,8 @@ py_Type pk_nativefunc__register() {
 }
 
 static bool super__new__(int argc, py_Ref argv) {
-    py_Type* class_arg = py_newobject(py_retval(), tp_super, 1, sizeof(py_Type));
+    py_Type class_arg = 0;
     Frame* frame = pk_current_vm->top_frame;
-    *class_arg = 0;
     py_Ref self_arg = NULL;
     if(argc == 1) {
         // super()
@@ -768,27 +767,36 @@ static bool super__new__(int argc, py_Ref argv) {
             if(callable->type == tp_function) {
                 Function* func = py_touserdata(callable);
                 if(func->clazz != NULL) {
-                    *class_arg = *(py_Type*)PyObject__userdata(func->clazz);
+                    class_arg = *(py_Type*)PyObject__userdata(func->clazz);
                     if(frame->co->nlocals > 0) self_arg = &frame->locals[0];
                 }
             }
         }
         if(class_arg == 0 || self_arg == NULL) return RuntimeError("super(): no arguments");
+        if(self_arg->type == tp_type) {
+            // f(cls, ...)
+            class_arg = pk__type_info(class_arg)->base;
+            if(class_arg == 0) return RuntimeError("super(): base class is invalid");
+            py_assign(py_retval(), py_tpobject(class_arg));
+            return true;
+        }
     } else if(argc == 3) {
-        // super(type, obj)
+        // super(type[T], obj)
         PY_CHECK_ARG_TYPE(1, tp_type);
-        *class_arg = py_totype(py_arg(1));
+        class_arg = py_totype(py_arg(1));
         self_arg = py_arg(2);
-        if(!py_isinstance(self_arg, *class_arg)) {
+        if(!py_isinstance(self_arg, class_arg)) {
             return TypeError("super(type, obj): obj must be an instance of type");
         }
     } else {
         return TypeError("super() takes 0 or 2 arguments");
     }
 
-    *class_arg = pk__type_info(*class_arg)->base;
-    if(*class_arg == 0) return RuntimeError("super(): base class is invalid");
+    class_arg = pk__type_info(class_arg)->base;
+    if(class_arg == 0) return RuntimeError("super(): base class is invalid");
 
+    py_Type* p_class_arg = py_newobject(py_retval(), tp_super, 1, sizeof(py_Type));
+    *p_class_arg = class_arg;
     py_setslot(py_retval(), 0, self_arg);
     return true;
 }

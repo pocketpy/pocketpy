@@ -78,6 +78,7 @@ class Z:
 
 class B(Z):
     def __new__(cls, x):
+        assert super() is Z
         return super().__new__(cls, x)
 
 assert Z(1) == (Z, 1)
@@ -87,6 +88,7 @@ from pkpy import TValue
 
 class fixed(TValue[int]):
     def __new__(cls, value: str):
+        assert super() is TValue[int]
         return super().__new__(cls, int(value))
     
 assert fixed('123').value == 123

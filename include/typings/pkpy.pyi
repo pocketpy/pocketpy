@@ -7,7 +7,7 @@ class TValue[T]:
     @property
     def value(self) -> T: ...
 
-TValue_int = TValue[int]
-TValue_float = TValue[float]
-TValue_vec2i = TValue[vec2i]
-TValue_vec2 = TValue[vec2]
+# TValue_int = TValue[int]
+# TValue_float = TValue[float]
+# TValue_vec2i = TValue[vec2i]
+# TValue_vec2 = TValue[vec2]

@@ -167,9 +167,6 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
         if(py_istype(self, tp_type)) {
             // T.__new__(...)
             type = py_totype(self);
-        } else if(py_istype(self, tp_super)) {
-            // super().__new__(...)
-            type = *(py_Type*)py_touserdata(self);
         } else {
             // invalid usage of `__new__`
             return false;
