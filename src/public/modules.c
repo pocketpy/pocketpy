@@ -763,9 +763,15 @@ static bool super__new__(int argc, py_Ref argv) {
     if(argc == 1) {
         // super()
         if(frame->has_function) {
-            Function* func = py_touserdata(frame->p0);
-            *class_arg = *(py_Type*)PyObject__userdata(func->clazz);
-            if(frame->co->nlocals > 0) self_arg = &frame->locals[0];
+            py_TValue* callable = frame->p0;
+            if(callable->type == tp_boundmethod) callable = py_getslot(frame->p0, 1);
+            if(callable->type == tp_function) {
+                Function* func = py_touserdata(callable);
+                if(func->clazz != NULL) {
+                    *class_arg = *(py_Type*)PyObject__userdata(func->clazz);
+                    if(frame->co->nlocals > 0) self_arg = &frame->locals[0];
+                }
+            }
         }
         if(class_arg == 0 || self_arg == NULL) return RuntimeError("super(): no arguments");
     } else if(argc == 3) {

@@ -154,3 +154,17 @@ assert B.static_method(123) == 123
 assert B.class_method('123') == 'B123'
 assert B().static_method(123) == 123
 assert B().class_method('123') == 'B123'
+
+# test super() with classmethod
+class BaseClass:
+    @classmethod
+    def f(cls):
+        return 'BaseClass'
+
+class DerivedClass(BaseClass):
+    @classmethod
+    def f(cls):
+        return super().f()
+
+    
+assert DerivedClass.f() == 'BaseClass'

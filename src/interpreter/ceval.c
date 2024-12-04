@@ -60,7 +60,7 @@ static bool stack_format_object(VM* self, c11_sv spec);
             case RES_RETURN: PUSH(&self->last_retval); break;                                      \
             case RES_CALL: frame = self->top_frame; goto __NEXT_FRAME;                             \
             case RES_ERROR: goto __ERROR;                                                          \
-            default: c11__unreachable();                                                         \
+            default: c11__unreachable();                                                           \
         }                                                                                          \
     } while(0)
 
@@ -974,8 +974,13 @@ FrameResult VM__run_top_frame(VM* self) {
             case OP_STORE_CLASS_ATTR: {
                 assert(self->__curr_class);
                 py_Name name = byte.arg;
-                if(py_istype(TOP(), tp_function)) {
-                    Function* ud = py_touserdata(TOP());
+                // TOP() can be a function, classmethod or custom decorator
+                py_Ref actual_func = TOP();
+                if(actual_func->type == tp_classmethod) {
+                    actual_func = py_getslot(actual_func, 0);
+                }
+                if(actual_func->type == tp_function) {
+                    Function* ud = py_touserdata(actual_func);
                     ud->clazz = self->__curr_class->_obj;
                 }
                 py_setdict(self->__curr_class, name, TOP());
