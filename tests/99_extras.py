@@ -92,3 +92,14 @@ class fixed(TValue[int]):
         return super().__new__(cls, int(value))
     
 assert fixed('123').value == 123
+
+# context bug
+class Context:
+  def __enter__(self):
+    return 1
+  def __exit__(self, *_):
+    pass
+
+for _ in range(5):
+    with Context() as x:
+        assert x == 1

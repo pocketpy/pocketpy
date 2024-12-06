@@ -2694,6 +2694,7 @@ static Error* compile_stmt(Compiler* self) {
                 vtdelete((Expr*)as_name);
                 if(!ok) return SyntaxError(self, "invalid syntax");
             } else {
+                // discard `__enter__()`'s return value
                 Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
             }
             check(compile_block_body(self, compile_stmt));

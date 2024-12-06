@@ -1020,6 +1020,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     goto __ERROR;
                 }
                 if(!py_vectorcall(0, 0)) goto __ERROR;
+                POP();
                 DISPATCH();
             }
             ///////////
