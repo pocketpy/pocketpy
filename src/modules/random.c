@@ -112,12 +112,14 @@ static uint64_t mt19937__next_uint64(mt19937* self) {
     return (uint64_t)mt19937__next_uint32(self) << 32 | mt19937__next_uint32(self);
 }
 
-/* generates a random number on [0,1)-real-interval */
-static float mt19937__random(mt19937* self) {
-    return mt19937__next_uint32(self) * (1.0 / 4294967296.0); /* divided by 2^32 */
+static double mt19937__random(mt19937* self) {
+    // from cpython
+    uint32_t a = mt19937__next_uint32(self) >> 5;
+    uint32_t b = mt19937__next_uint32(self) >> 6;
+    return (a * 67108864.0 + b) * (1.0 / 9007199254740992.0);
 }
 
-static float mt19937__uniform(mt19937* self, float a, float b) {
+static double mt19937__uniform(mt19937* self, double a, double b) {
     if(a > b) { return b + mt19937__random(self) * (a - b); }
     return a + mt19937__random(self) * (b - a);
 }
@@ -133,10 +135,16 @@ int64_t mt19937__randint(mt19937* self, int64_t a, int64_t b) {
 }
 
 static bool Random__new__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
     mt19937* ud = py_newobject(py_retval(), py_totype(argv), 0, sizeof(mt19937));
     mt19937__ctor(ud);
-    return true;
+    if(argc == 1) return true;
+    if(argc == 2) {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        py_i64 seed = py_toint(py_arg(1));
+        mt19937__seed(ud, seed);
+        return true;
+    }
+    return TypeError("Random(): expected 0 or 1 arguments, got %d", argc - 1);
 }
 
 static bool Random_seed(int argc, py_Ref argv) {
