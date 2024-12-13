@@ -16,7 +16,7 @@ static bool lz4_compress(int argc, py_Ref argv) {
     memcpy(p, &src_size, sizeof(int));
     char* dst = p + sizeof(int);
     int dst_size = LZ4_compress_default(src, dst, src_size, dst_capacity);
-    if(dst_size <= 0) return IOError("LZ4 compression failed");
+    if(dst_size <= 0) return ValueError("LZ4 compression failed");
     py_bytes_resize(py_retval(), sizeof(int) + dst_size);
     return true;
 }
@@ -32,7 +32,7 @@ static bool lz4_decompress(int argc, py_Ref argv) {
     if(uncompressed_size < 0) return ValueError("invalid LZ4 data");
     char* dst = (char*)py_newbytes(py_retval(), uncompressed_size);
     int dst_size = LZ4_decompress_safe(src, dst, total_size - sizeof(int), uncompressed_size);
-    if(dst_size < 0) return IOError("LZ4 decompression failed");
+    if(dst_size < 0) return ValueError("LZ4 decompression failed");
     assert(dst_size == uncompressed_size);
     return true;
 }
