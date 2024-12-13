@@ -954,7 +954,6 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_END_CLASS: {
                 // [cls or decorated]
-                // TODO: if __eq__ is defined, check __ne__ and provide a default implementation
                 py_Name name = byte.arg;
                 // set into f_globals
                 py_setdict(frame->module, name, TOP());
@@ -966,7 +965,15 @@ FrameResult VM__run_top_frame(VM* self) {
                         py_TypeInfo* base_ti = ti->base_ti;
                         if(base_ti->on_end_subclass) base_ti->on_end_subclass(ti);
                     }
+                    if(!py_isnil(&ti->magic[__eq__])) {
+                        if(py_isnil(&ti->magic[__ne__])) {
+                            TypeError("'%n' implements '__eq__' but not '__ne__'", ti->name);
+                            goto __ERROR;
+                        }
+                    }
                 }
+                // class with decorator is unsafe currently
+                // it skips the above check
                 POP();
                 self->__curr_class = NULL;
                 DISPATCH();

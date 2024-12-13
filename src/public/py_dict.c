@@ -129,15 +129,15 @@ __RETRY:
     Dict__ctor(self, new_capacity, old_dict.entries.capacity);
     // move entries from old dict to new dict
     for(int i = 0; i < old_dict.entries.length; i++) {
-        DictEntry* entry = c11__at(DictEntry, &old_dict.entries, i);
-        if(py_isnil(&entry->key)) continue;
-        int idx = entry->hash % new_capacity;
+        DictEntry* old_entry = c11__at(DictEntry, &old_dict.entries, i);
+        if(py_isnil(&old_entry->key)) continue;
+        int idx = old_entry->hash % new_capacity;
         bool success = false;
         for(int i = 0; i < PK_DICT_MAX_COLLISION; i++) {
             int idx2 = self->indices[idx]._[i];
             if(idx2 == -1) {
                 // insert new entry (empty slot)
-                c11_vector__push(DictEntry, &self->entries, *entry);
+                c11_vector__push(DictEntry, &self->entries, *old_entry);
                 self->indices[idx]._[i] = self->entries.length - 1;
                 self->length++;
                 success = true;
@@ -210,8 +210,7 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
     }
     // no empty slot found
     if(self->capacity >= (uint32_t)self->entries.length * 10) {
-        // raise error if we reach the minimum load factor (10%)
-        return RuntimeError("dict has too much collision: %d/%d/%d",
+        return RuntimeError("dict: %d/%d/%d: minimum load factor reached",
                             self->entries.length,
                             self->entries.capacity,
                             self->capacity);

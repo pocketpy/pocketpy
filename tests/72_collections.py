@@ -209,6 +209,8 @@ assertEqual((n+1) not in d, True)
 class BadCmp:
     def __eq__(self, other):
         raise RuntimeError
+    def __ne__(self, other):
+        raise RuntimeError
 
 
 # # Test detection of comparison exceptions

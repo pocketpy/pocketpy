@@ -382,6 +382,7 @@ a = hash(object())  # object is hashable
 a = hash(A())       # A is hashable
 class B:
     def __eq__(self, o): return True
+    def __ne__(self, o): return False
 
 try:
     hash(B())

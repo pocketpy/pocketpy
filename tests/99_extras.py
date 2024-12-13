@@ -103,3 +103,13 @@ class Context:
 for _ in range(5):
     with Context() as x:
         assert x == 1
+
+# bad dict hash
+class A:
+    def __eq__(self, o): return False
+    def __ne__(self, o): return True
+    def __hash__(self): return 1
+
+bad_dict = {A(): 1, A(): 2, A(): 3, A(): 4}
+assert len(bad_dict) == 4
+bad_dict[A()] = 5   # error
