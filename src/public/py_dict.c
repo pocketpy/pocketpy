@@ -183,6 +183,7 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
     py_i64 hash;
     if(!py_hash(key, &hash)) return false;
     int idx = (uint64_t)hash % self->capacity;
+    int bad_hash_count = 0;
     for(int i = 0; i < PK_DICT_MAX_COLLISION; i++) {
         int idx2 = self->indices[idx]._[i];
         if(idx2 == -1) {
@@ -206,9 +207,21 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
                 return true;
             }
             if(res == -1) return false;  // error
+            // res == 0
+            bad_hash_count++;
         }
     }
     // no empty slot found
+    if(bad_hash_count == PK_DICT_MAX_COLLISION) {
+        // all `PK_DICT_MAX_COLLISION` slots have the same hash but different keys
+        // we are unable to solve this collision via rehashing
+        return RuntimeError("dict: %d/%d/%d: maximum collision reached (hash=%i)",
+                            self->entries.length,
+                            self->entries.capacity,
+                            self->capacity,
+                            hash);
+    }
+
     if(self->capacity >= (uint32_t)self->entries.length * 10) {
         return RuntimeError("dict: %d/%d/%d: minimum load factor reached",
                             self->entries.length,
