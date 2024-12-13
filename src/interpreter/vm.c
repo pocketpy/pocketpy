@@ -219,6 +219,7 @@ void VM__ctor(VM* self) {
     pk__add_module_pickle();
 
     pk__add_module_conio();
+    pk__add_module_lz4();
     pk__add_module_pkpy();
 
     // add python builtins

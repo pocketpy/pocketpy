@@ -63,6 +63,13 @@ unsigned char* py_tobytes(py_Ref self, int* size) {
     return ud->data;
 }
 
+void py_bytes_resize(py_Ref self, int size) {
+    assert(self->type == tp_bytes);
+    c11_bytes* ud = PyObject__userdata(self->_obj);
+    if(size > ud->size) c11__abort("bytes can only be resized down: %d > %d", ud->size, size);
+    ud->size = size;
+}
+
 ////////////////////////////////
 static bool str__new__(int argc, py_Ref argv) {
     assert(argc >= 1);

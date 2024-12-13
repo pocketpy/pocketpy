@@ -45,6 +45,13 @@ if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
 endif()
 
+option(PK_BUILD_MODULE_LZ4 "" ON)
+if(PK_BUILD_MODULE_LZ4)
+    add_subdirectory(3rd/lz4)
+    include_directories(3rd/lz4)
+    add_definitions(-DPK_BUILD_MODULE_LZ4=1)
+endif()
+
 # PK_IS_MAIN determines whether the project is being used from root
 # or if it is added as a dependency (through add_subdirectory for example).
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -82,4 +89,8 @@ if(UNIX)
     if(PK_ENABLE_OS)
         target_link_libraries(${PROJECT_NAME} dl)
     endif()
+endif()
+
+if(PK_BUILD_MODULE_LZ4)
+    target_link_libraries(${PROJECT_NAME} lz4)
 endif()

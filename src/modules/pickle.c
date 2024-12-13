@@ -119,10 +119,6 @@ static bool pickle_dumps(int argc, py_Ref argv) {
 void pk__add_module_pickle() {
     py_Ref mod = py_newmodule("pickle");
 
-    int x = 1;
-    bool is_little_endian = *(char*)&x == 1;
-    if(!is_little_endian) c11__abort("is_little_endian != true");
-
     py_bindfunc(mod, "loads", pickle_loads);
     py_bindfunc(mod, "dumps", pickle_dumps);
 }

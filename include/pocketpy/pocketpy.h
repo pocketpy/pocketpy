@@ -251,6 +251,8 @@ PK_API const char* py_tostrn(py_Ref, int* size);
 PK_API c11_sv py_tosv(py_Ref);
 /// Convert a `bytes` object in python to char array.
 PK_API unsigned char* py_tobytes(py_Ref, int* size);
+/// Resize a `bytes` object. It can only be resized down.
+PK_API void py_bytes_resize(py_Ref, int size);
 /// Convert a user-defined object to its userdata.
 PK_API void* py_touserdata(py_Ref);
 

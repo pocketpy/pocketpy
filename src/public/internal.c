@@ -17,6 +17,11 @@ void py_initialize() {
         return;
     }
 
+    // check endianness
+    int x = 1;
+    bool is_little_endian = *(char*)&x == 1;
+    if(!is_little_endian) c11__abort("is_little_endian != true");
+
     MemoryPools__initialize();
     py_Name__initialize();
 
