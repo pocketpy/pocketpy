@@ -99,12 +99,14 @@ static bool Dict__try_get(Dict* self, py_TValue* key, DictEntry** out) {
         int idx2 = self->indices[idx]._[i];
         if(idx2 == -1) continue;
         DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
-        int res = py_equal(&entry->key, key);
-        if(res == 1) {
-            *out = entry;
-            return true;
+        if(entry->hash == (uint64_t)hash) {
+            int res = py_equal(&entry->key, key);
+            if(res == 1) {
+                *out = entry;
+                return true;
+            }
+            if(res == -1) return false;  // error
         }
-        if(res == -1) return false;  // error
     }
     *out = NULL;
     return true;
@@ -195,12 +197,16 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
         }
         // update existing entry
         DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
-        int res = py_equal(&entry->key, key);
-        if(res == 1) {
-            entry->val = *val;
-            return true;
+        // check if they have the same hash
+        if(entry->hash == (uint64_t)hash) {
+            // check if they are equal
+            int res = py_equal(&entry->key, key);
+            if(res == 1) {
+                entry->val = *val;
+                return true;
+            }
+            if(res == -1) return false;  // error
         }
-        if(res == -1) return false;  // error
     }
     // no empty slot found
     if(self->capacity >= (uint32_t)self->entries.length * 10) {
@@ -224,16 +230,18 @@ static int Dict__pop(Dict* self, py_Ref key) {
         int idx2 = self->indices[idx]._[i];
         if(idx2 == -1) continue;
         DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
-        int res = py_equal(&entry->key, key);
-        if(res == 1) {
-            *py_retval() = entry->val;
-            py_newnil(&entry->key);
-            self->indices[idx]._[i] = -1;
-            self->length--;
-            if(self->length < self->entries.length / 2) Dict__compact_entries(self);
-            return 1;
+        if(entry->hash == (uint64_t)hash) {
+            int res = py_equal(&entry->key, key);
+            if(res == 1) {
+                *py_retval() = entry->val;
+                py_newnil(&entry->key);
+                self->indices[idx]._[i] = -1;
+                self->length--;
+                if(self->length < self->entries.length / 2) Dict__compact_entries(self);
+                return 1;
+            }
+            if(res == -1) return -1;  // error
         }
-        if(res == -1) return -1;  // error
     }
     return 0;
 }
@@ -382,12 +390,16 @@ static bool dict__eq__(int argc, py_Ref argv) {
             py_newbool(py_retval(), false);
             return true;
         }
-        int res = py_equal(&entry->val, &other_entry->val);
-        if(res == -1) return false;
-        if(!res) {
+        if(entry->hash != other_entry->hash) {
             py_newbool(py_retval(), false);
             return true;
         }
+        int res = py_equal(&entry->val, &other_entry->val);
+        if(res == 0) {
+            py_newbool(py_retval(), false);
+            return true;
+        }
+        if(res == -1) return false;  // error
     }
     py_newbool(py_retval(), true);
     return true;
