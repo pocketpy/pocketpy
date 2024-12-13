@@ -99,10 +99,11 @@ void c11_sbuf__write_quoted(c11_sbuf* self, c11_sv sv, char quote) {
             case '\t': c11_sbuf__write_cstrn(self, "\\t", 2); break;
             case '\b': c11_sbuf__write_cstrn(self, "\\b", 2); break;
             default:
-                if('\x00' <= c && c <= '\x1f') {
+                if(!isprint(c)) {
+                    unsigned char uc = (unsigned char)c;
                     c11_sbuf__write_cstrn(self, "\\x", 2);
-                    c11_sbuf__write_char(self, PK_HEX_TABLE[c >> 4]);
-                    c11_sbuf__write_char(self, PK_HEX_TABLE[c & 0xf]);
+                    c11_sbuf__write_char(self, PK_HEX_TABLE[uc >> 4]);
+                    c11_sbuf__write_char(self, PK_HEX_TABLE[uc & 0xf]);
                 } else {
                     c11_sbuf__write_char(self, c);
                 }
