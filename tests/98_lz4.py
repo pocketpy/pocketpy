@@ -25,3 +25,7 @@ def gen_data():
 for i in range(100):
     ratio = test(gen_data())
     # print(f'compression ratio: {ratio:.2f}')
+
+# test 100MB of random data
+rnd = [random.randint(0, 255) for _ in range(1024*1024*100)]
+test(bytes(rnd))
