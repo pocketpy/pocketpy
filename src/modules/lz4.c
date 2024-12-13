@@ -27,9 +27,9 @@ static bool lz4_decompress(int argc, py_Ref argv) {
     int total_size;
     const int* p = (int*)py_tobytes(argv, &total_size);
     const char* src = (const char*)(p + 1);
-    if(total_size < sizeof(int)) return ValueError("invalid lz4 data");
+    if(total_size < sizeof(int)) return ValueError("invalid LZ4 data");
     int uncompressed_size = *p;
-    if(uncompressed_size < 0) return ValueError("invalid lz4 data");
+    if(uncompressed_size < 0) return ValueError("invalid LZ4 data");
     char* dst = (char*)py_newbytes(py_retval(), uncompressed_size);
     int dst_size = LZ4_decompress_safe(src, dst, total_size - sizeof(int), uncompressed_size);
     if(dst_size < 0) return IOError("LZ4 decompression failed");
