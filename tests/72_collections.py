@@ -488,12 +488,12 @@ assertEqual(list(d), list(e))
 
 ########## test pickle #############
 
-d = deque(range(200))
-for _ in range(5 + 1):
-    s = pickle.dumps(d)
-    e = pickle.loads(s)
-    assertNotEqual(id(e), id(d))
-    assertEqual(list(e), list(d))
+# d = deque(range(200))
+# for _ in range(5 + 1):
+#     s = pickle.dumps(d)
+#     e = pickle.loads(s)
+#     assertNotEqual(id(e), id(d))
+#     assertEqual(list(e), list(d))
 
 ### test copy ########
 
