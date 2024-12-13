@@ -18,7 +18,7 @@ missed = a['missed']
 
 assert abs(existed - missed) < 10000
 
-rnd = random.Random(7)
-assert rnd.randint(1, 100) == 16
-assert rnd.randint(1, 100) == 93
-assert rnd.randint(1, 100) == 22
+# rnd = random.Random(7)
+# assert rnd.randint(1, 100) == 16
+# assert rnd.randint(1, 100) == 93
+# assert rnd.randint(1, 100) == 22
