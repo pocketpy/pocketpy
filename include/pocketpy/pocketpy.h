@@ -580,7 +580,10 @@ PK_API bool py_len(py_Ref val) PY_RAISE PY_RETURN;
 PK_API bool py_json_dumps(py_Ref val) PY_RAISE PY_RETURN;
 /// Python equivalent to `json.loads(val)`.
 PK_API bool py_json_loads(const char* source) PY_RAISE PY_RETURN;
-
+/// Python equivalent to `pickle.dumps(val)`.
+PK_API bool py_pickle_dumps(py_Ref val) PY_RAISE PY_RETURN;
+/// Python equivalent to `pickle.loads(val)`.
+PK_API bool py_pickle_loads(const unsigned char* data, int size) PY_RAISE PY_RETURN;
 /************* Unchecked Functions *************/
 
 PK_API py_ObjectRef py_tuple_data(py_Ref self);

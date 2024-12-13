@@ -1,3 +1,44 @@
+import pickle as pkl
+
+def test(data): # type: ignore
+    print('-'*50)
+    b = pkl.dumps(data)
+    print(b)
+    o = pkl.loads(b)
+    print(o)
+    assert data == o
+
+test(None)                      # PKL_NONE
+test(1)                         # PKL_INT8
+test(277)                       # PKL_INT16
+test(-66666)                    # PKL_INT32
+test(0xffffffffffff)            # PKL_INT64
+test(1.0)                       # PKL_FLOAT32
+test(1.12312434234)             # PKL_FLOAT64
+test(True)                      # PKL_TRUE
+test(False)                     # PKL_FALSE
+test("hello")                   # PKL_STRING
+test(b"hello")                  # PKL_BYTES
+
+from linalg import vec2, vec3, vec2i, vec3i
+
+test(vec2(2/3, 1.0))            # PKL_VEC2
+test(vec3(2/3, 1.0, 3.0))       # PKL_VEC3
+test(vec2i(1, 2))               # PKL_VEC2I
+test(vec3i(1, 2, 3))            # PKL_VEC3I
+
+test(vec3i)                     # PKL_TYPE
+
+test([1, 2, 3])                 # PKL_LIST
+test((1, 2, 3))                 # PKL_TUPLE
+test({1: 2, 3: 4})              # PKL_DICT
+
+# test complex data
+test([1, '2', True])
+test([1, '2', 3.0, True])
+test([1, '2', True, {'key': 4}])
+test([1, '2', 3.0, True, {'k1': 4, 'k2': [b'xxxx']}])
+
 exit()
 
 from pickle import dumps, loads, _wrap, _unwrap
