@@ -632,6 +632,24 @@ int py_dict_delitem_by_str(py_Ref self, const char* key) {
     return res;
 }
 
+int py_dict_getitem_by_int(py_Ref self, py_i64 key) {
+    py_TValue tmp;
+    py_newint(&tmp, key);
+    return py_dict_getitem(self, &tmp);
+}
+
+bool py_dict_setitem_by_int(py_Ref self, py_i64 key, py_Ref val) {
+    py_TValue tmp;
+    py_newint(&tmp, key);
+    return py_dict_setitem(self, &tmp, val);
+}
+
+int py_dict_delitem_by_int(py_Ref self, py_i64 key) {
+    py_TValue tmp;
+    py_newint(&tmp, key);
+    return py_dict_delitem(self, &tmp);
+}
+
 int py_dict_len(py_Ref self) {
     assert(py_isdict(self));
     Dict* ud = py_touserdata(self);

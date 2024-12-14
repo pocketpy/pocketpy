@@ -8,7 +8,7 @@
 
 typedef enum {
     // clang-format off
-    PKL_NONE,
+    PKL_NONE, PKL_ELLIPSIS,
     PKL_INT8, PKL_INT16, PKL_INT32, PKL_INT64,
     PKL_FLOAT32, PKL_FLOAT64,
     PKL_TRUE, PKL_FALSE,
@@ -149,6 +149,10 @@ static bool pickle__write_object(PickleObject* buf, py_TValue* obj) {
             pkl__emit_op(buf, PKL_NONE);
             return true;
         }
+        case tp_ellipsis: {
+            pkl__emit_op(buf, PKL_ELLIPSIS);
+            return true;
+        }
         case tp_int: {
             py_i64 val = obj->_i64;
             pkl__emit_int(buf, val);
@@ -267,6 +271,10 @@ bool py_pickle_loads(const unsigned char* data, int size) {
         switch(op) {
             case PKL_NONE: {
                 py_pushnone();
+                break;
+            }
+            case PKL_ELLIPSIS: {
+                py_newellipsis(py_pushtmp());
                 break;
             }
             case PKL_INT8: {

@@ -9,6 +9,7 @@ def test(data): # type: ignore
     assert data == o
 
 test(None)                      # PKL_NONE
+test(...)                       # PKL_ELLIPSIS
 test(1)                         # PKL_INT8
 test(277)                       # PKL_INT16
 test(-66666)                    # PKL_INT32
