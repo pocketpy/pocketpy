@@ -16,3 +16,11 @@
 #define equal(a, b)     (c11_sv__cmp((a), (b)) == 0)
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__SOURCE
+
+
+#define SMALLMAP_T__SOURCE
+#define K void*
+#define V int
+#define NAME c11_smallmap_p2i
+#include "pocketpy/xmacros/smallmap.h"
+#undef SMALLMAP_T__SOURCE

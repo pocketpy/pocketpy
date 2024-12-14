@@ -8,7 +8,11 @@
 
 typedef enum {
     // clang-format off
+    PKL_MEMO_GET,
+    PKL_MEMO_SET,
     PKL_NONE, PKL_ELLIPSIS,
+    PKL_INT_0, PKL_INT_1, PKL_INT_2, PKL_INT_3, PKL_INT_4, PKL_INT_5, PKL_INT_6, PKL_INT_7,
+    PKL_INT_8, PKL_INT_9, PKL_INT_10, PKL_INT_11, PKL_INT_12, PKL_INT_13, PKL_INT_14, PKL_INT_15,
     PKL_INT8, PKL_INT16, PKL_INT32, PKL_INT64,
     PKL_FLOAT32, PKL_FLOAT64,
     PKL_TRUE, PKL_FALSE,
@@ -24,19 +28,31 @@ typedef enum {
 } PickleOp;
 
 typedef struct {
+    c11_smallmap_p2i memo;
     c11_vector /*T=char*/ codes;
 } PickleObject;
 
-static void PickleObject__ctor(PickleObject* self) { c11_vector__ctor(&self->codes, sizeof(char)); }
+typedef struct {
+    uint32_t memo_length;
+} PickleObjectHeader;
 
-static void PickleObject__dtor(PickleObject* self) { c11_vector__dtor(&self->codes); }
+static void PickleObject__ctor(PickleObject* self) {
+    c11_smallmap_p2i__ctor(&self->memo);
+    c11_vector__ctor(&self->codes, sizeof(char));
+}
+
+static void PickleObject__dtor(PickleObject* self) {
+    c11_smallmap_p2i__dtor(&self->memo);
+    c11_vector__dtor(&self->codes);
+}
 
 static void PickleObject__py_submit(PickleObject* self, py_OutRef out) {
-    int size;
-    unsigned char* data = c11_vector__submit(&self->codes, &size);
-    unsigned char* out_data = py_newbytes(out, size);
-    memcpy(out_data, data, size);
-    free(data);
+    unsigned char* data = self->codes.data;
+    PickleObjectHeader* p =
+        (PickleObjectHeader*)py_newbytes(out, sizeof(PickleObjectHeader) + self->codes.length);
+    p->memo_length = self->memo.length;
+    memcpy(p + 1, data, self->codes.length);
+    PickleObject__dtor(self);
 }
 
 static void PickleObject__write_bytes(PickleObject* buf, const void* data, int size) {
@@ -48,6 +64,10 @@ static void pkl__emit_op(PickleObject* buf, PickleOp op) {
 }
 
 static void pkl__emit_int(PickleObject* buf, py_i64 val) {
+    if(val >= 0 && val <= 15) {
+        pkl__emit_op(buf, PKL_INT_0 + val);
+        return;
+    }
     if((int8_t)val == val) {
         pkl__emit_op(buf, PKL_INT8);
         PickleObject__write_bytes(buf, &val, 1);
@@ -73,6 +93,24 @@ static py_i64 pkl__read_int(const unsigned char** p) {
     PickleOp op = (PickleOp) * *p;
     (*p)++;
     switch(op) {
+        // clang-format off
+        case PKL_INT_0: return 0;
+        case PKL_INT_1: return 1;
+        case PKL_INT_2: return 2;
+        case PKL_INT_3: return 3;
+        case PKL_INT_4: return 4;
+        case PKL_INT_5: return 5;
+        case PKL_INT_6: return 6;
+        case PKL_INT_7: return 7;
+        case PKL_INT_8: return 8;
+        case PKL_INT_9: return 9;
+        case PKL_INT_10: return 10;
+        case PKL_INT_11: return 11;
+        case PKL_INT_12: return 12;
+        case PKL_INT_13: return 13;
+        case PKL_INT_14: return 14;
+        case PKL_INT_15: return 15;
+        // clang-format on
         case PKL_INT8: {
             int8_t val;
             UNALIGNED_READ(&val, *p);
@@ -144,19 +182,28 @@ static bool pickle__write_dict_kv(py_Ref k, py_Ref v, void* ctx) {
 }
 
 static bool pickle__write_object(PickleObject* buf, py_TValue* obj) {
+    if(obj->is_ptr) {
+        void* memo_key = obj->_obj;
+        int index = c11_smallmap_p2i__get(&buf->memo, memo_key, -1);
+        if(index != -1) {
+            pkl__emit_op(buf, PKL_MEMO_GET);
+            pkl__emit_int(buf, index);
+            return true;
+        }
+    }
     switch(obj->type) {
         case tp_NoneType: {
             pkl__emit_op(buf, PKL_NONE);
-            return true;
+            break;
         }
         case tp_ellipsis: {
             pkl__emit_op(buf, PKL_ELLIPSIS);
-            return true;
+            break;
         }
         case tp_int: {
             py_i64 val = obj->_i64;
             pkl__emit_int(buf, val);
-            return true;
+            break;
         }
         case tp_float: {
             py_f64 val = obj->_f64;
@@ -168,19 +215,19 @@ static bool pickle__write_object(PickleObject* buf, py_TValue* obj) {
                 pkl__emit_op(buf, PKL_FLOAT64);
                 PickleObject__write_bytes(buf, &val, 8);
             }
-            return true;
+            break;
         }
         case tp_bool: {
             bool val = obj->_bool;
             pkl__emit_op(buf, val ? PKL_TRUE : PKL_FALSE);
-            return true;
+            break;
         }
         case tp_str: {
             pkl__emit_op(buf, PKL_STRING);
             c11_sv sv = py_tosv(obj);
             pkl__emit_int(buf, sv.size);
             PickleObject__write_bytes(buf, sv.data, sv.size);
-            return true;
+            break;
         }
         case tp_bytes: {
             pkl__emit_op(buf, PKL_BYTES);
@@ -188,39 +235,44 @@ static bool pickle__write_object(PickleObject* buf, py_TValue* obj) {
             unsigned char* data = py_tobytes(obj, &size);
             pkl__emit_int(buf, size);
             PickleObject__write_bytes(buf, data, size);
-            return true;
+            break;
         }
         case tp_list: {
-            return pickle__write_array(buf, PKL_BUILD_LIST, py_list_data(obj), py_list_len(obj));
+            bool ok = pickle__write_array(buf, PKL_BUILD_LIST, py_list_data(obj), py_list_len(obj));
+            if(!ok) return false;
+            break;
         }
         case tp_tuple: {
-            return pickle__write_array(buf, PKL_BUILD_TUPLE, py_tuple_data(obj), py_tuple_len(obj));
+            bool ok =
+                pickle__write_array(buf, PKL_BUILD_TUPLE, py_tuple_data(obj), py_tuple_len(obj));
+            if(!ok) return false;
+            break;
         }
         case tp_dict: {
             bool ok = py_dict_apply(obj, pickle__write_dict_kv, (void*)buf);
             if(!ok) return false;
             pkl__emit_op(buf, PKL_BUILD_DICT);
             pkl__emit_int(buf, py_dict_len(obj));
-            return true;
+            break;
         }
         case tp_vec2: {
             c11_vec2 val = py_tovec2(obj);
             pkl__emit_op(buf, PKL_VEC2);
             PickleObject__write_bytes(buf, &val, sizeof(c11_vec2));
-            return true;
+            break;
         }
         case tp_vec3: {
             c11_vec3 val = py_tovec3(obj);
             pkl__emit_op(buf, PKL_VEC3);
             PickleObject__write_bytes(buf, &val, sizeof(c11_vec3));
-            return true;
+            break;
         }
         case tp_vec2i: {
             c11_vec2i val = py_tovec2i(obj);
             pkl__emit_op(buf, PKL_VEC2I);
             pkl__emit_int(buf, val.x);
             pkl__emit_int(buf, val.y);
-            return true;
+            break;
         }
         case tp_vec3i: {
             c11_vec3i val = py_tovec3i(obj);
@@ -228,7 +280,7 @@ static bool pickle__write_object(PickleObject* buf, py_TValue* obj) {
             pkl__emit_int(buf, val.x);
             pkl__emit_int(buf, val.y);
             pkl__emit_int(buf, val.z);
-            return true;
+            break;
         }
         case tp_type: {
             pkl__emit_op(buf, PKL_TYPE);
@@ -243,10 +295,18 @@ static bool pickle__write_object(PickleObject* buf, py_TValue* obj) {
             // include '\0'
             PickleObject__write_bytes(buf, path->data, path->size + 1);
             c11_string__delete(path);
-            return true;
+            break;
         }
         default: return TypeError("'%t' object is not picklable", obj->type);
     }
+    if(obj->is_ptr) {
+        void* memo_key = obj->_obj;
+        int index = buf->memo.length;
+        c11_smallmap_p2i__set(&buf->memo, memo_key, index);
+        pkl__emit_op(buf, PKL_MEMO_SET);
+        pkl__emit_int(buf, index);
+    }
+    return true;
 }
 
 bool py_pickle_dumps(py_Ref val) {
@@ -263,12 +323,27 @@ bool py_pickle_dumps(py_Ref val) {
 }
 
 bool py_pickle_loads(const unsigned char* data, int size) {
+    PickleObjectHeader* header = (PickleObjectHeader*)data;
+    const unsigned char* p = (const unsigned char*)(header + 1);
     py_StackRef p0 = py_peek(0);
-    const unsigned char* p = data;
+    py_StackRef memo = py_pushtmp();
+    py_newtuple(memo, header->memo_length);
     while(true) {
         PickleOp op = (PickleOp)*p;
         p++;
         switch(op) {
+            case PKL_MEMO_GET: {
+                int index = pkl__read_int(&p);
+                py_Ref val = py_tuple_getitem(memo, index);
+                assert(!py_isnil(val));
+                py_push(val);
+                break;
+            }
+            case PKL_MEMO_SET: {
+                int index = pkl__read_int(&p);
+                py_tuple_setitem(memo, index, py_peek(-1));
+                break;
+            }
             case PKL_NONE: {
                 py_pushnone();
                 break;
@@ -277,6 +352,15 @@ bool py_pickle_loads(const unsigned char* data, int size) {
                 py_newellipsis(py_pushtmp());
                 break;
             }
+            // clang-format off
+            case PKL_INT_0: case PKL_INT_1: case PKL_INT_2: case PKL_INT_3:
+            case PKL_INT_4: case PKL_INT_5: case PKL_INT_6: case PKL_INT_7:
+            case PKL_INT_8: case PKL_INT_9: case PKL_INT_10: case PKL_INT_11:
+            case PKL_INT_12: case PKL_INT_13: case PKL_INT_14: case PKL_INT_15: {
+                py_newint(py_pushtmp(), op - PKL_INT_0);
+                break;
+            }
+            // clang-format on
             case PKL_INT8: {
                 int8_t val;
                 UNALIGNED_READ(&val, p);
@@ -419,9 +503,10 @@ bool py_pickle_loads(const unsigned char* data, int size) {
                 break;
             }
             case PKL_EOF: {
-                if(py_peek(0) - p0 != 1) { return ValueError("invalid pickle data"); }
-                py_assign(py_retval(), p0);
-                py_pop();
+                // [memo, obj]
+                if(py_peek(0) - p0 != 2) return ValueError("invalid pickle data");
+                py_assign(py_retval(), py_peek(-1));
+                py_shrink(2);
                 return true;
             }
             default: c11__unreachable();

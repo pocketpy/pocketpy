@@ -316,7 +316,10 @@ static bool builtins_print(int argc, py_Ref argv) {
     c11_sbuf__ctor(&buf);
     for(int i = 0; i < length; i++) {
         if(i > 0) c11_sbuf__write_sv(&buf, sep);
-        if(!py_str(&args[i])) return false;
+        if(!py_str(&args[i])) {
+            c11_sbuf__dtor(&buf);
+            return false;
+        }
         c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
     }
     c11_sbuf__write_sv(&buf, end);

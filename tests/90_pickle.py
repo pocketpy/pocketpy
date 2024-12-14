@@ -7,6 +7,7 @@ def test(data): # type: ignore
     o = pkl.loads(b)
     print(o)
     assert data == o
+    return o
 
 test(None)                      # PKL_NONE
 test(...)                       # PKL_ELLIPSIS
@@ -39,6 +40,23 @@ test([1, '2', True])
 test([1, '2', 3.0, True])
 test([1, '2', True, {'key': 4}])
 test([1, '2', 3.0, True, {'k1': 4, 'k2': [b'xxxx']}])
+
+# test memo
+a = [1, 2, 3, 4, 5, 6, 745]
+b = [a] * 10
+c = test(b)
+assert b == c
+assert b is not c
+assert c[0] is c[1] and c[1] is c[2]
+
+s1 = 'hello'
+s2 = 'world'
+a = [s1, s2] * 10
+b = test(a)
+assert b == a
+assert b is not a
+assert b[0] is b[2]
+assert b[1] is b[3]
 
 exit()
 
