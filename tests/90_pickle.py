@@ -31,6 +31,20 @@ test(vec3i(1, 2, 3))            # PKL_VEC3I
 
 test(vec3i)                     # PKL_TYPE
 
+print('-'*50)
+from array2d import array2d
+a = array2d[int].fromlist([
+    [1, 2, 3],
+    [4, 5, 6]
+])
+a_encoded = pkl.dumps(a)
+print(a_encoded)
+a_decoded = pkl.loads(a_encoded)
+assert isinstance(a_decoded, array2d)
+assert a_decoded.width == 3 and a_decoded.height == 2
+assert (a == a_decoded).all()
+print(a_decoded)
+
 test([1, 2, 3])                 # PKL_LIST
 test((1, 2, 3))                 # PKL_TUPLE
 test({1: 2, 3: 4})              # PKL_DICT

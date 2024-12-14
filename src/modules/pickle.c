@@ -3,7 +3,7 @@
 
 #include "pocketpy/common/utils.h"
 #include "pocketpy/common/sstream.h"
-#include "pocketpy/interpreter/vm.h"
+#include "pocketpy/interpreter/array2d.h"
 #include <stdint.h>
 
 typedef enum {
@@ -23,6 +23,7 @@ typedef enum {
     PKL_VEC2, PKL_VEC3,
     PKL_VEC2I, PKL_VEC3I,
     PKL_TYPE,
+    PKL_ARRAY2D,
     PKL_EOF,
     // clang-format on
 } PickleOp;
@@ -299,6 +300,20 @@ static bool pickle__write_object(PickleObject* buf, py_TValue* obj) {
             c11_string__delete(path);
             break;
         }
+        case tp_array2d: {
+            c11_array2d* arr = py_touserdata(obj);
+            for(int i = 0; i < arr->numel; i++) {
+                if(arr->data[i].is_ptr)
+                    return TypeError(
+                        "'array2d' object is not picklable because it contains heap-allocated objects");
+            }
+            pkl__emit_op(buf, PKL_ARRAY2D);
+            pkl__emit_int(buf, arr->n_cols);
+            pkl__emit_int(buf, arr->n_rows);
+            // TODO: fix type index which is not stable
+            PickleObject__write_bytes(buf, arr->data, arr->numel * sizeof(py_TValue));
+            break;
+        }
         default: return TypeError("'%t' object is not picklable", obj->type);
     }
     if(obj->is_ptr) {
@@ -501,6 +516,15 @@ bool py_pickle_loads(const unsigned char* data, int size) {
                     return ImportError("cannot import '%s' from '%s'", type_name, mod_name);
                 }
                 py_push(py_tpobject(t));
+                break;
+            }
+            case PKL_ARRAY2D: {
+                int n_cols = pkl__read_int(&p);
+                int n_rows = pkl__read_int(&p);
+                c11_array2d* arr = py_newarray2d(py_pushtmp(), n_cols, n_rows);
+                int total_size = arr->numel * sizeof(py_TValue);
+                memcpy(arr->data, p, total_size);
+                p += total_size;
                 break;
             }
             case PKL_EOF: {

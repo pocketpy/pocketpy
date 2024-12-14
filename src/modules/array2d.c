@@ -1,20 +1,4 @@
-#include "pocketpy/pocketpy.h"
-
-#include "pocketpy/common/utils.h"
-#include "pocketpy/common/sstream.h"
-#include "pocketpy/interpreter/vm.h"
-
-typedef struct c11_array2d {
-    py_TValue* data;  // slots
-    int n_cols;
-    int n_rows;
-    int numel;
-} c11_array2d;
-
-typedef struct c11_array2d_iterator {
-    c11_array2d* array;
-    int index;
-} c11_array2d_iterator;
+#include "pocketpy/interpreter/array2d.h"
 
 static bool py_array2d_is_valid(c11_array2d* self, int col, int row) {
     return col >= 0 && col < self->n_cols && row >= 0 && row < self->n_rows;
@@ -28,7 +12,7 @@ static void py_array2d__set(c11_array2d* self, int col, int row, py_Ref value) {
     self->data[row * self->n_cols + col] = *value;
 }
 
-static c11_array2d* py_array2d(py_OutRef out, int n_cols, int n_rows) {
+c11_array2d* py_newarray2d(py_OutRef out, int n_cols, int n_rows) {
     int numel = n_cols * n_rows;
     c11_array2d* ud = py_newobject(out, tp_array2d, numel, sizeof(c11_array2d));
     ud->data = py_getslot(out, 0);
@@ -49,7 +33,7 @@ static bool array2d__new__(int argc, py_Ref argv) {
     int n_rows = argv[2]._i64;
     int numel = n_cols * n_rows;
     if(n_cols <= 0 || n_rows <= 0) return ValueError("array2d() expected positive dimensions");
-    c11_array2d* ud = py_array2d(py_pushtmp(), n_cols, n_rows);
+    c11_array2d* ud = py_newarray2d(py_pushtmp(), n_cols, n_rows);
     // setup initial values
     if(py_callable(default_)) {
         for(int j = 0; j < n_rows; j++) {
@@ -191,7 +175,7 @@ static bool array2d_any(int argc, py_Ref argv) {
 static bool array2d__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_array2d* self = py_touserdata(argv);
-    c11_array2d* res = py_array2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     if(py_istype(py_arg(1), tp_array2d)) {
         c11_array2d* other = py_touserdata(py_arg(1));
         if(!_array2d_check_same_shape(self, other)) return false;
@@ -268,7 +252,7 @@ static bool array2d_map(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_array2d* self = py_touserdata(argv);
     py_Ref f = py_arg(1);
-    c11_array2d* res = py_array2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     for(int i = 0; i < self->numel; i++) {
         bool ok = py_call(f, 1, self->data + i);
         if(!ok) return false;
@@ -283,7 +267,7 @@ static bool array2d_copy(int argc, py_Ref argv) {
     // def copy(self) -> 'array2d': ...
     PY_CHECK_ARGC(1);
     c11_array2d* self = py_touserdata(argv);
-    c11_array2d* res = py_array2d(py_retval(), self->n_cols, self->n_rows);
+    c11_array2d* res = py_newarray2d(py_retval(), self->n_cols, self->n_rows);
     memcpy(res->data, self->data, self->numel * sizeof(py_TValue));
     return true;
 }
@@ -356,7 +340,7 @@ static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
             return ValueError("fromlist() expected a list of lists with the same length");
         }
     }
-    c11_array2d* res = py_array2d(py_retval(), n_cols, n_rows);
+    c11_array2d* res = py_newarray2d(py_retval(), n_cols, n_rows);
     for(int j = 0; j < n_rows; j++) {
         py_Ref row_j = py_list_getitem(argv, j);
         for(int i = 0; i < n_cols; i++) {
@@ -452,7 +436,7 @@ static bool array2d_get_bounding_rect(int argc, py_Ref argv) {
 static bool array2d_count_neighbors(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     c11_array2d* self = py_touserdata(argv);
-    c11_array2d* res = py_array2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     py_Ref value = py_arg(1);
     const char* neighborhood = py_tostr(py_arg(2));
 
@@ -556,7 +540,7 @@ static bool array2d__getitem__(int argc, py_Ref argv) {
         return _array2d_IndexError(self, col, row);
     } else if(py_istype(x, tp_slice) && py_istype(y, tp_slice)) {
         HANDLE_SLICE();
-        c11_array2d* res = py_array2d(py_retval(), slice_width, slice_height);
+        c11_array2d* res = py_newarray2d(py_retval(), slice_width, slice_height);
         for(int j = start_row; j < stop_row; j++) {
             for(int i = start_col; i < stop_col; i++) {
                 py_array2d__set(res, i - start_col, j - start_row, py_array2d__get(self, i, j));
@@ -660,7 +644,7 @@ static bool array2d_convolve(int argc, py_Ref argv) {
     int ksize_half = ksize / 2;
     if(!_array2d_check_all_type(self, tp_int)) return false;
     if(!_array2d_check_all_type(kernel, tp_int)) return false;
-    c11_array2d* res = py_array2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_i64 sum = 0;
