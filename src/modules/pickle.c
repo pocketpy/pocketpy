@@ -33,7 +33,7 @@ typedef struct {
 } PickleObject;
 
 typedef struct {
-    uint32_t memo_length;
+    uint16_t memo_length;
 } PickleObjectHeader;
 
 static void PickleObject__ctor(PickleObject* self) {
@@ -46,13 +46,15 @@ static void PickleObject__dtor(PickleObject* self) {
     c11_vector__dtor(&self->codes);
 }
 
-static void PickleObject__py_submit(PickleObject* self, py_OutRef out) {
+static bool PickleObject__py_submit(PickleObject* self, py_OutRef out) {
     unsigned char* data = self->codes.data;
     PickleObjectHeader* p =
         (PickleObjectHeader*)py_newbytes(out, sizeof(PickleObjectHeader) + self->codes.length);
-    p->memo_length = self->memo.length;
+    if(self->memo.length >= UINT16_MAX) c11__abort("PickleObject__py_submit(): memo overflow");
+    p->memo_length = (uint16_t)self->memo.length;
     memcpy(p + 1, data, self->codes.length);
     PickleObject__dtor(self);
+    return true;
 }
 
 static void PickleObject__write_bytes(PickleObject* buf, const void* data, int size) {
@@ -318,8 +320,7 @@ bool py_pickle_dumps(py_Ref val) {
         return false;
     }
     pkl__emit_op(&buf, PKL_EOF);
-    PickleObject__py_submit(&buf, py_retval());
-    return true;
+    return PickleObject__py_submit(&buf, py_retval());
 }
 
 bool py_pickle_loads(const unsigned char* data, int size) {
