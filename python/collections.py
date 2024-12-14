@@ -35,7 +35,7 @@ class deque(Generic[T]):
     _capacity: int
 
     def __init__(self, iterable: Iterable[T] = None):
-        self._data = [None] * 8     # initial capacity
+        self._data = [None] * 8 # type: ignore
         self._head = 0
         self._tail = 0
         self._capacity = len(self._data)
@@ -98,7 +98,7 @@ class deque(Generic[T]):
     def clear(self):
         i = self._head
         while i != self._tail:
-            self._data[i] = None
+            self._data[i] = None # type: ignore
             i = (i + 1) % self._capacity
         self._head = 0
         self._tail = 0

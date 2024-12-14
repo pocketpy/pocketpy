@@ -9,12 +9,12 @@ class timedelta:
     def __repr__(self):
         return f"datetime.timedelta(days={self.days}, seconds={self.seconds})"
 
-    def __eq__(self, other: 'timedelta') -> bool:
+    def __eq__(self, other) -> bool:
         if not isinstance(other, timedelta):
             return NotImplemented
         return (self.days, self.seconds) == (other.days, other.seconds)
 
-    def __ne__(self, other: 'timedelta') -> bool:
+    def __ne__(self, other) -> bool:
         if not isinstance(other, timedelta):
             return NotImplemented
         return (self.days, self.seconds) != (other.days, other.seconds)
@@ -40,10 +40,10 @@ class date:
             return op(self.month, other.month)
         return op(self.day, other.day)
 
-    def __eq__(self, other: 'date') -> bool:
+    def __eq__(self, other) -> bool:
         return self.__cmp(other, operator.eq)
     
-    def __ne__(self, other: 'date') -> bool:
+    def __ne__(self, other) -> bool:
         return self.__cmp(other, operator.ne)
 
     def __lt__(self, other: 'date') -> bool:
