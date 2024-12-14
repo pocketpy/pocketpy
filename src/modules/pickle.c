@@ -47,13 +47,13 @@ static void pkl__emit_op(PickleObject* buf, PickleOp op) {
 }
 
 static void pkl__emit_int(PickleObject* buf, py_i64 val) {
-    if(val >= INT8_MIN && val <= INT8_MAX) {
+    if((int8_t)val == val) {
         pkl__emit_op(buf, PKL_INT8);
         PickleObject__write_bytes(buf, &val, 1);
-    } else if(val >= INT16_MIN && val <= INT16_MAX) {
+    } else if((int16_t)val == val) {
         pkl__emit_op(buf, PKL_INT16);
         PickleObject__write_bytes(buf, &val, 2);
-    } else if(val >= INT32_MIN && val <= INT32_MAX) {
+    } else if((int32_t)val == val) {
         pkl__emit_op(buf, PKL_INT32);
         PickleObject__write_bytes(buf, &val, 4);
     } else {

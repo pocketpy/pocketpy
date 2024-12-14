@@ -4,10 +4,10 @@
 #include <stdint.h>
 
 void Bytecode__set_signed_arg(Bytecode* self, int arg) {
-    if(arg < INT16_MIN || arg > INT16_MAX) {
-        c11__abort("set_signed_arg: %d is out of range", arg);
-    }
     self->arg = (int16_t)arg;
+    if((int16_t)self->arg != arg) {
+        c11__abort("Bytecode__set_signed_arg(): %d is not representable in int16_t", arg);
+    }
 }
 
 bool Bytecode__is_forward_jump(const Bytecode* self) {

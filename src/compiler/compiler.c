@@ -1110,8 +1110,6 @@ static void Ctx__dtor(Ctx* self) {
     c11_smallmap_s2n__dtor(&self->co_consts_string_dedup_map);
 }
 
-static bool is_small_int(int64_t value) { return value >= INT16_MIN && value <= INT16_MAX; }
-
 static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break) {
     int index = self->curr_iblock;
     while(index >= 0) {
@@ -1191,7 +1189,7 @@ static void Ctx__revert_last_emit_(Ctx* self) {
 }
 
 static int Ctx__emit_int(Ctx* self, int64_t value, int line) {
-    if(is_small_int(value)) {
+    if((int16_t)value == value) {
         return Ctx__emit_(self, OP_LOAD_SMALL_INT, (uint16_t)value, line);
     } else {
         py_TValue tmp;
