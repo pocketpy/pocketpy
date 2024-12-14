@@ -36,6 +36,7 @@ static void PickleObject__py_submit(PickleObject* self, py_OutRef out) {
     unsigned char* data = c11_vector__submit(&self->codes, &size);
     unsigned char* out_data = py_newbytes(out, size);
     memcpy(out_data, data, size);
+    free(data);
 }
 
 static void PickleObject__write_bytes(PickleObject* buf, const void* data, int size) {
