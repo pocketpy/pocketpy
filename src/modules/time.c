@@ -14,7 +14,7 @@
         timespec_get(&tms, TIME_UTC);
     #endif
         /* seconds, multiplied with 1 billion */
-        int64_t nanos = tms.tv_sec * NANOS_PER_SEC;
+        int64_t nanos = tms.tv_sec * (int64_t)NANOS_PER_SEC;
         /* Add full nanoseconds */
         nanos += tms.tv_nsec;
         return nanos;

@@ -16,7 +16,7 @@ bool pk__object_new(int argc, py_Ref argv) {
 static bool object__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     assert(argv->is_ptr);
-    py_newint(py_retval(), (py_i64)argv->_obj);
+    py_newint(py_retval(), (intptr_t)argv->_obj);
     return true;
 }
 

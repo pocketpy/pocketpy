@@ -455,7 +455,7 @@ static bool builtins_ord(int argc, py_Ref argv) {
 static bool builtins_id(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     if(argv->is_ptr) {
-        py_newint(py_retval(), (py_i64)argv->_obj);
+        py_newint(py_retval(), (intptr_t)argv->_obj);
     } else {
         py_newnone(py_retval());
     }
