@@ -24,7 +24,7 @@ bool py_castfloat(py_Ref self, double* out) {
     }
 }
 
-bool py_castfloat32(py_Ref self, float *out){
+bool py_castfloat32(py_Ref self, float* out) {
     switch(self->type) {
         case tp_int: *out = (float)self->_i64; return true;
         case tp_float: *out = (float)self->_f64; return true;
@@ -77,8 +77,13 @@ bool py_issubclass(py_Type derived, py_Type base) {
 py_Type py_typeof(py_Ref self) { return self->type; }
 
 py_Type py_gettype(const char* module, py_Name name) {
-    py_Ref mod = py_getmodule(module);
-    if(!mod) return 0;
+    py_Ref mod;
+    if(module != NULL) {
+        mod = py_getmodule(module);
+        if(!mod) return 0;
+    } else {
+        mod = &pk_current_vm->builtins;
+    }
     py_Ref object = py_getdict(mod, name);
     if(object && py_istype(object, tp_type)) return py_totype(object);
     return 0;

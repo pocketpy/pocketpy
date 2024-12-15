@@ -23,6 +23,7 @@ void py_setglobal(py_Name name, py_Ref val) { py_setdict(&pk_current_vm->main, n
 
 py_Ref py_newmodule(const char* path) {
     ManagedHeap* heap = &pk_current_vm->heap;
+    if(strlen(path) > PK_MAX_MODULE_PATH_LEN) c11__abort("module path too long: %s", path);
 
     py_Ref r0 = py_pushtmp();
     py_Ref r1 = py_pushtmp();

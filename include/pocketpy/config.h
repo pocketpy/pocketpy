@@ -36,6 +36,9 @@
 // (not recommended to change this)
 #define PK_MAX_CO_VARNAMES          64
 
+// This is the maximum character length of a module path
+#define PK_MAX_MODULE_PATH_LEN      63
+
 #ifdef _WIN32
     #define PK_PLATFORM_SEP '\\'
 #else

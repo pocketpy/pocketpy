@@ -33,9 +33,9 @@ test(vec3i)                     # PKL_TYPE
 
 print('-'*50)
 from array2d import array2d
-a = array2d[int].fromlist([
-    [1, 2, 3],
-    [4, 5, 6]
+a = array2d[int | bool | vec2i].fromlist([
+    [1, 2, vec2i.LEFT],
+    [4, True, 6]
 ])
 a_encoded = pkl.dumps(a)
 print(a_encoded)
@@ -71,6 +71,35 @@ assert b == a
 assert b is not a
 assert b[0] is b[2]
 assert b[1] is b[3]
+
+from pkpy import TValue
+
+class Base(TValue[int]):
+    def __eq__(self, other):
+        return self.value == other.value
+    
+    def __ne__(self, other):
+        return self.value != other.value
+    
+class TVal(Base): pass # type: ignore
+
+test(TVal(1))
+
+old_bytes = pkl.dumps(TVal(1))
+print(old_bytes)
+
+# re-define the class so it will have a new type id
+class TVal(Base): pass
+# see if we can still load the old data
+decoded = pkl.loads(old_bytes)
+assert decoded == TVal(1)
+print(pkl.dumps(decoded))
+
+# test array2d with TValue
+a = array2d[TVal].fromlist([
+    [TVal(1), TVal(2)],
+    [TVal(3), 1]])
+test(a)
 
 exit()
 

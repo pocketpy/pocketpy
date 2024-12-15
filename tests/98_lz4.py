@@ -26,6 +26,6 @@ for i in range(100):
     ratio = test(gen_data())
     # print(f'compression ratio: {ratio:.2f}')
 
-# test 1GB random data
+# test 64MB random data (require 1GB list[int] buffer)
 rnd = [random.randint(0, 255) for _ in range(1024*1024*1024//16)]
 test(bytes(rnd))
