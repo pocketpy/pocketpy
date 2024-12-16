@@ -206,6 +206,7 @@ void VM__ctor(VM* self) {
     // add modules
     pk__add_module_os();
     pk__add_module_sys();
+    pk__add_module_io();
     pk__add_module_math();
     pk__add_module_dis();
     pk__add_module_random();
