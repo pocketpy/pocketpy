@@ -7,7 +7,7 @@ bool pk__object_new(int argc, py_Ref argv) {
     py_Type cls = py_totype(py_arg(0));
     py_TypeInfo* ti = pk__type_info(cls);
     if(!ti->is_python) {
-        return TypeError("object.__new__(%t) is not safe, use %t.__new__()", cls, cls);
+        return TypeError("object.__new__(%t) is not safe, use %t.__new__() instead", cls, cls);
     }
     py_newobject(py_retval(), cls, -1, 0);
     return true;

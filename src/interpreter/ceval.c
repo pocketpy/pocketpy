@@ -947,7 +947,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
 
                 py_Type type =
-                    pk_newtype(py_name2str(name), base, frame->module, NULL, true, false);
+                    pk_newtype(py_name2str(name), base, frame->module, NULL, base_ti->is_python, false);
                 PUSH(py_tpobject(type));
                 self->__curr_class = TOP();
                 DISPATCH();
