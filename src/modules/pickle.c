@@ -65,8 +65,8 @@ static void c11_sbuf__write_type_path(c11_sbuf* path_buf, py_Type type) {
         c11_sbuf__write_cstr(path_buf, py_name2str(ti->name));
         return;
     }
-    const char* mod_name = py_tostr(py_getdict(&ti->module, __name__));
-    c11_sbuf__write_cstr(path_buf, mod_name);
+    const char* mod_path = py_tostr(py_getdict(&ti->module, __path__));
+    c11_sbuf__write_cstr(path_buf, mod_path);
     c11_sbuf__write_char(path_buf, '.');
     c11_sbuf__write_cstr(path_buf, py_name2str(ti->name));
 }
