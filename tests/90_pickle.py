@@ -119,7 +119,15 @@ class A:
         print('__reduce__() called')
         return A, (self.seed,)
 
-test(A(1))
+test([A(1)]*10)
+
+class Simple:
+    def __init__(self): pass
+    def __eq__(self, other): return True
+    def __ne__(self, other): return False
+
+test(Simple())
+test([Simple()]*10)
 
 exit()
 

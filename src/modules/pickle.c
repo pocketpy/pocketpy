@@ -345,9 +345,12 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
                 buf->used_types[obj->type] = true;
                 return true;
             }
+            // try memo for `is_ptr=true` objects
+            if(pkl__try_memo(buf, obj->_obj)) return true;
+
             py_TypeInfo* ti = pk__type_info(obj->type);
             py_Ref f_reduce = py_tpfindmagic(obj->type, __reduce__);
-            if(!py_isnil(f_reduce)) {
+            if(f_reduce != NULL) {
                 if(!py_call(f_reduce, 1, obj)) return false;
                 // expected: (callable, args)
                 py_Ref reduced = py_retval();
@@ -364,9 +367,18 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
                 }
                 pkl__emit_op(buf, PKL_CALL);
                 pkl__emit_int(buf, args_length);
+                // store memo
+                pkl__store_memo(buf, obj->_obj);
                 return true;
             }
-            if(ti->is_python) { return true; }
+            if(ti->is_python) {
+                pkl__emit_op(buf, PKL_OBJECT);
+                pkl__emit_int(buf, obj->type);
+                buf->used_types[obj->type] = true;
+                // store memo
+                pkl__store_memo(buf, obj->_obj);
+                return true;
+            }
             return TypeError("'%t' object is not picklable", obj->type);
         }
     }
@@ -648,7 +660,10 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 break;
             }
             case PKL_OBJECT: {
-                c11__abort("PKL_OBJECT is not implemented");
+                py_Type type = (py_Type)pkl__read_int(&p);
+                type = pkl__fix_type(type, type_mapping);
+                if(!py_tpcall(type, 0, NULL)) return false;
+                py_push(py_retval());
                 break;
             }
             case PKL_EOF: {
