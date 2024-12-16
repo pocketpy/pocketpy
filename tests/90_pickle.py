@@ -122,12 +122,24 @@ class A:
 test([A(1)]*10)
 
 class Simple:
-    def __init__(self): pass
-    def __eq__(self, other): return True
-    def __ne__(self, other): return False
+    def __init__(self, x):
+        self.field1 = x
+        self.field2 = [...]
+    def __eq__(self, other): return self.field1 == other.field1
+    def __ne__(self, other): return self.field1 != other.field1
 
-test(Simple())
-test([Simple()]*10)
+test(Simple(1))
+test([Simple(2)]*10)
+
+from dataclasses import dataclass
+
+@dataclass
+class Data:
+    a: int
+    b: str = '2'
+    c: float = 3.0
+
+test(Data(1))
 
 exit()
 
