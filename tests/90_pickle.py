@@ -101,6 +101,26 @@ a = array2d[TVal].fromlist([
     [TVal(3), 1]])
 test(a)
 
+# test __reduce__
+
+class A:
+    def __init__(self, seed):
+        self.seed = seed
+        self.x = seed
+        self.y = seed + 1
+        self.z = seed + 2
+    def __eq__(self, other):
+        return (self.x, self.y, self.z) == (other.x, other.y, other.z)
+    def __ne__(self, other):
+        return (self.x, self.y, self.z) != (other.x, other.y, other.z)
+    def __repr__(self):
+        return f"A({self.seed}, x={self.x}, y={self.y}, z={self.z})"
+    def __reduce__(self):
+        print('__reduce__() called')
+        return A, (self.seed,)
+
+test(A(1))
+
 exit()
 
 from pickle import dumps, loads, _wrap, _unwrap

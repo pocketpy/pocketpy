@@ -63,6 +63,7 @@ MAGIC_METHOD(__float__)
 MAGIC_METHOD(__int__)
 MAGIC_METHOD(__round__)
 MAGIC_METHOD(__getattr__)
+MAGIC_METHOD(__reduce__)
 MAGIC_METHOD(__missing__)
 
 #endif

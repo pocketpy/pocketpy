@@ -1,4 +1,5 @@
 #include "pocketpy/common/vector.h"
+#include "pocketpy/interpreter/typeinfo.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
@@ -10,7 +11,7 @@ typedef enum {
     // clang-format off
     PKL_MEMO_GET,
     PKL_MEMO_SET,
-    PKL_NONE, PKL_ELLIPSIS,
+    PKL_NIL, PKL_NONE, PKL_ELLIPSIS,
     PKL_INT_0, PKL_INT_1, PKL_INT_2, PKL_INT_3, PKL_INT_4, PKL_INT_5, PKL_INT_6, PKL_INT_7,
     PKL_INT_8, PKL_INT_9, PKL_INT_10, PKL_INT_11, PKL_INT_12, PKL_INT_13, PKL_INT_14, PKL_INT_15,
     PKL_INT8, PKL_INT16, PKL_INT32, PKL_INT64,
@@ -25,6 +26,8 @@ typedef enum {
     PKL_TYPE,
     PKL_ARRAY2D,
     PKL_TVALUE,
+    PKL_CALL,
+    PKL_OBJECT,
     PKL_EOF,
     // clang-format on
 } PickleOp;
@@ -102,7 +105,7 @@ static py_i64 pkl__read_int(const unsigned char** p) {
     PickleOp op = (PickleOp) * *p;
     (*p)++;
     switch(op) {
-        // clang-format off
+            // clang-format off
         case PKL_INT_0: return 0; case PKL_INT_1: return 1; case PKL_INT_2: return 2; case PKL_INT_3: return 3;
         case PKL_INT_4: return 4; case PKL_INT_5: return 5; case PKL_INT_6: return 6; case PKL_INT_7: return 7;
         case PKL_INT_8: return 8; case PKL_INT_9: return 9; case PKL_INT_10: return 10; case PKL_INT_11: return 11;
@@ -190,6 +193,9 @@ static void pkl__store_memo(PickleObject* buf, PyObject* memo_key) {
 
 static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
     switch(obj->type) {
+        case tp_nil: {
+            return ValueError("'nil' object is not picklable");
+        }
         case tp_NoneType: {
             pkl__emit_op(buf, PKL_NONE);
             return true;
@@ -339,6 +345,28 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
                 buf->used_types[obj->type] = true;
                 return true;
             }
+            py_TypeInfo* ti = pk__type_info(obj->type);
+            py_Ref f_reduce = py_tpfindmagic(obj->type, __reduce__);
+            if(!py_isnil(f_reduce)) {
+                if(!py_call(f_reduce, 1, obj)) return false;
+                // expected: (callable, args)
+                py_Ref reduced = py_retval();
+                if(!py_istuple(reduced)) { return TypeError("__reduce__ must return a tuple"); }
+                if(py_tuple_len(reduced) != 2) {
+                    return TypeError("__reduce__ must return a tuple of length 2");
+                }
+                if(!pkl__write_object(buf, py_tuple_getitem(reduced, 0))) return false;
+                pkl__emit_op(buf, PKL_NIL);
+                py_Ref args_tuple = py_tuple_getitem(reduced, 1);
+                int args_length = py_tuple_len(args_tuple);
+                for(int i = 0; i < args_length; i++) {
+                    if(!pkl__write_object(buf, py_tuple_getitem(args_tuple, i))) return false;
+                }
+                pkl__emit_op(buf, PKL_CALL);
+                pkl__emit_int(buf, args_length);
+                return true;
+            }
+            if(ti->is_python) { return true; }
             return TypeError("'%t' object is not picklable", obj->type);
         }
     }
@@ -441,6 +469,10 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 py_tuple_setitem(memo, index, py_peek(-1));
                 break;
             }
+            case PKL_NIL: {
+                py_pushnil();
+                break;
+            }
             case PKL_NONE: {
                 py_pushnone();
                 break;
@@ -449,7 +481,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 py_newellipsis(py_pushtmp());
                 break;
             }
-            // clang-format off
+                // clang-format off
             case PKL_INT_0: case PKL_INT_1: case PKL_INT_2: case PKL_INT_3:
             case PKL_INT_4: case PKL_INT_5: case PKL_INT_6: case PKL_INT_7:
             case PKL_INT_8: case PKL_INT_9: case PKL_INT_10: case PKL_INT_11:
@@ -607,6 +639,16 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 memcpy(tmp, p, sizeof(py_TValue));
                 tmp->type = pkl__fix_type(tmp->type, type_mapping);
                 p += sizeof(py_TValue);
+                break;
+            }
+            case PKL_CALL: {
+                int argc = pkl__read_int(&p);
+                if(!py_vectorcall(argc, 0)) return false;
+                py_push(py_retval());
+                break;
+            }
+            case PKL_OBJECT: {
+                c11__abort("PKL_OBJECT is not implemented");
                 break;
             }
             case PKL_EOF: {
