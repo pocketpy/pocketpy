@@ -111,18 +111,39 @@ static bool io_FileIO_read(int argc, py_Ref argv) {
     fseek(ud->file, 0, SEEK_END);
     int filesize = ftell(ud->file);
     fseek(ud->file, 0, SEEK_SET);
-    unsigned char* data = py_newbytes(py_retval(), filesize);
-    fread(data, 1, filesize, ud->file);
+    if(ud->mode[strlen(ud->mode) - 1] == 'b') {
+        void* dst = py_newbytes(py_retval(), filesize);
+        fread(dst, 1, filesize, ud->file);
+    } else {
+        void* dst = py_newstrn(py_retval(), filesize);
+        fread(dst, 1, filesize, ud->file);
+    }
+    return true;
+}
+
+static bool io_FileIO_close(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    io_FileIO* ud = py_touserdata(py_arg(0));
+    if(ud->file != NULL) {
+        fclose(ud->file);
+        ud->file = NULL;
+    }
     return true;
 }
 
 static bool io_FileIO_write(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    PY_CHECK_ARG_TYPE(1, tp_bytes);
     io_FileIO* ud = py_touserdata(py_arg(0));
-    int filesize;
-    unsigned char* data = py_tobytes(py_arg(1), &filesize);
-    fwrite(data, 1, filesize, ud->file);
+    if(ud->mode[strlen(ud->mode) - 1] == 'b') {
+        PY_CHECK_ARG_TYPE(1, tp_bytes);
+        int filesize;
+        unsigned char* data = py_tobytes(py_arg(1), &filesize);
+        fwrite(data, 1, filesize, ud->file);
+    } else {
+        PY_CHECK_ARG_TYPE(1, tp_str);
+        c11_sv sv = py_tosv(py_arg(1));
+        fwrite(sv.data, 1, sv.size, ud->file);
+    }
     return true;
 }
 
@@ -136,6 +157,7 @@ void pk__add_module_io() {
     py_bindmagic(FileIO, __exit__, io_FileIO__exit__);
     py_bindmethod(FileIO, "read", io_FileIO_read);
     py_bindmethod(FileIO, "write", io_FileIO_write);
+    py_bindmethod(FileIO, "close", io_FileIO_close);
 
     py_setdict(&pk_current_vm->builtins, py_name("open"), py_tpobject(FileIO));
 }

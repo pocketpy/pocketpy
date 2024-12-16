@@ -1,3 +1,5 @@
+exit()
+
 try:
     import os
     import io
