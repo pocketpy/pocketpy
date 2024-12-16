@@ -24,6 +24,11 @@ void pk__add_module_json() {
     py_setdict(mod, py_name("null"), py_None());
     py_setdict(mod, py_name("true"), py_True());
     py_setdict(mod, py_name("false"), py_False());
+    py_TValue tmp;
+    py_newfloat(&tmp, NAN);
+    py_setdict(mod, "NaN", &tmp);
+    py_newfloat(&tmp, INFINITY);
+    py_setdict(mod, "Infinity", &tmp);
 
     py_bindfunc(mod, "loads", json_loads);
     py_bindfunc(mod, "dumps", json_dumps);
