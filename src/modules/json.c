@@ -53,7 +53,7 @@ static bool json__write_dict_kv(py_Ref k, py_Ref v, void* ctx_) {
     ctx->first = false;
     if(!py_isstr(k)) return TypeError("keys must be strings");
     c11_sbuf__write_quoted(ctx->buf, py_tosv(k), '"');
-    c11_sbuf__write_char(ctx->buf, ':');
+    c11_sbuf__write_cstr(ctx->buf, ": ");
     return json__write_object(ctx->buf, v);
 }
 
