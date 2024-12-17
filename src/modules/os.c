@@ -1,6 +1,9 @@
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/vm.h"
+
+#if PK_ENABLE_OS == 1
+
 #include <errno.h>
 
 #if PY_SYS_PLATFORM == 0
@@ -61,13 +64,6 @@ void pk__add_module_os() {
     py_bindfunc(mod, "system", os_system);
 }
 
-void pk__add_module_sys() {
-    py_Ref mod = py_newmodule("sys");
-    py_newstr(py_emplacedict(mod, py_name("platform")), PY_SYS_PLATFORM_STRING);
-    py_newstr(py_emplacedict(mod, py_name("version")), PK_VERSION);
-    py_newlist(py_emplacedict(mod, py_name("argv")));
-}
-
 typedef struct {
     const char* path;
     const char* mode;
@@ -102,22 +98,52 @@ static bool io_FileIO__exit__(int argc, py_Ref argv) {
         fclose(ud->file);
         ud->file = NULL;
     }
+    py_newnone(py_retval());
     return true;
 }
 
 static bool io_FileIO_read(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
     io_FileIO* ud = py_touserdata(py_arg(0));
-    fseek(ud->file, 0, SEEK_END);
-    int filesize = ftell(ud->file);
-    fseek(ud->file, 0, SEEK_SET);
-    if(ud->mode[strlen(ud->mode) - 1] == 'b') {
-        void* dst = py_newbytes(py_retval(), filesize);
-        fread(dst, 1, filesize, ud->file);
+    bool is_binary = ud->mode[strlen(ud->mode) - 1] == 'b';
+    int size;
+    if(argc == 1) {
+        long current = ftell(ud->file);
+        fseek(ud->file, 0, SEEK_END);
+        size = ftell(ud->file);
+        fseek(ud->file, current, SEEK_SET);
+    } else if(argc == 2) {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        size = py_toint(py_arg(1));
     } else {
-        void* dst = py_newstrn(py_retval(), filesize);
-        fread(dst, 1, filesize, ud->file);
+        return TypeError("read() takes at most 2 arguments (%d given)", argc);
     }
+    if(is_binary) {
+        void* dst = py_newbytes(py_retval(), size);
+        int actual_size = fread(dst, 1, size, ud->file);
+        py_bytes_resize(py_retval(), actual_size);
+    } else {
+        void* dst = malloc(size);
+        int actual_size = fread(dst, 1, size, ud->file);
+        py_newstrv(py_retval(), (c11_sv){dst, actual_size});
+        free(dst);
+    }
+    return true;
+}
+
+static bool io_FileIO_tell(int argc, py_Ref argv) {
+    io_FileIO* ud = py_touserdata(py_arg(0));
+    py_newint(py_retval(), ftell(ud->file));
+    return true;
+}
+
+static bool io_FileIO_seek(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    io_FileIO* ud = py_touserdata(py_arg(0));
+    long cookie = py_toint(py_arg(1));
+    int whence = py_toint(py_arg(2));
+    py_newint(py_retval(), fseek(ud->file, cookie, whence));
     return true;
 }
 
@@ -128,22 +154,25 @@ static bool io_FileIO_close(int argc, py_Ref argv) {
         fclose(ud->file);
         ud->file = NULL;
     }
+    py_newnone(py_retval());
     return true;
 }
 
 static bool io_FileIO_write(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     io_FileIO* ud = py_touserdata(py_arg(0));
+    size_t written_size;
     if(ud->mode[strlen(ud->mode) - 1] == 'b') {
         PY_CHECK_ARG_TYPE(1, tp_bytes);
         int filesize;
         unsigned char* data = py_tobytes(py_arg(1), &filesize);
-        fwrite(data, 1, filesize, ud->file);
+        written_size = fwrite(data, 1, filesize, ud->file);
     } else {
         PY_CHECK_ARG_TYPE(1, tp_str);
         c11_sv sv = py_tosv(py_arg(1));
-        fwrite(sv.data, 1, sv.size, ud->file);
+        written_size = fwrite(sv.data, 1, sv.size, ud->file);
     }
+    py_newint(py_retval(), written_size);
     return true;
 }
 
@@ -158,6 +187,26 @@ void pk__add_module_io() {
     py_bindmethod(FileIO, "read", io_FileIO_read);
     py_bindmethod(FileIO, "write", io_FileIO_write);
     py_bindmethod(FileIO, "close", io_FileIO_close);
+    py_bindmethod(FileIO, "tell", io_FileIO_tell);
+    py_bindmethod(FileIO, "seek", io_FileIO_seek);
+
+    py_newint(py_emplacedict(mod, py_name("SEEK_SET")), SEEK_SET);
+    py_newint(py_emplacedict(mod, py_name("SEEK_CUR")), SEEK_CUR);
+    py_newint(py_emplacedict(mod, py_name("SEEK_END")), SEEK_END);
 
     py_setdict(&pk_current_vm->builtins, py_name("open"), py_tpobject(FileIO));
+}
+
+#else
+
+void pk__add_module_os() {}
+void pk__add_module_io() {}
+
+#endif
+
+void pk__add_module_sys() {
+    py_Ref mod = py_newmodule("sys");
+    py_newstr(py_emplacedict(mod, py_name("platform")), PY_SYS_PLATFORM_STRING);
+    py_newstr(py_emplacedict(mod, py_name("version")), PK_VERSION);
+    py_newlist(py_emplacedict(mod, py_name("argv")));
 }

@@ -1,5 +1,3 @@
-exit()
-
 try:
     import os
     import io
@@ -45,6 +43,8 @@ with open('123.txt', 'rt') as f:
 
 with open('123.txt', 'a') as f:
     f.write('测试')
+
+exit()
 
 # default mode is 'r'
 with open('123.txt') as f:
