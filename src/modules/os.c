@@ -13,18 +13,23 @@ int platform_chdir(const char* path) { return _chdir(path); }
 
 bool platform_getcwd(char* buf, size_t size) { return _getcwd(buf, size) != NULL; }
 
+bool platform_path_exists(const char* path) { return _access(path, 0) == 0; }
+
 #elif PY_SYS_PLATFORM == 3 || PY_SYS_PLATFORM == 5
 #include <unistd.h>
 
 int platform_chdir(const char* path) { return chdir(path); }
 
 bool platform_getcwd(char* buf, size_t size) { return getcwd(buf, size) != NULL; }
+
+bool platform_path_exists(const char* path) { return access(path, F_OK) == 0; }
 #else
 
 int platform_chdir(const char* path) { return -1; }
 
 bool platform_getcwd(char* buf, size_t size) { return false; }
 
+bool platform_path_exists(const char* path) { return false; }
 #endif
 
 static bool os_chdir(int argc, py_Ref argv) {
@@ -73,12 +78,24 @@ static bool os_remove(int argc, py_Ref argv) {
     return true;
 }
 
+static bool os_path_exists(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    const char* path = py_tostr(py_arg(0));
+    py_newbool(py_retval(), platform_path_exists(path));
+    return true;
+}
+
 void pk__add_module_os() {
     py_Ref mod = py_newmodule("os");
     py_bindfunc(mod, "chdir", os_chdir);
     py_bindfunc(mod, "getcwd", os_getcwd);
     py_bindfunc(mod, "system", os_system);
     py_bindfunc(mod, "remove", os_remove);
+
+    py_ItemRef path_object = py_emplacedict(mod, py_name("path"));
+    py_newobject(path_object, tp_object, -1, 0);
+    py_bindfunc(path_object, "exists", os_path_exists);
 }
 
 typedef struct {
