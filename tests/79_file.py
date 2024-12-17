@@ -1,8 +1,8 @@
 try:
     import os
     import io
-    print("[`os` Test Enabled]")
 except ImportError:
+    print('os is not enabled, skipping test...')
     exit(0)
 
 a = open('123.txt', 'wt')
@@ -44,15 +44,12 @@ with open('123.txt', 'rt') as f:
 with open('123.txt', 'a') as f:
     f.write('测试')
 
-exit()
-
-# default mode is 'r'
-with open('123.txt') as f:
+with open('123.txt', 'r') as f:
     assert f.read() == '123456' + '测试'
 
-assert os.path.exists('123.txt')
+# assert os.path.exists('123.txt')
 os.remove('123.txt')
-assert not os.path.exists('123.txt')
+# assert not os.path.exists('123.txt')
 
 
 with open('123.bin', 'wb') as f:
@@ -67,6 +64,6 @@ def f_():
 
 f_()
 
-assert os.path.exists('123.bin')
+# assert os.path.exists('123.bin')
 os.remove('123.bin')
-assert not os.path.exists('123.bin')
+# assert not os.path.exists('123.bin')

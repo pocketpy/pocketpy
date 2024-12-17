@@ -515,7 +515,7 @@ PK_API void py_clearexc(py_StackRef p0);
 #define NameError(n) py_exception(tp_NameError, "name '%n' is not defined", (n))
 #define TypeError(...) py_exception(tp_TypeError, __VA_ARGS__)
 #define RuntimeError(...) py_exception(tp_RuntimeError, __VA_ARGS__)
-#define IOError(...) py_exception(tp_IOError, __VA_ARGS__)
+#define OSError(...) py_exception(tp_OSError, __VA_ARGS__)
 #define ValueError(...) py_exception(tp_ValueError, __VA_ARGS__)
 #define IndexError(...) py_exception(tp_IndexError, __VA_ARGS__)
 #define ImportError(...) py_exception(tp_ImportError, __VA_ARGS__)
@@ -709,7 +709,6 @@ enum py_PredefinedTypes {
     tp_StopIteration,
     tp_SyntaxError,
     tp_StackOverflowError,
-    tp_IOError,
     tp_OSError,
     tp_NotImplementedError,
     tp_TypeError,

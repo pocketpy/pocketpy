@@ -32,14 +32,17 @@ static bool os_chdir(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_str);
     const char* path = py_tostr(py_arg(0));
     int code = platform_chdir(path);
-    if(code != 0) return py_exception(tp_OSError, "chdir() failed: %d", code);
+    if(code != 0) {
+        const char* msg = strerror(errno);
+        return OSError("[Errno %d] %s: '%s'", errno, msg, path);
+    }
     py_newnone(py_retval());
     return true;
 }
 
 static bool os_getcwd(int argc, py_Ref argv) {
     char buf[1024];
-    if(!platform_getcwd(buf, sizeof(buf))) return py_exception(tp_OSError, "getcwd() failed");
+    if(!platform_getcwd(buf, sizeof(buf))) return OSError("getcwd() failed");
     py_newstr(py_retval(), buf);
     return true;
 }
@@ -53,8 +56,21 @@ static bool os_system(int argc, py_Ref argv) {
     py_newint(py_retval(), code);
     return true;
 #else
-    return py_exception(tp_OSError, "system() is not supported on this platform");
+    return OSError("system() is not supported on this platform");
 #endif
+}
+
+static bool os_remove(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    const char* path = py_tostr(py_arg(0));
+    int code = remove(path);
+    if(code != 0) {
+        const char* msg = strerror(errno);
+        return OSError("[Errno %d] %s: '%s'", errno, msg, path);
+    }
+    py_newnone(py_retval());
+    return true;
 }
 
 void pk__add_module_os() {
@@ -62,6 +78,7 @@ void pk__add_module_os() {
     py_bindfunc(mod, "chdir", os_chdir);
     py_bindfunc(mod, "getcwd", os_getcwd);
     py_bindfunc(mod, "system", os_system);
+    py_bindfunc(mod, "remove", os_remove);
 }
 
 typedef struct {
@@ -82,7 +99,7 @@ static bool io_FileIO__new__(int argc, py_Ref argv) {
     ud->file = fopen(ud->path, ud->mode);
     if(ud->file == NULL) {
         const char* msg = strerror(errno);
-        return IOError("[Errno %d] %s: %s", errno, msg, ud->path);
+        return OSError("[Errno %d] %s: '%s'", errno, msg, ud->path);
     }
     return true;
 }
@@ -200,6 +217,7 @@ void pk__add_module_io() {
 #else
 
 void pk__add_module_os() {}
+
 void pk__add_module_io() {}
 
 #endif
