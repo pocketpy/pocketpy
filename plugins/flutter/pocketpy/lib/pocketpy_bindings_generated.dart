@@ -906,6 +906,23 @@ class PocketpyBindings {
   late final _py_tobytes = _py_tobytesPtr.asFunction<
       ffi.Pointer<ffi.UnsignedChar> Function(py_Ref, ffi.Pointer<ffi.Int>)>();
 
+  /// Resize a `bytes` object. It can only be resized down.
+  void py_bytes_resize(
+    py_Ref arg0,
+    int size,
+  ) {
+    return _py_bytes_resize(
+      arg0,
+      size,
+    );
+  }
+
+  late final _py_bytes_resizePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_Ref, ffi.Int)>>(
+          'py_bytes_resize');
+  late final _py_bytes_resize =
+      _py_bytes_resizePtr.asFunction<void Function(py_Ref, int)>();
+
   /// Convert a user-defined object to its userdata.
   ffi.Pointer<ffi.Void> py_touserdata(
     py_Ref arg0,
@@ -1445,6 +1462,29 @@ class PocketpyBindings {
   late final _py_bindmethod = _py_bindmethodPtr
       .asFunction<void Function(int, ffi.Pointer<ffi.Char>, py_CFunction)>();
 
+  /// Bind a static method to type via "argc-based" style.
+  /// @param type the target type.
+  /// @param name name of the method.
+  /// @param f function to bind.
+  void py_bindstaticmethod(
+    int type,
+    ffi.Pointer<ffi.Char> name,
+    py_CFunction f,
+  ) {
+    return _py_bindstaticmethod(
+      type,
+      name,
+      f,
+    );
+  }
+
+  late final _py_bindstaticmethodPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(py_Type, ffi.Pointer<ffi.Char>,
+              py_CFunction)>>('py_bindstaticmethod');
+  late final _py_bindstaticmethod = _py_bindstaticmethodPtr
+      .asFunction<void Function(int, ffi.Pointer<ffi.Char>, py_CFunction)>();
+
   /// Bind a function to the object via "argc-based" style.
   /// @param obj the target object.
   /// @param name name of the function.
@@ -1734,7 +1774,7 @@ class PocketpyBindings {
   /// `argc` is the number of positional arguments excluding `self`.
   /// `kwargc` is the number of keyword arguments, i.e. the number of key-value pairs.
   /// The result will be set to `py_retval()`.
-  /// The stack size will be reduced by `argc + kwargc`.
+  /// The stack size will be reduced by `2 + argc + kwargc * 2`.
   bool py_vectorcall(
     int argc,
     int kwargc,
@@ -2165,6 +2205,38 @@ class PocketpyBindings {
   late final _py_json_loads =
       _py_json_loadsPtr.asFunction<bool Function(ffi.Pointer<ffi.Char>)>();
 
+  /// Python equivalent to `pickle.dumps(val)`.
+  bool py_pickle_dumps(
+    py_Ref val,
+  ) {
+    return _py_pickle_dumps(
+      val,
+    );
+  }
+
+  late final _py_pickle_dumpsPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>('py_pickle_dumps');
+  late final _py_pickle_dumps =
+      _py_pickle_dumpsPtr.asFunction<bool Function(py_Ref)>();
+
+  /// Python equivalent to `pickle.loads(val)`.
+  bool py_pickle_loads(
+    ffi.Pointer<ffi.UnsignedChar> data,
+    int size,
+  ) {
+    return _py_pickle_loads(
+      data,
+      size,
+    );
+  }
+
+  late final _py_pickle_loadsPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(
+              ffi.Pointer<ffi.UnsignedChar>, ffi.Int)>>('py_pickle_loads');
+  late final _py_pickle_loads = _py_pickle_loadsPtr
+      .asFunction<bool Function(ffi.Pointer<ffi.UnsignedChar>, int)>();
+
   /// Unchecked Functions
   py_ObjectRef py_tuple_data(
     py_Ref self,
@@ -2451,6 +2523,23 @@ class PocketpyBindings {
   late final _py_dict_getitem_by_str = _py_dict_getitem_by_strPtr
       .asFunction<int Function(py_Ref, ffi.Pointer<ffi.Char>)>();
 
+  /// -1: error, 0: not found, 1: found
+  int py_dict_getitem_by_int(
+    py_Ref self,
+    int key,
+  ) {
+    return _py_dict_getitem_by_int(
+      self,
+      key,
+    );
+  }
+
+  late final _py_dict_getitem_by_intPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref, py_i64)>>(
+          'py_dict_getitem_by_int');
+  late final _py_dict_getitem_by_int =
+      _py_dict_getitem_by_intPtr.asFunction<int Function(py_Ref, int)>();
+
   /// true: success, false: error
   bool py_dict_setitem_by_str(
     py_Ref self,
@@ -2471,6 +2560,25 @@ class PocketpyBindings {
   late final _py_dict_setitem_by_str = _py_dict_setitem_by_strPtr
       .asFunction<bool Function(py_Ref, ffi.Pointer<ffi.Char>, py_Ref)>();
 
+  /// true: success, false: error
+  bool py_dict_setitem_by_int(
+    py_Ref self,
+    int key,
+    py_Ref val,
+  ) {
+    return _py_dict_setitem_by_int(
+      self,
+      key,
+      val,
+    );
+  }
+
+  late final _py_dict_setitem_by_intPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_i64, py_Ref)>>(
+          'py_dict_setitem_by_int');
+  late final _py_dict_setitem_by_int = _py_dict_setitem_by_intPtr
+      .asFunction<bool Function(py_Ref, int, py_Ref)>();
+
   /// -1: error, 0: not found, 1: found (and deleted)
   int py_dict_delitem_by_str(
     py_Ref self,
@@ -2487,6 +2595,23 @@ class PocketpyBindings {
       'py_dict_delitem_by_str');
   late final _py_dict_delitem_by_str = _py_dict_delitem_by_strPtr
       .asFunction<int Function(py_Ref, ffi.Pointer<ffi.Char>)>();
+
+  /// -1: error, 0: not found, 1: found (and deleted)
+  int py_dict_delitem_by_int(
+    py_Ref self,
+    int key,
+  ) {
+    return _py_dict_delitem_by_int(
+      self,
+      key,
+    );
+  }
+
+  late final _py_dict_delitem_by_intPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref, py_i64)>>(
+          'py_dict_delitem_by_int');
+  late final _py_dict_delitem_by_int =
+      _py_dict_delitem_by_intPtr.asFunction<int Function(py_Ref, int)>();
 
   /// true: success, false: error
   bool py_dict_apply(
@@ -2955,8 +3080,12 @@ abstract class py_MagicNames {
   static const int __path__ = 49;
   static const int __class__ = 50;
   static const int __abs__ = 51;
-  static const int __getattr__ = 52;
-  static const int __missing__ = 53;
+  static const int __float__ = 52;
+  static const int __int__ = 53;
+  static const int __round__ = 54;
+  static const int __getattr__ = 55;
+  static const int __reduce__ = 56;
+  static const int __missing__ = 57;
 }
 
 abstract class py_PredefinedTypes {
@@ -2985,6 +3114,8 @@ abstract class py_PredefinedTypes {
   static const int tp_module = 14;
   static const int tp_function = 15;
   static const int tp_nativefunc = 16;
+
+  /// 2 slots (self, func)
   static const int tp_boundmethod = 17;
 
   /// 1 slot + py_Type
@@ -3024,40 +3155,39 @@ abstract class py_PredefinedTypes {
   static const int tp_StopIteration = 37;
   static const int tp_SyntaxError = 38;
   static const int tp_StackOverflowError = 39;
-  static const int tp_IOError = 40;
-  static const int tp_OSError = 41;
-  static const int tp_NotImplementedError = 42;
-  static const int tp_TypeError = 43;
-  static const int tp_IndexError = 44;
-  static const int tp_ValueError = 45;
-  static const int tp_RuntimeError = 46;
-  static const int tp_ZeroDivisionError = 47;
-  static const int tp_NameError = 48;
-  static const int tp_UnboundLocalError = 49;
-  static const int tp_AttributeError = 50;
-  static const int tp_ImportError = 51;
-  static const int tp_AssertionError = 52;
-  static const int tp_KeyError = 53;
+  static const int tp_OSError = 40;
+  static const int tp_NotImplementedError = 41;
+  static const int tp_TypeError = 42;
+  static const int tp_IndexError = 43;
+  static const int tp_ValueError = 44;
+  static const int tp_RuntimeError = 45;
+  static const int tp_ZeroDivisionError = 46;
+  static const int tp_NameError = 47;
+  static const int tp_UnboundLocalError = 48;
+  static const int tp_AttributeError = 49;
+  static const int tp_ImportError = 50;
+  static const int tp_AssertionError = 51;
+  static const int tp_KeyError = 52;
 
   /// linalg
-  static const int tp_vec2 = 54;
-  static const int tp_vec3 = 55;
-  static const int tp_vec2i = 56;
-  static const int tp_vec3i = 57;
-  static const int tp_mat3x3 = 58;
+  static const int tp_vec2 = 53;
+  static const int tp_vec3 = 54;
+  static const int tp_vec2i = 55;
+  static const int tp_vec3i = 56;
+  static const int tp_mat3x3 = 57;
 
   /// array2d
-  static const int tp_array2d = 59;
-  static const int tp_array2d_iterator = 60;
+  static const int tp_array2d = 58;
+  static const int tp_array2d_iterator = 59;
 }
 
-const String PK_VERSION = '2.0.0';
+const String PK_VERSION = '2.0.3';
 
 const int PK_VERSION_MAJOR = 2;
 
 const int PK_VERSION_MINOR = 0;
 
-const int PK_VERSION_PATCH = 0;
+const int PK_VERSION_PATCH = 3;
 
 const int PK_ENABLE_OS = 1;
 
@@ -3076,6 +3206,8 @@ const int PK_DEBUG_COMPILER = 0;
 const int PK_VM_STACK_SIZE = 16384;
 
 const int PK_MAX_CO_VARNAMES = 64;
+
+const int PK_MAX_MODULE_PATH_LEN = 63;
 
 const int PK_PLATFORM_SEP = 47;
 
