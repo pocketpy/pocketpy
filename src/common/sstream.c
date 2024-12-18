@@ -98,15 +98,26 @@ void c11_sbuf__write_quoted(c11_sbuf* self, c11_sv sv, char quote) {
             case '\r': c11_sbuf__write_cstrn(self, "\\r", 2); break;
             case '\t': c11_sbuf__write_cstrn(self, "\\t", 2); break;
             case '\b': c11_sbuf__write_cstrn(self, "\\b", 2); break;
-            default:
-                if(!isprint(c)) {
-                    unsigned char uc = (unsigned char)c;
-                    c11_sbuf__write_cstrn(self, "\\x", 2);
-                    c11_sbuf__write_char(self, PK_HEX_TABLE[uc >> 4]);
-                    c11_sbuf__write_char(self, PK_HEX_TABLE[uc & 0xf]);
+            default: {
+                int u8bytes = c11__u8_header(c, true);
+                if(u8bytes <= 1) {
+                    // not a valid utf8 char, or ascii
+                    if(!isprint(c)) {
+                        unsigned char uc = (unsigned char)c;
+                        c11_sbuf__write_cstrn(self, "\\x", 2);
+                        c11_sbuf__write_char(self, PK_HEX_TABLE[uc >> 4]);
+                        c11_sbuf__write_char(self, PK_HEX_TABLE[uc & 0xf]);
+                    } else {
+                        c11_sbuf__write_char(self, c);
+                    }
                 } else {
-                    c11_sbuf__write_char(self, c);
+                    for(int j = 0; j < u8bytes; j++) {
+                        c11_sbuf__write_char(self, sv.data[i + j]);
+                    }
+                    i += u8bytes - 1;
                 }
+                break;
+            }
         }
     }
     c11_sbuf__write_char(self, quote);
