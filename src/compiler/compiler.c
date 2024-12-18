@@ -1722,6 +1722,11 @@ static Error* exprUnaryOp(Compiler* self) {
 static Error* exprGroup(Compiler* self) {
     Error* err;
     int line = prev()->line;
+    if(match(TK_RPAREN)) {
+        // empty tuple
+        Ctx__s_push(ctx(), (Expr*)TupleExpr__new(line, 0));
+        return NULL;
+    }
     match_newlines();
     check(EXPR_TUPLE(self));  // () is just for change precedence
     match_newlines();
