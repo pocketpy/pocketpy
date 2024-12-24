@@ -16,10 +16,13 @@ else()
     message(WARNING ">> IPO disabled. You will not get the best performance.")
 endif()
 
+if(WIN32)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
+
 if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /jumptablerdata /GS-")
     add_compile_options(/wd4267 /wd4244)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Ox")
@@ -54,7 +57,7 @@ endif()
 
 # PK_IS_MAIN determines whether the project is being used from root
 # or if it is added as a dependency (through add_subdirectory for example).
-if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
     set(PK_IS_MAIN TRUE)
     option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
     option(PK_BUILD_STATIC_LIB "Build static library" OFF)
