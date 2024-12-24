@@ -3181,13 +3181,13 @@ abstract class py_PredefinedTypes {
   static const int tp_array2d_iterator = 59;
 }
 
-const String PK_VERSION = '2.0.3';
+const String PK_VERSION = '2.0.4';
 
 const int PK_VERSION_MAJOR = 2;
 
 const int PK_VERSION_MINOR = 0;
 
-const int PK_VERSION_PATCH = 3;
+const int PK_VERSION_PATCH = 4;
 
 const int PK_ENABLE_OS = 1;
 
