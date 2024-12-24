@@ -8,6 +8,7 @@
 
 #if PY_SYS_PLATFORM == 0
 #include <direct.h>
+#include <io.h>
 
 int platform_chdir(const char* path) { return _chdir(path); }
 
