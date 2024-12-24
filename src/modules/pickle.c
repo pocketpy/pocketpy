@@ -80,13 +80,13 @@ static void pkl__emit_int(PickleObject* buf, py_i64 val) {
         pkl__emit_op(buf, PKL_INT_0 + val);
         return;
     }
-    if((int8_t)val == val) {
+    if(INT8_MIN <= val && val <= INT8_MAX) {
         pkl__emit_op(buf, PKL_INT8);
         PickleObject__write_bytes(buf, &val, 1);
-    } else if((int16_t)val == val) {
+    } else if(INT16_MIN <= val && val <= INT16_MAX) {
         pkl__emit_op(buf, PKL_INT16);
         PickleObject__write_bytes(buf, &val, 2);
-    } else if((int32_t)val == val) {
+    } else if(INT32_MIN <= val && val <= INT32_MAX) {
         pkl__emit_op(buf, PKL_INT32);
         PickleObject__write_bytes(buf, &val, 4);
     } else {
@@ -680,7 +680,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 int dict_length = pkl__read_int(&p);
                 for(int i = 0; i < dict_length; i++) {
                     py_StackRef value = py_peek(-1);
-                    c11_sv field = {(const char*)p, strlen((const char*)p)}; 
+                    c11_sv field = {(const char*)p, strlen((const char*)p)};
                     NameDict__set(dict, py_namev(field), *value);
                     py_pop();
                     p += field.size + 1;
