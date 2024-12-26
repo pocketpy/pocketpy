@@ -1189,7 +1189,7 @@ static void Ctx__revert_last_emit_(Ctx* self) {
 }
 
 static int Ctx__emit_int(Ctx* self, int64_t value, int line) {
-    if((int16_t)value == value) {
+    if(INT16_MIN <= value && value <= INT16_MAX) {
         return Ctx__emit_(self, OP_LOAD_SMALL_INT, (uint16_t)value, line);
     } else {
         py_TValue tmp;
