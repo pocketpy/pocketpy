@@ -1,8 +1,6 @@
-from typing import Generic, TypeVar, Iterable
+from typing import TypeVar, Iterable
 
-T = TypeVar('T')
-
-def Counter(iterable: Iterable[T]):
+def Counter[T](iterable: Iterable[T]):
     a: dict[T, int] = {}
     for x in iterable:
         if x in a:
@@ -28,7 +26,7 @@ class defaultdict(dict):
         return defaultdict(self.default_factory, self)
 
 
-class deque(Generic[T]):
+class deque[T]:
     _data: list[T]
     _head: int
     _tail: int
@@ -59,7 +57,7 @@ class deque(Generic[T]):
             self.__resize_2x()
 
     def appendleft(self, x: T):
-        self._head = (self._head - 1 + self._capacity) % self._capacity
+        self._head = (self._head - 1) % self._capacity
         self._data[self._head] = x
         if (self._tail + 1) % self._capacity == self._head:
             self.__resize_2x()
@@ -85,7 +83,7 @@ class deque(Generic[T]):
     def pop(self) -> T:
         if self._head == self._tail:
             raise IndexError("pop from an empty deque")
-        self._tail = (self._tail - 1 + self._capacity) % self._capacity
+        self._tail = (self._tail - 1) % self._capacity
         return self._data[self._tail]
     
     def popleft(self) -> T:
@@ -116,7 +114,7 @@ class deque(Generic[T]):
                 self.append(self.popleft())
 
     def __len__(self) -> int:
-        return (self._tail - self._head + self._capacity) % self._capacity
+        return (self._tail - self._head) % self._capacity
 
     def __contains__(self, x: object) -> bool:
         for item in self:

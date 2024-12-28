@@ -123,13 +123,35 @@ static bool number__pow__(int argc, py_Ref argv) {
     return true;
 }
 
+static py_i64 cpy11__fast_floor_div(py_i64 a, py_i64 b) {
+    assert(b != 0);
+    if(a == 0) return 0;
+    if((a < 0) == (b < 0)) {
+        return labs(a) / labs(b);
+    } else {
+        return -1 - (labs(a) - 1) / labs(b);
+    }
+}
+
+static py_i64 cpy11__fast_mod(py_i64 a, py_i64 b) {
+    assert(b != 0);
+    if(a == 0) return 0;
+    py_i64 res;
+    if((a < 0) == (b < 0)) {
+        res = labs(a) % labs(b);
+    } else {
+        res = labs(b) - 1 - (labs(a) - 1) % labs(b);
+    }
+    return b < 0 ? -res : res;
+}
+
 static bool int__floordiv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
         py_i64 rhs = py_toint(&argv[1]);
-        if(rhs == 0) return ZeroDivisionError("integer division or modulo by zero");
-        py_newint(py_retval(), lhs / rhs);
+        if(rhs == 0) return ZeroDivisionError("integer division by zero");
+        py_newint(py_retval(), cpy11__fast_floor_div(lhs, rhs));
     } else {
         py_newnotimplemented(py_retval());
     }
@@ -141,8 +163,8 @@ static bool int__mod__(int argc, py_Ref argv) {
     py_i64 lhs = py_toint(&argv[0]);
     if(py_isint(&argv[1])) {
         py_i64 rhs = py_toint(&argv[1]);
-        if(rhs == 0) return ZeroDivisionError("integer division or modulo by zero");
-        py_newint(py_retval(), lhs % rhs);
+        if(rhs == 0) return ZeroDivisionError("integer modulo by zero");
+        py_newint(py_retval(), cpy11__fast_mod(lhs, rhs));
     } else {
         py_newnotimplemented(py_retval());
     }
@@ -156,9 +178,8 @@ static bool int__divmod__(int argc, py_Ref argv) {
     py_i64 rhs = py_toint(&argv[1]);
     if(rhs == 0) return ZeroDivisionError("integer division or modulo by zero");
     py_newtuple(py_retval(), 2);
-    ldiv_t res = ldiv(lhs, rhs);
-    py_newint(py_getslot(py_retval(), 0), res.quot);
-    py_newint(py_getslot(py_retval(), 1), res.rem);
+    py_newint(py_getslot(py_retval(), 0), cpy11__fast_floor_div(lhs, rhs));
+    py_newint(py_getslot(py_retval(), 1), cpy11__fast_mod(lhs, rhs));
     return true;
 }
 
@@ -291,7 +312,7 @@ static bool int__new__(int argc, py_Ref argv) {
                 return true;
             }
             case tp_str: break;  // leave to the next block
-            default: return pk_callmagic(__int__, 1, argv+1);
+            default: return pk_callmagic(__int__, 1, argv + 1);
         }
     }
     // 2+ args -> error
@@ -363,7 +384,7 @@ static bool float__new__(int argc, py_Ref argv) {
             py_newfloat(py_retval(), float_out);
             return true;
         }
-        default: return pk_callmagic(__float__, 1, argv+1);
+        default: return pk_callmagic(__float__, 1, argv + 1);
     }
 }
 
