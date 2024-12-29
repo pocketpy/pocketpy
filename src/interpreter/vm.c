@@ -201,6 +201,7 @@ void VM__ctor(VM* self) {
 
     pk__add_module_linalg();
     pk__add_module_array2d();
+    pk__add_module_colorcvt();
 
     // add modules
     pk__add_module_os();

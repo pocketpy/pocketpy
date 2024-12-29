@@ -350,9 +350,8 @@ static bool vec2_angle_STATIC(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_vec2);
     PY_CHECK_ARG_TYPE(1, tp_vec2);
     float val = atan2f(argv[1]._vec2.y, argv[1]._vec2.x) - atan2f(argv[0]._vec2.y, argv[0]._vec2.x);
-    const float PI = 3.1415926535897932384f;
-    if(val > PI) val -= 2 * PI;
-    if(val < -PI) val += 2 * PI;
+    if(val > PK_M_PI) val -= 2 * (float)PK_M_PI;
+    if(val < -PK_M_PI) val += 2 * (float)PK_M_PI;
     py_newfloat(py_retval(), val);
     return true;
 }

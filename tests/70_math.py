@@ -39,6 +39,12 @@ assert math.gcd(10, 7) == 1
 assert math.gcd(10, 10) == 10
 assert math.gcd(-10, 10) == 10
 
+# test fmod
+assert math.fmod(-2.0, 3.0) == -2.0
+assert math.fmod(2.0, 3.0) == 2.0
+assert math.fmod(4.0, 3.0) == 1.0
+assert math.fmod(-4.0, 3.0) == -1.0
+
 # test modf
 x, y = math.modf(1.5)
 assert isclose(x, 0.5)

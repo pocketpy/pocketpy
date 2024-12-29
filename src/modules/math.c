@@ -118,7 +118,7 @@ static bool math_degrees(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     double x;
     if(!py_castfloat(py_arg(0), &x)) return false;
-    py_newfloat(py_retval(), x * 180 / 3.1415926535897932384);
+    py_newfloat(py_retval(), x * PK_M_RAD2DEG);
     return true;
 }
 
@@ -126,9 +126,11 @@ static bool math_radians(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     double x;
     if(!py_castfloat(py_arg(0), &x)) return false;
-    py_newfloat(py_retval(), x * 3.1415926535897932384 / 180);
+    py_newfloat(py_retval(), x * PK_M_DEG2RAD);
     return true;
 }
+
+TWO_ARG_FUNC(fmod, fmod)
 
 static bool math_modf(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -157,8 +159,8 @@ static bool math_factorial(int argc, py_Ref argv) {
 void pk__add_module_math() {
     py_Ref mod = py_newmodule("math");
 
-    py_newfloat(py_emplacedict(mod, py_name("pi")), 3.1415926535897932384);
-    py_newfloat(py_emplacedict(mod, py_name("e")), 2.7182818284590452354);
+    py_newfloat(py_emplacedict(mod, py_name("pi")), PK_M_PI);
+    py_newfloat(py_emplacedict(mod, py_name("e")), PK_M_E);
     py_newfloat(py_emplacedict(mod, py_name("inf")), INFINITY);
     py_newfloat(py_emplacedict(mod, py_name("nan")), NAN);
 
@@ -196,6 +198,7 @@ void pk__add_module_math() {
     py_bindfunc(mod, "degrees", math_degrees);
     py_bindfunc(mod, "radians", math_radians);
 
+    py_bindfunc(mod, "fmod", math_fmod);
     py_bindfunc(mod, "modf", math_modf);
     py_bindfunc(mod, "factorial", math_factorial);
 }
