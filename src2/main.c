@@ -8,6 +8,15 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+static BOOL WINAPI sigint_handler(DWORD dwCtrlType) {
+    if(dwCtrlType == CTRL_C_EVENT) {
+        py_interrupt();
+        return TRUE;
+    }
+    return FALSE;
+}
+
 #else
 
 // set ctrl+c handler
@@ -39,6 +48,7 @@ int main(int argc, char** argv) {
 #if _WIN32
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigint_handler, TRUE);
 #else
     signal(SIGINT, sigint_handler);
 #endif
