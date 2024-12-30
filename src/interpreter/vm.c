@@ -69,6 +69,7 @@ void VM__ctor(VM* self) {
 
     self->last_retval = *py_NIL();
     self->curr_exception = *py_NIL();
+    self->is_signal_interrupted = false;
     self->is_curr_exc_handled = false;
 
     self->ctx = NULL;
@@ -147,7 +148,6 @@ void VM__ctor(VM* self) {
     INJECT_BUILTIN_EXC(SystemExit, tp_BaseException);
     INJECT_BUILTIN_EXC(KeyboardInterrupt, tp_BaseException);
 
-    // INJECT_BUILTIN_EXC(StopIteration, tp_Exception);
     validate(tp_StopIteration, pk_StopIteration__register());
     py_setdict(&self->builtins, py_name("StopIteration"), py_tpobject(tp_StopIteration));
     

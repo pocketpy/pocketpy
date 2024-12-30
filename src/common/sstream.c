@@ -253,7 +253,7 @@ int py_replinput(char* buf, int max_size) {
 
     while(true) {
         char c = getchar();
-        if(c == EOF) break;
+        if(c == EOF) return -1;
 
         if(c == '\n') {
             char last = '\0';

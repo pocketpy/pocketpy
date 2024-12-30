@@ -8,6 +8,14 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#else
+
+// set ctrl+c handler
+#include <signal.h>
+#include <unistd.h>
+
+static void sigint_handler(int sig) { py_interrupt(); }
+
 #endif
 
 char* read_file(const char* path) {
@@ -31,6 +39,8 @@ int main(int argc, char** argv) {
 #if _WIN32
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
+#else
+    signal(SIGINT, sigint_handler);
 #endif
 
     if(argc > 2) {
@@ -53,6 +63,10 @@ int main(int argc, char** argv) {
 
         while(true) {
             int size = py_replinput(buf, sizeof(buf));
+            if(size == -1) {  // Ctrl-D (i.e. EOF)
+                printf("\n");
+                break;
+            }
             assert(size < sizeof(buf));
             if(size >= 0) {
                 py_StackRef p0 = py_peek(0);

@@ -87,6 +87,8 @@ PK_API void py_resetvm();
 PK_API void* py_getvmctx();
 /// Set the current VM context. This is used for user-defined data.
 PK_API void py_setvmctx(void* ctx);
+/// Interrupt the current VM and raise a `KeyboardInterrupt` exception.
+PK_API void py_interrupt();
 /// Set `sys.argv`. Used for storing command-line arguments.
 PK_API void py_sys_setargv(int argc, char** argv);
 /// Setup the callbacks for the current VM.
