@@ -35,14 +35,14 @@ void ModuleDict__set(ModuleDict* self, const char* key, py_TValue val) {
         if(self->left) {
             ModuleDict__set(self->left, key, val);
         } else {
-            self->left = malloc(sizeof(ModuleDict));
+            self->left = PK_MALLOC(sizeof(ModuleDict));
             ModuleDict__ctor(self->left, key, val);
         }
     } else if(cmp > 0) {
         if(self->right) {
             ModuleDict__set(self->right, key, val);
         } else {
-            self->right = malloc(sizeof(ModuleDict));
+            self->right = PK_MALLOC(sizeof(ModuleDict));
             ModuleDict__ctor(self->right, key, val);
         }
     } else {

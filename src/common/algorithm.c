@@ -1,4 +1,5 @@
 #include "pocketpy/common/algorithm.h"
+#include "pocketpy/config.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -38,7 +39,7 @@ bool c11__stable_sort(void* ptr_,
                       int (*f_lt)(const void* a, const void* b, void* extra),
                       void* extra) {
     // merge sort
-    char *ptr = ptr_, *tmp = malloc(length * elem_size);
+    char *ptr = ptr_, *tmp = PK_MALLOC(length * elem_size);
     for(int seg = 1; seg < length; seg *= 2) {
         for(char* a = ptr; a < ptr + (length - seg) * elem_size; a += 2 * seg * elem_size) {
             char *b = a + seg * elem_size, *a_end = b, *b_end = b + seg * elem_size;

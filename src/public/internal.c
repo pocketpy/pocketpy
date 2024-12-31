@@ -64,7 +64,7 @@ void py_finalize() {
 void py_switchvm(int index) {
     if(index < 0 || index >= 16) c11__abort("invalid vm index");
     if(!pk_all_vm[index]) {
-        pk_current_vm = pk_all_vm[index] = malloc(sizeof(VM));
+        pk_current_vm = pk_all_vm[index] = PK_MALLOC(sizeof(VM));
         memset(pk_current_vm, 0, sizeof(VM));
         VM__ctor(pk_all_vm[index]);
     } else {

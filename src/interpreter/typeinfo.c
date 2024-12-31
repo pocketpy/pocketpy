@@ -26,7 +26,7 @@ py_TypeInfo* TypeList__emplace(TypeList* self){
     int offset = self->length & (CHUNK_SIZE - 1);
     assert(chunk < 256);
     if(self->chunks[chunk] == NULL){
-        self->chunks[chunk] = malloc(sizeof(py_TypeInfo) * CHUNK_SIZE);
+        self->chunks[chunk] = PK_MALLOC(sizeof(py_TypeInfo) * CHUNK_SIZE);
         memset(self->chunks[chunk], 0, sizeof(py_TypeInfo) * CHUNK_SIZE);
     }
     self->length++;

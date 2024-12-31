@@ -136,7 +136,7 @@ static void MemoryPool__ctor(MemoryPool* self) {
 static void* MemoryPool__alloc(MemoryPool* self) {
     MemoryPoolArena* arena;
     if(self->_arenas.length == 0){
-        arena = malloc(sizeof(MemoryPoolArena));
+        arena = PK_MALLOC(sizeof(MemoryPoolArena));
         MemoryPoolArena__ctor(arena);
         LinkedList__push_back(&self->_arenas, (LinkedListNode*)arena);
     } else {
@@ -195,9 +195,9 @@ static void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int Bloc
     self->BlockSize = BlockSize;
     self->BlockCount = BlockCount;
     self->exceeded_bytes = 0;
-    self->data = malloc(BlockSize * BlockCount);
+    self->data = PK_MALLOC(BlockSize * BlockCount);
     self->data_end = self->data + BlockSize * BlockCount;
-    self->_free_list = malloc(sizeof(void*) * BlockCount);
+    self->_free_list = PK_MALLOC(sizeof(void*) * BlockCount);
     self->_free_list_end = self->_free_list;
     for(int i = 0; i < BlockCount; i++) {
         self->_free_list[i] = self->data + i * BlockSize;
@@ -215,7 +215,7 @@ static void* FixedMemoryPool__alloc(FixedMemoryPool* self) {
         return *self->_free_list_end;
     } else {
         self->exceeded_bytes += self->BlockSize;
-        return malloc(self->BlockSize);
+        return PK_MALLOC(self->BlockSize);
     }
 }
 

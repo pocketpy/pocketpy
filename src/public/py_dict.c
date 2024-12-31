@@ -78,7 +78,7 @@ typedef struct {
 static void Dict__ctor(Dict* self, uint32_t capacity, int entries_capacity) {
     self->length = 0;
     self->capacity = capacity;
-    self->indices = malloc(self->capacity * sizeof(DictIndex));
+    self->indices = PK_MALLOC(self->capacity * sizeof(DictIndex));
     memset(self->indices, -1, self->capacity * sizeof(DictIndex));
     c11_vector__ctor(&self->entries, sizeof(DictEntry));
     c11_vector__reserve(&self->entries, entries_capacity);
@@ -154,7 +154,7 @@ __RETRY:
 }
 
 static void Dict__compact_entries(Dict* self) {
-    int* mappings = malloc(self->entries.length * sizeof(int));
+    int* mappings = PK_MALLOC(self->entries.length * sizeof(int));
 
     int n = 0;
     for(int i = 0; i < self->entries.length; i++) {
@@ -442,7 +442,7 @@ static bool dict_copy(int argc, py_Ref argv) {
     new_dict->length = self->length;
     new_dict->entries = c11_vector__copy(&self->entries);
     // copy indices
-    new_dict->indices = malloc(new_dict->capacity * sizeof(DictIndex));
+    new_dict->indices = PK_MALLOC(new_dict->capacity * sizeof(DictIndex));
     memcpy(new_dict->indices, self->indices, new_dict->capacity * sizeof(DictIndex));
     return true;
 }

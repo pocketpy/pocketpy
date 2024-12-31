@@ -24,7 +24,7 @@ static void FuncDecl__dtor(FuncDecl* self) {
 }
 
 FuncDecl_ FuncDecl__rcnew(SourceData_ src, c11_sv name) {
-    FuncDecl* self = malloc(sizeof(FuncDecl));
+    FuncDecl* self = PK_MALLOC(sizeof(FuncDecl));
     self->rc.count = 1;
     self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
     CodeObject__ctor(&self->code, src, name);

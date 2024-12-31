@@ -41,7 +41,7 @@ py_Name py_namev(c11_sv name) {
     // generate new index
     if(_interned.length > 65530) c11__abort("py_Name index overflow");
     // NOTE: we must allocate the string in the heap so iterators are not invalidated
-    char* p = malloc(name.size + 1);
+    char* p = PK_MALLOC(name.size + 1);
     memcpy(p, name.data, name.size);
     p[name.size] = '\0';
     c11_vector__push(char*, &_r_interned, p);

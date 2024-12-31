@@ -17,7 +17,7 @@ static char* pk_default_importfile(const char* path) {
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);
-    char* buffer = malloc(size + 1);
+    char* buffer = PK_MALLOC(size + 1);
     size = fread(buffer, 1, size, f);
     buffer[size] = 0;
     fclose(f);

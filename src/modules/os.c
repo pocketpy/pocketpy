@@ -157,7 +157,7 @@ static bool io_FileIO_read(int argc, py_Ref argv) {
         int actual_size = fread(dst, 1, size, ud->file);
         py_bytes_resize(py_retval(), actual_size);
     } else {
-        void* dst = malloc(size);
+        void* dst = PK_MALLOC(size);
         int actual_size = fread(dst, 1, size, ud->file);
         py_newstrv(py_retval(), (c11_sv){dst, actual_size});
         free(dst);

@@ -28,7 +28,7 @@ NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co) {
 }
 
 UnwindTarget* UnwindTarget__new(UnwindTarget* next, int iblock, int offset) {
-    UnwindTarget* self = malloc(sizeof(UnwindTarget));
+    UnwindTarget* self = PK_MALLOC(sizeof(UnwindTarget));
     self->next = next;
     self->iblock = iblock;
     self->offset = offset;

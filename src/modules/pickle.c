@@ -41,7 +41,7 @@ typedef struct {
 
 static void PickleObject__ctor(PickleObject* self) {
     self->used_types_length = pk_current_vm->types.length;
-    self->used_types = malloc(self->used_types_length);
+    self->used_types = PK_MALLOC(self->used_types_length);
     memset(self->used_types, 0, self->used_types_length);
     c11_smallmap_p2i__ctor(&self->memo);
     c11_vector__ctor(&self->codes, sizeof(char));

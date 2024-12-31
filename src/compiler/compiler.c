@@ -526,7 +526,7 @@ static SequenceExpr* SequenceExpr__new(int line, const ExprVt* vt, int count, Op
     self->vt = vt;
     self->line = line;
     self->opcode = opcode;
-    self->items = malloc(sizeof(Expr*) * count);
+    self->items = PK_MALLOC(sizeof(Expr*) * count);
     self->itemCount = count;
     return self;
 }
@@ -1359,7 +1359,7 @@ static NameScope name_scope(Compiler* self) {
 }
 
 Error* SyntaxError(Compiler* self, const char* fmt, ...) {
-    Error* err = malloc(sizeof(Error));
+    Error* err = PK_MALLOC(sizeof(Error));
     err->src = self->src;
     PK_INCREF(self->src);
     Token* t = self->i == self->tokens_length ? prev() : curr();

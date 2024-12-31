@@ -186,7 +186,7 @@ static bool is_possible_number_char(char c) {
 
 /******************************/
 static Error* LexerError(Lexer* self, const char* fmt, ...) {
-    Error* err = malloc(sizeof(Error));
+    Error* err = PK_MALLOC(sizeof(Error));
     err->src = self->src;
     PK_INCREF(self->src);
     err->lineno = self->current_line;

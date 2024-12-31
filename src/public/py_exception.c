@@ -218,7 +218,7 @@ char* py_formatexc() {
     }
 
     c11_string* res = c11_sbuf__submit(&ss);
-    char* dup = malloc(res->size + 1);
+    char* dup = PK_MALLOC(res->size + 1);
     memcpy(dup, res->data, res->size);
     dup[res->size] = '\0';
     c11_string__delete(res);

@@ -11,7 +11,7 @@
 c11_string* c11_string__new(const char* data) { return c11_string__new2(data, strlen(data)); }
 
 c11_string* c11_string__new2(const char* data, int size) {
-    c11_string* retval = malloc(sizeof(c11_string) + size + 1);
+    c11_string* retval = PK_MALLOC(sizeof(c11_string) + size + 1);
     c11_string__ctor2(retval, data, size);
     return retval;
 }
@@ -46,7 +46,7 @@ void c11_string__ctor3(c11_string* self, int size) {
 
 c11_string* c11_string__copy(c11_string* self) {
     int total_size = sizeof(c11_string) + self->size + 1;
-    c11_string* retval = malloc(total_size);
+    c11_string* retval = PK_MALLOC(total_size);
     memcpy(retval, self, total_size);
     return retval;
 }

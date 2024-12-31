@@ -225,7 +225,7 @@ static bool Random_choices(int argc, py_Ref argv) {
     if(!py_checktype(py_arg(3), tp_int)) return false;
     py_i64 k = py_toint(py_arg(3));
 
-    py_f64* cum_weights = malloc(sizeof(py_f64) * length);
+    py_f64* cum_weights = PK_MALLOC(sizeof(py_f64) * length);
     if(py_isnone(weights)) {
         for(int i = 0; i < length; i++)
             cum_weights[i] = i + 1;

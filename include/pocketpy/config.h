@@ -18,6 +18,13 @@
 #define PK_GC_MIN_THRESHOLD         16384
 #endif
 
+// Memory allocation functions
+#ifndef PK_MALLOC
+#define PK_MALLOC(size)             malloc(size)
+#define PK_REALLOC(ptr, size)       realloc(ptr, size)
+#define PK_FREE(ptr)                free(ptr)
+#endif
+
 /*************** debug settings ***************/
 // Do not edit the following settings unless you know what you are doing
 #define PK_DEBUG_CEVAL_STEP         0

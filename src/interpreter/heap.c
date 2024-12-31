@@ -95,7 +95,7 @@ PyObject* PyObject__new(py_Type type, int slots, int size) {
         self = PoolObject_alloc();
         self->gc_is_large = false;
     } else {
-        self = malloc(size);
+        self = PK_MALLOC(size);
         self->gc_is_large = true;
     }
     self->type = type;
