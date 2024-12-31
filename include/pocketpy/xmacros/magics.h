@@ -1,25 +1,18 @@
 #ifdef MAGIC_METHOD
 
-// unary operators
-MAGIC_METHOD(__repr__)
-MAGIC_METHOD(__str__)
-MAGIC_METHOD(__hash__)
-MAGIC_METHOD(__len__)
-MAGIC_METHOD(__iter__)
-MAGIC_METHOD(__next__)
-MAGIC_METHOD(__neg__)
-MAGIC_METHOD(__invert__)
-MAGIC_METHOD(__bool__)
-// logical operators
-MAGIC_METHOD(__contains__)
-/////////////////////////////
-MAGIC_METHOD(__eq__)
-MAGIC_METHOD(__ne__)
+// math operators
 MAGIC_METHOD(__lt__)
 MAGIC_METHOD(__le__)
 MAGIC_METHOD(__gt__)
 MAGIC_METHOD(__ge__)
-// binary operators
+/////////////////////////////
+MAGIC_METHOD(__neg__)
+MAGIC_METHOD(__abs__)
+MAGIC_METHOD(__float__)
+MAGIC_METHOD(__int__)
+MAGIC_METHOD(__round__)
+MAGIC_METHOD(__divmod__)
+/////////////////////////////
 MAGIC_METHOD(__add__)
 MAGIC_METHOD(__radd__)
 MAGIC_METHOD(__sub__)
@@ -41,16 +34,26 @@ MAGIC_METHOD(__and__)
 MAGIC_METHOD(__or__)
 MAGIC_METHOD(__xor__)
 /////////////////////////////
+MAGIC_METHOD(__repr__)
+MAGIC_METHOD(__str__)
+MAGIC_METHOD(__hash__)
+MAGIC_METHOD(__len__)
+MAGIC_METHOD(__iter__)
+MAGIC_METHOD(__next__)
+MAGIC_METHOD(__contains__)
+MAGIC_METHOD(__bool__)
+MAGIC_METHOD(__invert__)
+/////////////////////////////
+MAGIC_METHOD(__eq__)
+MAGIC_METHOD(__ne__)
 // indexer
 MAGIC_METHOD(__getitem__)
 MAGIC_METHOD(__setitem__)
 MAGIC_METHOD(__delitem__)
-
 // specials
 MAGIC_METHOD(__new__)
 MAGIC_METHOD(__init__)
 MAGIC_METHOD(__call__)
-MAGIC_METHOD(__divmod__)
 MAGIC_METHOD(__enter__)
 MAGIC_METHOD(__exit__)
 MAGIC_METHOD(__name__)
@@ -58,10 +61,6 @@ MAGIC_METHOD(__all__)
 MAGIC_METHOD(__package__)
 MAGIC_METHOD(__path__)
 MAGIC_METHOD(__class__)
-MAGIC_METHOD(__abs__)
-MAGIC_METHOD(__float__)
-MAGIC_METHOD(__int__)
-MAGIC_METHOD(__round__)
 MAGIC_METHOD(__getattr__)
 MAGIC_METHOD(__reduce__)
 MAGIC_METHOD(__missing__)
