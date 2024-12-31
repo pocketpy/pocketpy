@@ -1008,11 +1008,11 @@ FrameResult VM__run_top_frame(VM* self) {
                         py_TypeInfo* base_ti = ti->base_ti;
                         if(base_ti->on_end_subclass) base_ti->on_end_subclass(ti);
                     }
-                    if(!py_isnil(&ti->magic[__eq__])) {
-                        if(py_isnil(&ti->magic[__ne__])) {
-                            TypeError("'%n' implements '__eq__' but not '__ne__'", ti->name);
-                            goto __ERROR;
-                        }
+                    py_TValue* slot_eq = TypeList__magic_common(ti, __eq__);
+                    py_TValue* slot_ne = TypeList__magic_common(ti, __ne__);
+                    if(!py_isnil(slot_eq) && py_isnil(slot_ne)) {
+                        TypeError("'%n' implements '__eq__' but not '__ne__'", ti->name);
+                        goto __ERROR;
                     }
                 }
                 // class with decorator is unsafe currently

@@ -225,8 +225,8 @@ py_Ref py_tpfindmagic(py_Type t, py_Name name) {
     assert(py_ismagicname(name));
     py_TypeInfo* ti = pk__type_info(t);
     do {
-        py_Ref f = &ti->magic[name];
-        if(!py_isnil(f)) return f;
+        py_Ref f = TypeList__magic_readonly_nullable(ti, name);
+        if(f != NULL) return f;
         ti = ti->base_ti;
     } while(ti);
     return NULL;
@@ -244,7 +244,8 @@ py_Ref py_tpfindname(py_Type t, py_Name name) {
 
 py_Ref py_tpgetmagic(py_Type type, py_Name name) {
     assert(py_ismagicname(name));
-    return pk__type_info(type)->magic + name;
+    py_TypeInfo* ti = pk__type_info(type);
+    return TypeList__magic(ti, name);
 }
 
 py_Ref py_tpobject(py_Type type) {

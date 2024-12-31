@@ -47,12 +47,12 @@ int py_bool(py_Ref val) {
 bool py_hash(py_Ref val, int64_t* out) {
     py_TypeInfo* ti = pk__type_info(val->type);
     do {
-        py_Ref _hash = &ti->magic[__hash__];
-        if(py_isnone(_hash)) break;
-        py_Ref _eq = &ti->magic[__eq__];
-        if(!py_isnil(_eq)) {
-            if(py_isnil(_hash)) break;
-            if(!py_call(_hash, 1, val)) return false;
+        py_Ref slot_hash = TypeList__magic_common(ti, __hash__);
+        if(py_isnone(slot_hash)) break;
+        py_Ref slot_eq = TypeList__magic_common(ti, __eq__);
+        if(!py_isnil(slot_eq)) {
+            if(py_isnil(slot_hash)) break;
+            if(!py_call(slot_hash, 1, val)) return false;
             if(!py_checkint(py_retval())) return false;
             *out = py_toint(py_retval());
             return true;

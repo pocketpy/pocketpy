@@ -649,11 +649,19 @@ void ManagedHeap__mark(ManagedHeap* self) {
     // 0-th type is placeholder
     for(py_Type i = 1; i < types_length; i++) {
         py_TypeInfo* ti = TypeList__get(&vm->types, i);
-        // mark magic slots
-        for(int j = 0; j <= __missing__; j++) {
-            py_TValue* slot = ti->magic + j;
+        // mark common magic slots
+        for(int j = 0; j < PK_MAGIC_SLOTS_COMMON_LENGTH; j++) {
+            py_TValue* slot = ti->magic_0 + j;
             if(py_isnil(slot)) continue;
             pk__mark_value(slot);
+        }
+        // mark uncommon magic slots
+        if(ti->magic_1) {
+            for(int j = 0; j < PK_MAGIC_SLOTS_UNCOMMON_LENGTH; j++) {
+                py_TValue* slot = ti->magic_1 + j;
+                if(py_isnil(slot)) continue;
+                pk__mark_value(slot);
+            }
         }
         // mark type annotations
         pk__mark_value(&ti->annotations);
