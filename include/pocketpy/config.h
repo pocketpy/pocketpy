@@ -25,16 +25,19 @@
 #define PK_FREE(ptr)                free(ptr)
 #endif
 
-/*************** internal settings ***************/
-
 // This is the maximum size of the value stack in py_TValue units
 // The actual size in bytes equals `sizeof(py_TValue) * PK_VM_STACK_SIZE`
+#ifndef PK_VM_STACK_SIZE            // can be overridden by cmake
 #define PK_VM_STACK_SIZE            16384
+#endif
 
 // This is the maximum number of local variables in a function
 // (not recommended to change this)
+#ifndef PK_MAX_CO_VARNAMES          // can be overridden by cmake
 #define PK_MAX_CO_VARNAMES          64
+#endif
 
+/*************** internal settings ***************/
 // This is the maximum character length of a module path
 #define PK_MAX_MODULE_PATH_LEN      63
 
