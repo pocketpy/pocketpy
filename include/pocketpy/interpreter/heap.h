@@ -6,6 +6,8 @@ typedef struct ManagedHeap{
 
     int gc_threshold;
     int gc_counter;
+    bool gc_enabled;
+    
     VM* vm;
 
     void (*gc_on_delete)(VM*, PyObject*);

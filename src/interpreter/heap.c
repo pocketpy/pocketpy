@@ -8,6 +8,8 @@ void ManagedHeap__ctor(ManagedHeap* self, VM* vm) {
 
     self->gc_threshold = PK_GC_MIN_THRESHOLD;
     self->gc_counter = 0;
+    self->gc_enabled = true;
+
     self->vm = vm;
 
     self->gc_on_delete = NULL;
@@ -27,6 +29,7 @@ void ManagedHeap__dtor(ManagedHeap* self) {
 }
 
 void ManagedHeap__collect_if_needed(ManagedHeap* self) {
+    if(!self->gc_enabled) return;
     if(self->gc_counter < self->gc_threshold) return;
     self->gc_counter = 0;
     ManagedHeap__collect(self);
