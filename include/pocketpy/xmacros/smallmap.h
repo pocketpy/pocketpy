@@ -66,7 +66,7 @@ NAME* METHOD(new)() {
 
 void METHOD(delete)(NAME* self) {
     METHOD(dtor)(self);
-    free(self);
+    PK_FREE(self);
 }
 
 void METHOD(set)(NAME* self, K key, V value) {

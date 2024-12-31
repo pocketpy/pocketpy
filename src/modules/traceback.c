@@ -8,7 +8,7 @@ static bool traceback_format_exc(int argc, py_Ref argv) {
         py_newnone(py_retval());
     } else {
         py_newstr(py_retval(), s);
-        free(s);
+        PK_FREE(s);
     }
     return true;
 }

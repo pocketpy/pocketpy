@@ -160,7 +160,7 @@ static bool io_FileIO_read(int argc, py_Ref argv) {
         void* dst = PK_MALLOC(size);
         int actual_size = fread(dst, 1, size, ud->file);
         py_newstrv(py_retval(), (c11_sv){dst, actual_size});
-        free(dst);
+        PK_FREE(dst);
     }
     return true;
 }

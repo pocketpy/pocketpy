@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "pocketpy/common/utils.h"
+#include "pocketpy/config.h"
 
 void c11_vector__ctor(c11_vector* self, int elem_size) {
     self->data = NULL;
@@ -12,7 +13,7 @@ void c11_vector__ctor(c11_vector* self, int elem_size) {
 }
 
 void c11_vector__dtor(c11_vector* self) {
-    if(self->data) free(self->data);
+    if(self->data) PK_FREE(self->data);
     self->data = NULL;
     self->length = 0;
     self->capacity = 0;

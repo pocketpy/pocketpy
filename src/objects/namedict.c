@@ -17,11 +17,11 @@ void ModuleDict__ctor(ModuleDict* self, const char* path, py_TValue module) {
 void ModuleDict__dtor(ModuleDict* self) {
     if(self->left) {
         ModuleDict__dtor(self->left);
-        free(self->left);
+        PK_FREE(self->left);
     }
     if(self->right) {
         ModuleDict__dtor(self->right);
-        free(self->right);
+        PK_FREE(self->right);
     }
 }
 

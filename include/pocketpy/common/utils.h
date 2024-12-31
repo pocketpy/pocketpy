@@ -45,6 +45,6 @@ typedef struct RefCounted {
     do {                                                                                           \
         if(--(obj)->rc.count == 0) {                                                               \
             (obj)->rc.dtor(obj);                                                                   \
-            free(obj);                                                                             \
+            PK_FREE(obj);                                                                             \
         }                                                                                          \
     } while(0)

@@ -10,7 +10,7 @@ void TypeList__ctor(TypeList* self) {
 
 void TypeList__dtor(TypeList* self) {
     for (int i = 0; i < self->length; i++) {
-        if(self->chunks[i]) free(self->chunks[i]);
+        if(self->chunks[i]) PK_FREE(self->chunks[i]);
     }
 }
 

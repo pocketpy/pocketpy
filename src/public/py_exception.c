@@ -164,7 +164,7 @@ void py_printexc() {
     if(!msg) return;
     pk_current_vm->callbacks.print(msg);
     pk_current_vm->callbacks.print("\n");
-    free(msg);
+    PK_FREE(msg);
 }
 
 static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {

@@ -46,12 +46,12 @@ bool c11__stable_sort(void* ptr_,
             if(b_end > ptr + length * elem_size) b_end = ptr + length * elem_size;
             bool ok = merge(a, a_end, b, b_end, tmp, elem_size, f_lt, extra);
             if(!ok) {
-                free(tmp);
+                PK_FREE(tmp);
                 return false;
             }
             memcpy(a, tmp, b_end - a);
         }
     }
-    free(tmp);
+    PK_FREE(tmp);
     return true;
 }

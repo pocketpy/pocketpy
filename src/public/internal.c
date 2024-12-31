@@ -51,7 +51,7 @@ void py_finalize() {
             // TODO: refactor VM__ctor and VM__dtor
             pk_current_vm = vm;
             VM__dtor(vm);
-            free(vm);
+            PK_FREE(vm);
         }
     }
     pk_current_vm = &pk_default_vm;

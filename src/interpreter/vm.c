@@ -572,7 +572,7 @@ void PyObject__delete(PyObject* self) {
     if(ti->dtor) ti->dtor(PyObject__userdata(self));
     if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
     if(self->gc_is_large) {
-        free(self);
+        PK_FREE(self);
     } else {
         PoolObject_dealloc(self);
     }

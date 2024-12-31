@@ -87,7 +87,7 @@ static void Dict__ctor(Dict* self, uint32_t capacity, int entries_capacity) {
 static void Dict__dtor(Dict* self) {
     self->length = 0;
     self->capacity = 0;
-    free(self->indices);
+    PK_FREE(self->indices);
     c11_vector__dtor(&self->entries);
 }
 
@@ -176,7 +176,7 @@ static void Dict__compact_entries(Dict* self) {
             self->indices[i]._[j] = mappings[idx];
         }
     }
-    free(mappings);
+    PK_FREE(mappings);
 }
 
 static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {

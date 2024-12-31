@@ -169,14 +169,14 @@ static void MemoryPool__shrink_to_fit(MemoryPool* self) {
             MemoryPoolArena* arena = (MemoryPoolArena*)node;
             if(MemoryPoolArena__full(arena)) {
                 LinkedList__erase(&self->_arenas, node);
-                free(arena);
+                PK_FREE(arena);
             });
 }
 
 
 static void MemoryPool__dtor(MemoryPool* self) {
-    LinkedList__apply(&self->_arenas, free(node););
-    LinkedList__apply(&self->_empty_arenas, free(node););
+    LinkedList__apply(&self->_arenas, PK_FREE(node););
+    LinkedList__apply(&self->_empty_arenas, PK_FREE(node););
 }
 
 typedef struct FixedMemoryPool {
@@ -205,8 +205,8 @@ static void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int Bloc
 }
 
 static void FixedMemoryPool__dtor(FixedMemoryPool* self) {
-    free(self->_free_list);
-    free(self->data);
+    PK_FREE(self->_free_list);
+    PK_FREE(self->data);
 }
 
 static void* FixedMemoryPool__alloc(FixedMemoryPool* self) {
@@ -226,7 +226,7 @@ static void FixedMemoryPool__dealloc(FixedMemoryPool* self, void* p) {
         self->_free_list_end++;
     } else {
         self->exceeded_bytes -= self->BlockSize;
-        free(p);
+        PK_FREE(p);
     }
 }
 

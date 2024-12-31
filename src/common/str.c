@@ -51,7 +51,7 @@ c11_string* c11_string__copy(c11_string* self) {
     return retval;
 }
 
-void c11_string__delete(c11_string* self) { free(self); }
+void c11_string__delete(c11_string* self) { PK_FREE(self); }
 
 c11_sv c11_string__sv(c11_string* self) { return (c11_sv){self->data, self->size}; }
 

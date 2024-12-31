@@ -35,7 +35,7 @@ UnwindTarget* UnwindTarget__new(UnwindTarget* next, int iblock, int offset) {
     return self;
 }
 
-void UnwindTarget__delete(UnwindTarget* self) { free(self); }
+void UnwindTarget__delete(UnwindTarget* self) { PK_FREE(self); }
 
 Frame* Frame__new(const CodeObject* co,
                   py_GlobalRef module,

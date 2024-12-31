@@ -30,7 +30,7 @@ bool _py_compile(CodeObject* out,
         PK_DECREF(src);
 
         PK_DECREF(err->src);
-        free(err);
+        PK_FREE(err);
         return false;
     }
     PK_DECREF(src);

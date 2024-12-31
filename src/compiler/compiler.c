@@ -464,7 +464,7 @@ void SequenceExpr__dtor(Expr* self_) {
     for(int i = 0; i < self->itemCount; i++) {
         vtdelete(self->items[i]);
     }
-    free(self->items);
+    PK_FREE(self->items);
 }
 
 bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
@@ -1318,11 +1318,11 @@ static void Compiler__dtor(Compiler* self) {
     // free tokens
     for(int i = 0; i < self->tokens_length; i++) {
         if(self->tokens[i].value.index == TokenValue_STR) {
-            // free internal string
+            // PK_FREE internal string
             c11_string__delete(self->tokens[i].value._str);
         }
     }
-    free(self->tokens);
+    PK_FREE(self->tokens);
     // free contexts
     c11__foreach(Ctx, &self->contexts, ctx) Ctx__dtor(ctx);
     c11_vector__dtor(&self->contexts);

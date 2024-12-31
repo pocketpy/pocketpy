@@ -48,7 +48,7 @@ static void PickleObject__ctor(PickleObject* self) {
 }
 
 static void PickleObject__dtor(PickleObject* self) {
-    free(self->used_types);
+    PK_FREE(self->used_types);
     c11_smallmap_p2i__dtor(&self->memo);
     c11_vector__dtor(&self->codes);
 }

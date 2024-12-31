@@ -13,7 +13,7 @@ static c11_vector /*T=char* */ _r_interned;
 void py_Name__initialize() {
     c11_smallmap_s2n__ctor(&_interned);
     for(int i = 0; i < _r_interned.length; i++) {
-        free(c11__at(char*, &_r_interned, i));
+        PK_FREE(c11__at(char*, &_r_interned, i));
     }
     c11_vector__ctor(&_r_interned, sizeof(c11_sv));
 
@@ -26,7 +26,7 @@ void py_Name__initialize() {
 void py_Name__finalize() {
     // free all char*
     for(int i = 0; i < _r_interned.length; i++) {
-        free(c11__getitem(char*, &_r_interned, i));
+        PK_FREE(c11__getitem(char*, &_r_interned, i));
     }
     c11_smallmap_s2n__dtor(&_interned);
     c11_vector__dtor(&_r_interned);

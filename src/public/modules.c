@@ -155,7 +155,7 @@ __SUCCESS:
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
-    if(need_free) free((void*)data);
+    if(need_free) PK_FREE((void*)data);
     return ok ? 1 : -1;
 }
 
