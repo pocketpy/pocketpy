@@ -13,6 +13,14 @@ static bool stack_format_object(VM* self, c11_sv spec);
 #define CHECK_RETURN_FROM_EXCEPT_OR_FINALLY()                                                      \
     if(self->is_curr_exc_handled) py_clearexc(NULL)
 
+#define CHECK_STACK_OVERFLOW()                                                                     \
+    do {                                                                                           \
+        if(self->stack.sp > self->stack.end) {                                                     \
+            py_exception(tp_StackOverflowError, "");                                               \
+            goto __ERROR;                                                                          \
+        }                                                                                          \
+    } while(0)
+
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
@@ -92,7 +100,7 @@ FrameResult VM__run_top_frame(VM* self) {
         pk_print_stack(self, frame, byte);
 #endif
 
-        if(self->is_signal_interrupted){
+        if(self->is_signal_interrupted) {
             self->is_signal_interrupted = false;
             py_exception(tp_KeyboardInterrupt, "");
             goto __ERROR;
@@ -132,15 +140,40 @@ FrameResult VM__run_top_frame(VM* self) {
                 POP();
                 DISPATCH();
             /*****************************************/
-            case OP_LOAD_CONST: PUSH(c11__at(py_TValue, &frame->co->consts, byte.arg)); DISPATCH();
-            case OP_LOAD_NONE: py_newnone(SP()++); DISPATCH();
-            case OP_LOAD_TRUE: py_newbool(SP()++, true); DISPATCH();
-            case OP_LOAD_FALSE: py_newbool(SP()++, false); DISPATCH();
+            case OP_LOAD_CONST: {
+                CHECK_STACK_OVERFLOW();
+                PUSH(c11__at(py_TValue, &frame->co->consts, byte.arg));
+                DISPATCH();
+            }
+            case OP_LOAD_NONE: {
+                CHECK_STACK_OVERFLOW();
+                py_newnone(SP()++);
+                DISPATCH();
+            }
+            case OP_LOAD_TRUE: {
+                CHECK_STACK_OVERFLOW();
+                py_newbool(SP()++, true);
+                DISPATCH();
+            }
+            case OP_LOAD_FALSE: {
+                CHECK_STACK_OVERFLOW();
+                py_newbool(SP()++, false);
+                DISPATCH();
+            }
             /*****************************************/
-            case OP_LOAD_SMALL_INT: py_newint(SP()++, (int16_t)byte.arg); DISPATCH();
+            case OP_LOAD_SMALL_INT: {
+                CHECK_STACK_OVERFLOW();
+                py_newint(SP()++, (int16_t)byte.arg);
+                DISPATCH();
+            }
             /*****************************************/
-            case OP_LOAD_ELLIPSIS: py_newellipsis(SP()++); DISPATCH();
+            case OP_LOAD_ELLIPSIS: {
+                CHECK_STACK_OVERFLOW();
+                py_newellipsis(SP()++);
+                DISPATCH();
+            }
             case OP_LOAD_FUNCTION: {
+                CHECK_STACK_OVERFLOW();
                 FuncDecl_ decl = c11__getitem(FuncDecl_, &frame->co->func_decls, byte.arg);
                 Function* ud = py_newobject(SP(), tp_function, 0, sizeof(Function));
                 Function__ctor(ud, decl, frame->module);
@@ -952,8 +985,12 @@ FrameResult VM__run_top_frame(VM* self) {
                     goto __ERROR;
                 }
 
-                py_Type type =
-                    pk_newtype(py_name2str(name), base, frame->module, NULL, base_ti->is_python, false);
+                py_Type type = pk_newtype(py_name2str(name),
+                                          base,
+                                          frame->module,
+                                          NULL,
+                                          base_ti->is_python,
+                                          false);
                 PUSH(py_tpobject(type));
                 self->__curr_class = TOP();
                 DISPATCH();

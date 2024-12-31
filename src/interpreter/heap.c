@@ -1,5 +1,6 @@
 #include "pocketpy/interpreter/heap.h"
 #include "pocketpy/common/memorypool.h"
+#include "pocketpy/config.h"
 #include "pocketpy/objects/base.h"
 
 void ManagedHeap__ctor(ManagedHeap* self, VM* vm) {
@@ -94,7 +95,7 @@ PyObject* PyObject__new(py_Type type, int slots, int size) {
     PyObject* self;
     // header + slots + udsize
     size = sizeof(PyObject) + PK_OBJ_SLOTS_SIZE(slots) + size;
-    if(size <= kPoolObjectBlockSize) {
+    if(!PK_LOW_MEMORY_MODE && size <= kPoolObjectBlockSize) {
         self = PoolObject_alloc();
         self->gc_is_large = false;
     } else {

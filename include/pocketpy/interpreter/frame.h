@@ -11,11 +11,10 @@ py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, 
 NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co);
 
 typedef struct ValueStack {
-    // We allocate extra PK_VM_STACK_SIZE/128 places to keep `_sp` valid when `is_overflow() ==
-    // true`.
     py_TValue* sp;
     py_TValue* end;
-    py_TValue begin[PK_VM_STACK_SIZE + PK_VM_STACK_SIZE / 128];
+    // We allocate extra places to keep `_sp` valid to detect stack overflow
+    py_TValue begin[PK_VM_STACK_SIZE + PK_MAX_CO_VARNAMES * 2];
 } ValueStack;
 
 void ValueStack__ctor(ValueStack* self);

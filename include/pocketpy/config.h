@@ -8,6 +8,11 @@
 
 /*************** feature settings ***************/
 
+// Reduce the startup memory usage for embedded systems
+#ifndef PK_LOW_MEMORY_MODE          // can be overridden by cmake
+#define PK_LOW_MEMORY_MODE          0
+#endif
+
 // Whether to compile os-related modules or not
 #ifndef PK_ENABLE_OS                // can be overridden by cmake
 #define PK_ENABLE_OS                1
@@ -15,7 +20,11 @@
 
 // GC min threshold
 #ifndef PK_GC_MIN_THRESHOLD         // can be overridden by cmake
-#define PK_GC_MIN_THRESHOLD         16384
+    #if PK_LOW_MEMORY_MODE
+        #define PK_GC_MIN_THRESHOLD     2048
+    #else
+        #define PK_GC_MIN_THRESHOLD     16384
+    #endif
 #endif
 
 // Memory allocation functions
@@ -28,7 +37,11 @@
 // This is the maximum size of the value stack in py_TValue units
 // The actual size in bytes equals `sizeof(py_TValue) * PK_VM_STACK_SIZE`
 #ifndef PK_VM_STACK_SIZE            // can be overridden by cmake
-#define PK_VM_STACK_SIZE            16384
+    #if PK_LOW_MEMORY_MODE
+        #define PK_VM_STACK_SIZE    2048
+    #else
+        #define PK_VM_STACK_SIZE    16384
+    #endif
 #endif
 
 // This is the maximum number of local variables in a function
