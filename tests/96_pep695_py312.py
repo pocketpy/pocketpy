@@ -15,3 +15,7 @@ assert res == 3
 
 test = Test(1)
 assert test.get_value() == 1
+
+# test multiple
+class Test2[T: int, U]: pass
+class Test3[T: int | str, U: float, R: list]: pass

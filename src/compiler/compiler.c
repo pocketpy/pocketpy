@@ -2269,8 +2269,10 @@ static Error* consume_pep695_py312(Compiler* self) {
     // https://peps.python.org/pep-0695/
     Error* err;
     if(match(TK_LBRACKET)) {
-        consume(TK_ID);
-        if(match(TK_COLON)) { check(consume_type_hints(self)); }
+        do {
+            consume(TK_ID);
+            if(match(TK_COLON)) check(consume_type_hints(self));
+        } while(match(TK_COMMA));
         consume(TK_RBRACKET);
     }
     return NULL;
