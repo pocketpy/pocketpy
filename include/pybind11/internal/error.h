@@ -25,7 +25,12 @@ private:
     object m_exception;
 };
 
-using error_already_set = python_error;
+class error_already_set : public std::exception {
+public:
+    bool match(py_Type type) const { return py_matchexc(type); }
+
+    bool match(type type) const;
+};
 
 template <auto Fn, typename... Args>
 inline auto raise_call(Args&&... args) {

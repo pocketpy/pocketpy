@@ -76,6 +76,8 @@ inline bool isinstance(handle obj, type type) { return py_isinstance(obj.ptr(), 
 
 inline bool python_error::match(type type) const { return isinstance(m_exception.ptr(), type); }
 
+inline bool error_already_set::match(type type) const { return py_matchexc(type.index()); }
+
 template <typename T>
 constexpr inline bool is_pyobject_v =
     std::is_base_of_v<object, std::decay_t<T>> || std::is_same_v<type, T>;
