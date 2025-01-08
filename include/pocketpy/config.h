@@ -65,3 +65,8 @@
 #else
     #define PK_PLATFORM_SEP '/'
 #endif
+
+//If missing static_assert
+#ifndef static_assert
+#define static_assert(x, msg) int static_assert(int static_assert[(x)?1:-1])
+#endif
