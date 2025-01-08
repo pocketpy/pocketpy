@@ -22,6 +22,11 @@ void py_initialize() {
     bool is_little_endian = *(char*)&x == 1;
     if(!is_little_endian) c11__abort("is_little_endian != true");
 
+    // check py_TValue; 16 bytes to make py_arg() macro work
+    static_assert(sizeof(py_CFunction) <= 8, "sizeof(py_CFunction) > 8");
+    static_assert(sizeof(py_TValue) == 16, "sizeof(py_TValue) != 16");
+    static_assert(offsetof(py_TValue, extra) == 4, "offsetof(py_TValue, extra) != 4");
+
     MemoryPools__initialize();
     py_Name__initialize();
 
