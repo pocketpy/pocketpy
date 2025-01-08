@@ -51,6 +51,6 @@ typedef struct RefCounted {
 // static assert
 #ifndef __cplusplus
     #ifndef static_assert
-        #define static_assert(x, msg) if(!(x)) c11__abort(msg)
+        #define static_assert(x, msg) if(!(x)) c11__abort("static_assert failed: %s", msg)
     #endif
 #endif
