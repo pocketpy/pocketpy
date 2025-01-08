@@ -29,8 +29,10 @@ print(primes)
 
 ## Supported platforms
 
-pkpy should work on any platform with a C++17 compiler.
+pkpy should work on any platform with a C11 compiler.
 These platforms are officially tested.
+
+> C99 compilers also work currently according to users' feedback.
 
 + Windows 64-bit
 + Linux 64-bit / 32-bit

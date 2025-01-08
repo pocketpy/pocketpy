@@ -29,7 +29,7 @@ It is safe to use `main` branch in production if CI badge is green.
 
 To compile it with your project, these flags must be set:
 
-+ `--std=c11` flag must be set
++ `--std=c11` flag must be set (`--std=c99` may also work)
 + For MSVC, `/utf-8` flag must be set
 + `NDEBUG` macro should be defined for release build, or you will get poor performance
 
