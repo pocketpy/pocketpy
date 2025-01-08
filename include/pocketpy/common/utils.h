@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #define PK_REGION(name) 1
 
@@ -45,6 +44,13 @@ typedef struct RefCounted {
     do {                                                                                           \
         if(--(obj)->rc.count == 0) {                                                               \
             (obj)->rc.dtor(obj);                                                                   \
-            PK_FREE(obj);                                                                             \
+            PK_FREE(obj);                                                                          \
         }                                                                                          \
     } while(0)
+
+// static assert
+#ifndef __cplusplus
+    #ifndef static_assert
+        #define static_assert(x, msg) if(!(x)) c11__abort(msg)
+    #endif
+#endif
