@@ -63,6 +63,15 @@ static bool namedict_items(int argc, py_Ref argv) {
     return true;
 }
 
+static bool namedict_clear(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_Ref object = py_getslot(argv, 0);
+    NameDict* dict = PyObject__dict(object->_obj);
+    NameDict__clear(dict);
+    py_newnone(py_retval());
+    return true;
+}
+
 py_Type pk_namedict__register() {
     py_Type type = pk_newtype("namedict", tp_object, NULL, NULL, false, true);
 
@@ -72,6 +81,7 @@ py_Type pk_namedict__register() {
     py_bindmagic(type, __contains__, namedict__contains__);
     py_newnone(py_tpgetmagic(type, __hash__));
     py_bindmethod(type, "items", namedict_items);
+    py_bindmethod(type, "clear", namedict_clear);
     return type;
 }
 
