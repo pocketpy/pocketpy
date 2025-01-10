@@ -3,9 +3,7 @@
 static bool importlib_reload(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_module);
-    bool ok = py_importlib_reload(argv);
-    py_newnone(py_retval());
-    return ok;
+    return py_importlib_reload(argv);
 }
 
 void pk__add_module_importlib() {
