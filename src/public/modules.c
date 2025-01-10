@@ -137,7 +137,7 @@ int py_import(const char* path_cstr) {
     if(data != NULL) goto __SUCCESS;
 
     c11_string__delete(filename);
-    filename = c11_string__new3("%s/__init__.py", slashed_path->data);
+    filename = c11_string__new3("%s%c__init__.py", slashed_path->data, PK_PLATFORM_SEP);
     data = vm->callbacks.importfile(filename->data);
     if(data != NULL) goto __SUCCESS;
 
@@ -157,6 +157,24 @@ __SUCCESS:
     c11_string__delete(slashed_path);
     if(need_free) PK_FREE((void*)data);
     return ok ? 1 : -1;
+}
+
+bool py_importlib_reload(py_GlobalRef module) {
+    VM* vm = pk_current_vm;
+    c11_sv path = py_tosv(py_getdict(module, __path__));
+    c11_string* slashed_path = c11_sv__replace(path, '.', PK_PLATFORM_SEP);
+    c11_string* filename = c11_string__new3("%s.py", slashed_path->data);
+    const char* data = vm->callbacks.importfile(filename->data);
+    if(data == NULL) {
+        c11_string__delete(filename);
+        filename = c11_string__new3("%s%c__init__.py", slashed_path->data, PK_PLATFORM_SEP);
+        data = vm->callbacks.importfile(filename->data);
+    }
+    c11_string__delete(slashed_path);
+    if(data == NULL) return ImportError("module '%v' not found", path);
+    bool ok = py_exec(data, filename->data, EXEC_MODE, module);
+    c11_string__delete(filename);
+    return ok;
 }
 
 //////////////////////////
@@ -655,7 +673,7 @@ static bool builtins__import__(int argc, py_Ref argv) {
     int res = py_import(py_tostr(argv));
     if(res == -1) return false;
     if(res) return true;
-    return ImportError("No module named '%s'", py_tostr(argv));
+    return ImportError("module '%s' not found", py_tostr(argv));
 }
 
 static bool NoneType__repr__(int argc, py_Ref argv) {

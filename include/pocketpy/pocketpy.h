@@ -485,6 +485,8 @@ PK_API bool py_pusheval(const char* expr, py_GlobalRef module) PY_RAISE;
 PK_API py_GlobalRef py_newmodule(const char* path);
 /// Get a module by path.
 PK_API py_GlobalRef py_getmodule(const char* path);
+/// Reload an existing module.
+PK_API bool py_importlib_reload(py_GlobalRef module) PY_RAISE;
 
 /// Import a module.
 /// The result will be set to `py_retval()`.
