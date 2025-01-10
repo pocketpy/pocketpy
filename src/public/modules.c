@@ -682,7 +682,7 @@ static bool NoneType__repr__(int argc, py_Ref argv) {
 }
 
 static bool ellipsis__repr__(int argc, py_Ref argv) {
-    py_newstr(py_retval(), "Ellipsis");
+    py_newstr(py_retval(), "...");
     return true;
 }
 
