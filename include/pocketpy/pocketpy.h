@@ -491,7 +491,7 @@ PK_API bool py_importlib_reload(py_GlobalRef module) PY_RAISE PY_RETURN;
 /// Import a module.
 /// The result will be set to `py_retval()`.
 /// -1: error, 0: not found, 1: success
-PK_API int py_import(const char* path) PY_RAISE;
+PK_API int py_import(const char* path) PY_RAISE PY_RETURN;
 
 /************* Errors *************/
 
