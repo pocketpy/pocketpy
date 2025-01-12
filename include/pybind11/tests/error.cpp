@@ -40,6 +40,37 @@ TEST_F(PYBIND11_TEST, exception_cpp_to_python) {
         throw py::stop_iteration();
     });
     py::exec("try:\n    test_stop_iteration()\nexcept StopIteration as e:\n    pass");
+
+    m.def("test_stop_iteration_value", []() {
+        throw py::stop_iteration(py::int_(42));
+    });
+    py::exec(
+        "try:\n    test_stop_iteration_value()\nexcept StopIteration as e:\n    assert e.value == 42");
+
+    m.def("test_error_already_set", []() {
+        KeyError(none().ptr());
+        throw py::error_already_set();
+    });
+    py::exec("try:\n    test_error_already_set()\nexcept KeyError as e:\n    pass");
+
+    m.def("test_error_already_set_matches", []() {
+        try {
+            KeyError(none().ptr());
+            throw py::error_already_set();
+        } catch(py::error_already_set& e) {
+            if(e.match(tp_KeyError)) { return; }
+            std::rethrow_exception(std::current_exception());
+        }
+
+        try {
+            StopIteration();
+            throw py::error_already_set();
+        } catch(py::error_already_set& e) {
+            if(e.match(type(tp_StopIteration))) { return; }
+            std::rethrow_exception(std::current_exception());
+        }
+    });
+    py::exec("test_error_already_set_matches()");
     TEST_EXCEPTION(index_error, IndexError);
     // FIXME: TEST_EXCEPTION(key_error, KeyError);
     TEST_EXCEPTION(value_error, ValueError);

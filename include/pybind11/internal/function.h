@@ -562,12 +562,21 @@ private:
             py_exception(tp_IndexError, e.what());
         } catch(std::range_error& e) {
             py_exception(tp_ValueError, e.what());
-        } catch(stop_iteration&) { StopIteration(); } catch(index_error& e) {
+        } catch(stop_iteration& e) {
+            if(auto value_ptr = e.value().ptr()) {
+                bool ok = py_tpcall(tp_StopIteration, 1, value_ptr);
+                if(ok) { py_raise(py_retval()); }
+            } else {
+                StopIteration();
+            }
+        } catch(index_error& e) {
             py_exception(tp_IndexError, e.what());
         } catch(key_error& e) { py_exception(tp_KeyError, e.what()); } catch(value_error& e) {
             py_exception(tp_ValueError, e.what());
         } catch(type_error& e) { py_exception(tp_TypeError, e.what()); } catch(import_error& e) {
             py_exception(tp_ImportError, e.what());
+        } catch(error_already_set&) {
+            // exception already set, do nothing
         } catch(attribute_error& e) {
             py_exception(tp_AttributeError, e.what());
         } catch(std::exception& e) { py_exception(tp_RuntimeError, e.what()); }

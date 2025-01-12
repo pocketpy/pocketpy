@@ -28,7 +28,7 @@ int main() {
         py::exec(script);
         std::cout << "Numpy script executed successfully." << std::endl;
     }
-    catch (const py::error_already_set& e) {
+    catch (const py::python_error& e) {
         // Catch and print Python exceptions
         std::cerr << "Python error: " << e.what() << std::endl;
         return 1;
