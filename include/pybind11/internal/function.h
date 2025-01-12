@@ -562,7 +562,14 @@ private:
             py_exception(tp_IndexError, e.what());
         } catch(std::range_error& e) {
             py_exception(tp_ValueError, e.what());
-        } catch(stop_iteration&) { StopIteration(); } catch(index_error& e) {
+        } catch(stop_iteration& e) {
+            if(auto value_ptr = e.value().ptr()) {
+                bool ok = py_tpcall(tp_StopIteration, 1, value_ptr);
+                if(ok) { py_raise(py_retval()); }
+            } else {
+                StopIteration();
+            }
+        } catch(index_error& e) {
             py_exception(tp_IndexError, e.what());
         } catch(key_error& e) { py_exception(tp_KeyError, e.what()); } catch(value_error& e) {
             py_exception(tp_ValueError, e.what());

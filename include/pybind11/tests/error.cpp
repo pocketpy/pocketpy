@@ -41,6 +41,12 @@ TEST_F(PYBIND11_TEST, exception_cpp_to_python) {
     });
     py::exec("try:\n    test_stop_iteration()\nexcept StopIteration as e:\n    pass");
 
+    m.def("test_stop_iteration_value", []() {
+        throw py::stop_iteration(py::int_(42));
+    });
+    py::exec(
+        "try:\n    test_stop_iteration_value()\nexcept StopIteration as e:\n    assert e.value == 42");
+
     m.def("test_error_already_set", []() {
         KeyError(none().ptr());
         throw py::error_already_set();
