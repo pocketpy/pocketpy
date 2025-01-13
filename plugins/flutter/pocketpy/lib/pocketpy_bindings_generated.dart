@@ -103,6 +103,15 @@ class PocketpyBindings {
   late final _py_setvmctx =
       _py_setvmctxPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
+  /// Interrupt the current VM and raise a `KeyboardInterrupt` exception.
+  void py_interrupt() {
+    return _py_interrupt();
+  }
+
+  late final _py_interruptPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_interrupt');
+  late final _py_interrupt = _py_interruptPtr.asFunction<void Function()>();
+
   /// Set `sys.argv`. Used for storing command-line arguments.
   void py_sys_setargv(
     int argc,
@@ -1840,6 +1849,21 @@ class PocketpyBindings {
   late final _py_getmodule = _py_getmodulePtr
       .asFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>();
 
+  /// Reload an existing module.
+  bool py_importlib_reload(
+    py_GlobalRef module,
+  ) {
+    return _py_importlib_reload(
+      module,
+    );
+  }
+
+  late final _py_importlib_reloadPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_GlobalRef)>>(
+          'py_importlib_reload');
+  late final _py_importlib_reload =
+      _py_importlib_reloadPtr.asFunction<bool Function(py_GlobalRef)>();
+
   /// Import a module.
   /// The result will be set to `py_retval()`.
   /// -1: error, 0: not found, 1: success
@@ -3017,72 +3041,73 @@ abstract class py_MagicNames {
   /// 0 is reserved
   static const int py_MagicNames__NULL = 0;
 
-  /// unary operators
-  static const int __repr__ = 1;
-  static const int __str__ = 2;
-  static const int __hash__ = 3;
-  static const int __len__ = 4;
-  static const int __iter__ = 5;
-  static const int __next__ = 6;
-  static const int __neg__ = 7;
-  static const int __invert__ = 8;
-  static const int __bool__ = 9;
-
-  /// logical operators
-  static const int __contains__ = 10;
+  /// math operators
+  static const int __lt__ = 1;
+  static const int __le__ = 2;
+  static const int __gt__ = 3;
+  static const int __ge__ = 4;
 
   /// //////////////////////////
-  static const int __eq__ = 11;
-  static const int __ne__ = 12;
-  static const int __lt__ = 13;
-  static const int __le__ = 14;
-  static const int __gt__ = 15;
-  static const int __ge__ = 16;
-
-  /// binary operators
-  static const int __add__ = 17;
-  static const int __radd__ = 18;
-  static const int __sub__ = 19;
-  static const int __rsub__ = 20;
-  static const int __mul__ = 21;
-  static const int __rmul__ = 22;
-  static const int __truediv__ = 23;
-  static const int __rtruediv__ = 24;
-  static const int __floordiv__ = 25;
-  static const int __rfloordiv__ = 26;
-  static const int __mod__ = 27;
-  static const int __rmod__ = 28;
-  static const int __pow__ = 29;
-  static const int __rpow__ = 30;
-  static const int __matmul__ = 31;
-  static const int __lshift__ = 32;
-  static const int __rshift__ = 33;
-  static const int __and__ = 34;
-  static const int __or__ = 35;
-  static const int __xor__ = 36;
+  static const int __neg__ = 5;
+  static const int __abs__ = 6;
+  static const int __float__ = 7;
+  static const int __int__ = 8;
+  static const int __round__ = 9;
+  static const int __divmod__ = 10;
 
   /// //////////////////////////
+  static const int __add__ = 11;
+  static const int __radd__ = 12;
+  static const int __sub__ = 13;
+  static const int __rsub__ = 14;
+  static const int __mul__ = 15;
+  static const int __rmul__ = 16;
+  static const int __truediv__ = 17;
+  static const int __rtruediv__ = 18;
+  static const int __floordiv__ = 19;
+  static const int __rfloordiv__ = 20;
+  static const int __mod__ = 21;
+  static const int __rmod__ = 22;
+  static const int __pow__ = 23;
+  static const int __rpow__ = 24;
+  static const int __matmul__ = 25;
+  static const int __lshift__ = 26;
+  static const int __rshift__ = 27;
+  static const int __and__ = 28;
+  static const int __or__ = 29;
+  static const int __xor__ = 30;
+
+  /// //////////////////////////
+  static const int __repr__ = 31;
+  static const int __str__ = 32;
+  static const int __hash__ = 33;
+  static const int __len__ = 34;
+  static const int __iter__ = 35;
+  static const int __next__ = 36;
+  static const int __contains__ = 37;
+  static const int __bool__ = 38;
+  static const int __invert__ = 39;
+
+  /// //////////////////////////
+  static const int __eq__ = 40;
+  static const int __ne__ = 41;
+
   /// indexer
-  static const int __getitem__ = 37;
-  static const int __setitem__ = 38;
-  static const int __delitem__ = 39;
+  static const int __getitem__ = 42;
+  static const int __setitem__ = 43;
+  static const int __delitem__ = 44;
 
   /// specials
-  static const int __new__ = 40;
-  static const int __init__ = 41;
-  static const int __call__ = 42;
-  static const int __divmod__ = 43;
-  static const int __enter__ = 44;
-  static const int __exit__ = 45;
-  static const int __name__ = 46;
-  static const int __all__ = 47;
-  static const int __package__ = 48;
-  static const int __path__ = 49;
-  static const int __class__ = 50;
-  static const int __abs__ = 51;
-  static const int __float__ = 52;
-  static const int __int__ = 53;
-  static const int __round__ = 54;
+  static const int __new__ = 45;
+  static const int __init__ = 46;
+  static const int __call__ = 47;
+  static const int __enter__ = 48;
+  static const int __exit__ = 49;
+  static const int __name__ = 50;
+  static const int __all__ = 51;
+  static const int __package__ = 52;
+  static const int __path__ = 53;
+  static const int __class__ = 54;
   static const int __getattr__ = 55;
   static const int __reduce__ = 56;
   static const int __missing__ = 57;
@@ -3181,33 +3206,33 @@ abstract class py_PredefinedTypes {
   static const int tp_array2d_iterator = 59;
 }
 
-const String PK_VERSION = '2.0.4';
+const String PK_VERSION = '2.0.5';
 
 const int PK_VERSION_MAJOR = 2;
 
 const int PK_VERSION_MINOR = 0;
 
-const int PK_VERSION_PATCH = 4;
+const int PK_VERSION_PATCH = 5;
+
+const int PK_LOW_MEMORY_MODE = 0;
 
 const int PK_ENABLE_OS = 1;
 
 const int PK_GC_MIN_THRESHOLD = 16384;
-
-const int PK_DEBUG_CEVAL_STEP = 0;
-
-const int PK_DEBUG_MEMORY_POOL = 0;
-
-const int PK_DEBUG_NO_AUTO_GC = 0;
-
-const int PK_DEBUG_GC_STATS = 0;
-
-const int PK_DEBUG_COMPILER = 0;
 
 const int PK_VM_STACK_SIZE = 16384;
 
 const int PK_MAX_CO_VARNAMES = 64;
 
 const int PK_MAX_MODULE_PATH_LEN = 63;
+
+const double PK_M_PI = 3.141592653589793;
+
+const double PK_M_E = 2.718281828459045;
+
+const double PK_M_DEG2RAD = 0.017453292519943295;
+
+const double PK_M_RAD2DEG = 57.29577951308232;
 
 const int PK_PLATFORM_SEP = 47;
 
