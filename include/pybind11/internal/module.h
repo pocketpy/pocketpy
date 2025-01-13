@@ -19,6 +19,11 @@ class module_ : public object {
         return steal<module_>(m);
     }
 
+    void reload() {
+        bool ok = py_importlib_reload(ptr());
+        if(!ok) { throw error_already_set(); }
+    }
+
     module_ def_submodule(const char* name, const char* doc = nullptr) {
         // auto package = (attr("__package__").cast<std::string>() += ".") +=
         // attr("__name__").cast<std::string_view>();
