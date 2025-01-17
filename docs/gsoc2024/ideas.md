@@ -10,6 +10,8 @@ label: "Project Ideas"
 + Skill: Advanced C++ with metaprogramming; Python
 + Project Length: Medium (175 hours)
 
+> https://summerofcode.withgoogle.com/archive/2024/projects/Ji2Mi97o
+
 pocketpy has provided a low-level API for creating bindings. It is fast, lightweight and easy to debug.
 However, it still requires a lot of boilerplate code to create bindings for complex C++ classes.
 The community has long expected a high-level API for creating bindings.
@@ -28,6 +30,8 @@ See https://github.com/pocketpy/pocketpy/issues/216 for more details.
 + Difficulty Level: 4/5 (Intermediate)
 + Skill: Intermediate C++; Python; Linear Algebra
 + Project Length: Medium (175 hours)
+
+> https://summerofcode.withgoogle.com/archive/2024/projects/sJLuASSP
 
 Though pocketpy is designed for game scripting,
 some people are using it for scientific computing.
