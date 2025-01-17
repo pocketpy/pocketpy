@@ -12,6 +12,6 @@ label: "Project Ideas"
 
 ### VSCode plugin for debugging pocketpy applications
 
-+ Difficulty Level: 4/5 (Hard)
++ Difficulty Level: 3/5 (Medium)
 + Skill: C, TypeScript
-+ Project Length: Medium
++ Project Length: Small
