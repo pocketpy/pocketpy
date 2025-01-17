@@ -4,11 +4,16 @@ order: 0
 label: "Project Ideas"
 ---
 
-### Porting LDTK importer for game scripting
+### Porting LDTK importer for python games
 
 + Difficulty Level: 2/5 (Easy)
-+ Skill: Python
++ Skill: Python; Haxe
 + Project Length: Small
+
+[LDTK](https://ldtk.io/) is a modern 2D level editor, created by the director of Dead Cells. It is free and open-source, used by many game developers.
+LDTK exports raw level data in JSON format, which can be further parsed by game frameworks. Currently, there is no convenient LDTK importer library in python (except the [QuickType](https://ldtk.io/api/#Python) loader, which has very limited functionality because it wraps the JSON schema only).
+
+This project aims to develop a full-featured python library for importing LDTK levels, with advanced support of [Auto Tiles](https://ldtk.io/wp-content/uploads/2020/11/autoLayer-demo2.gif) for games with random map generation. The library should be written in pure python, compatible with pocketpy and cpython. If successful, it will be published on [PyPI](https://pypi.org/) and benefit all python game developers.
 
 ### VSCode plugin for debugging pocketpy applications
 
