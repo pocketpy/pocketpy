@@ -123,13 +123,17 @@ static bool number__pow__(int argc, py_Ref argv) {
     return true;
 }
 
+static py_i64 i64_abs(py_i64 x) {
+    return x < 0 ? -x : x;
+}
+
 static py_i64 cpy11__fast_floor_div(py_i64 a, py_i64 b) {
     assert(b != 0);
     if(a == 0) return 0;
     if((a < 0) == (b < 0)) {
-        return labs(a) / labs(b);
+        return i64_abs(a) / i64_abs(b);
     } else {
-        return -1 - (labs(a) - 1) / labs(b);
+        return -1 - (i64_abs(a) - 1) / i64_abs(b);
     }
 }
 
@@ -138,9 +142,9 @@ static py_i64 cpy11__fast_mod(py_i64 a, py_i64 b) {
     if(a == 0) return 0;
     py_i64 res;
     if((a < 0) == (b < 0)) {
-        res = labs(a) % labs(b);
+        res = i64_abs(a) % i64_abs(b);
     } else {
-        res = labs(b) - 1 - (labs(a) - 1) % labs(b);
+        res = i64_abs(b) - 1 - (i64_abs(a) - 1) % i64_abs(b);
     }
     return b < 0 ? -res : res;
 }

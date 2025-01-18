@@ -253,7 +253,7 @@ int py_replinput(char* buf, int max_size) {
     printf(">>> ");
 
     while(true) {
-        char c = getchar();
+        int c = getchar();
         if(c == EOF) return -1;
 
         if(c == '\n') {
