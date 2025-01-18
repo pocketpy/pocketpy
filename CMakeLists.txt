@@ -78,7 +78,6 @@ option(PK_BUILD_STATIC_MAIN "Build static main" OFF)
 
 if(PK_BUILD_SHARED_LIB)
     message(">> Building shared library")
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
 elseif(PK_BUILD_STATIC_LIB)
     message(">> Building static library")
