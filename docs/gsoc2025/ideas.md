@@ -4,6 +4,8 @@ order: 0
 label: "Project Ideas"
 ---
 
+> GSoC has not started yet. Please don't send application email or ask about it in community Discord server until 2025/04.
+
 ### Porting LDTK importer for python games
 
 + Difficulty Level: 2/5 (Easy)
