@@ -14,6 +14,8 @@ cmake \
     -DANDROID_PLATFORM=android-22 \
     ../../.. \
     -DPK_BUILD_SHARED_LIB=ON \
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_BUILD_TYPE=Release \
+    -DPK_BUILD_MODULE_LZ4=ON \
+    -DPK_BUILD_MODULE_LIBHV=ON
 
 cmake --build . --config Release
