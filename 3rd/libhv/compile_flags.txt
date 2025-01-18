@@ -1,0 +1,15 @@
+-xc++
+-std=c++14
+
+-I../../include
+
+-Iinclude/
+-Ilibhv/
+-Ilibhv/base/
+-Ilibhv/evpp/
+-Ilibhv/event/
+-Ilibhv/http/
+-Ilibhv/ssl/
+-Ilibhv/cpputil/
+
+-DWITHOUT_HTTP_CONTENT

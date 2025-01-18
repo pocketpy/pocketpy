@@ -221,7 +221,8 @@ void VM__ctor(VM* self) {
     pk__add_module_importlib();
 
     pk__add_module_conio();
-    pk__add_module_lz4();
+    pk__add_module_lz4();       // optional
+    pk__add_module_libhv();     // optional
     pk__add_module_pkpy();
 
     // add python builtins

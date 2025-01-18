@@ -35,3 +35,5 @@ docs/references.md
 
 tests/00_tmp.py
 docs/C-API/functions.md
+
+*.log

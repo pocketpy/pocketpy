@@ -52,7 +52,14 @@ option(PK_BUILD_MODULE_LZ4 "" ON)
 if(PK_BUILD_MODULE_LZ4)
     add_subdirectory(3rd/lz4)
     include_directories(3rd/lz4)
-    add_definitions(-DPK_BUILD_MODULE_LZ4=1)
+    add_definitions(-DPK_BUILD_MODULE_LZ4)
+endif()
+
+option(PK_BUILD_MODULE_LIBHV "" OFF)
+if(PK_BUILD_MODULE_LIBHV)
+    add_subdirectory(3rd/libhv)
+    include_directories(3rd/libhv/include)
+    add_definitions(-DPK_BUILD_MODULE_LIBHV)
 endif()
 
 # PK_IS_MAIN determines whether the project is being used from root
@@ -96,4 +103,8 @@ endif()
 
 if(PK_BUILD_MODULE_LZ4)
     target_link_libraries(${PROJECT_NAME} lz4)
+endif()
+
+if(PK_BUILD_MODULE_LIBHV)
+    target_link_libraries(${PROJECT_NAME} libhv_bindings)
 endif()

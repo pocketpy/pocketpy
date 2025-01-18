@@ -25,6 +25,16 @@ void py_newstrv(py_OutRef out, c11_sv sv) {
     memcpy(data, sv.data, sv.size);
 }
 
+void py_newfstr(py_OutRef out, const char* fmt, ...) {
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    va_list args;
+    va_start(args, fmt);
+    pk_vsprintf(&buf, fmt, args);
+    va_end(args);
+    c11_sbuf__py_submit(&buf, out);
+}
+
 unsigned char* py_newbytes(py_Ref out, int size) {
     ManagedHeap* heap = &pk_current_vm->heap;
     // 4 bytes size + data
