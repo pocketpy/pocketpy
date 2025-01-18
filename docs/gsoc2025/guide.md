@@ -4,6 +4,8 @@ order: 10
 label: "Application Guide"
 ---
 
+> GSoC has not started yet. Please don't send application email or ask about it in community Discord server until 2025/04.
+
 Before starting, please read the [Ideas](./ideas.md) page and choose a project you are interested in.
 Set up a C11 compiler, clone pocketpy sources from github and try to build.
 This helps you confirm that your skills and experience match the requirements of the project.
