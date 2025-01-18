@@ -16,6 +16,8 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: true
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Compile
       shell: powershell
@@ -27,6 +29,8 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: true
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Compile
       shell: bash
@@ -47,6 +51,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: true
     - name: Setup Clang
       uses: egor-tensin/setup-clang@v1
       with:
@@ -81,6 +87,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Setup Alpine Linux for aarch64
         uses: jirutka/setup-alpine@v1
         with:
@@ -97,6 +105,8 @@ jobs:
       runs-on: macos-latest
       steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Compile and Test
         run: |
           python cmake_build.py
@@ -109,6 +119,8 @@ jobs:
       runs-on: ubuntu-latest
       steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
@@ -138,6 +150,8 @@ jobs:
       runs-on: macos-latest
       steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Compile Frameworks
         run: |
           git clone https://github.com/leetal/ios-cmake --depth 1 ~/ios-cmake
