@@ -244,6 +244,7 @@ py_Type libhv_register_HttpClient(py_GlobalRef mod) {
     libhv_register_HttpResponse(mod);
 
     py_bindmagic(type, __new__, [](int argc, py_Ref argv) {
+        PY_CHECK_ARGC(1);
         hv::HttpClient* ud =
             (hv::HttpClient*)py_newobject(py_retval(), py_totype(argv), 0, sizeof(hv::HttpClient));
         new (ud) hv::HttpClient();

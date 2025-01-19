@@ -1,4 +1,4 @@
-from typing import Literal, Generator
+from typing import Literal, Generator, Callable
 
 class Future[T]:
     def completed(self) -> bool: ...
@@ -25,7 +25,11 @@ class HttpClient:
 
 
 class HttpServer:
-    pass
+    def __init__(self, host: str, port: int) -> None: ...
+    def dispatch(self, fn: Callable[[dict], object | tuple[object, int]]) -> bool: ...
+    def start(self) -> None: ...
+    def stop(self) -> None: ...
+
 
 class WebSocketClient:
     pass
