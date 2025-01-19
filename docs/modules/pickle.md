@@ -26,7 +26,7 @@ The following types can be pickled:
 
 The following magic methods are available:
 
-- [] `__getnewargs__`
+- [ ] `__getnewargs__`
 - [ ] `__getstate__`
 - [ ] `__setstate__`
 - [x] `__reduce__`
