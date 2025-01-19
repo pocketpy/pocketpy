@@ -19,4 +19,4 @@ May be one of:
 
 ### `sys.argv`
 
-The command line arguments. Set by `vm->set_main_argv`.
+The command line arguments. Set by `py_sys_setargv`.
