@@ -48,7 +48,7 @@ if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
 endif()
 
-option(PK_BUILD_MODULE_LZ4 "" ON)
+option(PK_BUILD_MODULE_LZ4 "" OFF)
 if(PK_BUILD_MODULE_LZ4)
     add_subdirectory(3rd/lz4)
     include_directories(3rd/lz4)
