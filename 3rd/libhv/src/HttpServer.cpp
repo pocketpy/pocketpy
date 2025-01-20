@@ -176,6 +176,16 @@ static bool libhv_HttpServer_ws_set_ping_interval(int argc, py_Ref argv) {
     return true;
 }
 
+static bool libhv_HttpServer_ws_close(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    libhv_HttpServer* self = (libhv_HttpServer*)py_touserdata(py_arg(0));
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    py_i64 channel = py_toint(py_arg(1));
+    int code = reinterpret_cast<hv::WebSocketChannel*>(channel)->close();
+    py_newint(py_retval(), code);
+    return true;
+}
+
 static bool libhv_HttpServer_ws_send(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     libhv_HttpServer* self = (libhv_HttpServer*)py_touserdata(py_arg(0));
@@ -245,6 +255,7 @@ py_Type libhv_register_HttpServer(py_GlobalRef mod) {
     py_bindmethod(type, "dispatch", libhv_HttpServer_dispatch);
 
     py_bindmethod(type, "ws_set_ping_interval", libhv_HttpServer_ws_set_ping_interval);
+    py_bindmethod(type, "ws_close", libhv_HttpServer_ws_close);
     py_bindmethod(type, "ws_send", libhv_HttpServer_ws_send);
     py_bindmethod(type, "ws_recv", libhv_HttpServer_ws_recv);
     return type;

@@ -64,6 +64,9 @@ class HttpServer:
     def ws_set_ping_interval(self, milliseconds: int, /) -> None:
         """Set WebSocket ping interval in milliseconds."""
 
+    def ws_close(self, channel: WsChannelId, /) -> ErrorCode:
+        """Close WebSocket channel."""
+
     def ws_send(self, channel: WsChannelId, data: str, /) -> int:
         """Send WebSocket message through `channel`."""
 
