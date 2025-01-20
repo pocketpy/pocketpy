@@ -64,7 +64,7 @@ class HttpServer:
     def ws_set_ping_interval(self, milliseconds: int, /) -> None:
         """Set WebSocket ping interval in milliseconds."""
 
-    def ws_send(self, channel: WsChannelId, data: str, /) -> ErrorCode:
+    def ws_send(self, channel: WsChannelId, data: str, /) -> int:
         """Send WebSocket message through `channel`."""
 
     def ws_recv(self) -> tuple[
@@ -83,7 +83,7 @@ class WebSocketClient:
     def open(self, url: str, headers=None, /) -> ErrorCode: ...
     def close(self) -> ErrorCode: ...
 
-    def send(self, data: str, /) -> ErrorCode:
+    def send(self, data: str, /) -> int:
         """Send WebSocket message."""
 
     def recv(self) -> tuple[WsMessageType, str | None] | None:
