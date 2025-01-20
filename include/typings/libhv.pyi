@@ -1,7 +1,15 @@
 from typing import Literal, Generator, Callable
 
+WsMessageType = Literal['onopen', 'onclose', 'onmessage']
+WsChannelId = int
+HttpStatusCode = int
+HttpHeaders = dict[str, str]
+ErrorCode = int
+
 class Future[T]:
+    @property
     def completed(self) -> bool: ...
+    def cancel(self) -> None: ...
     def __iter__(self) -> Generator[T, None, None]: ...
 
 class HttpResponse(Future['HttpResponse']):
@@ -18,21 +26,75 @@ class HttpResponse(Future['HttpResponse']):
 
 
 class HttpClient:
-    def get(self, url: str, params=None, headers=None, timeout=10) -> HttpResponse: ...
-    def post(self, url: str, params=None, headers=None, data=None, json=None, timeout=10) -> HttpResponse: ...
-    def put(self, url: str, params=None, headers=None, data=None, json=None, timeout=10) -> HttpResponse: ...
-    def delete(self, url: str, params=None, headers=None, timeout=10) -> HttpResponse: ...
+    def get(self, url: str, /, params=None, headers=None, timeout=10) -> HttpResponse: ...
+    def post(self, url: str, /, params=None, headers=None, data=None, json=None, timeout=10) -> HttpResponse: ...
+    def put(self, url: str, /, params=None, headers=None, data=None, json=None, timeout=10) -> HttpResponse: ...
+    def delete(self, url: str, /, params=None, headers=None, timeout=10) -> HttpResponse: ...
 
+
+class HttpRequest:
+    @property
+    def method(self) -> Literal['GET', 'POST', 'PUT', 'DELETE']: ...
+    @property
+    def path(self) -> str: ...
+    @property
+    def url(self) -> str: ...
+    @property
+    def headers(self) -> HttpHeaders: ...
+    @property
+    def data(self) -> str | bytes: ...
 
 class HttpServer:
-    def __init__(self, host: str, port: int) -> None: ...
-    def dispatch(self, fn: Callable[[dict], object | tuple[object, int]]) -> bool: ...
-    def start(self) -> None: ...
-    def stop(self) -> None: ...
+    def __init__(self, host: str, port: int, /) -> None: ...
+    def start(self) -> ErrorCode: ...
+    def stop(self) -> ErrorCode: ...
+    def dispatch[T](self, fn: Callable[
+        [HttpRequest],
+        T | tuple[T, HttpStatusCode] | tuple[T, HttpStatusCode, HttpHeaders]
+        ], /) -> bool:
+        """Dispatch one HTTP request through `fn`. `fn` should return one of the following:
 
+        + object
+        + (object, status_code)
+        + (object, status_code, headers)
+        
+        Return `True` if dispatched, otherwise `False`.
+        """
+
+    def ws_set_ping_interval(self, milliseconds: int, /) -> None:
+        """Set WebSocket ping interval in milliseconds."""
+
+    def ws_send(self, channel: WsChannelId, data: str, /) -> ErrorCode:
+        """Send WebSocket message through `channel`."""
+
+    def ws_recv(self) -> tuple[
+        WsMessageType,
+        tuple[WsChannelId, HttpRequest] | WsChannelId | tuple[WsChannelId, str]
+        ] | None:
+        """Receive one WebSocket message.
+        Return one of the following or `None` if nothing to receive.
+        
+        + `"onopen"`: (channel, request)
+        + `"onclose"`: channel
+        + `"onmessage"`: (channel, body)
+        """
 
 class WebSocketClient:
-    pass
+    def open(self, url: str, headers=None, /) -> ErrorCode: ...
+    def close(self) -> ErrorCode: ...
 
-class WebSocketServer:
-    pass
+    def send(self, data: str, /) -> ErrorCode:
+        """Send WebSocket message."""
+
+    def recv(self) -> tuple[WsMessageType, str | None] | None:
+        """Receive one WebSocket message.
+        Return one of the following or `None` if nothing to receive.
+        
+        + `"onopen"`: `None`
+        + `"onclose"`: `None`
+        + `"onmessage"`: body
+        """
+
+
+def strerror(errno: ErrorCode, /) -> str:
+    """Get error message by errno via `hv_strerror`."""

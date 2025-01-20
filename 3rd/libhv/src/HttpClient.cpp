@@ -1,21 +1,23 @@
+#include "HttpMessage.h"
 #include "libhv_bindings.hpp"
 #include "base/herr.h"
 #include "http/client/HttpClient.h"
 
 struct libhv_HttpResponse {
-    HttpResponsePtr ptr;
+    HttpRequestPtr request;
+    HttpResponsePtr response;
     bool ok;
 
-    bool is_valid() { return ok && ptr != NULL; }
+    bool is_valid() { return ok && response != NULL; }
 
-    libhv_HttpResponse() : ptr(NULL), ok(false) {}
+    libhv_HttpResponse(HttpRequestPtr request) : request(request), response(NULL), ok(false) {}
 };
 
 static bool libhv_HttpResponse_status_code(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     libhv_HttpResponse* resp = (libhv_HttpResponse*)py_touserdata(argv);
     if(!resp->is_valid()) return RuntimeError("HttpResponse: no response");
-    py_newint(py_retval(), resp->ptr->status_code);
+    py_newint(py_retval(), resp->response->status_code);
     return true;
 };
 
@@ -28,7 +30,7 @@ static bool libhv_HttpResponse_headers(int argc, py_Ref argv) {
         py_newdict(headers);
         py_Ref _0 = py_pushtmp();
         py_Ref _1 = py_pushtmp();
-        for(auto& kv: resp->ptr->headers) {
+        for(auto& kv: resp->response->headers) {
             py_newstr(_0, kv.first.c_str());
             py_newstr(_1, kv.second.c_str());
             py_dict_setitem(headers, _0, _1);
@@ -46,8 +48,8 @@ static bool libhv_HttpResponse_text(int argc, py_Ref argv) {
     py_Ref text = py_getslot(argv, 1);
     if(py_isnil(text)) {
         c11_sv sv;
-        sv.data = resp->ptr->body.c_str();
-        sv.size = resp->ptr->body.size();
+        sv.data = resp->response->body.c_str();
+        sv.size = resp->response->body.size();
         py_newstrv(text, sv);
     }
     py_assign(py_retval(), text);
@@ -60,9 +62,9 @@ static bool libhv_HttpResponse_content(int argc, py_Ref argv) {
     if(!resp->is_valid()) return RuntimeError("HttpResponse: no response");
     py_Ref content = py_getslot(argv, 2);
     if(py_isnil(content)) {
-        int size = resp->ptr->body.size();
+        int size = resp->response->body.size();
         unsigned char* buf = py_newbytes(content, size);
-        memcpy(buf, resp->ptr->body.data(), size);
+        memcpy(buf, resp->response->body.data(), size);
     }
     py_assign(py_retval(), content);
     return true;
@@ -72,7 +74,7 @@ static bool libhv_HttpResponse_json(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     libhv_HttpResponse* resp = (libhv_HttpResponse*)py_touserdata(argv);
     if(!resp->is_valid()) return RuntimeError("HttpResponse: no response");
-    const char* source = resp->ptr->body.c_str();  // json string is null-terminated
+    const char* source = resp->response->body.c_str();  // json string is null-terminated
     return py_json_loads(source);
 };
 
@@ -111,8 +113,16 @@ static bool libhv_HttpResponse__repr__(int argc, py_Ref argv) {
     if(!resp->is_valid()) {
         py_newstr(py_retval(), "<HttpResponse: no response>");
     } else {
-        py_newfstr(py_retval(), "<HttpResponse: %d>", (int)resp->ptr->status_code);
+        py_newfstr(py_retval(), "<HttpResponse: %d>", (int)resp->response->status_code);
     }
+    return true;
+}
+
+static bool libhv_HttpResponse_cancel(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    libhv_HttpResponse* resp = (libhv_HttpResponse*)py_touserdata(argv);
+    resp->request->Cancel();
+    py_newnone(py_retval());
     return true;
 }
 
@@ -133,6 +143,8 @@ static py_Type libhv_register_HttpResponse(py_GlobalRef mod) {
     py_bindmagic(type, __repr__, libhv_HttpResponse__repr__);
     // completed
     py_bindproperty(type, "completed", libhv_HttpResponse_completed, NULL);
+    // cancel
+    py_bindmethod(type, "cancel", libhv_HttpResponse_cancel);
     return type;
 }
 
@@ -218,15 +230,15 @@ static bool libhv_HttpClient__send_request(py_Ref arg_self,
                                           3,  // headers, text, content
                                           sizeof(libhv_HttpResponse));
     // placement new
-    new (retval) libhv_HttpResponse();
+    new (retval) libhv_HttpResponse(req);
 
     int code = cli->sendAsync(req, [retval](const HttpResponsePtr& resp) {
         if(resp == NULL) {
             retval->ok = false;
-            retval->ptr = NULL;
+            retval->response = NULL;
         } else {
             retval->ok = true;
-            retval->ptr = resp;
+            retval->response = resp;
         }
     });
     if(code != 0) {

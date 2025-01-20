@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_SHARED "build shared library" OFF)
 option(BUILD_STATIC "build static library" ON)
 option(BUILD_EXAMPLES "build examples" OFF)
+
 option(WITH_OPENSSL "with openssl library" OFF)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/libhv)

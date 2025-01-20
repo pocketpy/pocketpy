@@ -1,38 +1,24 @@
+#include "HttpMessage.h"
+#include "WebSocketChannel.h"
 #include "libhv_bindings.hpp"
-#include "http/server/HttpServer.h"
-#include "base/herr.h"
-
-#include <deque>
-#include <atomic>
-
-template <typename T_in, typename T_out>
-struct libhv_MQ {
-    std::atomic<bool> lock_in;
-    std::atomic<bool> lock_out;
-    std::deque<T_in> queue_in;
-    std::deque<T_out> queue_out;
-
-    void begin_in() {
-        while(lock_in.exchange(true)) {
-            hv_delay(1);
-        }
-    }
-
-    void end_in() { lock_in.store(false); }
-
-    void begin_out() {
-        while(lock_out.exchange(true)) {
-            hv_delay(1);
-        }
-    }
-
-    void end_out() { lock_out.store(false); }
-};
+#include "http/server/WebSocketServer.h"
+#include "pocketpy/pocketpy.h"
 
 struct libhv_HttpServer {
-    hv::HttpService service;
-    hv::HttpServer server;
-    libhv_MQ<HttpContextPtr, std::pair<HttpContextPtr, int>> mq;
+    hv::HttpService http_service;
+    hv::WebSocketService ws_service;
+    hv::WebSocketServer server;
+
+    libhv_MQ<std::pair<HttpContextPtr, std::atomic<int>>*> mq;
+
+    struct WsMessage {
+        WsMessageType type;
+        hv::WebSocketChannel* channel;
+        HttpRequestPtr request;
+        std::string body;
+    };
+
+    libhv_MQ<WsMessage> ws_mq;
 };
 
 static bool libhv_HttpServer__new__(int argc, py_Ref argv) {
@@ -49,31 +35,37 @@ static bool libhv_HttpServer__init__(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(2, tp_int);
     const char* host = py_tostr(py_arg(1));
     int port = py_toint(py_arg(2));
-
-    self->service.AllowCORS();
-    http_ctx_handler internal_handler = [self](const HttpContextPtr& ctx) {
-        self->mq.begin_in();
-        self->mq.queue_in.push_back(ctx);
-        self->mq.end_in();
-
-        while(true) {
-            self->mq.begin_out();
-            if(!self->mq.queue_out.empty()) {
-                auto& msg = self->mq.queue_out.front();
-                if(msg.first == ctx) {
-                    self->mq.queue_out.pop_front();
-                    self->mq.end_out();
-                    return msg.second;
-                }
-            }
-            self->mq.end_out();
-            hv_delay(1);
-        }
-    };
-    self->service.Any("*", internal_handler);
-    self->server.registerHttpService(&self->service);
     self->server.setHost(host);
     self->server.setPort(port);
+
+    // http
+    self->http_service.AllowCORS();
+    http_ctx_handler internal_handler = [self](const HttpContextPtr& ctx) {
+        std::pair<HttpContextPtr, std::atomic<int>> msg(ctx, 0);
+        self->mq.push(&msg);
+        int code;
+        do {
+            code = msg.second.load();
+        } while(code == 0);
+        return code;
+    };
+    self->http_service.Any("*", internal_handler);
+    self->server.registerHttpService(&self->http_service);
+
+    // websocket
+    self->ws_service.onopen = [self](const WebSocketChannelPtr& channel,
+                                     const HttpRequestPtr& req) {
+        self->ws_mq.push({WsMessageType::onopen, channel.get(), req, ""});
+    };
+    self->ws_service.onmessage = [self](const WebSocketChannelPtr& channel,
+                                        const std::string& msg) {
+        self->ws_mq.push({WsMessageType::onmessage, channel.get(), nullptr, msg});
+    };
+    self->ws_service.onclose = [self](const WebSocketChannelPtr& channel) {
+        self->ws_mq.push({WsMessageType::onclose, channel.get(), nullptr, ""});
+    };
+    self->server.registerWebSocketService(&self->ws_service);
+
     py_newnone(py_retval());
     return true;
 }
@@ -84,75 +76,45 @@ static bool libhv_HttpServer_dispatch(int argc, py_Ref argv) {
     py_Ref callable = py_arg(1);
     if(!py_callable(callable)) return TypeError("dispatcher must be callable");
 
-    self->mq.begin_in();
-    if(self->mq.queue_in.empty()) {
-        self->mq.end_in();
+    std::pair<HttpContextPtr, std::atomic<int>>* mq_msg;
+    if(!self->mq.pop(&mq_msg)) {
         py_newbool(py_retval(), false);
         return true;
     } else {
-        HttpContextPtr ctx = self->mq.queue_in.front();
-        self->mq.queue_in.pop_front();
-        self->mq.end_in();
-
-        const char* method = ctx->request->Method();
-        std::string path = ctx->request->Path();
-        const http_headers& headers = ctx->request->headers;
-        const std::string& data = ctx->request->body;
-
-        py_OutRef msg = py_pushtmp();
-        py_newdict(msg);
-        py_Ref _0 = py_pushtmp();
-        py_Ref _1 = py_pushtmp();
-        py_Ref _2 = py_pushtmp();
-        py_Ref _3 = py_pushtmp();
-
-        // method
-        py_newstr(_0, "method");
-        py_newstr(_1, method);
-        py_dict_setitem(msg, _0, _1);
-        // path
-        py_newstr(_0, "path");
-        py_newstr(_1, path.c_str());
-        py_dict_setitem(msg, _0, _1);
-        // headers
-        py_newstr(_0, "headers");
-        py_newdict(_1);
-        py_dict_setitem(msg, _0, _1);
-        for(auto& header: headers) {
-            py_newstr(_2, header.first.c_str());
-            py_newstr(_3, header.second.c_str());
-            py_dict_setitem(_1, _2, _3);
-        }
-        // data
-        py_newstr(_0, "data");
-        auto content_type = ctx->request->ContentType();
-        bool is_text_data = content_type == TEXT_PLAIN || content_type == APPLICATION_JSON ||
-                            content_type == APPLICATION_XML || content_type == TEXT_HTML ||
-                            content_type == CONTENT_TYPE_NONE;
-        if(is_text_data) {
-            py_newstrv(_1, {data.c_str(), (int)data.size()});
-        } else {
-            unsigned char* buf = py_newbytes(_1, data.size());
-            memcpy(buf, data.data(), data.size());
-        }
-        py_dict_setitem(msg, _0, _1);
-        py_assign(py_retval(), msg);
-        py_shrink(5);
-
+        HttpContextPtr ctx = mq_msg->first;
+        libhv_HttpRequest_create(py_retval(), ctx->request);
         // call dispatcher
-        if(!py_call(callable, 1, py_retval())) { return false; }
+        if(!py_call(callable, 1, py_retval())) return false;
 
         py_Ref object;
         int status_code = 200;
         if(py_istuple(py_retval())) {
-            // "Hello, world!", 200
-            if(py_tuple_len(py_retval()) != 2) {
-                return ValueError("dispatcher should return `object | tuple[object, int]`");
+            int length = py_tuple_len(py_retval());
+            if(length == 2 || length == 3) {
+                // "Hello, world!", 200
+                object = py_tuple_getitem(py_retval(), 0);
+                py_ItemRef status_code_object = py_tuple_getitem(py_retval(), 1);
+                if(!py_checkint(status_code_object)) return false;
+                status_code = py_toint(status_code_object);
+
+                if(length == 3) {
+                    // "Hello, world!", 200, {"Content-Type": "text/plain"}
+                    py_ItemRef headers_object = py_tuple_getitem(py_retval(), 2);
+                    if(!py_checktype(headers_object, tp_dict)) return false;
+                    bool ok = py_dict_apply(
+                        headers_object,
+                        [](py_Ref key, py_Ref value, void* ctx_) {
+                            if(!py_checkstr(key) || !py_checkstr(value)) return false;
+                            ((hv::HttpContext*)ctx_)
+                                ->response->SetHeader(py_tostr(key), py_tostr(value));
+                            return true;
+                        },
+                        ctx.get());
+                    if(!ok) return false;
+                }
+            } else {
+                return TypeError("dispatcher return tuple must have 2 or 3 elements");
             }
-            object = py_tuple_getitem(py_retval(), 0);
-            py_ItemRef status_code_object = py_tuple_getitem(py_retval(), 1);
-            if(!py_checkint(status_code_object)) return false;
-            status_code = py_toint(status_code_object);
         } else {
             // "Hello, world!"
             object = py_retval();
@@ -182,9 +144,7 @@ static bool libhv_HttpServer_dispatch(int argc, py_Ref argv) {
             }
         }
 
-        self->mq.begin_out();
-        self->mq.queue_out.push_back({ctx, status_code});
-        self->mq.end_out();
+        mq_msg->second.store(status_code);
     }
     py_newbool(py_retval(), true);
     return true;
@@ -194,18 +154,81 @@ static bool libhv_HttpServer_start(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     libhv_HttpServer* self = (libhv_HttpServer*)py_touserdata(py_arg(0));
     int code = self->server.start();
-    if(code != 0) {
-        return RuntimeError("HttpServer start failed: %s (%d)", hv_strerror(code), code);
-    }
-    py_newnone(py_retval());
+    py_newint(py_retval(), code);
     return true;
 }
 
 static bool libhv_HttpServer_stop(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     libhv_HttpServer* self = (libhv_HttpServer*)py_touserdata(py_arg(0));
-    self->server.stop();
+    int code = self->server.stop();
+    py_newint(py_retval(), code);
+    return true;
+}
+
+static bool libhv_HttpServer_ws_set_ping_interval(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    libhv_HttpServer* self = (libhv_HttpServer*)py_touserdata(py_arg(0));
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    int interval = py_toint(py_arg(1));
+    self->ws_service.setPingInterval(interval);
     py_newnone(py_retval());
+    return true;
+}
+
+static bool libhv_HttpServer_ws_send(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    libhv_HttpServer* self = (libhv_HttpServer*)py_touserdata(py_arg(0));
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_str);
+    py_i64 channel = py_toint(py_arg(1));
+    const char* msg = py_tostr(py_arg(2));
+
+    hv::WebSocketChannel* p_channel = reinterpret_cast<hv::WebSocketChannel*>(channel);
+    int code = p_channel->send(msg);
+    py_newint(py_retval(), code);
+    return true;
+}
+
+static bool libhv_HttpServer_ws_recv(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    libhv_HttpServer* self = (libhv_HttpServer*)py_touserdata(py_arg(0));
+    libhv_HttpServer::WsMessage msg;
+    if(!self->ws_mq.pop(&msg)) {
+        py_newnone(py_retval());
+        return true;
+    }
+    py_newtuple(py_retval(), 2);
+    switch(msg.type) {
+        case WsMessageType::onopen: {
+            // "onopen", (channel, request)
+            assert(msg.request != nullptr);
+            py_newstr(py_tuple_getitem(py_retval(), 0), "onopen");
+            py_Ref args = py_tuple_getitem(py_retval(), 1);
+            py_newtuple(args, 2);
+            py_newint(py_tuple_getitem(args, 0), (py_i64)msg.channel);
+            libhv_HttpRequest_create(py_tuple_getitem(args, 1), msg.request);
+            break;
+        }
+        case WsMessageType::onclose: {
+            // "onclose", channel
+            py_newstr(py_tuple_getitem(py_retval(), 0), "onclose");
+            py_newint(py_tuple_getitem(py_retval(), 1), (py_i64)msg.channel);
+            break;
+        }
+        case WsMessageType::onmessage: {
+            // "onmessage", (channel, body)
+            py_newstr(py_tuple_getitem(py_retval(), 0), "onmessage");
+            py_Ref args = py_tuple_getitem(py_retval(), 1);
+            py_newtuple(args, 2);
+            py_newint(py_tuple_getitem(args, 0), (py_i64)msg.channel);
+            c11_sv sv;
+            sv.data = msg.body.data();
+            sv.size = msg.body.size();
+            py_newstrv(py_tuple_getitem(args, 1), sv);
+            break;
+        }
+    }
     return true;
 }
 
@@ -217,8 +240,12 @@ py_Type libhv_register_HttpServer(py_GlobalRef mod) {
 
     py_bindmagic(type, __new__, libhv_HttpServer__new__);
     py_bindmagic(type, __init__, libhv_HttpServer__init__);
-    py_bindmethod(type, "dispatch", libhv_HttpServer_dispatch);
     py_bindmethod(type, "start", libhv_HttpServer_start);
     py_bindmethod(type, "stop", libhv_HttpServer_stop);
+    py_bindmethod(type, "dispatch", libhv_HttpServer_dispatch);
+
+    py_bindmethod(type, "ws_set_ping_interval", libhv_HttpServer_ws_set_ping_interval);
+    py_bindmethod(type, "ws_send", libhv_HttpServer_ws_send);
+    py_bindmethod(type, "ws_recv", libhv_HttpServer_ws_recv);
     return type;
 }
