@@ -1,5 +1,4 @@
 #include "pocketpy/interpreter/vm.h"
-#include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/generator.h"
@@ -76,7 +75,7 @@ void VM__ctor(VM* self) {
     self->__curr_class = NULL;
     self->__curr_function = NULL;
 
-    ManagedHeap__ctor(&self->heap, self);
+    ManagedHeap__ctor(&self->heap);
     ValueStack__ctor(&self->stack);
 
     /* Init Builtin Types */
@@ -569,15 +568,10 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
 }
 
 /****************************************/
-void PyObject__delete(PyObject* self) {
+void PyObject__dtor(PyObject* self) {
     py_TypeInfo* ti = pk__type_info(self->type);
     if(ti->dtor) ti->dtor(PyObject__userdata(self));
     if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
-    if(self->gc_is_large) {
-        PK_FREE(self);
-    } else {
-        PoolObject_dealloc(self);
-    }
 }
 
 static void mark_object(PyObject* obj);
@@ -636,10 +630,10 @@ void CodeObject__gc_mark(const CodeObject* self) {
 }
 
 void ManagedHeap__mark(ManagedHeap* self) {
-    VM* vm = self->vm;
-    // mark heap objects
-    for(int i = 0; i < self->no_gc.length; i++) {
-        PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
+    VM* vm = pk_current_vm;
+    // mark large objects
+    for(int i = 0; i < self->large_objects.length; i++) {
+        PyObject* obj = c11__getitem(PyObject*, &self->large_objects, i);
         mark_object(obj);
     }
     // mark value stack
