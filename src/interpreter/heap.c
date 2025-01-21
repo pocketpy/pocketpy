@@ -12,8 +12,6 @@ void ManagedHeap__ctor(ManagedHeap* self, VM* vm) {
     self->gc_enabled = true;
 
     self->vm = vm;
-
-    self->gc_on_delete = NULL;
 }
 
 void ManagedHeap__dtor(ManagedHeap* self) {
@@ -55,7 +53,6 @@ int ManagedHeap__sweep(ManagedHeap* self) {
             obj->gc_marked = false;
             c11_vector__push(PyObject*, &alive, obj);
         } else {
-            if(self->gc_on_delete) { self->gc_on_delete(self->vm, obj); }
             PyObject__delete(obj);
         }
     }

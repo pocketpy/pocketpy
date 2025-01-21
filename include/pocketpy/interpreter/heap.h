@@ -9,8 +9,6 @@ typedef struct ManagedHeap{
     bool gc_enabled;
     
     VM* vm;
-
-    void (*gc_on_delete)(VM*, PyObject*);
 } ManagedHeap;
 
 void ManagedHeap__ctor(ManagedHeap* self, VM* vm);
