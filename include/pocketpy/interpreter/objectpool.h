@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pocketpy/common/vector.h"
+#include "pocketpy/common/str.h"
 
 #define kPoolArenaSize (120 * 1024)
 #define kMultiPoolCount 5
@@ -28,3 +29,4 @@ void* MultiPool__alloc(MultiPool* self, int size);
 int MultiPool__sweep_dealloc(MultiPool* self);
 void MultiPool__ctor(MultiPool* self);
 void MultiPool__dtor(MultiPool* self);
+c11_string* MultiPool__summary(MultiPool* self);

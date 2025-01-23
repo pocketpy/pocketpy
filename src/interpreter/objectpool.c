@@ -2,6 +2,7 @@
 
 #include "pocketpy/config.h"
 #include "pocketpy/objects/object.h"
+#include "pocketpy/common/sstream.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -173,4 +174,33 @@ void MultiPool__dtor(MultiPool* self) {
     for(int i = 0; i < kMultiPoolCount; i++) {
         Pool__dtor(&self->pools[i]);
     }
+}
+
+c11_string* MultiPool__summary(MultiPool* self) {
+    c11_sbuf sbuf;
+    c11_sbuf__ctor(&sbuf);
+    for(int i = 0; i < kMultiPoolCount; i++) {
+        Pool* item = &self->pools[i];
+        int total_bytes = (item->arenas.length + item->no_free_arenas.length) * kPoolArenaSize;
+        int used_bytes = 0;
+        for(int j = 0; j < item->arenas.length; j++) {
+            PoolArena* arena = c11__getitem(PoolArena*, &item->arenas, j);
+            used_bytes += (arena->block_count - arena->unused_length) * arena->block_size;
+        }
+        used_bytes += item->no_free_arenas.length * kPoolArenaSize;
+        float used_pct = (float)used_bytes / total_bytes * 100;
+        char buf[256];
+        snprintf(buf,
+                 sizeof(buf),
+                 "Pool<%d>: len(arenas)=%d, len(no_free_arenas)=%d, %d/%d (%.1f%% used)",
+                 item->block_size,
+                 item->arenas.length,
+                 item->no_free_arenas.length,
+                 used_bytes,
+                 total_bytes,
+                 used_pct);
+        c11_sbuf__write_cstr(&sbuf, buf);
+        c11_sbuf__write_char(&sbuf, '\n');
+    }
+    return c11_sbuf__submit(&sbuf);
 }
