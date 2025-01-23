@@ -11,11 +11,10 @@
 static PoolArena* PoolArena__new(int block_size) {
     assert(kPoolArenaSize % block_size == 0);
     int block_count = kPoolArenaSize / block_size;
-    int total_size = sizeof(PoolArena) + sizeof(int) * block_count;
-    PoolArena* self = PK_MALLOC(total_size);
+    PoolArena* self = PK_MALLOC(sizeof(PoolArena) + sizeof(int) * block_count);
     self->block_size = block_size;
     self->block_count = block_count;
-    self->unused_count = block_count;
+    self->unused_length = block_count;
     self->unused = PK_MALLOC(sizeof(int) * block_count);
     for(int i = 0; i < block_count; i++) {
         self->unused[i] = i;
@@ -34,27 +33,30 @@ static void PoolArena__delete(PoolArena* self) {
 }
 
 static void* PoolArena__alloc(PoolArena* self) {
-    assert(self->unused_count > 0);
-    int index = self->unused[self->unused_count - 1];
-    self->unused_count--;
+    assert(self->unused_length > 0);
+    int index = self->unused[self->unused_length - 1];
+    self->unused_length--;
     return self->data + index * self->block_size;
 }
 
 static int PoolArena__sweep_dealloc(PoolArena* self) {
     int freed = 0;
-    self->unused_count = 0;
+    self->unused_length = 0;
     for(int i = 0; i < self->block_count; i++) {
         PyObject* obj = (PyObject*)(self->data + i * self->block_size);
         if(obj->type == 0) {
-            self->unused[self->unused_count] = i;
-            self->unused_count++;
+            // free slot
+            self->unused[self->unused_length] = i;
+            self->unused_length++;
         } else {
             if(!obj->gc_marked) {
+                // not marked, need to free
                 obj->type = 0;
                 freed++;
-                self->unused[self->unused_count] = i;
-                self->unused_count++;
+                self->unused[self->unused_length] = i;
+                self->unused_length++;
             } else {
+                // marked, clear mark
                 obj->gc_marked = false;
             }
         }
@@ -64,15 +66,15 @@ static int PoolArena__sweep_dealloc(PoolArena* self) {
 
 static void Pool__ctor(Pool* self, int block_size) {
     c11_vector__ctor(&self->arenas, sizeof(PoolArena*));
-    c11_vector__ctor(&self->not_free_arenas, sizeof(PoolArena*));
+    c11_vector__ctor(&self->no_free_arenas, sizeof(PoolArena*));
     self->block_size = block_size;
 }
 
 static void Pool__dtor(Pool* self) {
-    c11__foreach(PoolArena*, &self->arenas, arena) { PoolArena__delete(*arena); }
-    c11__foreach(PoolArena*, &self->not_free_arenas, arena) { PoolArena__delete(*arena); }
+    c11__foreach(PoolArena*, &self->arenas, arena) PoolArena__delete(*arena);
+    c11__foreach(PoolArena*, &self->no_free_arenas, arena) PoolArena__delete(*arena);
     c11_vector__dtor(&self->arenas);
-    c11_vector__dtor(&self->not_free_arenas);
+    c11_vector__dtor(&self->no_free_arenas);
 }
 
 static void* Pool__alloc(Pool* self) {
@@ -84,25 +86,25 @@ static void* Pool__alloc(Pool* self) {
         arena = c11_vector__back(PoolArena*, &self->arenas);
     }
     void* ptr = PoolArena__alloc(arena);
-    if(arena->unused_count == 0) {
+    if(arena->unused_length == 0) {
         c11_vector__pop(&self->arenas);
-        c11_vector__push(PoolArena*, &self->not_free_arenas, arena);
+        c11_vector__push(PoolArena*, &self->no_free_arenas, arena);
     }
     return ptr;
 }
 
-static int Pool__sweep_dealloc(Pool* self, c11_vector* arenas, c11_vector* not_free_arenas) {
+static int Pool__sweep_dealloc(Pool* self, c11_vector* arenas, c11_vector* no_free_arenas) {
     c11_vector__clear(arenas);
-    c11_vector__clear(not_free_arenas);
+    c11_vector__clear(no_free_arenas);
 
     int freed = 0;
     for(int i = 0; i < self->arenas.length; i++) {
         PoolArena* item = c11__getitem(PoolArena*, &self->arenas, i);
-        assert(item->unused_count > 0);
+        assert(item->unused_length > 0);
         freed += PoolArena__sweep_dealloc(item);
-        if(item->unused_count == item->block_count) {
+        if(item->unused_length == item->block_count) {
             // all free
-            if(self->arenas.length > 0) {
+            if(arenas->length > 0) {
                 // at least one arena
                 PoolArena__delete(item);
             } else {
@@ -114,14 +116,14 @@ static int Pool__sweep_dealloc(Pool* self, c11_vector* arenas, c11_vector* not_f
             c11_vector__push(PoolArena*, arenas, item);
         }
     }
-    for(int i = 0; i < self->not_free_arenas.length; i++) {
-        PoolArena* item = c11__getitem(PoolArena*, &self->not_free_arenas, i);
+    for(int i = 0; i < self->no_free_arenas.length; i++) {
+        PoolArena* item = c11__getitem(PoolArena*, &self->no_free_arenas, i);
         freed += PoolArena__sweep_dealloc(item);
-        if(item->unused_count == 0) {
-            // still not free
-            c11_vector__push(PoolArena*, not_free_arenas, item);
+        if(item->unused_length == 0) {
+            // still no free
+            c11_vector__push(PoolArena*, no_free_arenas, item);
         } else {
-            if(item->unused_count == item->block_count) {
+            if(item->unused_length == item->block_count) {
                 // all free
                 PoolArena__delete(item);
             } else {
@@ -132,7 +134,7 @@ static int Pool__sweep_dealloc(Pool* self, c11_vector* arenas, c11_vector* not_f
     }
 
     c11_vector__swap(&self->arenas, arenas);
-    c11_vector__swap(&self->not_free_arenas, not_free_arenas);
+    c11_vector__swap(&self->no_free_arenas, no_free_arenas);
     return freed;
 }
 
@@ -148,16 +150,16 @@ void* MultiPool__alloc(MultiPool* self, int size) {
 
 int MultiPool__sweep_dealloc(MultiPool* self) {
     c11_vector arenas;
-    c11_vector not_free_arenas;
+    c11_vector no_free_arenas;
     c11_vector__ctor(&arenas, sizeof(PoolArena*));
-    c11_vector__ctor(&not_free_arenas, sizeof(PoolArena*));
+    c11_vector__ctor(&no_free_arenas, sizeof(PoolArena*));
     int freed = 0;
     for(int i = 0; i < kMultiPoolCount; i++) {
         Pool* item = &self->pools[i];
-        freed += Pool__sweep_dealloc(item, &arenas, &not_free_arenas);
+        freed += Pool__sweep_dealloc(item, &arenas, &no_free_arenas);
     }
     c11_vector__dtor(&arenas);
-    c11_vector__dtor(&not_free_arenas);
+    c11_vector__dtor(&no_free_arenas);
     return freed;
 }
 

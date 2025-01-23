@@ -60,7 +60,6 @@ bool pk__object_new(int argc, py_Ref argv);
 py_TypeInfo* pk__type_info(py_Type type);
 
 bool pk_wrapper__self(int argc, py_Ref argv);
-bool pk_wrapper__NotImplementedError(int argc, py_Ref argv);
 
 const char* pk_op2str(py_Name op);
 

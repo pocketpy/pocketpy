@@ -645,11 +645,15 @@ void ManagedHeap__mark(ManagedHeap* self) {
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
         pk__mark_value(p);
     }
+    // mark modules
+    ModuleDict__apply_mark(&vm->modules, mark_object);
     // mark types
     int types_length = vm->types.length;
     // 0-th type is placeholder
     for(py_Type i = 1; i < types_length; i++) {
         py_TypeInfo* ti = TypeList__get(&vm->types, i);
+        // mark type object
+        pk__mark_value(&ti->self);
         // mark common magic slots
         for(int j = 0; j < PK_MAGIC_SLOTS_COMMON_LENGTH; j++) {
             py_TValue* slot = ti->magic_0 + j;
@@ -742,10 +746,6 @@ bool pk_wrapper__self(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_assign(py_retval(), argv);
     return true;
-}
-
-bool pk_wrapper__NotImplementedError(int argc, py_Ref argv) {
-    return py_exception(tp_NotImplementedError, "");
 }
 
 py_TypeInfo* pk__type_info(py_Type type) { return TypeList__get(&pk_current_vm->types, type); }

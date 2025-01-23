@@ -9,14 +9,14 @@
 typedef struct PoolArena {
     int block_size;
     int block_count;
-    int unused_count;
+    int unused_length;
     int* unused;
     char data[kPoolArenaSize];
 } PoolArena;
 
 typedef struct Pool {
     c11_vector /* PoolArena* */ arenas;
-    c11_vector /* PoolArena* */ not_free_arenas;
+    c11_vector /* PoolArena* */ no_free_arenas;
     int block_size;
 } Pool;
 
