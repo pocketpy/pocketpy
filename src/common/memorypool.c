@@ -4,19 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-typedef struct FixedMemoryPool {
-    int BlockSize;
-    int BlockCount;
-
-    char* data;
-    char* data_end;
-    int exceeded_bytes;
-
-    char** _free_list;
-    char** _free_list_end;
-} FixedMemoryPool;
-
-static void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int BlockCount) {
+void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int BlockCount) {
     self->BlockSize = BlockSize;
     self->BlockCount = BlockCount;
     self->exceeded_bytes = 0;
@@ -29,12 +17,12 @@ static void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int Bloc
     }
 }
 
-static void FixedMemoryPool__dtor(FixedMemoryPool* self) {
+void FixedMemoryPool__dtor(FixedMemoryPool* self) {
     PK_FREE(self->_free_list);
     PK_FREE(self->data);
 }
 
-static void* FixedMemoryPool__alloc(FixedMemoryPool* self) {
+void* FixedMemoryPool__alloc(FixedMemoryPool* self) {
     if(self->_free_list_end != self->_free_list) {
         self->_free_list_end--;
         return *self->_free_list_end;
@@ -44,7 +32,7 @@ static void* FixedMemoryPool__alloc(FixedMemoryPool* self) {
     }
 }
 
-static void FixedMemoryPool__dealloc(FixedMemoryPool* self, void* p) {
+void FixedMemoryPool__dealloc(FixedMemoryPool* self, void* p) {
     bool is_valid = (char*)p >= self->data && (char*)p < self->data_end;
     if(is_valid) {
         *self->_free_list_end = p;
@@ -55,39 +43,10 @@ static void FixedMemoryPool__dealloc(FixedMemoryPool* self, void* p) {
     }
 }
 
-static int FixedMemoryPool__used_bytes(FixedMemoryPool* self) {
-    return (self->_free_list_end - self->_free_list) * self->BlockSize;
-}
+// static int FixedMemoryPool__used_bytes(FixedMemoryPool* self) {
+//     return (self->_free_list_end - self->_free_list) * self->BlockSize;
+// }
 
-static int FixedMemoryPool__total_bytes(FixedMemoryPool* self) {
-    return self->BlockCount * self->BlockSize;
-}
-
-static FixedMemoryPool PoolExpr;
-static FixedMemoryPool PoolFrame;
-
-void MemoryPools__initialize(){
-    FixedMemoryPool__ctor(&PoolExpr, kPoolExprBlockSize, 64);
-    FixedMemoryPool__ctor(&PoolFrame, kPoolFrameBlockSize, 128);
-}
-
-void MemoryPools__finalize(){
-    FixedMemoryPool__dtor(&PoolExpr);
-    FixedMemoryPool__dtor(&PoolFrame);
-}
-
-void* PoolExpr_alloc() {
-    return FixedMemoryPool__alloc(&PoolExpr);
-}
-
-void PoolExpr_dealloc(void* p) {
-    FixedMemoryPool__dealloc(&PoolExpr, p);
-}
-
-void* PoolFrame_alloc() {
-    return FixedMemoryPool__alloc(&PoolFrame);
-}
-
-void PoolFrame_dealloc(void* p) {
-    FixedMemoryPool__dealloc(&PoolFrame, p);
-}
+// static int FixedMemoryPool__total_bytes(FixedMemoryPool* self) {
+//     return self->BlockCount * self->BlockSize;
+// }

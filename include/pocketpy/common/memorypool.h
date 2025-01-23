@@ -1,12 +1,18 @@
 #pragma once
 
-#define kPoolExprBlockSize      128
-#define kPoolFrameBlockSize     80
+typedef struct FixedMemoryPool {
+    int BlockSize;
+    int BlockCount;
 
-void MemoryPools__initialize();
-void MemoryPools__finalize();
+    char* data;
+    char* data_end;
+    int exceeded_bytes;
 
-void* PoolExpr_alloc();
-void PoolExpr_dealloc(void*);
-void* PoolFrame_alloc();
-void PoolFrame_dealloc(void*);
+    char** _free_list;
+    char** _free_list_end;
+} FixedMemoryPool;
+
+void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int BlockCount);
+void FixedMemoryPool__dtor(FixedMemoryPool* self);
+void* FixedMemoryPool__alloc(FixedMemoryPool* self);
+void FixedMemoryPool__dealloc(FixedMemoryPool* self, void* p);

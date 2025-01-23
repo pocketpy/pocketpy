@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/generator.h"
@@ -74,6 +75,8 @@ void VM__ctor(VM* self) {
     self->ctx = NULL;
     self->__curr_class = NULL;
     self->__curr_function = NULL;
+
+    FixedMemoryPool__ctor(&self->pool_frame, sizeof(Frame), 32);
 
     ManagedHeap__ctor(&self->heap);
     ValueStack__ctor(&self->stack);
@@ -246,6 +249,7 @@ void VM__dtor(VM* self) {
         VM__pop_frame(self);
     ModuleDict__dtor(&self->modules);
     TypeList__dtor(&self->types);
+    FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__clear(&self->stack);
 }
 

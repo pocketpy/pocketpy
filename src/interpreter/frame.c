@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/frame.h"
+#include "pocketpy/common/memorypool.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/objects/codeobject.h"
@@ -42,8 +43,7 @@ Frame* Frame__new(const CodeObject* co,
                   py_StackRef p0,
                   py_StackRef locals,
                   bool has_function) {
-    static_assert(sizeof(Frame) <= kPoolFrameBlockSize, "!(sizeof(Frame) <= kPoolFrameBlockSize)");
-    Frame* self = PoolFrame_alloc();
+    Frame* self = FixedMemoryPool__alloc(&pk_current_vm->pool_frame);
     self->f_back = NULL;
     self->ip = (Bytecode*)co->codes.data - 1;
     self->co = co;
@@ -62,7 +62,7 @@ void Frame__delete(Frame* self) {
         self->uw_list = p->next;
         UnwindTarget__delete(p);
     }
-    PoolFrame_dealloc(self);
+    FixedMemoryPool__dealloc(&pk_current_vm->pool_frame, self);
 }
 
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {

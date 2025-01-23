@@ -1,5 +1,6 @@
 #pragma once
 
+#include "pocketpy/common/memorypool.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/heap.h"
@@ -38,6 +39,7 @@ typedef struct VM {
     py_StackRef __curr_function;
     py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
+    FixedMemoryPool pool_frame;
     ManagedHeap heap;
     ValueStack stack;  // put `stack` at the end for better cache locality
 } VM;
