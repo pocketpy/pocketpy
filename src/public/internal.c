@@ -27,7 +27,6 @@ void py_initialize() {
     static_assert(sizeof(py_TValue) == 16, "sizeof(py_TValue) != 16");
     static_assert(offsetof(py_TValue, extra) == 4, "offsetof(py_TValue, extra) != 4");
 
-    MemoryPools__initialize();
     py_Name__initialize();
 
     pk_current_vm = pk_all_vm[0] = &pk_default_vm;
@@ -63,7 +62,6 @@ void py_finalize() {
     VM__dtor(&pk_default_vm);
     pk_current_vm = NULL;
     py_Name__finalize();
-    MemoryPools__finalize();
 }
 
 void py_switchvm(int index) {

@@ -22,6 +22,7 @@ void c11_vector__clear(c11_vector* self);
 void* c11_vector__emplace(c11_vector* self);
 bool c11_vector__contains(const c11_vector* self, void* elem);
 void* c11_vector__submit(c11_vector* self, int* length);
+void c11_vector__swap(c11_vector* self, c11_vector* other);
 
 #define c11__getitem(T, self, index) (((T*)(self)->data)[index])
 #define c11__setitem(T, self, index, value) ((T*)(self)->data)[index] = value;

@@ -32,7 +32,7 @@ print(primes)
 pkpy should work on any platform with a C11 compiler.
 These platforms are officially tested.
 
-> C99 compilers also work currently according to users' feedback.
+> C99 compilers may also work currently according to users' feedback.
 
 + Windows 64-bit
 + Linux 64-bit / 32-bit

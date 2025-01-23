@@ -66,6 +66,7 @@ void VM__ctor(VM* self) {
 
     self->callbacks.importfile = pk_default_importfile;
     self->callbacks.print = pk_default_print;
+    self->callbacks.getchar = getchar;
 
     self->last_retval = *py_NIL();
     self->curr_exception = *py_NIL();
@@ -76,7 +77,9 @@ void VM__ctor(VM* self) {
     self->__curr_class = NULL;
     self->__curr_function = NULL;
 
-    ManagedHeap__ctor(&self->heap, self);
+    FixedMemoryPool__ctor(&self->pool_frame, sizeof(Frame), 32);
+
+    ManagedHeap__ctor(&self->heap);
     ValueStack__ctor(&self->stack);
 
     /* Init Builtin Types */
@@ -247,6 +250,7 @@ void VM__dtor(VM* self) {
         VM__pop_frame(self);
     ModuleDict__dtor(&self->modules);
     TypeList__dtor(&self->types);
+    FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__clear(&self->stack);
 }
 
@@ -569,15 +573,10 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
 }
 
 /****************************************/
-void PyObject__delete(PyObject* self) {
+void PyObject__dtor(PyObject* self) {
     py_TypeInfo* ti = pk__type_info(self->type);
     if(ti->dtor) ti->dtor(PyObject__userdata(self));
     if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
-    if(self->gc_is_large) {
-        PK_FREE(self);
-    } else {
-        PoolObject_dealloc(self);
-    }
 }
 
 static void mark_object(PyObject* obj);
@@ -636,21 +635,25 @@ void CodeObject__gc_mark(const CodeObject* self) {
 }
 
 void ManagedHeap__mark(ManagedHeap* self) {
-    VM* vm = self->vm;
-    // mark heap objects
-    for(int i = 0; i < self->no_gc.length; i++) {
-        PyObject* obj = c11__getitem(PyObject*, &self->no_gc, i);
+    VM* vm = pk_current_vm;
+    // mark large objects
+    for(int i = 0; i < self->large_objects.length; i++) {
+        PyObject* obj = c11__getitem(PyObject*, &self->large_objects, i);
         mark_object(obj);
     }
     // mark value stack
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
         pk__mark_value(p);
     }
+    // mark modules
+    ModuleDict__apply_mark(&vm->modules, mark_object);
     // mark types
     int types_length = vm->types.length;
     // 0-th type is placeholder
     for(py_Type i = 1; i < types_length; i++) {
         py_TypeInfo* ti = TypeList__get(&vm->types, i);
+        // mark type object
+        pk__mark_value(&ti->self);
         // mark common magic slots
         for(int j = 0; j < PK_MAGIC_SLOTS_COMMON_LENGTH; j++) {
             py_TValue* slot = ti->magic_0 + j;
@@ -745,8 +748,46 @@ bool pk_wrapper__self(int argc, py_Ref argv) {
     return true;
 }
 
-bool pk_wrapper__NotImplementedError(int argc, py_Ref argv) {
-    return py_exception(tp_NotImplementedError, "");
-}
-
 py_TypeInfo* pk__type_info(py_Type type) { return TypeList__get(&pk_current_vm->types, type); }
+
+int py_replinput(char* buf, int max_size) {
+    buf[0] = '\0';  // reset first char because we check '@' at the beginning
+
+    int size = 0;
+    bool multiline = false;
+    printf(">>> ");
+
+    while(true) {
+        int c = pk_current_vm->callbacks.getchar();
+        if(c == EOF) return -1;
+
+        if(c == '\n') {
+            char last = '\0';
+            if(size > 0) last = buf[size - 1];
+            if(multiline) {
+                if(last == '\n') {
+                    break;  // 2 consecutive newlines to end multiline input
+                } else {
+                    printf("... ");
+                }
+            } else {
+                if(last == ':' || last == '(' || last == '[' || last == '{' || buf[0] == '@') {
+                    printf("... ");
+                    multiline = true;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        if(size == max_size - 1) {
+            buf[size] = '\0';
+            return size;
+        }
+
+        buf[size++] = c;
+    }
+
+    buf[size] = '\0';
+    return size;
+}

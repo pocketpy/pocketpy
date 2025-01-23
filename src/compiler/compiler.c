@@ -1,10 +1,10 @@
 #include "pocketpy/compiler/compiler.h"
 #include "pocketpy/compiler/lexer.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
-#include "pocketpy/common/memorypool.h"
 #include <assert.h>
 #include <stdbool.h>
 
@@ -30,8 +30,6 @@ typedef struct ExprVt {
     void (*dtor)(Expr*);
 } ExprVt;
 
-#define static_assert_expr_size(T) static_assert(sizeof(T) <= kPoolExprBlockSize, "")
-
 #define vtcall(f, self, ctx) ((self)->vt->f((self), (ctx)))
 #define vtemit_(self, ctx) vtcall(emit_, (self), (ctx))
 #define vtemit_del(self, ctx) ((self)->vt->emit_del ? vtcall(emit_del, self, ctx) : false)
@@ -44,7 +42,7 @@ typedef struct ExprVt {
     do {                                                                                           \
         if(self) {                                                                                 \
             if((self)->vt->dtor) (self)->vt->dtor(self);                                           \
-            PoolExpr_dealloc(self);                                                                \
+            PK_FREE(self);                                                                         \
         }                                                                                          \
     } while(0)
 
@@ -148,8 +146,7 @@ NameExpr* NameExpr__new(int line, py_Name name, NameScope scope) {
                               .emit_del = NameExpr__emit_del,
                               .emit_store = NameExpr__emit_store,
                               .is_name = true};
-    static_assert_expr_size(NameExpr);
-    NameExpr* self = PoolExpr_alloc();
+    NameExpr* self = PK_MALLOC(sizeof(NameExpr));
     self->vt = &Vt;
     self->line = line;
     self->name = name;
@@ -186,8 +183,7 @@ StarredExpr* StarredExpr__new(int line, Expr* child, int level) {
                               .emit_store = StarredExpr__emit_store,
                               .is_starred = true,
                               .dtor = StarredExpr__dtor};
-    static_assert_expr_size(StarredExpr);
-    StarredExpr* self = PoolExpr_alloc();
+    StarredExpr* self = PK_MALLOC(sizeof(StarredExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -216,8 +212,7 @@ static void UnaryExpr__emit_(Expr* self_, Ctx* ctx) {
 
 UnaryExpr* UnaryExpr__new(int line, Expr* child, Opcode opcode) {
     const static ExprVt Vt = {.emit_ = UnaryExpr__emit_, .dtor = UnaryExpr__dtor};
-    static_assert_expr_size(UnaryExpr);
-    UnaryExpr* self = PoolExpr_alloc();
+    UnaryExpr* self = PK_MALLOC(sizeof(UnaryExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -240,8 +235,7 @@ void FStringSpecExpr__emit_(Expr* self_, Ctx* ctx) {
 
 FStringSpecExpr* FStringSpecExpr__new(int line, Expr* child, c11_sv spec) {
     const static ExprVt Vt = {.emit_ = FStringSpecExpr__emit_, .dtor = UnaryExpr__dtor};
-    static_assert_expr_size(FStringSpecExpr);
-    FStringSpecExpr* self = PoolExpr_alloc();
+    FStringSpecExpr* self = PK_MALLOC(sizeof(FStringSpecExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -263,8 +257,7 @@ void RawStringExpr__emit_(Expr* self_, Ctx* ctx) {
 
 RawStringExpr* RawStringExpr__new(int line, c11_sv value, Opcode opcode) {
     const static ExprVt Vt = {.emit_ = RawStringExpr__emit_};
-    static_assert_expr_size(RawStringExpr);
-    RawStringExpr* self = PoolExpr_alloc();
+    RawStringExpr* self = PK_MALLOC(sizeof(RawStringExpr));
     self->vt = &Vt;
     self->line = line;
     self->value = value;
@@ -288,8 +281,7 @@ void ImagExpr__emit_(Expr* self_, Ctx* ctx) {
 
 ImagExpr* ImagExpr__new(int line, double value) {
     const static ExprVt Vt = {.emit_ = ImagExpr__emit_};
-    static_assert_expr_size(ImagExpr);
-    ImagExpr* self = PoolExpr_alloc();
+    ImagExpr* self = PK_MALLOC(sizeof(ImagExpr));
     self->vt = &Vt;
     self->line = line;
     self->value = value;
@@ -333,8 +325,7 @@ void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
 
 LiteralExpr* LiteralExpr__new(int line, const TokenValue* value) {
     const static ExprVt Vt = {.emit_ = LiteralExpr__emit_, .is_literal = true};
-    static_assert_expr_size(LiteralExpr);
-    LiteralExpr* self = PoolExpr_alloc();
+    LiteralExpr* self = PK_MALLOC(sizeof(LiteralExpr));
     self->vt = &Vt;
     self->line = line;
     self->value = value;
@@ -362,8 +353,7 @@ void Literal0Expr__emit_(Expr* self_, Ctx* ctx) {
 
 Literal0Expr* Literal0Expr__new(int line, TokenIndex token) {
     const static ExprVt Vt = {.emit_ = Literal0Expr__emit_};
-    static_assert_expr_size(Literal0Expr);
-    Literal0Expr* self = PoolExpr_alloc();
+    Literal0Expr* self = PK_MALLOC(sizeof(Literal0Expr));
     self->vt = &Vt;
     self->line = line;
     self->token = token;
@@ -403,8 +393,7 @@ void SliceExpr__emit_(Expr* self_, Ctx* ctx) {
 
 SliceExpr* SliceExpr__new(int line) {
     const static ExprVt Vt = {.dtor = SliceExpr__dtor, .emit_ = SliceExpr__emit_};
-    static_assert_expr_size(SliceExpr);
-    SliceExpr* self = PoolExpr_alloc();
+    SliceExpr* self = PK_MALLOC(sizeof(SliceExpr));
     self->vt = &Vt;
     self->line = line;
     self->start = NULL;
@@ -433,8 +422,7 @@ static void DictItemExpr__emit_(Expr* self_, Ctx* ctx) {
 
 static DictItemExpr* DictItemExpr__new(int line) {
     const static ExprVt Vt = {.dtor = DictItemExpr__dtor, .emit_ = DictItemExpr__emit_};
-    static_assert_expr_size(DictItemExpr);
-    DictItemExpr* self = PoolExpr_alloc();
+    DictItemExpr* self = PK_MALLOC(sizeof(DictItemExpr));
     self->vt = &Vt;
     self->line = line;
     self->key = NULL;
@@ -521,8 +509,7 @@ bool TupleExpr__emit_del(Expr* self_, Ctx* ctx) {
 }
 
 static SequenceExpr* SequenceExpr__new(int line, const ExprVt* vt, int count, Opcode opcode) {
-    static_assert_expr_size(SequenceExpr);
-    SequenceExpr* self = PoolExpr_alloc();
+    SequenceExpr* self = PK_MALLOC(sizeof(SequenceExpr));
     self->vt = vt;
     self->line = line;
     self->opcode = opcode;
@@ -608,8 +595,7 @@ void CompExpr__emit_(Expr* self_, Ctx* ctx) {
 
 CompExpr* CompExpr__new(int line, Opcode op0, Opcode op1) {
     const static ExprVt Vt = {.dtor = CompExpr__dtor, .emit_ = CompExpr__emit_};
-    static_assert_expr_size(CompExpr);
-    CompExpr* self = PoolExpr_alloc();
+    CompExpr* self = PK_MALLOC(sizeof(CompExpr));
     self->vt = &Vt;
     self->line = line;
     self->op0 = op0;
@@ -633,8 +619,7 @@ static void LambdaExpr__emit_(Expr* self_, Ctx* ctx) {
 
 LambdaExpr* LambdaExpr__new(int line, int index) {
     const static ExprVt Vt = {.emit_ = LambdaExpr__emit_};
-    static_assert_expr_size(LambdaExpr);
-    LambdaExpr* self = PoolExpr_alloc();
+    LambdaExpr* self = PK_MALLOC(sizeof(LambdaExpr));
     self->vt = &Vt;
     self->line = line;
     self->index = index;
@@ -665,8 +650,7 @@ void LogicBinaryExpr__emit_(Expr* self_, Ctx* ctx) {
 
 LogicBinaryExpr* LogicBinaryExpr__new(int line, Opcode opcode) {
     const static ExprVt Vt = {.emit_ = LogicBinaryExpr__emit_, .dtor = LogicBinaryExpr__dtor};
-    static_assert_expr_size(LogicBinaryExpr);
-    LogicBinaryExpr* self = PoolExpr_alloc();
+    LogicBinaryExpr* self = PK_MALLOC(sizeof(LogicBinaryExpr));
     self->vt = &Vt;
     self->line = line;
     self->lhs = NULL;
@@ -705,8 +689,7 @@ GroupedExpr* GroupedExpr__new(int line, Expr* child) {
                               .emit_ = GroupedExpr__emit_,
                               .emit_del = GroupedExpr__emit_del,
                               .emit_store = GroupedExpr__emit_store};
-    static_assert_expr_size(GroupedExpr);
-    GroupedExpr* self = PoolExpr_alloc();
+    GroupedExpr* self = PK_MALLOC(sizeof(GroupedExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -833,8 +816,7 @@ BinaryExpr* BinaryExpr__new(int line, TokenIndex op, bool inplace) {
     const static ExprVt Vt = {.emit_ = BinaryExpr__emit_,
                               .dtor = BinaryExpr__dtor,
                               .is_binary = true};
-    static_assert_expr_size(BinaryExpr);
-    BinaryExpr* self = PoolExpr_alloc();
+    BinaryExpr* self = PK_MALLOC(sizeof(BinaryExpr));
     self->vt = &Vt;
     self->line = line;
     self->lhs = NULL;
@@ -871,8 +853,7 @@ void TernaryExpr__emit_(Expr* self_, Ctx* ctx) {
 
 TernaryExpr* TernaryExpr__new(int line) {
     const static ExprVt Vt = {.dtor = TernaryExpr__dtor, .emit_ = TernaryExpr__emit_};
-    static_assert_expr_size(TernaryExpr);
-    TernaryExpr* self = PoolExpr_alloc();
+    TernaryExpr* self = PK_MALLOC(sizeof(TernaryExpr));
     self->vt = &Vt;
     self->line = line;
     self->cond = NULL;
@@ -942,8 +923,7 @@ SubscrExpr* SubscrExpr__new(int line) {
         .emit_del = SubscrExpr__emit_del,
         .is_subscr = true,
     };
-    static_assert_expr_size(SubscrExpr);
-    SubscrExpr* self = PoolExpr_alloc();
+    SubscrExpr* self = PK_MALLOC(sizeof(SubscrExpr));
     self->vt = &Vt;
     self->line = line;
     self->lhs = NULL;
@@ -1005,8 +985,7 @@ AttribExpr* AttribExpr__new(int line, Expr* child, py_Name name) {
                               .emit_istore = AttribExpr__emit_istore,
                               .dtor = AttribExpr__dtor,
                               .is_attrib = true};
-    static_assert_expr_size(AttribExpr);
-    AttribExpr* self = PoolExpr_alloc();
+    AttribExpr* self = PK_MALLOC(sizeof(AttribExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -1078,8 +1057,7 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
 
 CallExpr* CallExpr__new(int line, Expr* callable) {
     const static ExprVt Vt = {.dtor = CallExpr__dtor, .emit_ = CallExpr__emit_};
-    static_assert_expr_size(CallExpr);
-    CallExpr* self = PoolExpr_alloc();
+    CallExpr* self = PK_MALLOC(sizeof(CallExpr));
     self->vt = &Vt;
     self->line = line;
     self->callable = callable;

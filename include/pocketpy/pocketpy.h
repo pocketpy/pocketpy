@@ -40,6 +40,8 @@ typedef struct py_Callbacks {
     char* (*importfile)(const char*);
     /// Used by `print` to output a string.
     void (*print)(const char*);
+    /// Used by `input` to get a character.
+    int (*getchar)();
 } py_Callbacks;
 
 #define PY_RAISE

@@ -1,3 +1,5 @@
+#include "pocketpy/interpreter/objectpool.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
@@ -33,6 +35,24 @@ DEF_TVALUE_METHODS(float, _f64)
 DEF_TVALUE_METHODS(vec2, _vec2)
 DEF_TVALUE_METHODS(vec2i, _vec2i)
 
+static bool pkpy_memory_usage(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    ManagedHeap* heap = &pk_current_vm->heap;
+    c11_string* small_objects_usage = MultiPool__summary(&heap->small_objects);
+    int large_object_count = heap->large_objects.length;
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    c11_sbuf__write_cstr(&buf, "== heap.small_objects ==\n");
+    c11_sbuf__write_cstr(&buf, small_objects_usage->data);
+    c11_sbuf__write_cstr(&buf, "== heap.large_objects ==\n");
+    c11_sbuf__write_cstr(&buf, "len(large_objects)=");
+    c11_sbuf__write_int(&buf, large_object_count);
+    // c11_sbuf__write_cstr(&buf, "== vm.pool_frame ==\n");
+    c11_sbuf__py_submit(&buf, py_retval());
+    c11_string__delete(small_objects_usage);
+    return true;
+}
+
 void pk__add_module_pkpy() {
     py_Ref mod = py_newmodule("pkpy");
 
@@ -66,6 +86,8 @@ void pk__add_module_pkpy() {
 
     py_setdict(mod, py_name("TValue"), TValue_dict);
     py_pop();
+
+    py_bindfunc(mod, "memory_usage", pkpy_memory_usage);
 }
 
 #undef DEF_TVALUE_METHODS

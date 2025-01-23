@@ -1,24 +1,25 @@
 #include "pocketpy/objects/object.h"
+#include "pocketpy/interpreter/objectpool.h"
 
-typedef struct ManagedHeap{
-    c11_vector no_gc;
-    c11_vector gen;
+typedef struct ManagedHeap {
+    MultiPool small_objects;
+    c11_vector large_objects;
 
-    int gc_threshold;
-    int gc_counter;
+    int freed_ma[3];
+    int gc_threshold;  // threshold for gc_counter
+    int gc_counter;    // objects created since last gc
     bool gc_enabled;
-    
-    VM* vm;
 } ManagedHeap;
 
-void ManagedHeap__ctor(ManagedHeap* self, VM* vm);
+void ManagedHeap__ctor(ManagedHeap* self);
 void ManagedHeap__dtor(ManagedHeap* self);
 
 void ManagedHeap__collect_if_needed(ManagedHeap* self);
 int ManagedHeap__collect(ManagedHeap* self);
 int ManagedHeap__sweep(ManagedHeap* self);
 
-PyObject* ManagedHeap__new(ManagedHeap* self, py_Type type, int slots, int udsize);
+#define ManagedHeap__new(self, type, slots, udsize)                                                \
+    ManagedHeap__gcnew((self), (type), (slots), (udsize))
 PyObject* ManagedHeap__gcnew(ManagedHeap* self, py_Type type, int slots, int udsize);
 
 // external implementation

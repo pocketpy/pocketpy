@@ -25,3 +25,4 @@ void ModuleDict__dtor(ModuleDict* self);
 void ModuleDict__set(ModuleDict* self, const char* key, py_TValue val);
 py_TValue* ModuleDict__try_get(ModuleDict* self, const char* path);
 bool ModuleDict__contains(ModuleDict* self, const char* path);
+void ModuleDict__apply_mark(ModuleDict* self, void (*marker)(PyObject*));

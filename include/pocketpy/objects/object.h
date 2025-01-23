@@ -5,7 +5,7 @@
 
 typedef struct PyObject {
     py_Type type;  // we have a duplicated type here for convenience
-    bool gc_is_large;
+    // bool _;
     bool gc_marked;
     int slots;  // number of slots in the object
     char flex[];
@@ -23,5 +23,4 @@ void* PyObject__userdata(PyObject* self);
 
 #define PK_OBJ_SLOTS_SIZE(slots) ((slots) >= 0 ? sizeof(py_TValue) * (slots) : sizeof(NameDict))
 
-PyObject* PyObject__new(py_Type type, int slots, int size);
-void PyObject__delete(PyObject* self);
+void PyObject__dtor(PyObject* self);
