@@ -45,7 +45,7 @@ static bool pkpy_memory_usage(int argc, py_Ref argv) {
     c11_sbuf__write_cstr(&buf, "== heap.small_objects ==\n");
     c11_sbuf__write_cstr(&buf, small_objects_usage->data);
     c11_sbuf__write_cstr(&buf, "== heap.large_objects ==\n");
-    c11_sbuf__write_cstr(&buf, "len(large_objects)=\n");
+    c11_sbuf__write_cstr(&buf, "len(large_objects)=");
     c11_sbuf__write_int(&buf, large_object_count);
     // c11_sbuf__write_cstr(&buf, "== vm.pool_frame ==\n");
     c11_sbuf__py_submit(&buf, py_retval());
