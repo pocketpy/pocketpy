@@ -204,13 +204,13 @@ static bool builtins_input(int argc, py_Ref argv) {
         if(!py_checkstr(argv)) return false;
         prompt = py_tostr(argv);
     }
-    printf("%s", prompt);
+    pk_current_vm->callbacks.print(prompt);
 
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     while(true) {
         int c = pk_current_vm->callbacks.getchar();
-        if(c == '\n') break;
+        if(c == '\n' || c == '\r') break;
         if(c == EOF) break;
         c11_sbuf__write_char(&buf, c);
     }

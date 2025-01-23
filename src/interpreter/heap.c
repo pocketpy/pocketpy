@@ -63,14 +63,13 @@ int ManagedHeap__sweep(ManagedHeap* self) {
         } else {
             PyObject__dtor(obj);
             PK_FREE(obj);
-            // type and module objects are perpectual
-            assert(obj->type != tp_type);
-            assert(obj->type != tp_module);
         }
     }
     // shrink `self->large_objects`
     int large_freed = self->large_objects.length - large_living_count;
     self->large_objects.length = large_living_count;
+    // printf("large_freed=%d\n", large_freed);
+    // printf("small_freed=%d\n", small_freed);
     return small_freed + large_freed;
 }
 

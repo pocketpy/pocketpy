@@ -3,7 +3,7 @@
 
 typedef struct ManagedHeap {
     MultiPool small_objects;
-    c11_vector large_objects;
+    c11_vector /* PyObject* */ large_objects;
 
     int freed_ma[3];
     int gc_threshold;  // threshold for gc_counter

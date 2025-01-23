@@ -636,11 +636,6 @@ void CodeObject__gc_mark(const CodeObject* self) {
 
 void ManagedHeap__mark(ManagedHeap* self) {
     VM* vm = pk_current_vm;
-    // mark large objects
-    for(int i = 0; i < self->large_objects.length; i++) {
-        PyObject* obj = c11__getitem(PyObject*, &self->large_objects, i);
-        mark_object(obj);
-    }
     // mark value stack
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
         pk__mark_value(p);
