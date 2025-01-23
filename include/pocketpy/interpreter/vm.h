@@ -27,6 +27,8 @@ typedef struct VM {
 
     py_Callbacks callbacks;
 
+    py_TValue ascii_literals[128+1];
+
     py_TValue last_retval;
     py_TValue curr_exception;
     volatile bool is_signal_interrupted;

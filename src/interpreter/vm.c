@@ -83,6 +83,12 @@ void VM__ctor(VM* self) {
     ValueStack__ctor(&self->stack);
 
     /* Init Builtin Types */
+    for(int i = 0; i < 128; i++) {
+        char* p = py_newstrn(&self->ascii_literals[i], 1);
+        *p = i;
+    }
+    py_newstrn(&self->ascii_literals[128], 0);
+
     // 0: unused
     void* placeholder = TypeList__emplace(&self->types);
     memset(placeholder, 0, sizeof(py_TypeInfo));
@@ -153,7 +159,7 @@ void VM__ctor(VM* self) {
 
     validate(tp_StopIteration, pk_StopIteration__register());
     py_setdict(&self->builtins, py_name("StopIteration"), py_tpobject(tp_StopIteration));
-    
+
     INJECT_BUILTIN_EXC(SyntaxError, tp_Exception);
     INJECT_BUILTIN_EXC(StackOverflowError, tp_Exception);
     INJECT_BUILTIN_EXC(OSError, tp_Exception);
@@ -224,8 +230,8 @@ void VM__ctor(VM* self) {
     pk__add_module_importlib();
 
     pk__add_module_conio();
-    pk__add_module_lz4();       // optional
-    pk__add_module_libhv();     // optional
+    pk__add_module_lz4();    // optional
+    pk__add_module_libhv();  // optional
     pk__add_module_pkpy();
 
     // add python builtins
@@ -509,7 +515,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 Frame* frame = Frame__new(co, &fn->module, p0, argv, true);
                 pk_newgenerator(py_retval(), frame, p0, self->stack.sp);
-                self->stack.sp = p0;    // reset the stack
+                self->stack.sp = p0;  // reset the stack
                 return RES_RETURN;
             }
             default: c11__unreachable();
@@ -639,6 +645,10 @@ void ManagedHeap__mark(ManagedHeap* self) {
     // mark value stack
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
         pk__mark_value(p);
+    }
+    // mark ascii literals
+    for(int i = 0; i < c11__count_array(vm->ascii_literals); i++) {
+        pk__mark_value(&vm->ascii_literals[i]);
     }
     // mark modules
     ModuleDict__apply_mark(&vm->modules, mark_object);

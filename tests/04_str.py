@@ -190,6 +190,8 @@ assert (1 != '1') is True
 assert (1 == '1') is False
 assert 1 == 1.0
 
+assert chr(97) is 'a'
+
 exit()
 
 # test format()

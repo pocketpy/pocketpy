@@ -21,6 +21,17 @@ char* py_newstrn(py_Ref out, int size) {
 }
 
 void py_newstrv(py_OutRef out, c11_sv sv) {
+    if(sv.size == 0) {
+        *out = pk_current_vm->ascii_literals[128];
+        return;
+    }
+    if(sv.size == 1) {
+        int c = sv.data[0];
+        if(c >= 0 && c < 128) {
+            *out = pk_current_vm->ascii_literals[c];
+            return;
+        }
+    }
     char* data = py_newstrn(out, sv.size);
     memcpy(data, sv.data, sv.size);
 }
