@@ -1,4 +1,5 @@
 #include "pocketpy/common/str.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/common/utils.h"
@@ -208,7 +209,7 @@ static bool builtins_input(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     while(true) {
-        int c = getchar();
+        int c = pk_current_vm->callbacks.getchar();
         if(c == '\n') break;
         if(c == EOF) break;
         c11_sbuf__write_char(&buf, c);

@@ -66,6 +66,7 @@ void VM__ctor(VM* self) {
 
     self->callbacks.importfile = pk_default_importfile;
     self->callbacks.print = pk_default_print;
+    self->callbacks.getchar = getchar;
 
     self->last_retval = *py_NIL();
     self->curr_exception = *py_NIL();
@@ -748,3 +749,45 @@ bool pk_wrapper__NotImplementedError(int argc, py_Ref argv) {
 }
 
 py_TypeInfo* pk__type_info(py_Type type) { return TypeList__get(&pk_current_vm->types, type); }
+
+int py_replinput(char* buf, int max_size) {
+    buf[0] = '\0';  // reset first char because we check '@' at the beginning
+
+    int size = 0;
+    bool multiline = false;
+    printf(">>> ");
+
+    while(true) {
+        int c = pk_current_vm->callbacks.getchar();
+        if(c == EOF) return -1;
+
+        if(c == '\n') {
+            char last = '\0';
+            if(size > 0) last = buf[size - 1];
+            if(multiline) {
+                if(last == '\n') {
+                    break;  // 2 consecutive newlines to end multiline input
+                } else {
+                    printf("... ");
+                }
+            } else {
+                if(last == ':' || last == '(' || last == '[' || last == '{' || buf[0] == '@') {
+                    printf("... ");
+                    multiline = true;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        if(size == max_size - 1) {
+            buf[size] = '\0';
+            return size;
+        }
+
+        buf[size++] = c;
+    }
+
+    buf[size] = '\0';
+    return size;
+}
