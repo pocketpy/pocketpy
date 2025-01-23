@@ -15,6 +15,7 @@ py_Type libhv_register_WebSocketClient(py_GlobalRef mod);
 
 #include <deque>
 #include <atomic>
+#include <thread>
 
 template <typename T>
 class libhv_MQ {
@@ -25,7 +26,7 @@ private:
 public:
     void push(T msg) {
         while(lock.exchange(true)) {
-            hv_delay(1);
+            std::this_thread::yield();
         }
         queue.push_back(msg);
         lock.store(false);
@@ -33,7 +34,7 @@ public:
 
     bool pop(T* msg) {
         while(lock.exchange(true)) {
-            hv_delay(1);
+            std::this_thread::yield();
         }
         if(queue.empty()) {
             lock.store(false);
