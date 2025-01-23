@@ -1,6 +1,5 @@
-from typing import Literal, Generator, Callable
+from typing import Literal, Generator, Callable, Union
 
-WsMessageType = Literal['onopen', 'onclose', 'onmessage']
 WsChannelId = int
 HttpStatusCode = int
 HttpHeaders = dict[str, str]
@@ -70,10 +69,12 @@ class HttpServer:
     def ws_send(self, channel: WsChannelId, data: str, /) -> int:
         """Send WebSocket message through `channel`."""
 
-    def ws_recv(self) -> tuple[
-        WsMessageType,
-        tuple[WsChannelId, HttpRequest] | WsChannelId | tuple[WsChannelId, str]
-        ] | None:
+    def ws_recv(self) -> Union[
+        tuple[Literal['onopen'], tuple[WsChannelId, HttpRequest]],
+        tuple[Literal['onmessage'], tuple[WsChannelId, str]],
+        tuple[Literal['onclose'], WsChannelId],
+        None
+    ]:
         """Receive one WebSocket message.
         Return one of the following or `None` if nothing to receive.
         
@@ -89,7 +90,12 @@ class WebSocketClient:
     def send(self, data: str, /) -> int:
         """Send WebSocket message."""
 
-    def recv(self) -> tuple[WsMessageType, str | None] | None:
+    def recv(self) -> Union[
+        tuple[Literal['onopen'], None],
+        tuple[Literal['onclose'], None],
+        tuple[Literal['onmessage'], str],
+        None
+    ]:
         """Receive one WebSocket message.
         Return one of the following or `None` if nothing to receive.
         
@@ -101,3 +107,4 @@ class WebSocketClient:
 
 def strerror(errno: ErrorCode, /) -> str:
     """Get error message by errno via `hv_strerror`."""
+
