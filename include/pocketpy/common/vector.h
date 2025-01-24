@@ -41,7 +41,9 @@ void c11_vector__swap(c11_vector* self, c11_vector* other);
 
 #define c11_vector__extend(T, self, p, size)                                                       \
     do {                                                                                           \
-        c11_vector__reserve((self), (self)->length + (size));                                      \
+        int min_capacity = (self)->length + (size);                                                \
+        if((self)->capacity < min_capacity)                                                        \
+            c11_vector__reserve((self), c11__max((self)->capacity * 2, min_capacity));             \
         memcpy((T*)(self)->data + (self)->length, (p), (size) * sizeof(T));                        \
         (self)->length += (size);                                                                  \
     } while(0)
