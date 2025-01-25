@@ -63,6 +63,19 @@ static bool namedict_items(int argc, py_Ref argv) {
     return true;
 }
 
+static bool namedict_keys(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_Ref object = py_getslot(argv, 0);
+    NameDict* dict = PyObject__dict(object->_obj);
+    py_newtuple(py_retval(), dict->length);
+    for (int i = 0; i < dict->length; i++) {
+        py_Ref key_ref = py_tuple_getitem(py_retval(), i);
+        NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
+        py_newstr(key_ref, py_name2str(kv->key));
+    }
+    return true;
+}
+
 static bool namedict_clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Ref object = py_getslot(argv, 0);
@@ -81,6 +94,7 @@ py_Type pk_namedict__register() {
     py_bindmagic(type, __contains__, namedict__contains__);
     py_newnone(py_tpgetmagic(type, __hash__));
     py_bindmethod(type, "items", namedict_items);
+    py_bindmethod(type, "keys", namedict_keys);
     py_bindmethod(type, "clear", namedict_clear);
     return type;
 }
