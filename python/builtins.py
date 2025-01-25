@@ -81,6 +81,39 @@ def sorted(iterable, key=None, reverse=False):
     a.sort(key=key, reverse=reverse)
     return a
 
+def dir(obj=None):
+    """
+    dir([object]) -> list of strings
+    
+    If called without an argument, return the names in the current scope.
+    Else, return an alphabetized list of names comprising (some of) the attributes
+    of the given object, and of attributes reachable from it.
+    If the object supplies a method named __dir__, it will be used; otherwise
+    the default dir() logic is used and returns:
+      for a module object: the module's attributes.
+      for a class object: its attributes.
+      for any other object: its attributes, its class's attributes.
+    """
+    
+    if obj is None:
+        return list(globals().keys())
+    
+    if hasattr(obj, "__dir__"):
+        return obj.__dir__
+    
+    attributes = set()
+    # Set object attributes.
+    if hasattr(obj, "__dict__"):
+        attributes.update(obj.__dict__.keys())
+    
+    # Set type attributes.
+    if not isinstance(obj, type):
+        if hasattr(type(obj), "__dict__"):
+            attributes.update(type(obj).__dict__.keys())
+    
+    return sorted(attributes)
+
+
 ##### str #####
 def __format_string(self: str, *args, **kwargs) -> str:
     def tokenizeString(s: str):
