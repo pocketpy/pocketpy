@@ -51,19 +51,18 @@ assert not all([False, False])
 assert list(enumerate([1,2,3])) == [(0,1), (1,2), (2,3)]
 assert list(enumerate([1,2,3], 1)) == [(1,1), (2,2), (3,3)]
 
-class C1:
-    def c(): ...
+assert "__name__" in dir()
 
-class C2(C1):
-    a = 'a'
+class Base:
+    def inherited(): ...
+
+class Test(Base):
+    cls_attr = 'a'
     def __init__(self):
-        self.b = 1
+        self.self_attr = 1
+assert {"self_attr", "cls_attr", "inherited"}.issubset(dir(Test()))
 
-class C3:
+class CustomDir:
     def __dir__(self):
         return ["custom"]
-
-assert "__name__" in dir()
-assert "a", "b" in dir(C2())
-assert "c" in dir(C2())
-assert ["custom"] == dir(C3())
+assert ["custom"] == dir(CustomDir())
