@@ -50,3 +50,20 @@ assert not all([False, False])
 
 assert list(enumerate([1,2,3])) == [(0,1), (1,2), (2,3)]
 assert list(enumerate([1,2,3], 1)) == [(1,1), (2,2), (3,3)]
+
+class C1:
+    def c(): ...
+
+class C2(C1):
+    a = 'a'
+    def __init__(self):
+        self.b = 1
+
+class C3:
+    def __dir__(self):
+        return ["custom"]
+
+assert "__name__" in dir()
+assert "a", "b" in dir(C2())
+assert "c" in dir(C2())
+assert ["custom"] == dir(C3())

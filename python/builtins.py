@@ -85,18 +85,18 @@ def dir(obj=None):
     if obj is None:
         return list(globals().keys())
     
-    if hasattr(obj, "__dir__"):
-        return obj.__dir__()
-    
     attributes = set()
-    # Set object attributes.
+    
+    if not isinstance(obj, type):
+        if hasattr(obj, "__dir__"):
+            return sorted(obj.__dir__())
+        attributes.update(dir(type(obj)))
+    
     if hasattr(obj, "__dict__"):
         attributes.update(obj.__dict__.keys())
     
-    # Set type attributes.
-    if not isinstance(obj, type):
-        if hasattr(type(obj), "__dict__"):
-            attributes.update(type(obj).__dict__.keys())
+    if hasattr(obj, "__base__") and obj.__base__ is not None:
+        attributes.update(dir(obj.__base__))
     
     return sorted(attributes)
 
