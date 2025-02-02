@@ -4,6 +4,16 @@ order: 0
 label: "Project Ideas"
 ---
 
+### Development `cTensor` library for neural networks
+
++ Difficulty Level: 3/5 (Medium)
++ Skill: C; Further Mathematics
++ Project Length: Medium
+
+pocketpy is planning to provide a tensor library `cTensor` for users who want to integrate neural networks into their applications. `cTensor` implements automatic differentiation and dynamic compute graph. It allows users to train and deploy neural networks on client-side devices like mobile phones and microcontrollers (e.g. ESP32-C3). We have a early prototype located at [pocketpy/cTensor](https://github.com/pocketpy/cTensor).
+
+In this project, students will help develop and test the `cTensor` library, which is written in C11. We expect students to have a good understanding of further mathematics and C programming.
+
 ### Porting LDTK importer for python games
 
 + Difficulty Level: 2/5 (Easy)
@@ -13,16 +23,7 @@ label: "Project Ideas"
 [LDTK](https://ldtk.io/) is a modern 2D level editor, created by the director of Dead Cells. It is free and open-source, used by many game developers.
 LDTK exports raw level data in JSON format, which can be further parsed by game frameworks. Currently, there is no convenient LDTK importer library in python (except the [QuickType](https://ldtk.io/api/#Python) loader, which has very limited functionality because it wraps the JSON schema only).
 
-This project aims to develop a full-featured python library for importing LDTK levels, with advanced support of [Auto Tiles](https://ldtk.io/wp-content/uploads/2020/11/autoLayer-demo2.gif) for games with random map generation. The library should be written in pure python, compatible with pocketpy and cpython. If successful, it will be published on [PyPI](https://pypi.org/) and benefit all python game developers.
-
-### Development `cTensor` library for machine learning
-
-+ Difficulty Level: 3/5 (Medium)
-+ Skill: C; Further Mathematics
-+ Project Length: Medium
-
-pocketpy is planning to provide a tensor library `cTensor` for users who want to integrate neural networks into their applications. `cTensor` implements automatic differentiation and dynamic compute graph. It allows users to train and deploy neural networks on client-side devices like mobile phones and microcontrollers (e.g. ESP32-C3). We have a early prototype located at [pocketpy/cTensor](https://github.com/pocketpy/cTensor).
-In this project, students will help develop and test the `cTensor` library, which is written in C11. We expect students to have a good understanding of further mathematics and C programming.
+This project aims to develop a full-featured python library for importing LDTK levels, with advanced support of [Auto Tiles](https://ldtk.io/wp-content/uploads/2020/11/autoLayer-demo2.gif) for games with random map generation. The library should be written in pure python, compatible with pocketpy and cpython.
 
 ### VSCode plugin for debugging pocketpy applications
 
