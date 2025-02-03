@@ -291,11 +291,14 @@ static bool dict__init__(int argc, py_Ref argv) {
     if(argc > 2) return TypeError("dict.__init__() takes at most 2 arguments (%d given)", argc);
     if(argc == 1) return true;
     assert(argc == 2);
-    PY_CHECK_ARG_TYPE(1, tp_list);
+
+    py_TValue* p;
+    int length = pk_arrayview(py_arg(1), &p);
+    if(length == -1) { return TypeError("dict.__init__() expects a list or tuple"); }
+
     Dict* self = py_touserdata(argv);
-    py_Ref list = py_arg(1);
-    for(int i = 0; i < py_list_len(list); i++) {
-        py_Ref tuple = py_list_getitem(list, i);
+    for(int i = 0; i < length; i++) {
+        py_Ref tuple = &p[i];
         if(!py_istuple(tuple) || py_tuple_len(tuple) != 2) {
             return TypeError("dict.__init__() argument must be a list of tuple-2");
         }

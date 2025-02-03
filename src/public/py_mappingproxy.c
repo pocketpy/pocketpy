@@ -52,9 +52,28 @@ static bool namedict_items(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Ref object = py_getslot(argv, 0);
     NameDict* dict = PyObject__dict(object->_obj);
-    py_newtuple(py_retval(), dict->length);
+    py_newlist(py_retval());
+    if(object->type == tp_type) {
+        py_TypeInfo* ti = pk__type_info(py_totype(object));
+        for(int j = 0; j < PK_MAGIC_SLOTS_COMMON_LENGTH; j++) {
+            if(py_isnil(ti->magic_0 + j)) continue;
+            py_Ref slot = py_list_emplace(py_retval());
+            py_newtuple(slot, 2);
+            py_newstr(py_tuple_getitem(slot, 0), py_name2str(j + PK_MAGIC_SLOTS_UNCOMMON_LENGTH));
+            py_assign(py_tuple_getitem(slot, 1), ti->magic_0 + j);
+        }
+        if(ti->magic_1) {
+            for(int j = 0; j < PK_MAGIC_SLOTS_UNCOMMON_LENGTH; j++) {
+                if(py_isnil(ti->magic_1 + j)) continue;
+                py_Ref slot = py_list_emplace(py_retval());
+                py_newtuple(slot, 2);
+                py_newstr(py_tuple_getitem(slot, 0), py_name2str(j));
+                py_assign(py_tuple_getitem(slot, 1), ti->magic_1 + j);
+            }
+        }
+    }
     for(int i = 0; i < dict->length; i++) {
-        py_Ref slot = py_tuple_getitem(py_retval(), i);
+        py_Ref slot = py_list_emplace(py_retval());
         py_newtuple(slot, 2);
         NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
         py_newstr(py_tuple_getitem(slot, 0), py_name2str(kv->key));
