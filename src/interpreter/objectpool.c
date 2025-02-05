@@ -52,6 +52,7 @@ static int PoolArena__sweep_dealloc(PoolArena* self) {
         } else {
             if(!obj->gc_marked) {
                 // not marked, need to free
+                PyObject__dtor(obj);
                 obj->type = 0;
                 freed++;
                 self->unused[self->unused_length] = i;

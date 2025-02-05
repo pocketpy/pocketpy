@@ -49,7 +49,6 @@ bool py_deldict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
     if(!py_ismagicname(name) || self->type != tp_type) {
         return NameDict__del(PyObject__dict(self->_obj), name);
-
     } else {
         py_Type* ud = py_touserdata(self);
         py_newnil(py_tpgetmagic(*ud, name));
