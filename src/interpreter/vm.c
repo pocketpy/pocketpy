@@ -585,14 +585,6 @@ void PyObject__dtor(PyObject* self) {
     if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
 }
 
-static void mark_object(PyObject* obj);
-
-void pk__mark_value(py_TValue* val) {
-    if(val->is_ptr && !val->_obj->gc_marked) {
-        mark_object(val->_obj);
-    }
-}
-
 void pk__mark_namedict(NameDict* dict) {
     for(int i = 0; i < dict->length; i++) {
         NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
@@ -606,9 +598,9 @@ void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*)) {
     ti->gc_mark = gc_mark;
 }
 
-static void mark_object(PyObject* obj) {
+void PyObject__mark(PyObject* obj) {
     assert(!obj->gc_marked);
-    
+
     obj->gc_marked = true;
 
     if(obj->slots > 0) {
@@ -654,7 +646,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
         pk__mark_value(&vm->ascii_literals[i]);
     }
     // mark modules
-    ModuleDict__apply_mark(&vm->modules, pk__mark_value);
+    ModuleDict__apply_mark(&vm->modules);
     // mark types
     int types_length = vm->types.length;
     // 0-th type is placeholder

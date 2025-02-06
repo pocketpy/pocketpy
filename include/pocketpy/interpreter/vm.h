@@ -55,7 +55,7 @@ void VM__pop_frame(VM* self);
 bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* step);
 bool pk__normalize_index(int* index, int length);
 
-void pk__mark_value(py_TValue*);
+#define pk__mark_value(val) if((val)->is_ptr && !(val)->_obj->gc_marked) PyObject__mark((val)->_obj)
 void pk__mark_namedict(NameDict*);
 void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*));
 bool pk__object_new(int argc, py_Ref argv);
