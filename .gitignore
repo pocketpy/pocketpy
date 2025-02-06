@@ -37,3 +37,6 @@ tests/00_tmp.py
 docs/C-API/functions.md
 
 *.log
+
+
+cmake-build-*

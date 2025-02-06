@@ -74,8 +74,8 @@ bool ModuleDict__contains(ModuleDict* self, const char* path) {
     return ModuleDict__try_get(self, path) != NULL;
 }
 
-void ModuleDict__apply_mark(ModuleDict *self, void (*marker)(PyObject*)) {
+void ModuleDict__apply_mark(ModuleDict *self, void (*marker)(py_TValue*)) {
     if(self->left) ModuleDict__apply_mark(self->left, marker);
     if(self->right) ModuleDict__apply_mark(self->right, marker);
-    marker(self->module._obj);
+    marker(&self->module);
 }
