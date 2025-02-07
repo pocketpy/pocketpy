@@ -23,14 +23,13 @@
 <a href="https://hellogithub.com/repository/dd9c509d72a64caca03d99d5b1991a33" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=dd9c509d72a64caca03d99d5b1991a33&claim_uid=jhOYmWGE75AL0Bp&theme=small" alt="Featured｜HelloGitHub" /></a>
 </p>
 
-pkpy is a lightweight(~15K LOC) Python 3.x interpreter for game scripting, written in C11.
-
-It aims to be an alternative to lua for game scripting, with elegant syntax, powerful features and competitive performance.
-pkpy is extremely easy to embed via a single header file `pocketpy.h`, without external dependencies.
+pocketpy is a portable Python 3.x interpreter, written in C11.
+It aims to be an alternative to Lua for game scripting, with elegant syntax, powerful features and competitive performance.
+pocketpy has no dependencies other than the C standard library, which can be easily integrated into your C/C++ project.
+Developers are able to write Python bindings via C-API or pybind11 compatible interfaces.
 
 Please see https://pocketpy.dev for details and try the following resources.
 + [Live Python Demo](https://pocketpy.dev/static/web/): Run Python code in your browser
-<!-- + [Live C++ Examples](https://pocketpy.github.io/examples/): Common usage of pkpy in C++ -->
 
 ## Supported Platforms
 
