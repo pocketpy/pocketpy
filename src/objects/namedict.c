@@ -76,7 +76,7 @@ bool ModuleDict__contains(ModuleDict* self, const char* path) {
 }
 
 void ModuleDict__apply_mark(ModuleDict *self) {
-    PyObject__mark(self->module._obj);
+    if(!self->module._obj->gc_marked) PyObject__mark(self->module._obj);
     if(self->left) ModuleDict__apply_mark(self->left);
     if(self->right) ModuleDict__apply_mark(self->right);
 }
