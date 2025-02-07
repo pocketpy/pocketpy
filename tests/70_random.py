@@ -67,3 +67,6 @@ seed(7)
 assert a == randint(1, 100)
 assert b == randint(-2**60, 1)
 assert c == randint(50, 100)
+
+import random
+assert random.Random(7).randint(1, 100) == a
