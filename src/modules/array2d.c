@@ -736,3 +736,105 @@ void pk__add_module_array2d() {
 
 #undef INC_COUNT
 #undef HANDLE_SLICE
+
+/* chunked_array2d */
+#define SMALLMAP_T__SOURCE
+#define K c11_vec2i
+#define V py_TValue*
+#define NAME c11_chunked_array2d_chunks
+#define less(a, b) (a._i64 < b._i64)
+#define equal(a, b) (a._i64 == b._i64)
+#include "pocketpy/xmacros/smallmap.h"
+#undef SMALLMAP_T__SOURCE
+
+static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_vec2i pos) {
+    int chunk_numel = self->chunk_size * self->chunk_size;
+    py_TValue* data = PK_MALLOC(sizeof(py_TValue) * chunk_numel);
+    memset(data, 0, sizeof(py_TValue) * chunk_numel);
+#ifndef NDEBUG
+    bool exists = c11_chunked_array2d_chunks__contains(&self->chunks, pos);
+    assert(!exists);
+#endif
+    c11_chunked_array2d_chunks__set(&self->chunks, pos, data);
+    self->last_visited.key = pos;
+    self->last_visited.value = data;
+    return data;
+}
+
+static py_TValue* c11_chunked_array2d__parse_col_row(c11_chunked_array2d* self,
+                                                     int col,
+                                                     int row,
+                                                     c11_vec2i* chunk_pos,
+                                                     c11_vec2i* local_pos) {
+    if(col >= 0) {
+        chunk_pos->x = col >> self->chunk_size_log2;
+        local_pos->x = col & self->chunk_size_mask;
+    } else {
+        chunk_pos->x = -((-col) >> self->chunk_size_log2);
+        local_pos->x = (-col) & self->chunk_size_mask;
+    }
+    if(row >= 0) {
+        chunk_pos->y = row >> self->chunk_size_log2;
+        local_pos->y = row & self->chunk_size_mask;
+    } else {
+        chunk_pos->y = -((-row) >> self->chunk_size_log2);
+        local_pos->y = (-row) & self->chunk_size_mask;
+    }
+    py_TValue* data;
+    if(chunk_pos->_i64 == self->last_visited.key._i64) {
+        data = self->last_visited.value;
+    } else {
+        data = c11_chunked_array2d_chunks__get(&self->chunks, *chunk_pos, NULL);
+    }
+    if(data != NULL) {
+        self->last_visited.key = *chunk_pos;
+        self->last_visited.value = data;
+    }
+    return data;
+}
+
+void c11_chunked_array2d__ctor(c11_chunked_array2d* self, int chunk_size) {
+    c11_chunked_array2d_chunks__ctor(&self->chunks);
+    self->chunk_size = chunk_size;
+    switch(chunk_size) {
+        case 2: self->chunk_size_log2 = 1; break;
+        case 4: self->chunk_size_log2 = 2; break;
+        case 8: self->chunk_size_log2 = 3; break;
+        case 16: self->chunk_size_log2 = 4; break;
+        case 32: self->chunk_size_log2 = 5; break;
+        case 64: self->chunk_size_log2 = 6; break;
+        case 128: self->chunk_size_log2 = 7; break;
+        case 256: self->chunk_size_log2 = 8; break;
+        case 512: self->chunk_size_log2 = 9; break;
+        case 1024: self->chunk_size_log2 = 10; break;
+        case 2048: self->chunk_size_log2 = 11; break;
+        case 4096: self->chunk_size_log2 = 12; break;
+        default: c11__abort("invalid chunk_size: %d", chunk_size);
+    }
+    self->chunk_size_mask = chunk_size - 1;
+    c11_chunked_array2d__new_chunk(self,
+                                   (c11_vec2i){
+                                       {0, 0}
+    });
+}
+
+void c11_chunked_array2d__dtor(c11_chunked_array2d* self) {
+    c11__foreach(c11_chunked_array2d_chunks_KV, &self->chunks, p_kv) { PK_FREE(p_kv->value); }
+    c11_chunked_array2d_chunks__dtor(&self->chunks);
+}
+
+py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row) {
+    c11_vec2i chunk_pos, local_pos;
+    py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
+    if(data == NULL) return NULL;
+    py_Ref retval = &data[local_pos.y * self->chunk_size + local_pos.x];
+    if(py_isnil(retval)) return NULL;
+    return retval;
+}
+
+void c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value) {
+    c11_vec2i chunk_pos, local_pos;
+    py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
+    if(data == NULL) data = c11_chunked_array2d__new_chunk(self, chunk_pos);
+    data[local_pos.y * self->chunk_size + local_pos.x] = *value;
+}
