@@ -156,7 +156,10 @@ __SUCCESS:
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
-    if(need_free) PK_FREE((void*)data);
+    if(need_free){
+        // data is from `callbacks.importfile` we should use `free()`
+        free((void*)data);
+    }
     return ok ? 1 : -1;
 }
 
@@ -165,7 +168,7 @@ bool py_importlib_reload(py_GlobalRef module) {
     c11_sv path = py_tosv(py_getdict(module, __path__));
     c11_string* slashed_path = c11_sv__replace(path, '.', PK_PLATFORM_SEP);
     c11_string* filename = c11_string__new3("%s.py", slashed_path->data);
-    const char* data = vm->callbacks.importfile(filename->data);
+    char* data = vm->callbacks.importfile(filename->data);
     if(data == NULL) {
         c11_string__delete(filename);
         filename = c11_string__new3("%s%c__init__.py", slashed_path->data, PK_PLATFORM_SEP);
@@ -175,6 +178,7 @@ bool py_importlib_reload(py_GlobalRef module) {
     if(data == NULL) return ImportError("module '%v' not found", path);
     bool ok = py_exec(data, filename->data, EXEC_MODE, module);
     c11_string__delete(filename);
+    free(data);
     py_assign(py_retval(), module);
     return ok;
 }
