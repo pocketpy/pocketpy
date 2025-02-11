@@ -35,18 +35,17 @@ typedef struct c11_chunked_array2d {
     int chunk_size;
     int chunk_size_log2;
     int chunk_size_mask;
-
-    struct {
-        py_Ref missing_chunk;
-    } callbacks;
-
     c11_chunked_array2d_chunks_KV last_visited;
+
+    py_TValue default_T;
+    py_TValue context_builder;
 } c11_chunked_array2d;
 
-void c11_chunked_array2d__ctor(c11_chunked_array2d* self, int chunk_size);
 void c11_chunked_array2d__dtor(c11_chunked_array2d* self);
+void c11_chunked_array2d__mark(c11_chunked_array2d* self);
 
 py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row);
-void c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value);
+bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value) PY_RAISE;
+void c11_chunked_array2d__del(c11_chunked_array2d* self, int col, int row);
 
 /* array2d_view */
