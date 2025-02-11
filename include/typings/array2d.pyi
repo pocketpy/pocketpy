@@ -3,7 +3,7 @@ from linalg import vec2i
 
 Neighborhood = Literal['Moore', 'von Neumann']
 
-class array2d[T]:
+class array2d_like[T]:
     @property
     def n_cols(self) -> int: ...
     @property
@@ -15,32 +15,38 @@ class array2d[T]:
     @property
     def numel(self) -> int: ...
 
-    def __new__(cls, n_cols: int, n_rows: int, default: T | Callable[[vec2i], T] | None = None): ...
-    def __eq__(self, other: object) -> array2d[bool]: ... # type: ignore
-    def __ne__(self, other: object) -> array2d[bool]: ... # type: ignore
-    def __repr__(self) -> str: ...
-    def __iter__(self) -> Iterator[tuple[vec2i, T]]: ...
-
     @overload
     def is_valid(self, col: int, row: int) -> bool: ...
     @overload
     def is_valid(self, pos: vec2i) -> bool: ...
 
+    @overload
+    def __getitem__(self, index: vec2i) -> T: ...
+    @overload
+    def __getitem__(self, index: tuple[int, int]) -> T: ...
+    @overload
+    def __setitem__(self, index: vec2i, value: T): ...
+    @overload
+    def __setitem__(self, index: tuple[int, int], value: T): ...
+
+
+class array2d_view[T](array2d_like[T]):
+    origin: vec2i
+
+
+class array2d[T](array2d_like[T]):
+    def __new__(cls, n_cols: int, n_rows: int, default: T | Callable[[vec2i], T] | None = None): ...
+    def __eq__(self, other: object) -> array2d[bool]: ... # type: ignore
+    def __ne__(self, other: object) -> array2d[bool]: ... # type: ignore
+    def __iter__(self) -> Iterator[tuple[vec2i, T]]: ...
+
     def get[R](self, col: int, row: int, default: R = None) -> T | R:
         """Gets the value at the given position. If the position is out of bounds, return the default value."""
 
     @overload
-    def __getitem__(self, index: tuple[int, int]) -> T: ...
-    @overload
-    def __getitem__(self, index: vec2i) -> T: ...
-    @overload
     def __getitem__(self, index: tuple[slice, slice]) -> array2d[T]: ...
     @overload
     def __getitem__(self, mask: array2d[bool]) -> list[T]: ...
-    @overload
-    def __setitem__(self, index: tuple[int, int], value: T): ...
-    @overload
-    def __setitem__(self, index: vec2i, value: T): ...
     @overload
     def __setitem__(self, index: tuple[slice, slice], value: int | float | str | bool | None | 'array2d[T]'): ...
     @overload
@@ -84,16 +90,6 @@ class array2d[T]:
         Returns the `visited` array and the number of connected components,
         where `0` means unvisited, and non-zero means the index of the connected component.
         """
-
-
-class array2d_view[T]:
-    origin: vec2i
-    width: int
-    height: int
-    mask: array2d[bool] | None
-
-    def __getitem__(self, index: vec2i) -> T: ...
-    def __setitem__(self, index: vec2i, value: T): ...
 
 
 class chunked_array2d[T, TContext]:
