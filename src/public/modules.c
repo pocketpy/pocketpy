@@ -156,10 +156,7 @@ __SUCCESS:
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
-    if(need_free){
-        // data is from `callbacks.importfile` we should use `free()`
-        free((void*)data);
-    }
+    if(need_free) PK_FREE((void*)data);
     return ok ? 1 : -1;
 }
 
@@ -178,7 +175,7 @@ bool py_importlib_reload(py_GlobalRef module) {
     if(data == NULL) return ImportError("module '%v' not found", path);
     bool ok = py_exec(data, filename->data, EXEC_MODE, module);
     c11_string__delete(filename);
-    free(data);
+    PK_FREE(data);
     py_assign(py_retval(), module);
     return ok;
 }
