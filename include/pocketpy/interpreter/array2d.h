@@ -42,10 +42,11 @@ typedef struct c11_chunked_array2d {
 } c11_chunked_array2d;
 
 void c11_chunked_array2d__dtor(c11_chunked_array2d* self);
-void c11_chunked_array2d__mark(c11_chunked_array2d* self);
 
 py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row);
 bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value) PY_RAISE;
 void c11_chunked_array2d__del(c11_chunked_array2d* self, int col, int row);
+
+void pk__register_chunked_array2d(py_Ref mod);
 
 /* array2d_view */

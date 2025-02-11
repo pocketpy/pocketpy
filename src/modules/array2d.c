@@ -732,6 +732,8 @@ void pk__add_module_array2d() {
         py_printexc();
         c11__abort("failed to execute array2d.py");
     }
+
+    pk__register_chunked_array2d(mod);
 }
 
 #undef INC_COUNT
@@ -752,8 +754,8 @@ static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_
     bool exists = c11_chunked_array2d_chunks__contains(&self->chunks, pos);
     assert(!exists);
 #endif
-    int chunk_numel = self->chunk_size * self->chunk_size;
-    py_TValue* data = PK_MALLOC(1 + sizeof(py_TValue) * chunk_numel);
+    int chunk_numel = self->chunk_size * self->chunk_size + 1;
+    py_TValue* data = PK_MALLOC(sizeof(py_TValue) * chunk_numel);
     if(!py_isnone(&self->context_builder)) {
         py_newvec2i(&data[0], pos);
         bool ok = py_call(&self->context_builder, 1, &data[0]);
@@ -762,14 +764,18 @@ static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_
     } else {
         data[0] = *py_None();
     }
-    memset(&data[1], 0, sizeof(py_TValue) * chunk_numel);
+    memset(&data[1], 0, sizeof(py_TValue) * (chunk_numel - 1));
     c11_chunked_array2d_chunks__set(&self->chunks, pos, data);
     self->last_visited.key = pos;
     self->last_visited.value = data;
     return data;
 }
 
-void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self, int col, int row, c11_vec2i* chunk_pos, c11_vec2i* local_pos) {
+void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
+                                         int col,
+                                         int row,
+                                         c11_vec2i* chunk_pos,
+                                         c11_vec2i* local_pos) {
     if(col >= 0) {
         chunk_pos->x = col >> self->chunk_size_log2;
         local_pos->x = col & self->chunk_size_mask;
@@ -922,7 +928,7 @@ static bool chunked_array2d__add_chunk(int argc, py_Ref argv) {
     c11_vec2i pos = py_tovec2i(&argv[1]);
     py_TValue* data = c11_chunked_array2d__new_chunk(self, pos);
     if(data == NULL) return false;
-    py_assign(py_retval(), &data[0]);   // context
+    py_assign(py_retval(), &data[0]);  // context
     return true;
 }
 
@@ -978,11 +984,25 @@ bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Re
 void c11_chunked_array2d__del(c11_chunked_array2d* self, int col, int row) {
     c11_vec2i chunk_pos, local_pos;
     py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
-    if(data != NULL) { data[local_pos.y * self->chunk_size + local_pos.x] = *py_NIL(); }
+    if(data != NULL) data[local_pos.y * self->chunk_size + local_pos.x] = *py_NIL();
+}
+
+static void c11_chunked_array2d__mark(void* ud) {
+    c11_chunked_array2d* self = ud;
+    pk__mark_value(&self->default_T);
+    pk__mark_value(&self->context_builder);
+    int chunk_numel = self->chunk_size * self->chunk_size + 1;
+    for(int i = 0; i < self->chunks.length; i++) {
+        py_TValue* data = c11__getitem(c11_chunked_array2d_chunks_KV, &self->chunks, i).value;
+        for(int j = 0; j < chunk_numel; j++) {
+            pk__mark_value(data + j);
+        }
+    }
 }
 
 void pk__register_chunked_array2d(py_Ref mod) {
     py_Type cls = py_newtype("chunked_array2d", tp_object, mod, (py_Dtor)c11_chunked_array2d__dtor);
+    pk__tp_set_marker(cls, c11_chunked_array2d__mark);
 
     py_bindmagic(cls, __new__, chunked_array2d__new__);
     py_bind(py_tpobject(cls),
