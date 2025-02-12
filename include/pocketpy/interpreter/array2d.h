@@ -6,11 +6,17 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 
-typedef struct c11_array2d {
-    py_TValue* data;  // slots
+typedef struct c11_array2d_like {
     int n_cols;
     int n_rows;
     int numel;
+    py_Ref (*f_get)(struct c11_array2d_like* self, int col, int row);
+    bool (*f_set)(struct c11_array2d_like* self, int col, int row, py_Ref value);
+} c11_array2d_like;
+
+typedef struct c11_array2d {
+    c11_array2d_like header;
+    py_TValue* data;  // slots
 } c11_array2d;
 
 typedef struct c11_array2d_iterator {
