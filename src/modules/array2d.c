@@ -4,10 +4,11 @@ static bool c11_array2d_like_is_valid(c11_array2d_like* self, unsigned int col, 
     return col < self->n_cols && row < self->n_rows;
 }
 
-static py_Ref py_array2d__get(c11_array2d* self, int col, int row) {
+static py_Ref c11_array2d__get(c11_array2d* self, int col, int row) {
     return self->data + row * self->header.n_cols + col;
 }
-static bool py_array2d__set(c11_array2d* self, int col, int row, py_Ref value) {
+
+static bool c11_array2d__set(c11_array2d* self, int col, int row, py_Ref value) {
     self->data[row * self->header.n_cols + col] = *value;
     return true;
 }
@@ -18,8 +19,8 @@ c11_array2d* py_newarray2d(py_OutRef out, int n_cols, int n_rows) {
     ud->header.n_cols = n_cols;
     ud->header.n_rows = n_rows;
     ud->header.numel = numel;
-    ud->header.f_get = (py_Ref (*)(c11_array2d_like*, int, int))py_array2d__get;
-    ud->header.f_set = (bool (*)(c11_array2d_like*, int, int, py_Ref))py_array2d__set;
+    ud->header.f_get = (py_Ref(*)(c11_array2d_like*, int, int))c11_array2d__get;
+    ud->header.f_set = (bool (*)(c11_array2d_like*, int, int, py_Ref))c11_array2d__set;
     ud->data = py_getslot(out, 0);
     return ud;
 }
@@ -167,20 +168,6 @@ static bool array2d_like_map(int argc, py_Ref argv) {
     return true;
 }
 
-static bool array2d_like_copy(int argc, py_Ref argv) {
-    // def copy(self) -> 'array2d': ...
-    PY_CHECK_ARGC(1);
-    c11_array2d_like* self = py_touserdata(argv);
-    c11_array2d* res = py_newarray2d(py_retval(), self->n_cols, self->n_rows);
-    for(int j = 0; j < self->n_rows; j++) {
-        for(int i = 0; i < self->n_cols; i++) {
-            py_Ref item = self->f_get(self, i, j);
-            res->data[j * self->n_cols + i] = *item;
-        }
-    }
-    return true;
-}
-
 static bool array2d_like_apply(int argc, py_Ref argv) {
     // def apply_(self, f: Callable[[T], T]) -> None: ...
     PY_CHECK_ARGC(2);
@@ -198,67 +185,15 @@ static bool array2d_like_apply(int argc, py_Ref argv) {
     return true;
 }
 
-static void pk__register_array2d_like(py_Ref mod) {
-    py_Type type = py_newtype("array2d_like", tp_object, mod, NULL);
-
-    py_bindproperty(type, "n_cols", array2d_like_n_cols, NULL);
-    py_bindproperty(type, "n_rows", array2d_like_n_rows, NULL);
-    py_bindproperty(type, "width", array2d_like_n_cols, NULL);
-    py_bindproperty(type, "height", array2d_like_n_rows, NULL);
-    py_bindproperty(type, "shape", array2d_like_shape, NULL);
-    py_bindproperty(type, "numel", array2d_like_numel, NULL);
-
-    py_bindmethod(type, "is_valid", array2d_like_is_valid);
-    py_bindmethod(type, "get", array2d_like_get);
-
-    py_bindmethod(type, "render", array2d_like_render);
-
-    py_bindmethod(type, "all", array2d_like_all);
-    py_bindmethod(type, "any", array2d_like_any);
-
-    py_bindmethod(type, "map", array2d_like_map);
-    py_bindmethod(type, "apply", array2d_like_apply);
-    py_bindmethod(type, "copy", array2d_like_copy);
-}
-
-static bool array2d__new__(int argc, py_Ref argv) {
-    // __new__(cls, n_cols: int, n_rows: int, default: Callable[[vec2i], T] = None)
-    py_Ref default_ = py_arg(3);
-    PY_CHECK_ARG_TYPE(0, tp_type);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
-    int n_cols = argv[1]._i64;
-    int n_rows = argv[2]._i64;
-    if(n_cols <= 0 || n_rows <= 0) return ValueError("array2d() expected positive dimensions");
-    c11_array2d* ud = py_newarray2d(py_pushtmp(), n_cols, n_rows);
-    // setup initial values
-    if(py_callable(default_)) {
-        for(int j = 0; j < n_rows; j++) {
-            for(int i = 0; i < n_cols; i++) {
-                py_TValue tmp;
-                py_newvec2i(&tmp, (c11_vec2i){{i, j}});
-                if(!py_call(default_, 1, &tmp)) return false;
-                ud->data[j * n_cols + i] = *py_retval();
-            }
-        }
-    } else {
-        for(int i = 0; i < ud->header.numel; i++) {
-            ud->data[i] = *default_;
-        }
-    }
-    py_assign(py_retval(), py_peek(-1));
-    py_pop();
-    return true;
-}
-
-
-
-static bool _array2d_check_all_type(c11_array2d* self, py_Type type) {
-    for(int i = 0; i < self->numel; i++) {
-        py_Type item_type = self->data[i].type;
-        if(item_type != type) {
-            const char* fmt = "expected array2d[%t], got %t";
-            return TypeError(fmt, type, item_type);
+static bool array2d_like_copy(int argc, py_Ref argv) {
+    // def copy(self) -> 'array2d': ...
+    PY_CHECK_ARGC(1);
+    c11_array2d_like* self = py_touserdata(argv);
+    c11_array2d* res = py_newarray2d(py_retval(), self->n_cols, self->n_rows);
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            py_Ref item = self->f_get(self, i, j);
+            res->data[j * self->n_cols + i] = *item;
         }
     }
     return true;
@@ -272,30 +207,35 @@ static bool _check_same_shape(int colA, int rowA, int colB, int rowB) {
     return true;
 }
 
-static bool _array2d_check_same_shape(c11_array2d* self, c11_array2d* other) {
+static bool _array2d_like_check_same_shape(c11_array2d_like* self, c11_array2d_like* other) {
     return _check_same_shape(self->n_cols, self->n_rows, other->n_cols, other->n_rows);
 }
 
-
-
-static bool array2d__eq__(int argc, py_Ref argv) {
+static bool array2d_like__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_array2d* self = py_touserdata(argv);
+    c11_array2d_like* self = py_touserdata(argv);
     c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
-    if(py_istype(py_arg(1), tp_array2d)) {
-        c11_array2d* other = py_touserdata(py_arg(1));
-        if(!_array2d_check_same_shape(self, other)) return false;
-        for(int i = 0; i < self->numel; i++) {
-            int code = py_equal(self->data + i, other->data + i);
-            if(code == -1) return false;
-            py_newbool(res->data + i, (bool)code);
+    if(py_isinstance(py_arg(1), tp_array2d_like)) {
+        c11_array2d_like* other = py_touserdata(py_arg(1));
+        if(!_array2d_like_check_same_shape(self, other)) return false;
+        for(int j = 0; j < self->n_rows; j++) {
+            for(int i = 0; i < self->n_cols; i++) {
+                py_Ref lhs = self->f_get(self, i, j);
+                py_Ref rhs = other->f_get(other, i, j);
+                int code = py_equal(lhs, rhs);
+                if(code == -1) return false;
+                py_newbool(&res->data[j * self->n_cols + i], (bool)code);
+            }
         }
     } else {
         // broadcast
-        for(int i = 0; i < self->numel; i++) {
-            int code = py_equal(self->data + i, py_arg(1));
-            if(code == -1) return false;
-            py_newbool(res->data + i, (bool)code);
+        for(int j = 0; j < self->n_rows; j++) {
+            for(int i = 0; i < self->n_cols; i++) {
+                py_Ref lhs = self->f_get(self, i, j);
+                int code = py_equal(lhs, py_arg(1));
+                if(code == -1) return false;
+                py_newbool(&res->data[j * self->n_cols + i], (bool)code);
+            }
         }
     }
     py_assign(py_retval(), py_peek(-1));
@@ -303,120 +243,233 @@ static bool array2d__eq__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool array2d__ne__(int argc, py_Ref argv) {
-    bool ok = array2d__eq__(argc, argv);
+static bool array2d_like__ne__(int argc, py_Ref argv) {
+    bool ok = array2d_like__eq__(argc, argv);
     if(!ok) return false;
+    assert(py_istype(py_retval(), tp_array2d));
     c11_array2d* res = py_touserdata(py_retval());
     py_TValue* data = res->data;
-    for(int i = 0; i < res->numel; i++) {
+    for(int i = 0; i < res->header.numel; i++) {
+        assert(py_isbool(&data[i]));
         py_newbool(&data[i], !py_tobool(&data[i]));
     }
     return true;
 }
 
-static bool array2d__repr__(int argc, py_Ref argv) {
+static bool array2d_like__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    c11_array2d* self = py_touserdata(argv);
+    c11_array2d_like* self = py_touserdata(argv);
+    c11_array2d_like_iterator* ud =
+        py_newobject(py_retval(), tp_array2d_like_iterator, 1, sizeof(c11_array2d_like_iterator));
+    py_setslot(py_retval(), 0, argv);  // keep the array alive
+    ud->array = self;
+    ud->j = 0;
+    ud->i = 0;
+    return true;
+}
+
+static bool array2d_like__repr__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_array2d_like* self = py_touserdata(argv);
     char buf[256];
-    snprintf(buf, sizeof(buf), "array2d(%d, %d)", self->n_cols, self->n_rows);
+    snprintf(buf,
+             sizeof(buf),
+             "%s(%d, %d)",
+             py_tpname(py_typeof(argv)),
+             self->n_cols,
+             self->n_rows);
     py_newstr(py_retval(), buf);
     return true;
 }
 
-static bool array2d__iter__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_array2d* self = py_touserdata(argv);
-    c11_array2d_iterator* ud =
-        py_newobject(py_retval(), tp_array2d_iterator, 1, sizeof(c11_array2d_iterator));
-    py_setslot(py_retval(), 0, argv);  // keep the array alive
-    ud->array = self;
-    ud->index = 0;
+#define HANDLE_SLICE()                                                                             \
+    int start_col, stop_col, step_col;                                                             \
+    int start_row, stop_row, step_row;                                                             \
+    if(!pk__parse_int_slice(x, self->n_cols, &start_col, &stop_col, &step_col)) return false;      \
+    if(!pk__parse_int_slice(y, self->n_rows, &start_row, &stop_row, &step_row)) return false;      \
+    if(step_col != 1 || step_row != 1) return ValueError("slice step must be 1");                  \
+    int slice_width = stop_col - start_col;                                                        \
+    int slice_height = stop_row - start_row;
+
+static bool _array2d_like_IndexError(c11_array2d_like* self, int col, int row) {
+    return IndexError("(%d, %d) is not a valid index of array2d_like(%d, %d)",
+                      col,
+                      row,
+                      self->n_cols,
+                      self->n_rows);
+}
+
+static py_Ref c11_array2d_view__get(c11_array2d_view* self, int col, int row) {
+    return self->array->f_get(self->array, col + self->origin.x, row + self->origin.y);
+}
+
+static bool c11_array2d_view__set(c11_array2d_view* self, int col, int row, py_Ref value) {
+    return self->array->f_set(self->array, col + self->origin.x, row + self->origin.y, value);
+}
+
+static bool _array2d_view(py_OutRef out,
+                          c11_array2d_like* array,
+                          int start_col,
+                          int start_row,
+                          int width,
+                          int height) {
+    c11_array2d_view* res = py_newobject(out, tp_array2d_view, 1, sizeof(c11_array2d_view));
+    if(width <= 0 || height <= 0) return ValueError("width and height must be positive");
+    res->header.n_cols = width;
+    res->header.n_rows = height;
+    res->header.numel = width * height;
+    res->header.f_get = (py_Ref(*)(c11_array2d_like*, int, int))c11_array2d_view__get;
+    res->header.f_set = (bool (*)(c11_array2d_like*, int, int, py_Ref))c11_array2d_view__set;
+    res->array = array;
+    res->origin.x = start_col;
+    res->origin.y = start_row;
     return true;
 }
 
-// __iter__(self) -> Iterator[tuple[int, int, T]]
-static bool array2d_iterator__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_array2d_iterator* self = py_touserdata(argv);
-    if(self->index < self->array->numel) {
-        div_t res = div(self->index, self->array->n_cols);
-        py_newtuple(py_retval(), 2);
-        py_TValue* data = py_tuple_data(py_retval());
-        py_newvec2i(&data[0],
-                    (c11_vec2i){
-                        {res.rem, res.quot}
-        });
-        py_assign(&data[1], self->array->data + self->index);
-        self->index++;
+static bool array2d_like__getitem__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_array2d_like* self = py_touserdata(argv);
+    if(argv[1].type == tp_vec2i) {
+        c11_vec2i pos = py_tovec2i(&argv[1]);
+        if(c11_array2d_like_is_valid(self, pos.x, pos.y)) {
+            py_assign(py_retval(), self->f_get(self, pos.x, pos.y));
+            return true;
+        }
+        return _array2d_like_IndexError(self, pos.x, pos.y);
+    }
+
+    if(py_isinstance(&argv[1], tp_array2d_like)) {
+        c11_array2d_like* mask = py_touserdata(&argv[1]);
+        if(!_array2d_like_check_same_shape(self, mask)) return false;
+        py_newlist(py_retval());
+        for(int j = 0; j < self->n_rows; j++) {
+            for(int i = 0; i < self->n_cols; i++) {
+                py_Ref item = self->f_get(self, i, j);
+                if(!py_checkbool(item)) return false;
+                if(py_tobool(item)) py_list_append(py_retval(), item);
+            }
+        }
         return true;
     }
-    return StopIteration();
+
+    PY_CHECK_ARG_TYPE(1, tp_tuple);
+    if(py_tuple_len(&argv[1]) != 2) return TypeError("expected a tuple of 2 elements");
+    py_Ref x = py_tuple_getitem(&argv[1], 0);
+    py_Ref y = py_tuple_getitem(&argv[1], 1);
+    if(py_isint(x) && py_isint(y)) {
+        int col = py_toint(x);
+        int row = py_toint(y);
+        if(c11_array2d_like_is_valid(self, col, row)) {
+            py_assign(py_retval(), self->f_get(self, col, row));
+            return true;
+        }
+        return _array2d_like_IndexError(self, col, row);
+    }
+
+    if(py_istype(x, tp_slice) && py_istype(y, tp_slice)) {
+        HANDLE_SLICE();
+        return _array2d_view(py_retval(), self, start_col, start_row, slice_width, slice_height);
+    }
+
+    return TypeError("expected `tuple[int, int]` or `tuple[slice, slice]`");
 }
 
+static bool array2d_like__setitem__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    c11_array2d_like* self = py_touserdata(argv);
+    py_Ref value = &argv[2];
+    if(argv[1].type == tp_vec2i) {
+        c11_vec2i pos = py_tovec2i(&argv[1]);
+        if(c11_array2d_like_is_valid(self, pos.x, pos.y)) {
+            bool ok = self->f_set(self, pos.x, pos.y, value);
+            if(!ok) return false;
+            py_newnone(py_retval());
+            return true;
+        }
+        return _array2d_like_IndexError(self, pos.x, pos.y);
+    }
 
-// fromlist(data: list[list[T]]) -> array2d[T]
-static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    if(!py_checktype(argv, tp_list)) return false;
-    int n_rows = py_list_len(argv);
-    if(n_rows == 0) return ValueError("fromlist() expected a non-empty list");
-    int n_cols = -1;
-    for(int j = 0; j < n_rows; j++) {
-        py_Ref row_j = py_list_getitem(argv, j);
-        if(!py_checktype(row_j, tp_list)) return false;
-        int n_cols_j = py_list_len(row_j);
-        if(n_cols == -1) {
-            if(n_cols_j == 0) return ValueError("fromlist() expected a non-empty list");
-            n_cols = n_cols_j;
-        } else if(n_cols != n_cols_j) {
-            return ValueError("fromlist() expected a list of lists with the same length");
+    if(py_isinstance(&argv[1], tp_array2d_like)) {
+        c11_array2d_like* mask = py_touserdata(&argv[1]);
+        if(!_array2d_like_check_same_shape(self, mask)) return false;
+        for(int j = 0; j < self->n_rows; j++) {
+            for(int i = 0; i < self->n_cols; i++) {
+                py_Ref item = self->f_get(self, i, j);
+                if(!py_checkbool(item)) return false;
+                if(py_tobool(item)) {
+                    bool ok = self->f_set(self, i, j, value);
+                    if(!ok) return false;
+                }
+            }
         }
+        py_newnone(py_retval());
+        return true;
     }
-    c11_array2d* res = py_newarray2d(py_retval(), n_cols, n_rows);
-    for(int j = 0; j < n_rows; j++) {
-        py_Ref row_j = py_list_getitem(argv, j);
-        for(int i = 0; i < n_cols; i++) {
-            py_array2d__set(res, i, j, py_list_getitem(row_j, i));
+
+    PY_CHECK_ARG_TYPE(1, tp_tuple);
+    if(py_tuple_len(py_arg(1)) != 2) return TypeError("expected a tuple of 2 elements");
+    py_Ref x = py_tuple_getitem(py_arg(1), 0);
+    py_Ref y = py_tuple_getitem(py_arg(1), 1);
+    if(py_isint(x) && py_isint(y)) {
+        int col = py_toint(x);
+        int row = py_toint(y);
+        if(c11_array2d_like_is_valid(self, col, row)) {
+            bool ok = self->f_set(self, col, row, value);
+            if(!ok) return false;
+            py_newnone(py_retval());
+            return true;
         }
+        return _array2d_like_IndexError(self, col, row);
     }
-    return true;
+
+    if(py_istype(x, tp_slice) && py_istype(y, tp_slice)) {
+        HANDLE_SLICE();
+        if(py_isinstance(value, tp_array2d_like)) {
+            c11_array2d_like* values = py_touserdata(value);
+            if(!_check_same_shape(slice_width, slice_height, values->n_cols, values->n_rows))
+                return false;
+            for(int j = 0; j < slice_height; j++) {
+                for(int i = 0; i < slice_width; i++) {
+                    py_Ref item = values->f_get(values, i, j);
+                    bool ok = self->f_set(self, start_col + i, start_row + j, item);
+                    if(!ok) return false;
+                }
+            }
+        } else {
+            for(int j = 0; j < slice_height; j++) {
+                for(int i = 0; i < slice_width; i++) {
+                    bool ok = self->f_set(self, start_col + i, start_row + j, value);
+                    if(!ok) return false;
+                }
+            }
+        }
+        py_newnone(py_retval());
+        return true;
+    }
+
+    return TypeError("expected `tuple[int, int]` or `tuple[slice, slice]");
 }
-
-// tolist(self) -> list[list[T]]
-static bool array2d_tolist(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_array2d* self = py_touserdata(argv);
-    py_newlistn(py_retval(), self->n_rows);
-    for(int j = 0; j < self->n_rows; j++) {
-        py_Ref row_j = py_list_getitem(py_retval(), j);
-        py_newlistn(row_j, self->n_cols);
-        for(int i = 0; i < self->n_cols; i++) {
-            py_list_setitem(row_j, i, py_array2d__get(self, i, j));
-        }
-    }
-    return true;
-}
-
-
 
 // count(self, value: T) -> int
-static bool array2d_count(int argc, py_Ref argv) {
+static bool array2d_like_count(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_array2d* self = py_touserdata(argv);
+    c11_array2d_like* self = py_touserdata(argv);
     int count = 0;
-    for(int i = 0; i < self->numel; i++) {
-        int res = py_equal(self->data + i, &argv[1]);
-        if(res == -1) return false;
-        count += res;
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            int code = py_equal(self->f_get(self, i, j), py_arg(1));
+            if(code == -1) return false;
+            count += code;
+        }
     }
     py_newint(py_retval(), count);
     return true;
 }
 
 // get_bounding_rect(self, value: T) -> tuple[int, int, int, int]
-static bool array2d_get_bounding_rect(int argc, py_Ref argv) {
+static bool array2d_like_get_bounding_rect(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_array2d* self = py_touserdata(argv);
+    c11_array2d_like* self = py_touserdata(argv);
     py_Ref value = py_arg(1);
     int left = self->n_cols;
     int top = self->n_rows;
@@ -424,7 +477,8 @@ static bool array2d_get_bounding_rect(int argc, py_Ref argv) {
     int bottom = 0;
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
-            int res = py_equal(py_array2d__get(self, i, j), value);
+            py_Ref item = self->f_get(self, i, j);
+            int res = py_equal(item, value);
             if(res == -1) return false;
             if(res == 1) {
                 left = c11__min(left, i);
@@ -450,201 +504,202 @@ static bool array2d_get_bounding_rect(int argc, py_Ref argv) {
 }
 
 // count_neighbors(self, value: T, neighborhood: Neighborhood) -> array2d[int]
-static bool array2d_count_neighbors(int argc, py_Ref argv) {
+static bool array2d_like_count_neighbors(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
-    c11_array2d* self = py_touserdata(argv);
+    c11_array2d_like* self = py_touserdata(argv);
     c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     py_Ref value = py_arg(1);
     const char* neighborhood = py_tostr(py_arg(2));
 
-#define INC_COUNT(i, j)                                                                            \
-    do {                                                                                           \
-        if(py_array2d_is_valid(self, i, j)) {                                                      \
-            int res = py_equal(py_array2d__get(self, i, j), value);                                \
-            if(res == -1) return false;                                                            \
-            count += res;                                                                          \
-        }                                                                                          \
-    } while(0)
+    const static c11_vec2i Moore[] = {
+        {{-1, -1}},
+        {{0, -1}},
+        {{1, -1}},
+        {{-1, 0}},
+        {{1, 0}},
+        {{-1, 1}},
+        {{0, 1}},
+        {{1, 1}},
+    };
 
+    const static c11_vec2i von_Neumann[] = {
+        {{0, -1}},
+        {{-1, 0}},
+        {{1, 0}},
+        {{0, 1}},
+    };
+
+    const c11_vec2i* offsets;
+    int n_offsets;
     if(strcmp(neighborhood, "Moore") == 0) {
-        for(int j = 0; j < res->n_rows; j++) {
-            for(int i = 0; i < res->n_cols; i++) {
-                int count = 0;
-                INC_COUNT(i - 1, j - 1);
-                INC_COUNT(i, j - 1);
-                INC_COUNT(i + 1, j - 1);
-                INC_COUNT(i - 1, j);
-                INC_COUNT(i + 1, j);
-                INC_COUNT(i - 1, j + 1);
-                INC_COUNT(i, j + 1);
-                INC_COUNT(i + 1, j + 1);
-                py_newint(py_array2d__get(res, i, j), count);
-            }
-        }
+        offsets = Moore;
+        n_offsets = 8;
     } else if(strcmp(neighborhood, "von Neumann") == 0) {
-        for(int j = 0; j < res->n_rows; j++) {
-            for(int i = 0; i < res->n_cols; i++) {
-                int count = 0;
-                INC_COUNT(i, j - 1);
-                INC_COUNT(i - 1, j);
-                INC_COUNT(i + 1, j);
-                INC_COUNT(i, j + 1);
-                py_newint(py_array2d__get(res, i, j), count);
-            }
-        }
+        offsets = von_Neumann;
+        n_offsets = 4;
     } else {
         return ValueError("neighborhood must be 'Moore' or 'von Neumann'");
+    }
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            int count = 0;
+            for(int k = 0; k < n_offsets; k++) {
+                int x = i + offsets[k].x;
+                int y = j + offsets[k].y;
+                if(x >= 0 && x < self->n_cols && y >= 0 && y < self->n_rows) {
+                    py_Ref item = self->f_get(self, x, y);
+                    int code = py_equal(item, value);
+                    if(code == -1) return false;
+                    count += code;
+                }
+            }
+            py_newint(c11_array2d__get(res, i, j), count);
+        }
     }
     py_assign(py_retval(), py_peek(-1));
     py_pop();
     return true;
 }
 
-#define HANDLE_SLICE()                                                                             \
-    int start_col, stop_col, step_col;                                                             \
-    int start_row, stop_row, step_row;                                                             \
-    if(!pk__parse_int_slice(x, self->n_cols, &start_col, &stop_col, &step_col)) return false;      \
-    if(!pk__parse_int_slice(y, self->n_rows, &start_row, &stop_row, &step_row)) return false;      \
-    if(step_col != 1 || step_row != 1) return ValueError("slice step must be 1");                  \
-    int slice_width = stop_col - start_col;                                                        \
-    int slice_height = stop_row - start_row;                                                       \
-    if(slice_width <= 0 || slice_height <= 0)                                                      \
-        return ValueError("slice width and height must be positive");
+static void pk__register_array2d_like(py_Ref mod) {
+    py_Type type = py_newtype("array2d_like", tp_object, mod, NULL);
 
-static bool _array2d_IndexError(c11_array2d* self, int col, int row) {
-    return IndexError("(%d, %d) is not a valid index of array2d(%d, %d)",
-                      col,
-                      row,
-                      self->n_cols,
-                      self->n_rows);
+    py_bindproperty(type, "n_cols", array2d_like_n_cols, NULL);
+    py_bindproperty(type, "n_rows", array2d_like_n_rows, NULL);
+    py_bindproperty(type, "width", array2d_like_n_cols, NULL);
+    py_bindproperty(type, "height", array2d_like_n_rows, NULL);
+    py_bindproperty(type, "shape", array2d_like_shape, NULL);
+    py_bindproperty(type, "numel", array2d_like_numel, NULL);
+
+    py_bindmethod(type, "is_valid", array2d_like_is_valid);
+    py_bindmethod(type, "get", array2d_like_get);
+
+    py_bindmethod(type, "render", array2d_like_render);
+
+    py_bindmethod(type, "all", array2d_like_all);
+    py_bindmethod(type, "any", array2d_like_any);
+
+    py_bindmethod(type, "map", array2d_like_map);
+    py_bindmethod(type, "apply", array2d_like_apply);
+    py_bindmethod(type, "copy", array2d_like_copy);
+
+    py_bindmagic(type, __eq__, array2d_like__eq__);
+    py_bindmagic(type, __ne__, array2d_like__ne__);
+    py_bindmagic(type, __iter__, array2d_like__iter__);
+    py_bindmagic(type, __repr__, array2d_like__repr__);
+
+    py_bindmagic(type, __getitem__, array2d_like__getitem__);
+    py_bindmagic(type, __setitem__, array2d_like__setitem__);
+
+    py_bindmethod(type, "count", array2d_like_count);
+    py_bindmethod(type, "get_bounding_rect", array2d_like_get_bounding_rect);
+    py_bindmethod(type, "count_neighbors", array2d_like_count_neighbors);
 }
 
-static bool array2d__getitem__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    c11_array2d* self = py_touserdata(argv);
-    if(argv[1].type == tp_vec2i) {
-        // fastpath for vec2i
-        c11_vec2i pos = py_tovec2i(&argv[1]);
-        if(py_array2d_is_valid(self, pos.x, pos.y)) {
-            py_assign(py_retval(), py_array2d__get(self, pos.x, pos.y));
-            return true;
-        }
-        return _array2d_IndexError(self, pos.x, pos.y);
-    }
-
-    if(argv[1].type == tp_array2d) {
-        c11_array2d* mask = py_touserdata(&argv[1]);
-        if(!_array2d_check_same_shape(self, mask)) return false;
-        if(!_array2d_check_all_type(mask, tp_bool)) return false;
-        py_newlist(py_retval());
-        for(int i = 0; i < self->numel; i++) {
-            if(py_tobool(mask->data + i)) py_list_append(py_retval(), self->data + i);
-        }
-        return true;
-    }
-
-    PY_CHECK_ARG_TYPE(1, tp_tuple);
-    if(py_tuple_len(py_arg(1)) != 2) return TypeError("expected a tuple of 2 elements");
-    py_Ref x = py_tuple_getitem(py_arg(1), 0);
-    py_Ref y = py_tuple_getitem(py_arg(1), 1);
-    if(py_isint(x) && py_isint(y)) {
-        int col = py_toint(x);
-        int row = py_toint(y);
-        if(py_array2d_is_valid(self, col, row)) {
-            py_assign(py_retval(), py_array2d__get(self, col, row));
-            return true;
-        }
-        return _array2d_IndexError(self, col, row);
-    } else if(py_istype(x, tp_slice) && py_istype(y, tp_slice)) {
-        HANDLE_SLICE();
-        c11_array2d* res = py_newarray2d(py_retval(), slice_width, slice_height);
-        for(int j = start_row; j < stop_row; j++) {
-            for(int i = start_col; i < stop_col; i++) {
-                py_array2d__set(res, i - start_col, j - start_row, py_array2d__get(self, i, j));
+static bool array2d__new__(int argc, py_Ref argv) {
+    // __new__(cls, n_cols: int, n_rows: int, default: Callable[[vec2i], T] = None)
+    py_Ref default_ = py_arg(3);
+    PY_CHECK_ARG_TYPE(0, tp_type);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    int n_cols = argv[1]._i64;
+    int n_rows = argv[2]._i64;
+    if(n_cols <= 0 || n_rows <= 0) return ValueError("array2d() expected positive dimensions");
+    c11_array2d* ud = py_newarray2d(py_pushtmp(), n_cols, n_rows);
+    // setup initial values
+    if(py_callable(default_)) {
+        for(int j = 0; j < n_rows; j++) {
+            for(int i = 0; i < n_cols; i++) {
+                py_TValue tmp;
+                py_newvec2i(&tmp,
+                            (c11_vec2i){
+                                {i, j}
+                });
+                if(!py_call(default_, 1, &tmp)) return false;
+                ud->data[j * n_cols + i] = *py_retval();
             }
         }
-        return true;
     } else {
-        return TypeError("expected a tuple of 2 ints or slices");
+        for(int i = 0; i < ud->header.numel; i++) {
+            ud->data[i] = *default_;
+        }
     }
+    py_assign(py_retval(), py_peek(-1));
+    py_pop();
+    return true;
 }
 
-static bool array2d__setitem__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(3);
+static bool _array2d_check_all_type(c11_array2d* self, py_Type type) {
+    for(int i = 0; i < self->numel; i++) {
+        py_Type item_type = self->data[i].type;
+        if(item_type != type) {
+            const char* fmt = "expected array2d[%t], got %t";
+            return TypeError(fmt, type, item_type);
+        }
+    }
+    return true;
+}
+
+static bool array2d_like_iterator__next__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_array2d_like_iterator* self = py_touserdata(argv);
+    if(self->j >= self->array->n_rows) return StopIteration();
+    py_newtuple(py_retval(), 2);
+    py_TValue* data = py_tuple_data(py_retval());
+    py_newvec2i(&data[0],
+                (c11_vec2i){
+                    {self->i, self->j}
+    });
+    py_assign(&data[1], self->array->f_get(self->array, self->i, self->j));
+    self->i++;
+    if(self->i >= self->array->n_cols) {
+        self->i = 0;
+        self->j++;
+    }
+    return true;
+}
+
+// fromlist(data: list[list[T]]) -> array2d[T]
+static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    if(!py_checktype(argv, tp_list)) return false;
+    int n_rows = py_list_len(argv);
+    if(n_rows == 0) return ValueError("fromlist() expected a non-empty list");
+    int n_cols = -1;
+    for(int j = 0; j < n_rows; j++) {
+        py_Ref row_j = py_list_getitem(argv, j);
+        if(!py_checktype(row_j, tp_list)) return false;
+        int n_cols_j = py_list_len(row_j);
+        if(n_cols == -1) {
+            if(n_cols_j == 0) return ValueError("fromlist() expected a non-empty list");
+            n_cols = n_cols_j;
+        } else if(n_cols != n_cols_j) {
+            return ValueError("fromlist() expected a list of lists with the same length");
+        }
+    }
+    c11_array2d* res = py_newarray2d(py_retval(), n_cols, n_rows);
+    for(int j = 0; j < n_rows; j++) {
+        py_Ref row_j = py_list_getitem(argv, j);
+        for(int i = 0; i < n_cols; i++) {
+            c11_array2d__set(res, i, j, py_list_getitem(row_j, i));
+        }
+    }
+    return true;
+}
+
+// tolist(self) -> list[list[T]]
+static bool array2d_tolist(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
     c11_array2d* self = py_touserdata(argv);
-    py_Ref value = py_arg(2);
-    if(argv[1].type == tp_vec2i) {
-        // fastpath for vec2i
-        c11_vec2i pos = py_tovec2i(&argv[1]);
-        if(py_array2d_is_valid(self, pos.x, pos.y)) {
-            py_array2d__set(self, pos.x, pos.y, value);
-            py_newnone(py_retval());
-            return true;
+    py_newlistn(py_retval(), self->n_rows);
+    for(int j = 0; j < self->n_rows; j++) {
+        py_Ref row_j = py_list_getitem(py_retval(), j);
+        py_newlistn(row_j, self->n_cols);
+        for(int i = 0; i < self->n_cols; i++) {
+            py_list_setitem(row_j, i, c11_array2d__get(self, i, j));
         }
-        return _array2d_IndexError(self, pos.x, pos.y);
     }
-
-    if(argv[1].type == tp_array2d) {
-        c11_array2d* mask = py_touserdata(&argv[1]);
-        if(!_array2d_check_same_shape(self, mask)) return false;
-        if(!_array2d_check_all_type(mask, tp_bool)) return false;
-        for(int i = 0; i < self->numel; i++) {
-            if(py_tobool(mask->data + i)) self->data[i] = *value;
-        }
-        py_newnone(py_retval());
-        return true;
-    }
-
-    PY_CHECK_ARG_TYPE(1, tp_tuple);
-    if(py_tuple_len(py_arg(1)) != 2) return TypeError("expected a tuple of 2 elements");
-    py_Ref x = py_tuple_getitem(py_arg(1), 0);
-    py_Ref y = py_tuple_getitem(py_arg(1), 1);
-    if(py_isint(x) && py_isint(y)) {
-        int col = py_toint(x);
-        int row = py_toint(y);
-        if(py_array2d_is_valid(self, col, row)) {
-            py_array2d__set(self, col, row, value);
-            py_newnone(py_retval());
-            return true;
-        }
-        return _array2d_IndexError(self, col, row);
-    } else if(py_istype(x, tp_slice) && py_istype(y, tp_slice)) {
-        HANDLE_SLICE();
-        bool is_basic_type = false;
-        switch(value->type) {
-            case tp_int:
-            case tp_float:
-            case tp_str:
-            case tp_NoneType:
-            case tp_bool: is_basic_type = true; break;
-            default: {
-                if(!py_istype(value, tp_array2d)) {
-                    return TypeError("expected int/float/str/bool/None or an array2d instance");
-                }
-            }
-        }
-
-        if(is_basic_type) {
-            for(int j = start_row; j < stop_row; j++) {
-                for(int i = start_col; i < stop_col; i++) {
-                    py_array2d__set(self, i, j, py_arg(2));
-                }
-            }
-        } else {
-            c11_array2d* src = py_touserdata(value);
-            if(!_check_same_shape(slice_width, slice_height, src->n_cols, src->n_rows))
-                return false;
-            for(int j = 0; j < slice_height; j++) {
-                for(int i = 0; i < slice_width; i++) {
-                    py_array2d__set(self, i + start_col, j + start_row, py_array2d__get(src, i, j));
-                }
-            }
-        }
-        py_newnone(py_retval());
-        return true;
-    } else {
-        return TypeError("expected a tuple of 2 ints or slices");
-    }
+    return true;
 }
 
 // convolve(self: array2d[int], kernel: array2d[int], padding: int) -> array2d[int]
@@ -652,8 +707,8 @@ static bool array2d_convolve(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_array2d);
     PY_CHECK_ARG_TYPE(2, tp_int);
-    c11_array2d* self = py_touserdata(argv);
-    c11_array2d* kernel = py_touserdata(py_arg(1));
+    c11_array2d_like* self = py_touserdata(argv);
+    c11_array2d_like* kernel = py_touserdata(py_arg(1));
     int padding = py_toint(py_arg(2));
     if(kernel->n_cols != kernel->n_rows) { return ValueError("kernel must be square"); }
     int ksize = kernel->n_cols;
@@ -673,13 +728,13 @@ static bool array2d_convolve(int argc, py_Ref argv) {
                     if(x < 0 || x >= self->n_cols || y < 0 || y >= self->n_rows) {
                         _0 = padding;
                     } else {
-                        _0 = py_toint(py_array2d__get(self, x, y));
+                        _0 = py_toint(c11_array2d__get(self, x, y));
                     }
-                    _1 = py_toint(py_array2d__get(kernel, ii, jj));
+                    _1 = py_toint(c11_array2d__get(kernel, ii, jj));
                     sum += _0 * _1;
                 }
             }
-            py_newint(py_array2d__get(res, i, j), sum);
+            py_newint(c11_array2d__get(res, i, j), sum);
         }
     }
     py_assign(py_retval(), py_peek(-1));
@@ -689,18 +744,26 @@ static bool array2d_convolve(int argc, py_Ref argv) {
 
 void pk__add_module_array2d() {
     py_GlobalRef mod = py_newmodule("array2d");
-    py_Type array2d = pk_newtype("array2d", tp_object, mod, NULL, false, true);
-    py_Type array2d_iterator = pk_newtype("array2d_iterator", tp_object, mod, NULL, false, true);
-    assert(array2d == tp_array2d);
-    assert(array2d_iterator == tp_array2d_iterator);
 
-    py_setdict(mod, py_name("array2d"), py_tpobject(array2d));
+    py_Type array2d_like = pk_newtype("array2d_like", tp_object, mod, NULL, false, true);
+    py_Type array2d_like_iterator =
+        pk_newtype("array2d_like_iterator", tp_object, mod, NULL, false, true);
+    assert(array2d_like == tp_array2d_like);
+    assert(array2d_like_iterator == tp_array2d_like_iterator);
+    py_setdict(mod, py_name("array2d_like"), py_tpobject(array2d_like));
+    py_setdict(mod, py_name("array2d_like_iterator"), py_tpobject(array2d_like_iterator));
 
-    // array2d is unhashable
+    py_Type array2d = py_newtype("array2d", tp_array2d_like, mod, NULL);
+    py_Type chunked_array2d = py_newtype("chunked_array2d", tp_array2d_like, mod, NULL);
+
+    py_setdict(py_tpobject(array2d_like), __hash__, py_None());
+    py_setdict(py_tpobject(array2d_like_iterator), __hash__, py_None());
     py_setdict(py_tpobject(array2d), __hash__, py_None());
+    py_setdict(py_tpobject(chunked_array2d), __hash__, py_None());
 
-    py_bindmagic(array2d_iterator, __iter__, pk_wrapper__self);
-    py_bindmagic(array2d_iterator, __next__, array2d_iterator__next__);
+    py_bindmagic(array2d_like_iterator, __iter__, pk_wrapper__self);
+    py_bindmagic(array2d_like_iterator, __next__, array2d_like_iterator__next__);
+
     py_bind(py_tpobject(array2d),
             "__new__(cls, n_cols: int, n_rows: int, default=None)",
             array2d__new__);

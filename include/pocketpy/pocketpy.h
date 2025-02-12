@@ -737,8 +737,11 @@ enum py_PredefinedTypes {
     tp_vec3i,
     tp_mat3x3,
     /* array2d */
+    tp_array2d_like,
+    tp_array2d_like_iterator,
     tp_array2d,
-    tp_array2d_iterator,
+    tp_array2d_view,
+    tp_chunked_array2d,
 };
 
 #ifdef __cplusplus

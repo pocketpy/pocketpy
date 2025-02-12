@@ -14,15 +14,22 @@ typedef struct c11_array2d_like {
     bool (*f_set)(struct c11_array2d_like* self, int col, int row, py_Ref value);
 } c11_array2d_like;
 
+typedef struct c11_array2d_like_iterator {
+    c11_array2d_like* array;
+    int j;
+    int i;
+} c11_array2d_like_iterator;
+
 typedef struct c11_array2d {
     c11_array2d_like header;
     py_TValue* data;  // slots
 } c11_array2d;
 
-typedef struct c11_array2d_iterator {
-    c11_array2d* array;
-    int index;
-} c11_array2d_iterator;
+typedef struct c11_array2d_view {
+    c11_array2d_like header;
+    c11_array2d_like* array;
+    c11_vec2i origin;
+} c11_array2d_view;
 
 c11_array2d* py_newarray2d(py_OutRef out, int n_cols, int n_rows);
 
