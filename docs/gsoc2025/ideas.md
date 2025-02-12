@@ -14,7 +14,7 @@ Community users have reported that there is no convenient way to debug python ap
 
 This project aims to develop a VSCode plugin like [Python Debugger](https://marketplace.visualstudio.com/items?itemName=ms-python.debugpy), which implements DAP for pocketpy. With this plugin, users can launch their pocketpy applications in VSCode with breakpoints, call stacks, and variable inspection. Students with experience in TypeScript will be helpful for this project.
 
-### Development `cTensor` library for neural networks
+### Develop `cTensor` library for neural networks
 
 + Difficulty Level: 4/5 (Hard)
 + Skill: C; Further Mathematics
