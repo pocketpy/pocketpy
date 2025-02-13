@@ -191,11 +191,6 @@ static bool builtins_exit(int argc, py_Ref argv) {
     }
     exit(code);
     return false;
-    // py_TValue sso_code;
-    // py_newint(&sso_code, code);
-    // bool ok = py_tpcall(tp_SystemExit, 1, &sso_code);
-    // if(!ok) return false;
-    // return py_raise(py_retval());
 }
 
 static bool builtins_input(int argc, py_Ref argv) {
