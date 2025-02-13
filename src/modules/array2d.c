@@ -886,15 +886,15 @@ static py_TValue* c11_chunked_array2d__parse_col_row(c11_chunked_array2d* self,
         self->last_visited.key = *chunk_pos;
         self->last_visited.value = data;
     }
-    return data + 1;  // skip context
+    return data;
 }
 
 py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row) {
     c11_vec2i chunk_pos, local_pos;
     py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
-    if(data == NULL) return NULL;
-    py_Ref retval = &data[local_pos.y * self->chunk_size + local_pos.x];
-    if(py_isnil(retval)) return NULL;
+    if(data == NULL) return &self->default_T;
+    py_Ref retval = &data[1 + local_pos.y * self->chunk_size + local_pos.x];
+    if(py_isnil(retval)) return &self->default_T;
     return retval;
 }
 
@@ -905,14 +905,14 @@ bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Re
         data = c11_chunked_array2d__new_chunk(self, chunk_pos);
         if(data == NULL) return false;
     }
-    data[local_pos.y * self->chunk_size + local_pos.x] = *value;
+    data[1 + local_pos.y * self->chunk_size + local_pos.x] = *value;
     return true;
 }
 
 static void c11_chunked_array2d__del(c11_chunked_array2d* self, int col, int row) {
     c11_vec2i chunk_pos, local_pos;
     py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
-    if(data != NULL) data[local_pos.y * self->chunk_size + local_pos.x] = *py_NIL();
+    if(data != NULL) data[1 + local_pos.y * self->chunk_size + local_pos.x] = *py_NIL();
 }
 
 static bool chunked_array2d__new__(int argc, py_Ref argv) {
@@ -963,11 +963,7 @@ static bool chunked_array2d__getitem__(int argc, py_Ref argv) {
     c11_chunked_array2d* self = py_touserdata(argv);
     c11_vec2i pos = py_tovec2i(&argv[1]);
     py_Ref res = c11_chunked_array2d__get(self, pos.x, pos.y);
-    if(res != NULL) {
-        py_assign(py_retval(), res);
-    } else {
-        py_assign(py_retval(), &self->default_T);
-    }
+    py_assign(py_retval(), res);
     return true;
 }
 
@@ -1113,7 +1109,7 @@ static bool chunked_array2d_view_rect(int argc, py_Ref argv) {
 }
 
 static bool chunked_array2d_view_chunk(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
+    PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_vec2i);
     c11_chunked_array2d* self = py_touserdata(&argv[0]);
     c11_vec2i chunk_pos = py_tovec2i(&argv[1]);
@@ -1148,7 +1144,7 @@ static void register_chunked_array2d(py_Ref mod) {
     pk__tp_set_marker(type, c11_chunked_array2d__mark);
     assert(type == tp_chunked_array2d);
 
-    py_bindmagic(type, __new__, chunked_array2d__new__);
+    py_bind(py_tpobject(type), "__new__(cls, *args, **kwargs)", chunked_array2d__new__);
     py_bind(py_tpobject(type),
             "__init__(self, chunk_size, default=None, context_builder=None)",
             chunked_array2d__init__);
