@@ -62,22 +62,22 @@ class array2d_like[T]:
 
     # algorithms
     def count(self, value: T) -> int:
-        """Counts the number of cells with the given value."""
+        """Count the number of cells with the given value."""
 
     def count_neighbors(self, value: T, neighborhood: Neighborhood) -> array2d[int]:
-        """Counts the number of neighbors with the given value for each cell."""
+        """Count the number of neighbors with the given value for each cell."""
 
     def get_bounding_rect(self, value: T) -> tuple[int, int, int, int]:
-        """Gets the bounding rectangle of the given value.
+        """Get the bounding rectangle of the given value.
         
         Returns a tuple `(x, y, width, height)` or raise `ValueError` if the value is not found.
         """
 
     def convolve(self: array2d_like[int], kernel: array2d_like[int], padding: int) -> array2d[int]:
-        """Convolves the array with the given kernel."""
+        """Convolve the array with the given kernel."""
 
     def get_connected_components(self, value: T, neighborhood: Neighborhood) -> tuple[array2d[int], int]:
-        """Gets connected components of the grid.
+        """Get connected components of the grid.
 
         Returns the `visited` array and the number of connected components,
         where `0` means unvisited, and non-zero means the index of the connected component.
@@ -119,7 +119,9 @@ class chunked_array2d[T, TContext]:
 
     def clear(self) -> None: ...
 
-    def world_to_chunk(self, world_pos: vec2i) -> tuple[vec2i, vec2i]: ...
+    def world_to_chunk(self, world_pos: vec2i) -> tuple[vec2i, vec2i]:
+        """Convert world position to chunk position and local position."""
+        
     def add_chunk(self, chunk_pos: vec2i) -> TContext: ...
     def remove_chunk(self, chunk_pos: vec2i) -> bool: ...
     def get_context(self, chunk_pos: vec2i) -> TContext | None: ...
