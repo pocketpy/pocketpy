@@ -1,5 +1,7 @@
 #include "pocketpy/interpreter/array2d.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/pocketpy.h"
+#include <limits.h>
 
 static bool c11_array2d_like_is_valid(c11_array2d_like* self, unsigned int col, unsigned int row) {
     return col < self->n_cols && row < self->n_rows;
@@ -316,29 +318,62 @@ static bool _array2d_like_IndexError(c11_array2d_like* self, int col, int row) {
 }
 
 static py_Ref c11_array2d_view__get(c11_array2d_view* self, int col, int row) {
-    return self->array->f_get(self->array, col + self->origin.x, row + self->origin.y);
+    return self->f_get(self->ctx, col + self->origin.x, row + self->origin.y);
 }
 
 static bool c11_array2d_view__set(c11_array2d_view* self, int col, int row, py_Ref value) {
-    return self->array->f_set(self->array, col + self->origin.x, row + self->origin.y, value);
+    return self->f_set(self->ctx, col + self->origin.x, row + self->origin.y, value);
 }
 
-static bool _array2d_view(py_OutRef out,
-                          c11_array2d_like* array,
-                          int start_col,
-                          int start_row,
-                          int width,
-                          int height) {
+static c11_array2d_view* _array2d_view__new(py_OutRef out,
+                                            py_Ref keepalive,
+                                            int start_col,
+                                            int start_row,
+                                            int width,
+                                            int height) {
     c11_array2d_view* res = py_newobject(out, tp_array2d_view, 1, sizeof(c11_array2d_view));
-    if(width <= 0 || height <= 0) return ValueError("width and height must be positive");
+    if(width <= 0 || height <= 0) {
+        ValueError("width and height must be positive");
+        return NULL;
+    }
     res->header.n_cols = width;
     res->header.n_rows = height;
     res->header.numel = width * height;
     res->header.f_get = (py_Ref(*)(c11_array2d_like*, int, int))c11_array2d_view__get;
     res->header.f_set = (bool (*)(c11_array2d_like*, int, int, py_Ref))c11_array2d_view__set;
-    res->array = array;
     res->origin.x = start_col;
     res->origin.y = start_row;
+    py_setslot(out, 0, keepalive);
+    return res;
+}
+
+static bool _array2d_view(py_OutRef out,
+                          py_Ref keepalive,
+                          c11_array2d_like* array,
+                          int start_col,
+                          int start_row,
+                          int width,
+                          int height) {
+    c11_array2d_view* res = _array2d_view__new(out, keepalive, start_col, start_row, width, height);
+    if(res == NULL) return false;
+    res->ctx = array;
+    res->f_get = (py_Ref(*)(void*, int, int))array->f_get;
+    res->f_set = (bool (*)(void*, int, int, py_Ref))array->f_set;
+    return true;
+}
+
+static bool _chunked_array2d_view(py_OutRef out,
+                                  py_Ref keepalive,
+                                  c11_chunked_array2d* array,
+                                  int start_col,
+                                  int start_row,
+                                  int width,
+                                  int height) {
+    c11_array2d_view* res = _array2d_view__new(out, keepalive, start_col, start_row, width, height);
+    if(res == NULL) return false;
+    res->ctx = array;
+    res->f_get = (py_Ref(*)(void*, int, int))c11_chunked_array2d__get;
+    res->f_set = (bool (*)(void*, int, int, py_Ref))c11_chunked_array2d__set;
     return true;
 }
 
@@ -385,7 +420,13 @@ static bool array2d_like__getitem__(int argc, py_Ref argv) {
 
     if(py_istype(x, tp_slice) && py_istype(y, tp_slice)) {
         HANDLE_SLICE();
-        return _array2d_view(py_retval(), self, start_col, start_row, slice_width, slice_height);
+        return _array2d_view(py_retval(),
+                             argv,
+                             self,
+                             start_col,
+                             start_row,
+                             slice_width,
+                             slice_height);
     }
 
     return TypeError("expected `tuple[int, int]` or `tuple[slice, slice]`");
@@ -754,7 +795,7 @@ static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
     return true;
 }
 
-static void register_array2d(py_Ref mod){
+static void register_array2d(py_Ref mod) {
     py_Type type = py_newtype("array2d", tp_array2d_like, mod, NULL);
     assert(type == tp_array2d);
     py_bind(py_tpobject(type),
@@ -809,10 +850,10 @@ static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_
 }
 
 static void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
-                                         int col,
-                                         int row,
-                                         c11_vec2i* chunk_pos,
-                                         c11_vec2i* local_pos) {
+                                                int col,
+                                                int row,
+                                                c11_vec2i* chunk_pos,
+                                                c11_vec2i* local_pos) {
     if(col >= 0) {
         chunk_pos->x = col >> self->chunk_size_log2;
         local_pos->x = col & self->chunk_size_mask;
@@ -848,7 +889,7 @@ static py_TValue* c11_chunked_array2d__parse_col_row(c11_chunked_array2d* self,
     return data + 1;  // skip context
 }
 
-static py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row) {
+py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row) {
     c11_vec2i chunk_pos, local_pos;
     py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
     if(data == NULL) return NULL;
@@ -857,7 +898,7 @@ static py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int r
     return retval;
 }
 
-static bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value) {
+bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value) {
     c11_vec2i chunk_pos, local_pos;
     py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
     if(data == NULL) {
@@ -1037,8 +1078,73 @@ static void c11_chunked_array2d__mark(void* ud) {
     }
 }
 
+static bool chunked_array2d_view(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_chunked_array2d* self = py_touserdata(&argv[0]);
+    if(self->chunks.length == 0) { return ValueError("chunked_array2d is empty"); }
+    int min_chunk_x = INT_MAX;
+    int min_chunk_y = INT_MAX;
+    int max_chunk_x = INT_MIN;
+    int max_chunk_y = INT_MIN;
+    for(int i = 0; i < self->chunks.length; i++) {
+        c11_vec2i chunk_pos = c11__getitem(c11_chunked_array2d_chunks_KV, &self->chunks, i).key;
+        min_chunk_x = c11__min(min_chunk_x, chunk_pos.x);
+        min_chunk_y = c11__min(min_chunk_y, chunk_pos.y);
+        max_chunk_x = c11__max(max_chunk_x, chunk_pos.x);
+        max_chunk_y = c11__max(max_chunk_y, chunk_pos.y);
+    }
+    int start_col = min_chunk_x << self->chunk_size_log2;
+    int start_row = min_chunk_y << self->chunk_size_log2;
+    int width = (max_chunk_x - min_chunk_x + 1) * self->chunk_size;
+    int height = (max_chunk_y - min_chunk_y + 1) * self->chunk_size;
+    return _chunked_array2d_view(py_retval(), argv, self, start_col, start_row, width, height);
+}
+
+static bool chunked_array2d_view_rect(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(4);
+    PY_CHECK_ARG_TYPE(1, tp_vec2i);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    PY_CHECK_ARG_TYPE(3, tp_int);
+    c11_chunked_array2d* self = py_touserdata(&argv[0]);
+    c11_vec2i pos = py_tovec2i(&argv[1]);
+    int width = py_toint(&argv[2]);
+    int height = py_toint(&argv[3]);
+    return _chunked_array2d_view(py_retval(), argv, self, pos.x, pos.y, width, height);
+}
+
+static bool chunked_array2d_view_chunk(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(1, tp_vec2i);
+    c11_chunked_array2d* self = py_touserdata(&argv[0]);
+    c11_vec2i chunk_pos = py_tovec2i(&argv[1]);
+    int start_col = chunk_pos.x << self->chunk_size_log2;
+    int start_row = chunk_pos.y << self->chunk_size_log2;
+    return _chunked_array2d_view(py_retval(),
+                                 argv,
+                                 self,
+                                 start_col,
+                                 start_row,
+                                 self->chunk_size,
+                                 self->chunk_size);
+}
+
+static bool chunked_array2d_view_chunks(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(4);
+    PY_CHECK_ARG_TYPE(1, tp_vec2i);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    PY_CHECK_ARG_TYPE(3, tp_int);
+    c11_chunked_array2d* self = py_touserdata(&argv[0]);
+    c11_vec2i chunk_pos = py_tovec2i(&argv[1]);
+    int width = py_toint(&argv[2]) * self->chunk_size;
+    int height = py_toint(&argv[3]) * self->chunk_size;
+    int start_col = chunk_pos.x << self->chunk_size_log2;
+    int start_row = chunk_pos.y << self->chunk_size_log2;
+    return _chunked_array2d_view(py_retval(), argv, self, start_col, start_row, width, height);
+}
+
 static void register_chunked_array2d(py_Ref mod) {
-    py_Type type = py_newtype("chunked_array2d", tp_object, mod, (py_Dtor)c11_chunked_array2d__dtor);
+    py_Type type =
+        py_newtype("chunked_array2d", tp_object, mod, (py_Dtor)c11_chunked_array2d__dtor);
     pk__tp_set_marker(type, c11_chunked_array2d__mark);
     assert(type == tp_chunked_array2d);
 
@@ -1059,8 +1165,12 @@ static void register_chunked_array2d(py_Ref mod) {
     py_bindmethod(type, "add_chunk", chunked_array2d__add_chunk);
     py_bindmethod(type, "remove_chunk", chunked_array2d__remove_chunk);
     py_bindmethod(type, "get_context", chunked_array2d__get_context);
-}
 
+    py_bindmethod(type, "view", chunked_array2d_view);
+    py_bindmethod(type, "view_rect", chunked_array2d_view_rect);
+    py_bindmethod(type, "view_chunk", chunked_array2d_view_chunk);
+    py_bindmethod(type, "view_chunks", chunked_array2d_view_chunks);
+}
 
 void pk__add_module_array2d() {
     py_GlobalRef mod = py_newmodule("array2d");

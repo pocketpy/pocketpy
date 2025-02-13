@@ -25,7 +25,9 @@ typedef struct c11_array2d {
 
 typedef struct c11_array2d_view {
     c11_array2d_like header;
-    c11_array2d_like* array;
+    void* ctx;
+    py_Ref (*f_get)(void* ctx, int col, int row);
+    bool (*f_set)(void* ctx, int col, int row, py_Ref value);
     c11_vec2i origin;
 } c11_array2d_view;
 
@@ -51,3 +53,6 @@ typedef struct c11_chunked_array2d {
     py_TValue default_T;
     py_TValue context_builder;
 } c11_chunked_array2d;
+
+py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row);
+bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value);
