@@ -61,6 +61,11 @@ bool py_checktype(py_Ref self, py_Type type) {
     return TypeError("expected '%t', got '%t'", type, self->type);
 }
 
+bool py_checkinstance(py_Ref self, py_Type type) {
+    if(py_isinstance(self, type)) return true;
+    return TypeError("expected '%t' or its subclass, got '%t'", type, self->type);
+}
+
 bool py_isinstance(py_Ref obj, py_Type type) { return py_issubclass(obj->type, type); }
 
 bool py_issubclass(py_Type derived, py_Type base) {

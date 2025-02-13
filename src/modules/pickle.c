@@ -4,6 +4,7 @@
 
 #include "pocketpy/common/utils.h"
 #include "pocketpy/common/sstream.h"
+#include "pocketpy/interpreter/vm.h"
 #include "pocketpy/interpreter/array2d.h"
 #include <stdint.h>
 
@@ -324,16 +325,16 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
                 return true;
             else {
                 c11_array2d* arr = py_touserdata(obj);
-                for(int i = 0; i < arr->numel; i++) {
+                for(int i = 0; i < arr->header.numel; i++) {
                     if(arr->data[i].is_ptr)
                         return TypeError(
                             "'array2d' object is not picklable because it contains heap-allocated objects");
                     buf->used_types[arr->data[i].type] = true;
                 }
                 pkl__emit_op(buf, PKL_ARRAY2D);
-                pkl__emit_int(buf, arr->n_cols);
-                pkl__emit_int(buf, arr->n_rows);
-                PickleObject__write_bytes(buf, arr->data, arr->numel * sizeof(py_TValue));
+                pkl__emit_int(buf, arr->header.n_cols);
+                pkl__emit_int(buf, arr->header.n_rows);
+                PickleObject__write_bytes(buf, arr->data, arr->header.numel * sizeof(py_TValue));
             }
             pkl__store_memo(buf, obj->_obj);
             return true;
@@ -651,9 +652,9 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 int n_cols = pkl__read_int(&p);
                 int n_rows = pkl__read_int(&p);
                 c11_array2d* arr = py_newarray2d(py_pushtmp(), n_cols, n_rows);
-                int total_size = arr->numel * sizeof(py_TValue);
+                int total_size = arr->header.numel * sizeof(py_TValue);
                 memcpy(arr->data, p, total_size);
-                for(int i = 0; i < arr->numel; i++) {
+                for(int i = 0; i < arr->header.numel; i++) {
                     arr->data[i].type = pkl__fix_type(arr->data[i].type, type_mapping);
                 }
                 p += total_size;

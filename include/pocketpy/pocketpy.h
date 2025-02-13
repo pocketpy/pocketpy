@@ -302,9 +302,13 @@ PK_API const char* py_tpname(py_Type type);
 /// Call a type to create a new instance.
 PK_API bool py_tpcall(py_Type type, int argc, py_Ref argv) PY_RAISE PY_RETURN;
 
-/// Check if the object is an instance of the given type.
+/// Check if the object is an instance of the given type exactly.
 /// Raise `TypeError` if the check fails.
 PK_API bool py_checktype(py_Ref self, py_Type type) PY_RAISE;
+
+/// Check if the object is an instance of the given type or its subclass.
+/// Raise `TypeError` if the check fails.
+PK_API bool py_checkinstance(py_Ref self, py_Type type) PY_RAISE;
 
 #define py_checkint(self) py_checktype(self, tp_int)
 #define py_checkfloat(self) py_checktype(self, tp_float)
@@ -737,8 +741,11 @@ enum py_PredefinedTypes {
     tp_vec3i,
     tp_mat3x3,
     /* array2d */
+    tp_array2d_like,
+    tp_array2d_like_iterator,
     tp_array2d,
-    tp_array2d_iterator,
+    tp_array2d_view,
+    tp_chunked_array2d,
 };
 
 #ifdef __cplusplus

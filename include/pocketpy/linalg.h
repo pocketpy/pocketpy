@@ -1,8 +1,11 @@
 #pragma once
 
+#include <stdint.h>
+
 typedef union c11_vec2i {
     struct { int x, y; };
     int data[2];
+    int64_t _i64;
 } c11_vec2i;
 
 typedef union c11_vec3i {
