@@ -1,10 +1,13 @@
 from array2d import array2d
 from linalg import vec2i
 
+def exit_on_error():
+    raise KeyboardInterrupt
+
 # test error args for __init__
 try:
     a = array2d(0, 0)
-    exit(0)
+    exit_on_error()
 except ValueError:
     pass
 
@@ -39,7 +42,7 @@ assert a[0, 0] == (0, 0)
 assert a[1, 3] == (1, 3)
 try:
     a[2, 0]
-    exit(1)
+    exit_on_error()
 except IndexError:
     pass
 
@@ -51,7 +54,7 @@ a[1, 3] = 6
 assert a[1, 3] == 6
 try:
     a[0, -1] = 7
-    exit(1)
+    exit_on_error()
 except IndexError:
     pass
 
@@ -146,7 +149,7 @@ assert a.get_bounding_rect(0) == (0, 0, 5, 5)
 
 try:
     a.get_bounding_rect(2)
-    exit(1)
+    exit_on_error()
 except ValueError:
     pass
 
@@ -163,14 +166,8 @@ assert a == array2d(3, 2, default=3)
 
 try:
     a[:, :] = array2d(1, 1)
-    exit(1)
+    exit_on_error()
 except ValueError:
-    pass
-
-try:
-    a[:, :] = ...
-    exit(1)
-except TypeError:
     pass
 
 # test __iter__

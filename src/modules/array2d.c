@@ -361,8 +361,9 @@ static bool array2d_like__getitem__(int argc, py_Ref argv) {
         for(int j = 0; j < self->n_rows; j++) {
             for(int i = 0; i < self->n_cols; i++) {
                 py_Ref item = self->f_get(self, i, j);
-                if(!py_checkbool(item)) return false;
-                if(py_tobool(item)) py_list_append(py_retval(), item);
+                py_Ref cond = mask->f_get(mask, i, j);
+                if(!py_checkbool(cond)) return false;
+                if(py_tobool(cond)) py_list_append(py_retval(), item);
             }
         }
         return true;
@@ -410,9 +411,9 @@ static bool array2d_like__setitem__(int argc, py_Ref argv) {
         if(!_array2d_like_check_same_shape(self, mask)) return false;
         for(int j = 0; j < self->n_rows; j++) {
             for(int i = 0; i < self->n_cols; i++) {
-                py_Ref item = self->f_get(self, i, j);
-                if(!py_checkbool(item)) return false;
-                if(py_tobool(item)) {
+                py_Ref cond = mask->f_get(mask, i, j);
+                if(!py_checkbool(cond)) return false;
+                if(py_tobool(cond)) {
                     bool ok = self->f_set(self, i, j, value);
                     if(!ok) return false;
                 }
