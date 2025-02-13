@@ -621,8 +621,9 @@ static bool array2d_like_convolve(int argc, py_Ref argv) {
 
 #undef HANDLE_SLICE
 
-static py_Type register_array2d_like(py_Ref mod) {
+static void register_array2d_like(py_Ref mod) {
     py_Type type = py_newtype("array2d_like", tp_object, mod, NULL);
+    assert(type == tp_array2d_like);
 
     py_bindproperty(type, "n_cols", array2d_like_n_cols, NULL);
     py_bindproperty(type, "n_rows", array2d_like_n_rows, NULL);
@@ -663,8 +664,6 @@ static py_Type register_array2d_like(py_Ref mod) {
         py_printexc();
         c11__abort("failed to execute array2d.py");
     }
-
-    return type;
 }
 
 static bool array2d_like_iterator__next__(int argc, py_Ref argv) {
@@ -686,11 +685,11 @@ static bool array2d_like_iterator__next__(int argc, py_Ref argv) {
     return true;
 }
 
-static py_Type register_array2d_like_iterator(py_Ref mod) {
+static void register_array2d_like_iterator(py_Ref mod) {
     py_Type type = py_newtype("array2d_like_iterator", tp_object, mod, NULL);
+    assert(type == tp_array2d_like_iterator);
     py_bindmagic(type, __iter__, pk_wrapper__self);
     py_bindmagic(type, __next__, array2d_like_iterator__next__);
-    return type;
 }
 
 static bool array2d__new__(int argc, py_Ref argv) {
@@ -754,13 +753,13 @@ static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
     return true;
 }
 
-static py_Type register_array2d(py_Ref mod){
+static void register_array2d(py_Ref mod){
     py_Type type = py_newtype("array2d", tp_array2d_like, mod, NULL);
+    assert(type == tp_array2d);
     py_bind(py_tpobject(type),
             "__new__(cls, n_cols: int, n_rows: int, default=None)",
             array2d__new__);
     py_bindstaticmethod(type, "fromlist", array2d_fromlist_STATIC);
-    return type;
 }
 
 static bool array2d_view_origin(int argc, py_Ref argv) {
@@ -770,10 +769,10 @@ static bool array2d_view_origin(int argc, py_Ref argv) {
     return true;
 }
 
-static py_Type register_array2d_view(py_Ref mod) {
+static void register_array2d_view(py_Ref mod) {
     py_Type type = py_newtype("array2d_view", tp_array2d_like, mod, NULL);
+    assert(type == tp_array2d_view);
     py_bindproperty(type, "origin", array2d_view_origin, NULL);
-    return type;
 }
 
 /* chunked_array2d */
@@ -1038,26 +1037,27 @@ static void c11_chunked_array2d__mark(void* ud) {
 }
 
 static void register_chunked_array2d(py_Ref mod) {
-    py_Type cls = py_newtype("chunked_array2d", tp_object, mod, (py_Dtor)c11_chunked_array2d__dtor);
-    pk__tp_set_marker(cls, c11_chunked_array2d__mark);
+    py_Type type = py_newtype("chunked_array2d", tp_object, mod, (py_Dtor)c11_chunked_array2d__dtor);
+    pk__tp_set_marker(type, c11_chunked_array2d__mark);
+    assert(type == tp_chunked_array2d);
 
-    py_bindmagic(cls, __new__, chunked_array2d__new__);
-    py_bind(py_tpobject(cls),
+    py_bindmagic(type, __new__, chunked_array2d__new__);
+    py_bind(py_tpobject(type),
             "__init__(self, chunk_size, default=None, context_builder=None)",
             chunked_array2d__init__);
 
-    py_bindproperty(cls, "chunk_size", chunked_array2d__chunk_size, NULL);
+    py_bindproperty(type, "chunk_size", chunked_array2d__chunk_size, NULL);
 
-    py_bindmagic(cls, __getitem__, chunked_array2d__getitem__);
-    py_bindmagic(cls, __setitem__, chunked_array2d__setitem__);
-    py_bindmagic(cls, __delitem__, chunked_array2d__delitem__);
-    py_bindmagic(cls, __iter__, chunked_array2d__iter__);
+    py_bindmagic(type, __getitem__, chunked_array2d__getitem__);
+    py_bindmagic(type, __setitem__, chunked_array2d__setitem__);
+    py_bindmagic(type, __delitem__, chunked_array2d__delitem__);
+    py_bindmagic(type, __iter__, chunked_array2d__iter__);
 
-    py_bindmethod(cls, "clear", chunked_array2d__clear);
-    py_bindmethod(cls, "world_to_chunk", chunked_array2d__world_to_chunk);
-    py_bindmethod(cls, "add_chunk", chunked_array2d__add_chunk);
-    py_bindmethod(cls, "remove_chunk", chunked_array2d__remove_chunk);
-    py_bindmethod(cls, "get_context", chunked_array2d__get_context);
+    py_bindmethod(type, "clear", chunked_array2d__clear);
+    py_bindmethod(type, "world_to_chunk", chunked_array2d__world_to_chunk);
+    py_bindmethod(type, "add_chunk", chunked_array2d__add_chunk);
+    py_bindmethod(type, "remove_chunk", chunked_array2d__remove_chunk);
+    py_bindmethod(type, "get_context", chunked_array2d__get_context);
 }
 
 

@@ -83,21 +83,19 @@ d = c.copy()
 assert (d == c).all() and d is not c
 
 # test fill_
-d.fill_(-3)
+d[:, :] = -3    # d.fill_(-3)
 assert (d == array2d(2, 4, default=-3)).all()
 
-# test apply_
-d.apply_(lambda x: x + 3)
+# test apply
+d.apply(lambda x: x + 3)
 assert (d == array2d(2, 4, default=0)).all()
 
 # test copy_
-a.copy_(d)
+a[:, :] = d
 assert (a == d).all() and a is not d
 x = array2d(2, 4, default=0)
-x.copy_(d)
+x[:, :] = d
 assert (x == d).all() and x is not d
-x.copy_([1, 2, 3, 4, 5, 6, 7, 8])
-assert x.tolist() == [[1, 2], [3, 4], [5, 6], [7, 8]]
 
 # test alive_neighbors
 a = array2d[int](3, 3, default=0)
