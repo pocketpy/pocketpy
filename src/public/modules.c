@@ -329,8 +329,8 @@ static bool builtins_round(int argc, py_Ref argv) {
 
 static bool builtins_print(int argc, py_Ref argv) {
     // print(*args, sep=' ', end='\n')
-    py_TValue* args;
-    int length = pk_arrayview(argv, &args);
+    py_TValue* args = py_tuple_data(argv);
+    int length = py_tuple_len(argv);
     assert(length != -1);
     c11_sv sep = py_tosv(py_arg(1));
     c11_sv end = py_tosv(py_arg(2));
