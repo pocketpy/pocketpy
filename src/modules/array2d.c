@@ -1017,7 +1017,7 @@ static bool chunked_array2d__clear(int argc, py_Ref argv) {
 
 static bool chunked_array2d__world_to_chunk(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    PY_CHECK_ARG_TYPE(1, tp_vec2);
+    PY_CHECK_ARG_TYPE(1, tp_vec2i);
     c11_chunked_array2d* self = py_touserdata(argv);
     c11_vec2i pos = py_tovec2i(&argv[1]);
     c11_vec2i chunk_pos, local_pos;
