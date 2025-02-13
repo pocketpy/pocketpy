@@ -916,18 +916,13 @@ static void c11_chunked_array2d__del(c11_chunked_array2d* self, int col, int row
 }
 
 static bool chunked_array2d__new__(int argc, py_Ref argv) {
-    py_Type cls = py_totype(argv);
-    py_newobject(py_retval(), cls, 0, sizeof(c11_chunked_array2d));
-    return true;
-}
-
-static bool chunked_array2d__init__(int argc, py_Ref argv) {
-    c11_chunked_array2d* self = py_touserdata(&argv[0]);
+    PY_CHECK_ARGC(4);
     PY_CHECK_ARG_TYPE(1, tp_int);
+    py_Type cls = py_totype(argv);
+    c11_chunked_array2d* self = py_newobject(py_retval(), cls, 0, sizeof(c11_chunked_array2d));
     int chunk_size = py_toint(&argv[1]);
     self->default_T = argv[2];
     self->context_builder = argv[3];
-
     c11_chunked_array2d_chunks__ctor(&self->chunks);
     self->chunk_size = chunk_size;
     switch(chunk_size) {
@@ -947,7 +942,6 @@ static bool chunked_array2d__init__(int argc, py_Ref argv) {
     }
     self->chunk_size_mask = chunk_size - 1;
     memset(&self->last_visited, 0, sizeof(c11_chunked_array2d_chunks_KV));
-    py_newnone(py_retval());
     return true;
 }
 
@@ -1003,6 +997,13 @@ static bool chunked_array2d__iter__(int argc, py_Ref argv) {
     bool ok = py_iter(py_peek(-1));
     if(!ok) return false;
     py_pop();
+    return true;
+}
+
+static bool chunked_array2d__len__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_chunked_array2d* self = py_touserdata(argv);
+    py_newint(py_retval(), self->chunks.length);
     return true;
 }
 
@@ -1152,10 +1153,9 @@ static void register_chunked_array2d(py_Ref mod) {
     pk__tp_set_marker(type, c11_chunked_array2d__mark);
     assert(type == tp_chunked_array2d);
 
-    py_bind(py_tpobject(type), "__new__(cls, *args, **kwargs)", chunked_array2d__new__);
     py_bind(py_tpobject(type),
-            "__init__(self, chunk_size, default=None, context_builder=None)",
-            chunked_array2d__init__);
+            "__new__(cls, chunk_size, default=None, context_builder=None)",
+            chunked_array2d__new__);
 
     py_bindproperty(type, "chunk_size", chunked_array2d__chunk_size, NULL);
 
@@ -1163,6 +1163,7 @@ static void register_chunked_array2d(py_Ref mod) {
     py_bindmagic(type, __setitem__, chunked_array2d__setitem__);
     py_bindmagic(type, __delitem__, chunked_array2d__delitem__);
     py_bindmagic(type, __iter__, chunked_array2d__iter__);
+    py_bindmagic(type, __len__, chunked_array2d__len__);
 
     py_bindmethod(type, "clear", chunked_array2d__clear);
     py_bindmethod(type, "world_to_chunk", chunked_array2d__world_to_chunk);
