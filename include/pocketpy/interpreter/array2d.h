@@ -1,10 +1,8 @@
 #pragma once
 
 #include "pocketpy/pocketpy.h"
-
-#include "pocketpy/common/utils.h"
-#include "pocketpy/common/sstream.h"
-#include "pocketpy/interpreter/vm.h"
+#include "pocketpy/common/smallmap.h"
+#include "pocketpy/objects/base.h"
 
 typedef struct c11_array2d_like {
     int n_cols;
@@ -53,13 +51,3 @@ typedef struct c11_chunked_array2d {
     py_TValue default_T;
     py_TValue context_builder;
 } c11_chunked_array2d;
-
-void c11_chunked_array2d__dtor(c11_chunked_array2d* self);
-
-py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row);
-bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value) PY_RAISE;
-void c11_chunked_array2d__del(c11_chunked_array2d* self, int col, int row);
-
-void pk__register_chunked_array2d(py_Ref mod);
-
-/* array2d_view */

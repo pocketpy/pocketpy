@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/array2d.h"
+#include "pocketpy/interpreter/vm.h"
 
 static bool c11_array2d_like_is_valid(c11_array2d_like* self, unsigned int col, unsigned int row) {
     return col < self->n_cols && row < self->n_rows;
@@ -194,6 +195,21 @@ static bool array2d_like_copy(int argc, py_Ref argv) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
             res->data[j * self->n_cols + i] = *item;
+        }
+    }
+    return true;
+}
+
+static bool array2d_like_tolist(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_array2d_like* self = py_touserdata(argv);
+    py_newlistn(py_retval(), self->n_rows);
+    for(int j = 0; j < self->n_rows; j++) {
+        py_Ref row_j = py_list_getitem(py_retval(), j);
+        py_newlistn(row_j, self->n_cols);
+        for(int i = 0; i < self->n_cols; i++) {
+            py_Ref item = self->f_get(self, i, j);
+            py_list_setitem(row_j, i, item);
         }
     }
     return true;
@@ -533,16 +549,16 @@ static bool array2d_like_count_neighbors(int argc, py_Ref argv) {
     int n_offsets;
     if(strcmp(neighborhood, "Moore") == 0) {
         offsets = Moore;
-        n_offsets = 8;
+        n_offsets = c11__count_array(Moore);
     } else if(strcmp(neighborhood, "von Neumann") == 0) {
         offsets = von_Neumann;
-        n_offsets = 4;
+        n_offsets = c11__count_array(von_Neumann);
     } else {
         return ValueError("neighborhood must be 'Moore' or 'von Neumann'");
     }
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
-            int count = 0;
+            py_i64 count = 0;
             for(int k = 0; k < n_offsets; k++) {
                 int x = i + offsets[k].x;
                 int y = j + offsets[k].y;
@@ -561,7 +577,51 @@ static bool array2d_like_count_neighbors(int argc, py_Ref argv) {
     return true;
 }
 
-static void pk__register_array2d_like(py_Ref mod) {
+// convolve(self: array2d_like[int], kernel: array2d_like[int], padding: int) -> array2d[int]
+static bool array2d_like_convolve(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    if(!py_checkinstance(&argv[1], tp_array2d_like)) return false;
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    c11_array2d_like* self = py_touserdata(&argv[0]);
+    c11_array2d_like* kernel = py_touserdata(&argv[1]);
+    int padding = py_toint(py_arg(2));
+    if(kernel->n_cols != kernel->n_rows) return ValueError("kernel must be square");
+    int ksize = kernel->n_cols;
+    if(ksize % 2 == 0) return ValueError("kernel size must be odd");
+    int ksize_half = ksize / 2;
+    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            py_i64 sum = 0;
+            for(int jj = 0; jj < ksize; jj++) {
+                for(int ii = 0; ii < ksize; ii++) {
+                    int x = i + ii - ksize_half;
+                    int y = j + jj - ksize_half;
+                    py_i64 _0, _1;
+                    if(x < 0 || x >= self->n_cols || y < 0 || y >= self->n_rows) {
+                        _0 = padding;
+                    } else {
+                        py_Ref item = self->f_get(self, x, y);
+                        if(!py_checkint(item)) return false;
+                        _0 = py_toint(item);
+                    }
+                    py_Ref kitem = kernel->f_get(kernel, ii, jj);
+                    if(!py_checkint(kitem)) return false;
+                    _1 = py_toint(kitem);
+                    sum += _0 * _1;
+                }
+            }
+            py_newint(c11_array2d__get(res, i, j), sum);
+        }
+    }
+    py_assign(py_retval(), py_peek(-1));
+    py_pop();
+    return true;
+}
+
+#undef HANDLE_SLICE
+
+static py_Type register_array2d_like(py_Ref mod) {
     py_Type type = py_newtype("array2d_like", tp_object, mod, NULL);
 
     py_bindproperty(type, "n_cols", array2d_like_n_cols, NULL);
@@ -582,6 +642,7 @@ static void pk__register_array2d_like(py_Ref mod) {
     py_bindmethod(type, "map", array2d_like_map);
     py_bindmethod(type, "apply", array2d_like_apply);
     py_bindmethod(type, "copy", array2d_like_copy);
+    py_bindmethod(type, "tolist", array2d_like_tolist);
 
     py_bindmagic(type, __eq__, array2d_like__eq__);
     py_bindmagic(type, __ne__, array2d_like__ne__);
@@ -594,6 +655,42 @@ static void pk__register_array2d_like(py_Ref mod) {
     py_bindmethod(type, "count", array2d_like_count);
     py_bindmethod(type, "get_bounding_rect", array2d_like_get_bounding_rect);
     py_bindmethod(type, "count_neighbors", array2d_like_count_neighbors);
+    py_bindmethod(type, "convolve", array2d_like_convolve);
+
+    const char* scc =
+        "\ndef get_connected_components(self, value: T, neighborhood: Neighborhood) -> tuple[array2d[int], int]:\n    from collections import deque\n    from linalg import vec2i\n\n    DIRS = [vec2i.LEFT, vec2i.RIGHT, vec2i.UP, vec2i.DOWN]\n    assert neighborhood in ['Moore', 'von Neumann']\n\n    if neighborhood == 'Moore':\n        DIRS.extend([\n            vec2i.LEFT+vec2i.UP,\n            vec2i.RIGHT+vec2i.UP,\n            vec2i.LEFT+vec2i.DOWN,\n            vec2i.RIGHT+vec2i.DOWN\n            ])\n\n    visited = array2d[int](self.width, self.height, default=0)\n    queue = deque()\n    count = 0\n    for y in range(self.height):\n        for x in range(self.width):\n            if visited[x, y] or self[x, y] != value:\n                continue\n            count += 1\n            queue.append((x, y))\n            visited[x, y] = count\n            while queue:\n                cx, cy = queue.popleft()\n                for dx, dy in DIRS:\n                    nx, ny = cx+dx, cy+dy\n                    if self.is_valid(nx, ny) and not visited[nx, ny] and self[nx, ny] == value:\n                        queue.append((nx, ny))\n                        visited[nx, ny] = count\n    return visited, count\n\narray2d_like.get_connected_components = get_connected_components\ndel get_connected_components\n";
+    if(!py_exec(scc, "array2d.py", EXEC_MODE, mod)) {
+        py_printexc();
+        c11__abort("failed to execute array2d.py");
+    }
+
+    return type;
+}
+
+static bool array2d_like_iterator__next__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_array2d_like_iterator* self = py_touserdata(argv);
+    if(self->j >= self->array->n_rows) return StopIteration();
+    py_newtuple(py_retval(), 2);
+    py_TValue* data = py_tuple_data(py_retval());
+    py_newvec2i(&data[0],
+                (c11_vec2i){
+                    {self->i, self->j}
+    });
+    py_assign(&data[1], self->array->f_get(self->array, self->i, self->j));
+    self->i++;
+    if(self->i >= self->array->n_cols) {
+        self->i = 0;
+        self->j++;
+    }
+    return true;
+}
+
+static py_Type register_array2d_like_iterator(py_Ref mod) {
+    py_Type type = py_newtype("array2d_like_iterator", tp_object, mod, NULL);
+    py_bindmagic(type, __iter__, pk_wrapper__self);
+    py_bindmagic(type, __next__, array2d_like_iterator__next__);
+    return type;
 }
 
 static bool array2d__new__(int argc, py_Ref argv) {
@@ -629,36 +726,6 @@ static bool array2d__new__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool _array2d_check_all_type(c11_array2d* self, py_Type type) {
-    for(int i = 0; i < self->numel; i++) {
-        py_Type item_type = self->data[i].type;
-        if(item_type != type) {
-            const char* fmt = "expected array2d[%t], got %t";
-            return TypeError(fmt, type, item_type);
-        }
-    }
-    return true;
-}
-
-static bool array2d_like_iterator__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_array2d_like_iterator* self = py_touserdata(argv);
-    if(self->j >= self->array->n_rows) return StopIteration();
-    py_newtuple(py_retval(), 2);
-    py_TValue* data = py_tuple_data(py_retval());
-    py_newvec2i(&data[0],
-                (c11_vec2i){
-                    {self->i, self->j}
-    });
-    py_assign(&data[1], self->array->f_get(self->array, self->i, self->j));
-    self->i++;
-    if(self->i >= self->array->n_cols) {
-        self->i = 0;
-        self->j++;
-    }
-    return true;
-}
-
 // fromlist(data: list[list[T]]) -> array2d[T]
 static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -687,131 +754,27 @@ static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
     return true;
 }
 
-// tolist(self) -> list[list[T]]
-static bool array2d_tolist(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_array2d* self = py_touserdata(argv);
-    py_newlistn(py_retval(), self->n_rows);
-    for(int j = 0; j < self->n_rows; j++) {
-        py_Ref row_j = py_list_getitem(py_retval(), j);
-        py_newlistn(row_j, self->n_cols);
-        for(int i = 0; i < self->n_cols; i++) {
-            py_list_setitem(row_j, i, c11_array2d__get(self, i, j));
-        }
-    }
-    return true;
-}
-
-// convolve(self: array2d[int], kernel: array2d[int], padding: int) -> array2d[int]
-static bool array2d_convolve(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(3);
-    PY_CHECK_ARG_TYPE(1, tp_array2d);
-    PY_CHECK_ARG_TYPE(2, tp_int);
-    c11_array2d_like* self = py_touserdata(argv);
-    c11_array2d_like* kernel = py_touserdata(py_arg(1));
-    int padding = py_toint(py_arg(2));
-    if(kernel->n_cols != kernel->n_rows) { return ValueError("kernel must be square"); }
-    int ksize = kernel->n_cols;
-    if(ksize % 2 == 0) return ValueError("kernel size must be odd");
-    int ksize_half = ksize / 2;
-    if(!_array2d_check_all_type(self, tp_int)) return false;
-    if(!_array2d_check_all_type(kernel, tp_int)) return false;
-    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
-    for(int j = 0; j < self->n_rows; j++) {
-        for(int i = 0; i < self->n_cols; i++) {
-            py_i64 sum = 0;
-            for(int jj = 0; jj < ksize; jj++) {
-                for(int ii = 0; ii < ksize; ii++) {
-                    int x = i + ii - ksize_half;
-                    int y = j + jj - ksize_half;
-                    py_i64 _0, _1;
-                    if(x < 0 || x >= self->n_cols || y < 0 || y >= self->n_rows) {
-                        _0 = padding;
-                    } else {
-                        _0 = py_toint(c11_array2d__get(self, x, y));
-                    }
-                    _1 = py_toint(c11_array2d__get(kernel, ii, jj));
-                    sum += _0 * _1;
-                }
-            }
-            py_newint(c11_array2d__get(res, i, j), sum);
-        }
-    }
-    py_assign(py_retval(), py_peek(-1));
-    py_pop();
-    return true;
-}
-
-void pk__add_module_array2d() {
-    py_GlobalRef mod = py_newmodule("array2d");
-
-    py_Type array2d_like = pk_newtype("array2d_like", tp_object, mod, NULL, false, true);
-    py_Type array2d_like_iterator =
-        pk_newtype("array2d_like_iterator", tp_object, mod, NULL, false, true);
-    assert(array2d_like == tp_array2d_like);
-    assert(array2d_like_iterator == tp_array2d_like_iterator);
-    py_setdict(mod, py_name("array2d_like"), py_tpobject(array2d_like));
-    py_setdict(mod, py_name("array2d_like_iterator"), py_tpobject(array2d_like_iterator));
-
-    py_Type array2d = py_newtype("array2d", tp_array2d_like, mod, NULL);
-    py_Type chunked_array2d = py_newtype("chunked_array2d", tp_array2d_like, mod, NULL);
-
-    py_setdict(py_tpobject(array2d_like), __hash__, py_None());
-    py_setdict(py_tpobject(array2d_like_iterator), __hash__, py_None());
-    py_setdict(py_tpobject(array2d), __hash__, py_None());
-    py_setdict(py_tpobject(chunked_array2d), __hash__, py_None());
-
-    py_bindmagic(array2d_like_iterator, __iter__, pk_wrapper__self);
-    py_bindmagic(array2d_like_iterator, __next__, array2d_like_iterator__next__);
-
-    py_bind(py_tpobject(array2d),
+static py_Type register_array2d(py_Ref mod){
+    py_Type type = py_newtype("array2d", tp_array2d_like, mod, NULL);
+    py_bind(py_tpobject(type),
             "__new__(cls, n_cols: int, n_rows: int, default=None)",
             array2d__new__);
-
-    py_bindmagic(array2d, __eq__, array2d__eq__);
-    py_bindmagic(array2d, __ne__, array2d__ne__);
-    py_bindmagic(array2d, __repr__, array2d__repr__);
-    py_bindmagic(array2d, __iter__, array2d__iter__);
-
-    py_bindmagic(array2d, __getitem__, array2d__getitem__);
-    py_bindmagic(array2d, __setitem__, array2d__setitem__);
-
-    py_bindmethod(array2d, "is_valid", array2d_is_valid);
-    py_bindmethod(array2d, "get", array2d_get);
-
-    py_bindmethod(array2d, "map", array2d_map);
-    py_bindmethod(array2d, "copy", array2d_copy);
-
-    py_bindmethod(array2d, "fill_", array2d_fill_);
-    py_bindmethod(array2d, "apply_", array2d_apply_);
-    py_bindmethod(array2d, "copy_", array2d_copy_);
-
-    py_bindmethod(array2d, "render", array2d_render);
-
-    py_bindmethod(array2d, "all", array2d_all);
-    py_bindmethod(array2d, "any", array2d_any);
-
-    py_bindstaticmethod(array2d, "fromlist", array2d_fromlist_STATIC);
-    py_bindmethod(array2d, "tolist", array2d_tolist);
-
-    py_bindmethod(array2d, "count", array2d_count);
-    py_bindmethod(array2d, "get_bounding_rect", array2d_get_bounding_rect);
-    py_bindmethod(array2d, "count_neighbors", array2d_count_neighbors);
-    py_bindmethod(array2d, "convolve", array2d_convolve);
-
-    const char* scc =
-        "\ndef get_connected_components(self, value: T, neighborhood: Neighborhood) -> tuple[array2d[int], int]:\n    from collections import deque\n    from linalg import vec2i\n\n    DIRS = [vec2i.LEFT, vec2i.RIGHT, vec2i.UP, vec2i.DOWN]\n    assert neighborhood in ['Moore', 'von Neumann']\n\n    if neighborhood == 'Moore':\n        DIRS.extend([\n            vec2i.LEFT+vec2i.UP,\n            vec2i.RIGHT+vec2i.UP,\n            vec2i.LEFT+vec2i.DOWN,\n            vec2i.RIGHT+vec2i.DOWN\n            ])\n\n    visited = array2d[int](self.width, self.height, default=0)\n    queue = deque()\n    count = 0\n    for y in range(self.height):\n        for x in range(self.width):\n            if visited[x, y] or self[x, y] != value:\n                continue\n            count += 1\n            queue.append((x, y))\n            visited[x, y] = count\n            while queue:\n                cx, cy = queue.popleft()\n                for dx, dy in DIRS:\n                    nx, ny = cx+dx, cy+dy\n                    if self.is_valid(nx, ny) and not visited[nx, ny] and self[nx, ny] == value:\n                        queue.append((nx, ny))\n                        visited[nx, ny] = count\n    return visited, count\n\narray2d.get_connected_components = get_connected_components\ndel get_connected_components\n";
-
-    if(!py_exec(scc, "array2d.py", EXEC_MODE, mod)) {
-        py_printexc();
-        c11__abort("failed to execute array2d.py");
-    }
-
-    pk__register_chunked_array2d(mod);
+    py_bindstaticmethod(type, "fromlist", array2d_fromlist_STATIC);
+    return type;
 }
 
-#undef INC_COUNT
-#undef HANDLE_SLICE
+static bool array2d_view_origin(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_array2d_view* self = py_touserdata(argv);
+    py_newvec2i(py_retval(), self->origin);
+    return true;
+}
+
+static py_Type register_array2d_view(py_Ref mod) {
+    py_Type type = py_newtype("array2d_view", tp_array2d_like, mod, NULL);
+    py_bindproperty(type, "origin", array2d_view_origin, NULL);
+    return type;
+}
 
 /* chunked_array2d */
 #define SMALLMAP_T__SOURCE
@@ -845,7 +808,7 @@ static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_
     return data;
 }
 
-void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
+static void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
                                          int col,
                                          int row,
                                          c11_vec2i* chunk_pos,
@@ -883,6 +846,32 @@ static py_TValue* c11_chunked_array2d__parse_col_row(c11_chunked_array2d* self,
         self->last_visited.value = data;
     }
     return data + 1;  // skip context
+}
+
+static py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row) {
+    c11_vec2i chunk_pos, local_pos;
+    py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
+    if(data == NULL) return NULL;
+    py_Ref retval = &data[local_pos.y * self->chunk_size + local_pos.x];
+    if(py_isnil(retval)) return NULL;
+    return retval;
+}
+
+static bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value) {
+    c11_vec2i chunk_pos, local_pos;
+    py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
+    if(data == NULL) {
+        data = c11_chunked_array2d__new_chunk(self, chunk_pos);
+        if(data == NULL) return false;
+    }
+    data[local_pos.y * self->chunk_size + local_pos.x] = *value;
+    return true;
+}
+
+static void c11_chunked_array2d__del(c11_chunked_array2d* self, int col, int row) {
+    c11_vec2i chunk_pos, local_pos;
+    py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
+    if(data != NULL) data[local_pos.y * self->chunk_size + local_pos.x] = *py_NIL();
 }
 
 static bool chunked_array2d__new__(int argc, py_Ref argv) {
@@ -1035,32 +1024,6 @@ void c11_chunked_array2d__dtor(c11_chunked_array2d* self) {
     c11_chunked_array2d_chunks__dtor(&self->chunks);
 }
 
-py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row) {
-    c11_vec2i chunk_pos, local_pos;
-    py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
-    if(data == NULL) return NULL;
-    py_Ref retval = &data[local_pos.y * self->chunk_size + local_pos.x];
-    if(py_isnil(retval)) return NULL;
-    return retval;
-}
-
-bool c11_chunked_array2d__set(c11_chunked_array2d* self, int col, int row, py_Ref value) {
-    c11_vec2i chunk_pos, local_pos;
-    py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
-    if(data == NULL) {
-        data = c11_chunked_array2d__new_chunk(self, chunk_pos);
-        if(data == NULL) return false;
-    }
-    data[local_pos.y * self->chunk_size + local_pos.x] = *value;
-    return true;
-}
-
-void c11_chunked_array2d__del(c11_chunked_array2d* self, int col, int row) {
-    c11_vec2i chunk_pos, local_pos;
-    py_TValue* data = c11_chunked_array2d__parse_col_row(self, col, row, &chunk_pos, &local_pos);
-    if(data != NULL) data[local_pos.y * self->chunk_size + local_pos.x] = *py_NIL();
-}
-
 static void c11_chunked_array2d__mark(void* ud) {
     c11_chunked_array2d* self = ud;
     pk__mark_value(&self->default_T);
@@ -1074,7 +1037,7 @@ static void c11_chunked_array2d__mark(void* ud) {
     }
 }
 
-void pk__register_chunked_array2d(py_Ref mod) {
+static void register_chunked_array2d(py_Ref mod) {
     py_Type cls = py_newtype("chunked_array2d", tp_object, mod, (py_Dtor)c11_chunked_array2d__dtor);
     pk__tp_set_marker(cls, c11_chunked_array2d__mark);
 
@@ -1095,4 +1058,15 @@ void pk__register_chunked_array2d(py_Ref mod) {
     py_bindmethod(cls, "add_chunk", chunked_array2d__add_chunk);
     py_bindmethod(cls, "remove_chunk", chunked_array2d__remove_chunk);
     py_bindmethod(cls, "get_context", chunked_array2d__get_context);
+}
+
+
+void pk__add_module_array2d() {
+    py_GlobalRef mod = py_newmodule("array2d");
+
+    register_array2d_like(mod);
+    register_array2d_like_iterator(mod);
+    register_array2d(mod);
+    register_array2d_view(mod);
+    register_chunked_array2d(mod);
 }

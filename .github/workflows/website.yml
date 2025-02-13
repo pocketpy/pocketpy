@@ -1,0 +1,42 @@
+name: website
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    ###################################################
+    - uses: actions/setup-node@v3.1.1
+    - name: Retype build
+      run: |
+        python scripts/gen_docs.py
+        cd docs
+        npm install retypeapp -g
+        retype build
+    ###################################################
+    - name: Setup emsdk
+      uses: mymindstorm/setup-emsdk@v12
+      with:
+        version: latest
+        actions-cache-folder: 'emsdk-cache'
+    - name: Compile
+      run: |
+        bash build_web.sh
+        mv web docs/.retype/static
+    ###################################################
+    - uses: crazy-max/ghaction-github-pages@v3
+      with:
+        target_branch: gh-pages
+        build_dir: docs/.retype
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      if: github.ref == 'refs/heads/main'
