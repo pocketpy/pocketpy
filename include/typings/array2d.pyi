@@ -102,8 +102,8 @@ class array2d[T](array2d_like[T]):
 
 
 class chunked_array2d[T, TContext]:
-    def __init__(
-            self,
+    def __new__(
+            cls,
             chunk_size: int,
             default: T = None,
             context_builder: Callable[[vec2i], TContext] | None = None,
@@ -116,6 +116,7 @@ class chunked_array2d[T, TContext]:
     def __setitem__(self, index: vec2i, value: T): ...
     def __delitem__(self, index: vec2i): ...
     def __iter__(self) -> Iterator[tuple[vec2i, TContext]]: ...
+    def __len__(self) -> int: ...
 
     def clear(self) -> None: ...
 
