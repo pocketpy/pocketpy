@@ -22,7 +22,7 @@ os.chdir("build")
 
 code = os.system(f"cmake .. -DPK_ENABLE_OS=ON -DPK_BUILD_MODULE_LZ4=ON -DPK_BUILD_MODULE_LIBHV=ON -DCMAKE_BUILD_TYPE={config} {extra_flags}")
 assert code == 0
-code = os.system(f"cmake --build . --config {config}")
+code = os.system(f"cmake --build . --config {config} -j 4")
 assert code == 0
 
 if sys.platform == "win32":
