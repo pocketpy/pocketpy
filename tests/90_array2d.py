@@ -16,6 +16,7 @@ a = array2d[int](2, 4, lambda pos: (pos.x, pos.y))
 
 assert a.width == a.n_cols == 2
 assert a.height == a.n_rows == 4
+assert a.shape == vec2i(2, 4)
 assert a.numel == 8
 assert a.tolist() == [
     [(0, 0), (1, 0)],

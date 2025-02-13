@@ -991,12 +991,19 @@ static bool chunked_array2d__delitem__(int argc, py_Ref argv) {
 static bool chunked_array2d__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_chunked_array2d* self = py_touserdata(argv);
-    py_newtuple(py_retval(), self->chunks.length);
+    py_newtuple(py_pushtmp(), self->chunks.length);
     for(int i = 0; i < self->chunks.length; i++) {
-        py_TValue* data = c11__getitem(c11_chunked_array2d_chunks_KV, &self->chunks, i).value;
-        py_tuple_setitem(py_retval(), i, &data[0]);
+        py_Ref slot = py_tuple_getitem(py_peek(-1), i);
+        c11_chunked_array2d_chunks_KV* kv =
+            c11__at(c11_chunked_array2d_chunks_KV, &self->chunks, i);
+        py_newtuple(slot, 2);
+        py_newvec2i(py_tuple_getitem(slot, 0), kv->key);
+        py_tuple_setitem(slot, 1, &kv->value[0]);
     }
-    return py_iter(py_retval());
+    bool ok = py_iter(py_peek(-1));
+    if(!ok) return false;
+    py_pop();
+    return true;
 }
 
 static bool chunked_array2d__clear(int argc, py_Ref argv) {

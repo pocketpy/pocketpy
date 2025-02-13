@@ -133,6 +133,8 @@ bool py_call(py_Ref f, int argc, py_Ref argv) {
 #ifndef NDEBUG
 bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
     py_StackRef p0 = py_peek(0);
+    // NOTE: sometimes users are using `py_retval()` to pass `argv`
+    // It will be reset to `nil` and cause an exception
     py_newnil(py_retval());
     bool ok = f(argc, argv);
     if(!ok) {
