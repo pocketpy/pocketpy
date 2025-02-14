@@ -945,7 +945,7 @@ static bool chunked_array2d__new__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool chunked_array2d__chunk_size(int argc, py_Ref argv) {
+static bool chunked_array2d_chunk_size(int argc, py_Ref argv) {
     c11_chunked_array2d* self = py_touserdata(argv);
     py_newint(py_retval(), self->chunk_size);
     return true;
@@ -1007,7 +1007,7 @@ static bool chunked_array2d__len__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool chunked_array2d__clear(int argc, py_Ref argv) {
+static bool chunked_array2d_clear(int argc, py_Ref argv) {
     c11_chunked_array2d* self = py_touserdata(argv);
     c11_chunked_array2d_chunks__clear(&self->chunks);
     self->last_visited.value = NULL;
@@ -1015,7 +1015,7 @@ static bool chunked_array2d__clear(int argc, py_Ref argv) {
     return true;
 }
 
-static bool chunked_array2d__world_to_chunk(int argc, py_Ref argv) {
+static bool chunked_array2d_world_to_chunk(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_vec2i);
     c11_chunked_array2d* self = py_touserdata(argv);
@@ -1029,7 +1029,7 @@ static bool chunked_array2d__world_to_chunk(int argc, py_Ref argv) {
     return true;
 }
 
-static bool chunked_array2d__add_chunk(int argc, py_Ref argv) {
+static bool chunked_array2d_add_chunk(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_vec2i);
     c11_chunked_array2d* self = py_touserdata(argv);
@@ -1040,7 +1040,7 @@ static bool chunked_array2d__add_chunk(int argc, py_Ref argv) {
     return true;
 }
 
-static bool chunked_array2d__remove_chunk(int argc, py_Ref argv) {
+static bool chunked_array2d_remove_chunk(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_vec2i);
     c11_chunked_array2d* self = py_touserdata(argv);
@@ -1051,7 +1051,27 @@ static bool chunked_array2d__remove_chunk(int argc, py_Ref argv) {
     return true;
 }
 
-static bool chunked_array2d__get_context(int argc, py_Ref argv) {
+static bool chunked_array2d_move_chunk(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(1, tp_vec2i);
+    PY_CHECK_ARG_TYPE(2, tp_vec2i);
+    c11_chunked_array2d* self = py_touserdata(argv);
+    c11_vec2i src = py_tovec2i(&argv[1]);
+    c11_vec2i dst = py_tovec2i(&argv[2]);
+    py_TValue* src_data = c11_chunked_array2d_chunks__get(&self->chunks, src, NULL);
+    py_TValue* dst_data = c11_chunked_array2d_chunks__get(&self->chunks, dst, NULL);
+    if(src_data == NULL || dst_data != NULL) {
+        py_newbool(py_retval(), false);
+        return true;
+    }
+    c11_chunked_array2d_chunks__del(&self->chunks, src);
+    c11_chunked_array2d_chunks__set(&self->chunks, dst, src_data);
+    self->last_visited.value = NULL;
+    py_newbool(py_retval(), true);
+    return true;
+}
+
+static bool chunked_array2d_get_context(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_vec2i);
     c11_chunked_array2d* self = py_touserdata(argv);
@@ -1157,7 +1177,7 @@ static void register_chunked_array2d(py_Ref mod) {
             "__new__(cls, chunk_size, default=None, context_builder=None)",
             chunked_array2d__new__);
 
-    py_bindproperty(type, "chunk_size", chunked_array2d__chunk_size, NULL);
+    py_bindproperty(type, "chunk_size", chunked_array2d_chunk_size, NULL);
 
     py_bindmagic(type, __getitem__, chunked_array2d__getitem__);
     py_bindmagic(type, __setitem__, chunked_array2d__setitem__);
@@ -1165,11 +1185,12 @@ static void register_chunked_array2d(py_Ref mod) {
     py_bindmagic(type, __iter__, chunked_array2d__iter__);
     py_bindmagic(type, __len__, chunked_array2d__len__);
 
-    py_bindmethod(type, "clear", chunked_array2d__clear);
-    py_bindmethod(type, "world_to_chunk", chunked_array2d__world_to_chunk);
-    py_bindmethod(type, "add_chunk", chunked_array2d__add_chunk);
-    py_bindmethod(type, "remove_chunk", chunked_array2d__remove_chunk);
-    py_bindmethod(type, "get_context", chunked_array2d__get_context);
+    py_bindmethod(type, "clear", chunked_array2d_clear);
+    py_bindmethod(type, "world_to_chunk", chunked_array2d_world_to_chunk);
+    py_bindmethod(type, "add_chunk", chunked_array2d_add_chunk);
+    py_bindmethod(type, "remove_chunk", chunked_array2d_remove_chunk);
+    py_bindmethod(type, "move_chunk", chunked_array2d_move_chunk);
+    py_bindmethod(type, "get_context", chunked_array2d_get_context);
 
     py_bindmethod(type, "view", chunked_array2d_view);
     py_bindmethod(type, "view_rect", chunked_array2d_view_rect);

@@ -41,3 +41,17 @@ a.clear()
 assert a[vec2i(16, 16)] == default
 assert a[vec2i(15, 16)] == default
 assert a[vec2i(16, 15)] == default
+
+from typing import Any
+
+a = array2d.chunked_array2d[int, Any](4, default=0, context_builder=lambda x: 1)
+assert a.chunk_size == 4
+
+assert a.add_chunk(vec2i(0, 1)) == 1
+assert a.get_context(vec2i(0, 1)) == 1
+
+assert a.move_chunk(vec2i(2, 1), vec2i(1, 1)) == False
+assert a.move_chunk(vec2i(0, 1), vec2i(1, 1)) == True
+
+assert a.get_context(vec2i(1, 1)) == 1
+assert a.get_context(vec2i(0, 1)) == None
