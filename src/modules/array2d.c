@@ -849,25 +849,31 @@ static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_
     return data;
 }
 
+static void cpy11__divmod_int_uint(int a, int b_log2, int b_mask, int* q, int* r) {
+    if(a >= 0) {
+        *q = a >> b_log2;
+        *r = a & b_mask;
+    } else {
+        *q = -1 - ((-a - 1) >> b_log2);
+        *r = b_mask - ((-a - 1) & b_mask);
+    }
+}
+
 static void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
                                                 int col,
                                                 int row,
                                                 c11_vec2i* chunk_pos,
                                                 c11_vec2i* local_pos) {
-    if(col >= 0) {
-        chunk_pos->x = col >> self->chunk_size_log2;
-        local_pos->x = col & self->chunk_size_mask;
-    } else {
-        chunk_pos->x = -((-col) >> self->chunk_size_log2);
-        local_pos->x = (-col) & self->chunk_size_mask;
-    }
-    if(row >= 0) {
-        chunk_pos->y = row >> self->chunk_size_log2;
-        local_pos->y = row & self->chunk_size_mask;
-    } else {
-        chunk_pos->y = -((-row) >> self->chunk_size_log2);
-        local_pos->y = (-row) & self->chunk_size_mask;
-    }
+    cpy11__divmod_int_uint(col,
+                           self->chunk_size_log2,
+                           self->chunk_size_mask,
+                           &chunk_pos->x,
+                           &local_pos->x);
+    cpy11__divmod_int_uint(row,
+                           self->chunk_size_log2,
+                           self->chunk_size_mask,
+                           &chunk_pos->y,
+                           &local_pos->y);
 }
 
 static py_TValue* c11_chunked_array2d__parse_col_row(c11_chunked_array2d* self,
@@ -938,7 +944,7 @@ static bool chunked_array2d__new__(int argc, py_Ref argv) {
         case 1024: self->chunk_size_log2 = 10; break;
         case 2048: self->chunk_size_log2 = 11; break;
         case 4096: self->chunk_size_log2 = 12; break;
-        default: return ValueError("invalid chunk_size: %d", chunk_size);
+        default: return ValueError("invalid chunk_size: %d, not power of 2", chunk_size);
     }
     self->chunk_size_mask = chunk_size - 1;
     memset(&self->last_visited, 0, sizeof(c11_chunked_array2d_chunks_KV));
@@ -1118,8 +1124,8 @@ static bool chunked_array2d_view(int argc, py_Ref argv) {
         max_chunk_x = c11__max(max_chunk_x, chunk_pos.x);
         max_chunk_y = c11__max(max_chunk_y, chunk_pos.y);
     }
-    int start_col = min_chunk_x << self->chunk_size_log2;
-    int start_row = min_chunk_y << self->chunk_size_log2;
+    int start_col = min_chunk_x * self->chunk_size;
+    int start_row = min_chunk_y * self->chunk_size;
     int width = (max_chunk_x - min_chunk_x + 1) * self->chunk_size;
     int height = (max_chunk_y - min_chunk_y + 1) * self->chunk_size;
     return _chunked_array2d_view(py_retval(), argv, self, start_col, start_row, width, height);
@@ -1142,8 +1148,8 @@ static bool chunked_array2d_view_chunk(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_vec2i);
     c11_chunked_array2d* self = py_touserdata(&argv[0]);
     c11_vec2i chunk_pos = py_tovec2i(&argv[1]);
-    int start_col = chunk_pos.x << self->chunk_size_log2;
-    int start_row = chunk_pos.y << self->chunk_size_log2;
+    int start_col = chunk_pos.x * self->chunk_size;
+    int start_row = chunk_pos.y * self->chunk_size;
     return _chunked_array2d_view(py_retval(),
                                  argv,
                                  self,
@@ -1162,8 +1168,8 @@ static bool chunked_array2d_view_chunks(int argc, py_Ref argv) {
     c11_vec2i chunk_pos = py_tovec2i(&argv[1]);
     int width = py_toint(&argv[2]) * self->chunk_size;
     int height = py_toint(&argv[3]) * self->chunk_size;
-    int start_col = chunk_pos.x << self->chunk_size_log2;
-    int start_row = chunk_pos.y << self->chunk_size_log2;
+    int start_col = chunk_pos.x * self->chunk_size;
+    int start_row = chunk_pos.y * self->chunk_size;
     return _chunked_array2d_view(py_retval(), argv, self, start_col, start_row, width, height);
 }
 
