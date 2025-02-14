@@ -137,14 +137,7 @@ int64_t mt19937__randint(mt19937* self, int64_t a, int64_t b) {
 static bool Random__new__(int argc, py_Ref argv) {
     mt19937* ud = py_newobject(py_retval(), py_totype(argv), 0, sizeof(mt19937));
     mt19937__ctor(ud);
-    if(argc == 1) return true;
-    if(argc == 2) {
-        PY_CHECK_ARG_TYPE(1, tp_int);
-        py_i64 seed = py_toint(py_arg(1));
-        mt19937__seed(ud, seed);
-        return true;
-    }
-    return TypeError("Random(): expected 0 or 1 arguments, got %d", argc - 1);
+    return true;
 }
 
 static bool Random__init__(int argc, py_Ref argv) {
@@ -152,9 +145,11 @@ static bool Random__init__(int argc, py_Ref argv) {
         // do nothing
     } else if(argc == 2) {
         mt19937* ud = py_touserdata(py_arg(0));
-        PY_CHECK_ARG_TYPE(1, tp_int);
-        py_i64 seed = py_toint(py_arg(1));
-        mt19937__seed(ud, (uint32_t)seed);
+        if(!py_isnone(&argv[1])){
+            PY_CHECK_ARG_TYPE(1, tp_int);
+            py_i64 seed = py_toint(py_arg(1));
+            mt19937__seed(ud, (uint32_t)seed);
+        }
     } else {
         return TypeError("Random(): expected 1 or 2 arguments, got %d");
     }
