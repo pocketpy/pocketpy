@@ -1,0 +1,4 @@
+C:/Users/Home/Documents/GitHub/open source/pocketpy/CMakeFiles/pocketpy.dir
+C:/Users/Home/Documents/GitHub/open source/pocketpy/CMakeFiles/main.dir
+C:/Users/Home/Documents/GitHub/open source/pocketpy/CMakeFiles/ALL_BUILD.dir
+C:/Users/Home/Documents/GitHub/open source/pocketpy/CMakeFiles/ZERO_CHECK.dir

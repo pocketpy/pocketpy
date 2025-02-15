@@ -283,6 +283,7 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
                     if(sscanf(hex, "%x", &code) != 1) {
                         return LexerError(self, "invalid hex char");
                     }
+                    // Directly write the byte into the buffer without UTF-8 encoding
                     c11_sbuf__write_char(buff, (char)code);
                 } break;
                 default: return LexerError(self, "invalid escape char");

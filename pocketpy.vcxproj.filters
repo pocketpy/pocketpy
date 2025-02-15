@@ -1,0 +1,196 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\common\_generated.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\common\algorithm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\common\memorypool.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\common\smallmap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\common\sourcedata.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\common\sstream.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\common\str.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\common\strname.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\common\vector.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\compiler\compiler.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\compiler\lexer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\interpreter\ceval.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\interpreter\dll.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\interpreter\frame.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\interpreter\generator.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\interpreter\heap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\interpreter\objectpool.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\interpreter\typeinfo.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\interpreter\vm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\array2d.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\colorcvt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\conio.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\dis.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\easing.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\enum.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\gc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\importlib.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\inspect.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\json.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\linalg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\lz4.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\math.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\os.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\pickle.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\pkpy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\random.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\time.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\modules\traceback.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\objects\codeobject.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\objects\namedict.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\objects\object.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\cast.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\exec.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\internal.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\modules.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_array.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_dict.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_exception.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_list.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_mappingproxy.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_method.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_number.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_object.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_ops.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_property.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_range.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_slice.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_str.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\py_tuple.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\stack_ops.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\src\public\values.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{0EF47138-1CFF-3E31-BBD1-07BE9F623B28}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

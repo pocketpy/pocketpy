@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Home\Documents\GitHub\open source\pocketpy\CMakeFiles\_CMakeLTOTest-C\bin\CMakeFiles\f3f5f1f4b1cbc6cb581ac21cdf9a2858\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{CA763B2C-2FD8-382D-B4A4-C3D8EADD12E2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

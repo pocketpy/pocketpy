@@ -1,0 +1,10 @@
+^C:\USERS\HOME\DOCUMENTS\GITHUB\OPEN SOURCE\POCKETPY\CMAKEFILES\_CMAKELTOTEST-CXX\BIN\CMAKEFILES\8F110B299481667EAD267F4EC0385B3B\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/Home/Documents/GitHub/open source/pocketpy/CMakeFiles/_CMakeLTOTest-CXX/src" "-BC:/Users/Home/Documents/GitHub/open source/pocketpy/CMakeFiles/_CMakeLTOTest-CXX/bin" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "C:/Users/Home/Documents/GitHub/open source/pocketpy/CMakeFiles/_CMakeLTOTest-CXX/bin/lto-test.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

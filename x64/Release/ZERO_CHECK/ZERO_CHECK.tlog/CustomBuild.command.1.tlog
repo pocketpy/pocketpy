@@ -1,0 +1,10 @@
+^C:\USERS\HOME\DOCUMENTS\GITHUB\OPEN SOURCE\POCKETPY\CMAKEFILES\8B7011ADBF6CC40E783EC26E9D85A507\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/Home/Documents/GitHub/open source/pocketpy" "-BC:/Users/Home/Documents/GitHub/open source/pocketpy" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "C:/Users/Home/Documents/GitHub/open source/pocketpy/pocketpy.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
