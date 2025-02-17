@@ -24,6 +24,11 @@ assert a.tolist() == [
     [(0, 2), (1, 2)],
     [(0, 3), (1, 3)]]
 
+assert a[0, :].tolist() == [[(0, 0)], [(0, 1)], [(0, 2)], [(0, 3)]]
+assert a[1, :].tolist() == [[(1, 0)], [(1, 1)], [(1, 2)], [(1, 3)]]
+assert a[:, 0].tolist() == [[(0, 0), (1, 0)]]
+assert a[:, -1].tolist() == [[(0, 3), (1, 3)]]
+
 # test is_valid
 assert a.is_valid(0, 0) and a.is_valid(vec2i(0, 0))
 assert a.is_valid(1, 3) and a.is_valid(vec2i(1, 3))
@@ -235,6 +240,12 @@ vis, cnt = a.get_connected_components(2, 'von Neumann')
 assert cnt == 1
 vis, cnt = a.get_connected_components(0, 'Moore')
 assert cnt == 2
+
+# test zip_with
+a = array2d[int].fromlist([[1, 2], [3, 4]])
+b = array2d[int].fromlist([[5, 6], [7, 8]])
+c = a.zip_with(b, lambda x, y: x + y)
+assert c.tolist() == [[6, 8], [10, 12]]
 
 # stackoverflow bug due to recursive mark-and-sweep
 # class Cell:

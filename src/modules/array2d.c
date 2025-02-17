@@ -188,6 +188,41 @@ static bool array2d_like_apply(int argc, py_Ref argv) {
     return true;
 }
 
+static bool _check_same_shape(int colA, int rowA, int colB, int rowB) {
+    if(colA != colB || rowA != rowB) {
+        const char* fmt = "expected the same shape: (%d, %d) != (%d, %d)";
+        return ValueError(fmt, colA, rowA, colB, rowB);
+    }
+    return true;
+}
+
+static bool _array2d_like_check_same_shape(c11_array2d_like* self, c11_array2d_like* other) {
+    return _check_same_shape(self->n_cols, self->n_rows, other->n_cols, other->n_rows);
+}
+
+static bool array2d_like_zip_with(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    c11_array2d_like* self = py_touserdata(argv);
+    if(!py_checkinstance(py_arg(1), tp_array2d_like)) return false;
+    c11_array2d_like* other = py_touserdata(py_arg(1));
+    py_Ref f = py_arg(2);
+    if(!_array2d_like_check_same_shape(self, other)) return false;
+    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            py_push(f);
+            py_pushnil();
+            py_push(self->f_get(self, i, j));
+            py_push(other->f_get(other, i, j));
+            if(!py_vectorcall(2, 0)) return false;
+            c11_array2d__set(res, i, j, py_retval());
+        }
+    }
+    py_assign(py_retval(), py_peek(-1));
+    py_pop();
+    return true;
+}
+
 static bool array2d_like_copy(int argc, py_Ref argv) {
     // def copy(self) -> 'array2d': ...
     PY_CHECK_ARGC(1);
@@ -215,18 +250,6 @@ static bool array2d_like_tolist(int argc, py_Ref argv) {
         }
     }
     return true;
-}
-
-static bool _check_same_shape(int colA, int rowA, int colB, int rowB) {
-    if(colA != colB || rowA != rowB) {
-        const char* fmt = "expected the same shape: (%d, %d) != (%d, %d)";
-        return ValueError(fmt, colA, rowA, colB, rowB);
-    }
-    return true;
-}
-
-static bool _array2d_like_check_same_shape(c11_array2d_like* self, c11_array2d_like* other) {
-    return _check_same_shape(self->n_cols, self->n_rows, other->n_cols, other->n_rows);
 }
 
 static bool array2d_like__eq__(int argc, py_Ref argv) {
@@ -418,7 +441,10 @@ static bool array2d_like__getitem__(int argc, py_Ref argv) {
         return _array2d_like_IndexError(self, col, row);
     }
 
-    if(py_istype(x, tp_slice) && py_istype(y, tp_slice)) {
+    bool _1 = py_istype(x, tp_slice) && py_istype(y, tp_slice);
+    bool _2 = py_istype(x, tp_int) && py_istype(y, tp_slice);
+    bool _3 = py_istype(x, tp_slice) && py_istype(y, tp_int);
+    if(_1 || _2 || _3) {
         HANDLE_SLICE();
         return _array2d_view(py_retval(),
                              argv,
@@ -429,7 +455,7 @@ static bool array2d_like__getitem__(int argc, py_Ref argv) {
                              slice_height);
     }
 
-    return TypeError("expected `tuple[int, int]` or `tuple[slice, slice]`");
+    return TypeError("expected tuple[int, int] or tuple[slice, slice]");
 }
 
 static bool array2d_like__setitem__(int argc, py_Ref argv) {
@@ -480,7 +506,10 @@ static bool array2d_like__setitem__(int argc, py_Ref argv) {
         return _array2d_like_IndexError(self, col, row);
     }
 
-    if(py_istype(x, tp_slice) && py_istype(y, tp_slice)) {
+    bool _1 = py_istype(x, tp_slice) && py_istype(y, tp_slice);
+    bool _2 = py_istype(x, tp_int) && py_istype(y, tp_slice);
+    bool _3 = py_istype(x, tp_slice) && py_istype(y, tp_int);
+    if(_1 || _2 || _3) {
         HANDLE_SLICE();
         if(py_isinstance(value, tp_array2d_like)) {
             c11_array2d_like* values = py_touserdata(value);
@@ -505,7 +534,7 @@ static bool array2d_like__setitem__(int argc, py_Ref argv) {
         return true;
     }
 
-    return TypeError("expected `tuple[int, int]` or `tuple[slice, slice]");
+    return TypeError("expected tuple[int, int] or tuple[slice, slice]");
 }
 
 // count(self, value: T) -> int
@@ -684,6 +713,7 @@ static void register_array2d_like(py_Ref mod) {
 
     py_bindmethod(type, "map", array2d_like_map);
     py_bindmethod(type, "apply", array2d_like_apply);
+    py_bindmethod(type, "zip_with", array2d_like_zip_with);
     py_bindmethod(type, "copy", array2d_like_copy);
     py_bindmethod(type, "tolist", array2d_like_tolist);
 

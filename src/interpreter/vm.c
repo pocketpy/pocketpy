@@ -282,6 +282,18 @@ static void _clip_int(int* value, int min, int max) {
 }
 
 bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* step) {
+    if(py_isint(slice)) {
+        int index = py_toint(slice);
+        bool ok = pk__normalize_index(&index, length);
+        if(!ok) return false;
+        *start = index;
+        *stop = index + 1;
+        *step = 1;
+        return true;
+    }
+
+    if(!py_istype(slice, tp_slice)) c11__abort("pk__parse_int_slice(): not a slice object");
+
     py_Ref s_start = py_getslot(slice, 0);
     py_Ref s_stop = py_getslot(slice, 1);
     py_Ref s_step = py_getslot(slice, 2);
@@ -334,7 +346,7 @@ bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* s
 
 bool pk__normalize_index(int* index, int length) {
     if(*index < 0) *index += length;
-    if(*index < 0 || *index >= length) { return IndexError("%d not in [0, %d)", *index, length); }
+    if(*index < 0 || *index >= length) return IndexError("%d not in [0, %d)", *index, length);
     return true;
 }
 
