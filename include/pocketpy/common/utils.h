@@ -28,11 +28,6 @@
 
 #define c11__count_array(a) (sizeof(a) / sizeof(a[0]))
 
-// NARGS
-#define PK_NARGS_SEQ(_1, _2, _3, _4, N, ...) N
-#define PK_NARGS(...) PK_NARGS_SEQ(__VA_ARGS__, 4, 3, 2, 1, 0)
-#define PK_NPTRS(...) PK_NARGS_SEQ(__VA_ARGS__, int****, int***, int**, int*, int)
-
 // ref counting
 typedef struct RefCounted {
     int count;

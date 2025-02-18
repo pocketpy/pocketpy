@@ -200,6 +200,35 @@ static bool _array2d_like_check_same_shape(c11_array2d_like* self, c11_array2d_l
     return _check_same_shape(self->n_cols, self->n_rows, other->n_cols, other->n_rows);
 }
 
+static bool _array2d_like_broadcasted_zip_with(int argc, py_Ref argv, py_Name op, py_Name rop) {
+    PY_CHECK_ARGC(2);
+    c11_array2d_like* self = py_touserdata(argv);
+    c11_array2d_like* other;
+    if(py_isinstance(py_arg(1), tp_array2d_like)) {
+        other = py_touserdata(py_arg(1));
+        if(!_array2d_like_check_same_shape(self, other)) return false;
+    } else {
+        other = NULL;
+    }
+    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            py_Ref lhs = self->f_get(self, i, j);
+            py_Ref rhs;
+            if(other != NULL) {
+                rhs = other->f_get(other, i, j);
+            } else {
+                rhs = py_arg(1);  // broadcast
+            }
+            if(!py_binaryop(lhs, rhs, op, rop)) return false;
+            c11_array2d__set(res, i, j, py_retval());
+        }
+    }
+    py_assign(py_retval(), py_peek(-1));
+    py_pop();
+    return true;
+}
+
 static bool array2d_like_zip_with(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     c11_array2d_like* self = py_touserdata(argv);
@@ -215,6 +244,48 @@ static bool array2d_like_zip_with(int argc, py_Ref argv) {
             py_push(self->f_get(self, i, j));
             py_push(other->f_get(other, i, j));
             if(!py_vectorcall(2, 0)) return false;
+            c11_array2d__set(res, i, j, py_retval());
+        }
+    }
+    py_assign(py_retval(), py_peek(-1));
+    py_pop();
+    return true;
+}
+
+#define DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(name, op, rop)                                            \
+    static bool array2d_like##name(int argc, py_Ref argv) {                                        \
+        return _array2d_like_broadcasted_zip_with(argc, argv, op, rop);                            \
+    }
+
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__le__, __le__, __ge__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__lt__, __lt__, __gt__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__ge__, __ge__, __le__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__gt__, __gt__, __lt__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__eq__, __eq__, __eq__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__ne__, __ne__, __ne__)
+
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__add__, __add__, __radd__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__sub__, __sub__, __rsub__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__mul__, __mul__, __rmul__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__truediv__, __truediv__, __rtruediv__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__floordiv__, __floordiv__, __rfloordiv__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__mod__, __mod__, __rmod__)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__pow__, __pow__, __rpow__)
+
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__and__, __and__, 0)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__or__, __or__, 0)
+DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__xor__, __xor__, 0)
+
+#undef DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH
+
+static bool array2d_like__invert__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_array2d_like* self = py_touserdata(argv);
+    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            py_Ref item = self->f_get(self, i, j);
+            if(!pk_callmagic(__invert__, 1, item)) return false;
             c11_array2d__set(res, i, j, py_retval());
         }
     }
@@ -248,51 +319,6 @@ static bool array2d_like_tolist(int argc, py_Ref argv) {
             py_Ref item = self->f_get(self, i, j);
             py_list_setitem(row_j, i, item);
         }
-    }
-    return true;
-}
-
-static bool array2d_like__eq__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    c11_array2d_like* self = py_touserdata(argv);
-    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
-    if(py_isinstance(py_arg(1), tp_array2d_like)) {
-        c11_array2d_like* other = py_touserdata(py_arg(1));
-        if(!_array2d_like_check_same_shape(self, other)) return false;
-        for(int j = 0; j < self->n_rows; j++) {
-            for(int i = 0; i < self->n_cols; i++) {
-                py_Ref lhs = self->f_get(self, i, j);
-                py_Ref rhs = other->f_get(other, i, j);
-                int code = py_equal(lhs, rhs);
-                if(code == -1) return false;
-                py_newbool(&res->data[j * self->n_cols + i], (bool)code);
-            }
-        }
-    } else {
-        // broadcast
-        for(int j = 0; j < self->n_rows; j++) {
-            for(int i = 0; i < self->n_cols; i++) {
-                py_Ref lhs = self->f_get(self, i, j);
-                int code = py_equal(lhs, py_arg(1));
-                if(code == -1) return false;
-                py_newbool(&res->data[j * self->n_cols + i], (bool)code);
-            }
-        }
-    }
-    py_assign(py_retval(), py_peek(-1));
-    py_pop();
-    return true;
-}
-
-static bool array2d_like__ne__(int argc, py_Ref argv) {
-    bool ok = array2d_like__eq__(argc, argv);
-    if(!ok) return false;
-    assert(py_istype(py_retval(), tp_array2d));
-    c11_array2d* res = py_touserdata(py_retval());
-    py_TValue* data = res->data;
-    for(int i = 0; i < res->header.numel; i++) {
-        assert(py_isbool(&data[i]));
-        py_newbool(&data[i], !py_tobool(&data[i]));
     }
     return true;
 }
@@ -717,8 +743,26 @@ static void register_array2d_like(py_Ref mod) {
     py_bindmethod(type, "copy", array2d_like_copy);
     py_bindmethod(type, "tolist", array2d_like_tolist);
 
+    py_bindmagic(type, __le__, array2d_like__le__);
+    py_bindmagic(type, __lt__, array2d_like__lt__);
+    py_bindmagic(type, __ge__, array2d_like__ge__);
+    py_bindmagic(type, __gt__, array2d_like__gt__);
     py_bindmagic(type, __eq__, array2d_like__eq__);
     py_bindmagic(type, __ne__, array2d_like__ne__);
+
+    py_bindmagic(type, __add__, array2d_like__add__);
+    py_bindmagic(type, __sub__, array2d_like__sub__);
+    py_bindmagic(type, __mul__, array2d_like__mul__);
+    py_bindmagic(type, __truediv__, array2d_like__truediv__);
+    py_bindmagic(type, __floordiv__, array2d_like__floordiv__);
+    py_bindmagic(type, __mod__, array2d_like__mod__);
+    py_bindmagic(type, __pow__, array2d_like__pow__);
+
+    py_bindmagic(type, __and__, array2d_like__and__);
+    py_bindmagic(type, __or__, array2d_like__or__);
+    py_bindmagic(type, __xor__, array2d_like__xor__);
+    py_bindmagic(type, __invert__, array2d_like__invert__);
+
     py_bindmagic(type, __iter__, array2d_like__iter__);
     py_bindmagic(type, __repr__, array2d_like__repr__);
 
@@ -879,7 +923,8 @@ static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_
     return data;
 }
 
-static void cpy11__divmod_int_uint(int a, int b_log2, int b_mask, int* q, int* r) {
+static void
+    cpy11__divmod_int_uint(int a, int b_log2, int b_mask, int* restrict q, int* restrict r) {
     if(a >= 0) {
         *q = a >> b_log2;
         *r = a & b_mask;
@@ -892,8 +937,8 @@ static void cpy11__divmod_int_uint(int a, int b_log2, int b_mask, int* q, int* r
 static void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
                                                 int col,
                                                 int row,
-                                                c11_vec2i* chunk_pos,
-                                                c11_vec2i* local_pos) {
+                                                c11_vec2i* restrict chunk_pos,
+                                                c11_vec2i* restrict local_pos) {
     cpy11__divmod_int_uint(col,
                            self->chunk_size_log2,
                            self->chunk_size_mask,
@@ -909,8 +954,8 @@ static void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
 static py_TValue* c11_chunked_array2d__parse_col_row(c11_chunked_array2d* self,
                                                      int col,
                                                      int row,
-                                                     c11_vec2i* chunk_pos,
-                                                     c11_vec2i* local_pos) {
+                                                     c11_vec2i* restrict chunk_pos,
+                                                     c11_vec2i* restrict local_pos) {
     c11_chunked_array2d__world_to_chunk(self, col, row, chunk_pos, local_pos);
     py_TValue* data;
     if(self->last_visited.value != NULL && chunk_pos->_i64 == self->last_visited.key._i64) {

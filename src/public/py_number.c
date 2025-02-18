@@ -463,6 +463,13 @@ DEF_BOOL_BITWISE(__and__, &&)
 DEF_BOOL_BITWISE(__or__, ||)
 DEF_BOOL_BITWISE(__xor__, !=)
 
+static bool bool__invert__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    bool val = py_tobool(&argv[0]);
+    py_newbool(py_retval(), !val);
+    return true;
+}
+
 void pk_number__register() {
     /****** tp_int & tp_float ******/
     py_bindmagic(tp_int, __add__, int__add__);
@@ -539,6 +546,7 @@ void pk_number__register() {
     py_bindmagic(tp_bool, __and__, bool__and__);
     py_bindmagic(tp_bool, __or__, bool__or__);
     py_bindmagic(tp_bool, __xor__, bool__xor__);
+    py_bindmagic(tp_bool, __invert__, bool__invert__);
 }
 
 #undef DEF_NUM_BINARY_OP

@@ -52,7 +52,7 @@ void VM__dtor(VM* self);
 void VM__push_frame(VM* self, Frame* frame);
 void VM__pop_frame(VM* self);
 
-bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* step);
+bool pk__parse_int_slice(py_Ref slice, int length, int* restrict start, int* restrict stop, int* restrict step);
 bool pk__normalize_index(int* index, int length);
 
 #define pk__mark_value(val) if((val)->is_ptr && !(val)->_obj->gc_marked) PyObject__mark((val)->_obj)

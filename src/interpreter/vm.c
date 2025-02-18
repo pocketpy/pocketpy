@@ -281,7 +281,7 @@ static void _clip_int(int* value, int min, int max) {
     if(*value > max) *value = max;
 }
 
-bool pk__parse_int_slice(py_Ref slice, int length, int* start, int* stop, int* step) {
+bool pk__parse_int_slice(py_Ref slice, int length, int* restrict start, int* restrict stop, int* restrict step) {
     if(py_isint(slice)) {
         int index = py_toint(slice);
         bool ok = pk__normalize_index(&index, length);

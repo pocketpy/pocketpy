@@ -247,6 +247,34 @@ b = array2d[int].fromlist([[5, 6], [7, 8]])
 c = a.zip_with(b, lambda x, y: x + y)
 assert c.tolist() == [[6, 8], [10, 12]]
 
+# test magic op
+a = array2d[int].fromlist([[1, 2], [3, 4]])
+assert (a <= 2).tolist() == [[True, True], [False, False]]
+assert (a < 2).tolist() == [[True, False], [False, False]]
+assert (a >= 2).tolist() == [[False, True], [True, True]]
+assert (a > 2).tolist() == [[False, False], [True, True]]
+assert (a == 2).tolist() == [[False, True], [False, False]]
+assert (a != 2).tolist() == [[True, False], [True, True]]
+assert (a + 1).tolist() == [[2, 3], [4, 5]]
+assert (a - 1).tolist() == [[0, 1], [2, 3]]
+assert (a * 2).tolist() == [[2, 4], [6, 8]]
+assert (a / 1).tolist() == [[1.0, 2.0], [3.0, 4.0]]
+assert (a // 2).tolist() == [[0, 1], [1, 2]]
+assert (a % 2).tolist() == [[1, 0], [1, 0]]
+assert (a ** 2).tolist() == [[1, 4], [9, 16]]
+
+a = array2d[bool].fromlist([[True, False], [False, True]])
+assert (a & True).tolist() == [[True, False], [False, True]]
+assert (a | True).tolist() == [[True, True], [True, True]]
+assert (a ^ True).tolist() == [[False, True], [True, False]]
+
+b = array2d[bool].fromlist([[True, True], [False, False]])
+assert (a & b).tolist() == [[True, False], [False, False]]
+assert (a | b).tolist() == [[True, True], [False, True]]
+assert (a ^ b).tolist() == [[False, True], [False, True]]
+assert (~a).tolist() == [[False, True], [True, False]]
+assert (~b).tolist() == [[False, False], [True, True]]
+
 # stackoverflow bug due to recursive mark-and-sweep
 # class Cell:
 #     neighbors: list['Cell']
