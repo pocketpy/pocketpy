@@ -1027,8 +1027,23 @@ static bool chunked_array2d__new__(int argc, py_Ref argv) {
 }
 
 static bool chunked_array2d_chunk_size(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
     c11_chunked_array2d* self = py_touserdata(argv);
     py_newint(py_retval(), self->chunk_size);
+    return true;
+}
+
+static bool chunked_array2d_default(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_chunked_array2d* self = py_touserdata(argv);
+    py_assign(py_retval(), &self->default_T);
+    return true;
+}
+
+static bool chunked_array2d_context_builder(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_chunked_array2d* self = py_touserdata(argv);
+    py_assign(py_retval(), &self->context_builder);
     return true;
 }
 
@@ -1089,10 +1104,39 @@ static bool chunked_array2d__len__(int argc, py_Ref argv) {
 }
 
 static bool chunked_array2d_clear(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
     c11_chunked_array2d* self = py_touserdata(argv);
     c11_chunked_array2d_chunks__clear(&self->chunks);
     self->last_visited.value = NULL;
     py_newnone(py_retval());
+    return true;
+}
+
+static bool chunked_array2d_copy(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_chunked_array2d* self = py_touserdata(argv);
+    c11_chunked_array2d* res =
+        py_newobject(py_retval(), tp_chunked_array2d, 0, sizeof(c11_chunked_array2d));
+    // copy basic data
+    memcpy(res, self, sizeof(c11_chunked_array2d));
+    // invalidate last_visited cache
+    self->last_visited.value = NULL;
+    // copy chunks
+    memset(&res->chunks, 0, sizeof(c11_chunked_array2d_chunks));
+    c11_chunked_array2d_chunks__ctor(&res->chunks);
+    c11_vector__reserve(&res->chunks, self->chunks.capacity);
+    for(int i = 0; i < self->chunks.length; i++) {
+        c11_chunked_array2d_chunks_KV* kv =
+            c11__at(c11_chunked_array2d_chunks_KV, &self->chunks, i);
+        int chunk_numel = self->chunk_size * self->chunk_size + 1;
+        py_TValue* data = PK_MALLOC(sizeof(py_TValue) * chunk_numel);
+        memcpy(data, kv->value, sizeof(py_TValue) * chunk_numel);
+        // construct new KV
+        c11_chunked_array2d_chunks_KV new_kv;
+        new_kv.key = kv->key;
+        new_kv.value = data;
+        c11_vector__push(c11_chunked_array2d_chunks_KV, &res->chunks, new_kv);
+    }
     return true;
 }
 
@@ -1259,6 +1303,8 @@ static void register_chunked_array2d(py_Ref mod) {
             chunked_array2d__new__);
 
     py_bindproperty(type, "chunk_size", chunked_array2d_chunk_size, NULL);
+    py_bindproperty(type, "default", chunked_array2d_default, NULL);
+    py_bindproperty(type, "context_builder", chunked_array2d_context_builder, NULL);
 
     py_bindmagic(type, __getitem__, chunked_array2d__getitem__);
     py_bindmagic(type, __setitem__, chunked_array2d__setitem__);
@@ -1267,6 +1313,7 @@ static void register_chunked_array2d(py_Ref mod) {
     py_bindmagic(type, __len__, chunked_array2d__len__);
 
     py_bindmethod(type, "clear", chunked_array2d_clear);
+    py_bindmethod(type, "copy", chunked_array2d_copy);
     py_bindmethod(type, "world_to_chunk", chunked_array2d_world_to_chunk);
     py_bindmethod(type, "add_chunk", chunked_array2d_add_chunk);
     py_bindmethod(type, "remove_chunk", chunked_array2d_remove_chunk);

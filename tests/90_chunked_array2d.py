@@ -55,3 +55,13 @@ assert a.move_chunk(vec2i(0, 1), vec2i(1, 1)) == True
 
 assert a.get_context(vec2i(1, 1)) == 1
 assert a.get_context(vec2i(0, 1)) == None
+
+b = a.copy()
+assert a is not b
+assert a.chunk_size == b.chunk_size
+assert a.default == b.default
+assert a.context_builder == b.context_builder
+assert (a.view() == b.view()).all()
+
+for pos, ctx in a:
+    assert b.get_context(pos) == ctx
