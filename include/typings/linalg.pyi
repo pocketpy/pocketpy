@@ -60,21 +60,26 @@ class vec2(_vecF['vec2']):
     @overload
     def __init__(self, xy: vec2i) -> None: ...
 
-    def rotate(self, radians: float) -> vec2: ...
+    def rotate(self, radians: float) -> vec2:
+        """Rotate the vector by `radians`.
+
+        + If y axis is top to bottom, positive value means clockwise (default)
+        + If y axis is bottom to top, positive value means counter-clockwise
+        """
 
     @staticmethod
     def angle(__from: vec2, __to: vec2) -> float:
-        """Returns the angle in radians between vectors `from` and `to`.
+        """Return the angle in radians between vectors `from` and `to`.
 
         The result range is `[-pi, pi]`.
         
-        + if y axis is top to bottom, positive value means clockwise
-        + if y axis is bottom to top, positive value means counter-clockwise
+        + If y axis is top to bottom, positive value means clockwise (default)
+        + If y axis is bottom to top, positive value means counter-clockwise
         """
 
     @staticmethod
     def smooth_damp(current: vec2, target: vec2, current_velocity: vec2, smooth_time: float, max_speed: float, delta_time: float) -> tuple[vec2, vec2]:
-        """Smoothly changes a vector towards a desired goal over time.
+        """Smoothly change a vector towards a desired goal over time.
 
         Returns a new value that is closer to the target and current velocity.
         """

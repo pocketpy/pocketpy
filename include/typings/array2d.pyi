@@ -25,7 +25,7 @@ class array2d_like[T]:
     def get[R](self, col: int, row: int, default: R = None) -> T | R:
         """Get the value at the given position.
         
-        If the position is out of bounds, return the default value.
+        If the position is out of bounds, returns the default value.
         """
 
     def render(self) -> str: ...
@@ -100,7 +100,7 @@ class array2d_like[T]:
         """Convolve the array with the given kernel."""
 
     def get_connected_components(self, value: T, neighborhood: Neighborhood) -> tuple[array2d[int], int]:
-        """Get connected components of the grid.
+        """Get connected components of the grid via BFS algorithm.
 
         Returns the `visited` array and the number of connected components,
         where `0` means unvisited, and non-zero means the index of the connected component.
@@ -144,7 +144,7 @@ class chunked_array2d[T, TContext]:
     def clear(self) -> None: ...
 
     def world_to_chunk(self, world_pos: vec2i) -> tuple[vec2i, vec2i]:
-        """Convert world position to chunk position and local position."""
+        """Converts world position to chunk position and local position."""
         
     def add_chunk(self, chunk_pos: vec2i) -> TContext: ...
     def remove_chunk(self, chunk_pos: vec2i) -> bool: ...
