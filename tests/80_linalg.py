@@ -388,6 +388,9 @@ assert vec3i(1, 2, 3) * vec3i(4, 5, 6) == vec3i(4, 10, 18)
 assert vec3i(1, 2, 3) * 2 == vec3i(2, 4, 6)
 assert vec3i(1, 2, 3).dot(vec3i(4, 5, 6)) == 32
 
+assert vec2i(3, 5) // 2 == vec2i(1, 2)
+assert vec3i(3, 5, 8) // 2 == vec3i(1, 2, 4)
+
 a = {}
 a[vec2i(1, 2)] = 1
 assert a[vec2i(1, 2)] == 1

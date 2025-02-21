@@ -298,6 +298,16 @@ DEF_VECTOR_OPS(3)
             sum += a.data[i] * b.data[i];                                                          \
         py_newint(py_retval(), sum);                                                               \
         return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##i##__floordiv__(int argc, py_Ref argv) {                                   \
+        PY_CHECK_ARGC(2);                                                                          \
+        PY_CHECK_ARG_TYPE(1, tp_int);                                                              \
+        c11_vec##D##i a = py_tovec##D##i(&argv[0]);                                                \
+        py_i64 b = py_toint(&argv[1]);                                                             \
+        for(int i = 0; i < D; i++)                                                                 \
+            a.data[i] /= b;                                                                        \
+        py_newvec##D##i(py_retval(), a);                                                           \
+        return true;                                                                               \
     }
 
 DEF_VECTOR_INT_OPS(2)
@@ -911,6 +921,7 @@ void pk__add_module_linalg() {
     py_bindmagic(vec2i, __add__, vec2i__add__);
     py_bindmagic(vec2i, __sub__, vec2i__sub__);
     py_bindmagic(vec2i, __mul__, vec2i__mul__);
+    py_bindmagic(vec2i, __floordiv__, vec2i__floordiv__);
     py_bindmagic(vec2i, __eq__, vec2i__eq__);
     py_bindmagic(vec2i, __ne__, vec2i__ne__);
     py_bindmagic(vec2i, __hash__, vec2i__hash__);
@@ -935,6 +946,7 @@ void pk__add_module_linalg() {
     py_bindmagic(vec3i, __add__, vec3i__add__);
     py_bindmagic(vec3i, __sub__, vec3i__sub__);
     py_bindmagic(vec3i, __mul__, vec3i__mul__);
+    py_bindmagic(vec3i, __floordiv__, vec3i__floordiv__);
     py_bindmagic(vec3i, __eq__, vec3i__eq__);
     py_bindmagic(vec3i, __ne__, vec3i__ne__);
     py_bindmagic(vec3i, __hash__, vec3i__hash__);
