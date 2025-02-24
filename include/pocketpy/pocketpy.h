@@ -204,6 +204,8 @@ PK_API void py_newboundmethod(py_OutRef out, py_Ref self, py_Ref func);
 PK_API py_Name py_name(const char*);
 /// Convert a name to a null-terminated string.
 PK_API const char* py_name2str(py_Name);
+/// Convert a name to a python `str` object with cache.
+PK_API py_GlobalRef py_name2ref(py_Name);
 /// Convert a `c11_sv` to a name.
 PK_API py_Name py_namev(c11_sv);
 /// Convert a name to a `c11_sv`.

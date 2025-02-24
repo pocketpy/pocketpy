@@ -67,3 +67,8 @@ try:
     exit(1)
 except NameError:
     pass
+
+# https://github.com/pocketpy/pocketpy/issues/339
+code = '\nprint(x)\ndef f():\n  print(x)\nf()\n'
+x = 33
+exec(code, {'x': 42})

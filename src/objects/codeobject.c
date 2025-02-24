@@ -159,12 +159,13 @@ void CodeObject__dtor(CodeObject* self) {
     c11_vector__dtor(&self->func_decls);
 }
 
-void Function__ctor(Function* self, FuncDecl_ decl, py_TValue* module) {
+void Function__ctor(Function* self, FuncDecl_ decl, py_GlobalRef module, py_Ref globals) {
     PK_INCREF(decl);
     self->decl = decl;
-    self->module = module ? *module : *py_NIL();
-    self->clazz = NULL;
+    self->module = module;
+    self->globals = globals;
     self->closure = NULL;
+    self->clazz = NULL;
     self->cfunc = NULL;
 }
 

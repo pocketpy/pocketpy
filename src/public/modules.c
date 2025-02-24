@@ -498,23 +498,23 @@ void py_newglobals(py_Ref out) {
         pk_mappingproxy__namedict(out, &pk_current_vm->main);
         return;
     }
-    if(frame->is_dynamic) {
-        py_assign(out, &frame->p0[0]);
+    if(frame->globals->type == tp_module) {
+        pk_mappingproxy__namedict(out, frame->globals);
     } else {
-        pk_mappingproxy__namedict(out, frame->module);
+        *out = *frame->globals; // dict
     }
 }
 
 void py_newlocals(py_Ref out) {
     Frame* frame = pk_current_vm->top_frame;
-    if(frame->is_dynamic) {
-        py_assign(out, &frame->p0[1]);
+    if(!frame || !frame->is_p0_function) {
+        py_newglobals(out);
         return;
     }
-    if(frame->has_function) {
+    if(!frame->is_locals_proxy){
         pk_mappingproxy__locals(out, frame);
-    } else {
-        py_newglobals(out);
+    }else{
+        *out = *frame->locals;
     }
 }
 
@@ -563,7 +563,7 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
     CodeObject* co = py_touserdata(code);
     if(!co->src->is_dynamic) {
         if(argc != 1)
-            return ValueError("code object is not dynamic, so globals and locals must be None");
+            return ValueError("code object is not dynamic, `globals` and `locals` must be None");
         py_shrink(3);
     }
     Frame* frame = pk_current_vm->top_frame;
@@ -736,6 +736,7 @@ py_TValue pk_builtins__register() {
 
 static void function__gc_mark(void* ud) {
     Function* func = ud;
+    if(func->globals) pk__mark_value(func->globals);
     if(func->closure) pk__mark_namedict(func->closure);
     FuncDecl__gc_mark(func->decl);
 }
@@ -779,7 +780,7 @@ static bool super__new__(int argc, py_Ref argv) {
     py_Ref self_arg = NULL;
     if(argc == 1) {
         // super()
-        if(frame->has_function) {
+        if(frame->is_p0_function && !frame->is_locals_proxy) {
             py_TValue* callable = frame->p0;
             if(callable->type == tp_boundmethod) callable = py_getslot(frame->p0, 1);
             if(callable->type == tp_function) {

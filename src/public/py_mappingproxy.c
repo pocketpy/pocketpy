@@ -4,6 +4,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
+#include <stdbool.h>
 
 void pk_mappingproxy__namedict(py_Ref out, py_Ref object) {
     py_newobject(out, tp_namedict, 1, 0);
@@ -59,7 +60,7 @@ static bool namedict_items(int argc, py_Ref argv) {
             if(py_isnil(ti->magic_0 + j)) continue;
             py_Ref slot = py_list_emplace(py_retval());
             py_newtuple(slot, 2);
-            py_newstr(py_tuple_getitem(slot, 0), py_name2str(j + PK_MAGIC_SLOTS_UNCOMMON_LENGTH));
+            py_assign(py_tuple_getitem(slot, 0), py_name2ref(j + PK_MAGIC_SLOTS_UNCOMMON_LENGTH));
             py_assign(py_tuple_getitem(slot, 1), ti->magic_0 + j);
         }
         if(ti->magic_1) {
@@ -67,7 +68,7 @@ static bool namedict_items(int argc, py_Ref argv) {
                 if(py_isnil(ti->magic_1 + j)) continue;
                 py_Ref slot = py_list_emplace(py_retval());
                 py_newtuple(slot, 2);
-                py_newstr(py_tuple_getitem(slot, 0), py_name2str(j));
+                py_assign(py_tuple_getitem(slot, 0), py_name2ref(j));
                 py_assign(py_tuple_getitem(slot, 1), ti->magic_1 + j);
             }
         }
@@ -76,7 +77,7 @@ static bool namedict_items(int argc, py_Ref argv) {
         py_Ref slot = py_list_emplace(py_retval());
         py_newtuple(slot, 2);
         NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
-        py_newstr(py_tuple_getitem(slot, 0), py_name2str(kv->key));
+        py_assign(py_tuple_getitem(slot, 0), py_name2ref(kv->key));
         py_assign(py_tuple_getitem(slot, 1), &kv->value);
     }
     return true;
@@ -107,17 +108,21 @@ py_Type pk_namedict__register() {
 //////////////////////
 
 void pk_mappingproxy__locals(py_Ref out, Frame* frame) {
-    assert(frame->has_function && !frame->is_dynamic);
-    Frame** ud = py_newobject(out, tp_locals, 0, sizeof(Frame*));
-    *ud = frame;
+    assert(frame->is_p0_function && !frame->is_locals_proxy);
+    out->type = tp_locals;
+    out->is_ptr = false;
+    out->extra = 0;
+    // this is a weak reference
+    // locals() will expire when the frame is destroyed
+    out->_ptr = frame;
 }
 
 static bool locals__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
-    Frame** ud = py_touserdata(argv);
+    Frame* frame = argv->_ptr;
     py_Name name = py_namev(py_tosv(py_arg(1)));
-    py_Ref slot = Frame__f_locals_try_get(*ud, name);
+    py_Ref slot = Frame__getlocal_noproxy(frame, name);
     if(!slot || py_isnil(slot)) return KeyError(py_arg(1));
     py_assign(py_retval(), slot);
     return true;
@@ -126,9 +131,9 @@ static bool locals__getitem__(int argc, py_Ref argv) {
 static bool locals__setitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_str);
-    Frame** ud = py_touserdata(argv);
+    Frame* frame = argv->_ptr;
     py_Name name = py_namev(py_tosv(py_arg(1)));
-    py_Ref slot = Frame__f_locals_try_get(*ud, name);
+    py_Ref slot = Frame__getlocal_noproxy(frame, name);
     if(!slot) return KeyError(py_arg(1));
     py_assign(slot, py_arg(2));
     py_newnone(py_retval());
@@ -138,9 +143,9 @@ static bool locals__setitem__(int argc, py_Ref argv) {
 static bool locals__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
-    Frame** ud = py_touserdata(argv);
+    Frame* frame = argv->_ptr;
     py_Name name = py_namev(py_tosv(py_arg(1)));
-    py_Ref res = Frame__f_locals_try_get(*ud, name);
+    py_Ref res = Frame__getlocal_noproxy(frame, name);
     if(!res || py_isnil(res)) return KeyError(py_arg(1));
     py_newnil(res);
     py_newnone(py_retval());
@@ -150,9 +155,9 @@ static bool locals__delitem__(int argc, py_Ref argv) {
 static bool locals__contains__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_str);
-    Frame** ud = py_touserdata(argv);
+    Frame* frame = argv->_ptr;
     py_Name name = py_namev(py_tosv(py_arg(1)));
-    py_Ref slot = Frame__f_locals_try_get(*ud, name);
+    py_Ref slot = Frame__getlocal_noproxy(frame, name);
     py_newbool(py_retval(), slot && !py_isnil(slot));
     return true;
 }

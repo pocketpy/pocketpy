@@ -59,7 +59,9 @@ bool pk_exec(CodeObject* co, py_Ref module) {
     py_StackRef sp = vm->stack.sp;
     if(co->src->is_dynamic) sp -= 3;  // [globals, locals, code]
 
-    Frame* frame = Frame__new(co, module, sp, sp, false);
+    const bool is_p0_function = false;
+    const bool is_locals_proxy = true;
+    Frame* frame = Frame__new(co, sp, module, module, sp, is_p0_function, is_locals_proxy);
     VM__push_frame(vm, frame);
     FrameResult res = VM__run_top_frame(vm);
     if(res == RES_ERROR) return false;

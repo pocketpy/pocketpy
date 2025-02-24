@@ -431,8 +431,8 @@ static bool
                                  co->name->data);
             } else {
                 // add to **kwargs
-                bool ok = py_dict_setitem_by_str(&buffer[decl->starred_kwarg],
-                                                 py_name2str(key),
+                bool ok = py_dict_setitem(&buffer[decl->starred_kwarg],
+                                                 py_name2ref(key),
                                                  &p1[2 * j + 1]);
                 if(!ok) return false;
             }
@@ -480,7 +480,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // submit the call
                 if(!fn->cfunc) {
                     // python function
-                    VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true));
+                    VM__push_frame(self, Frame__new(co, p0, fn->module, fn->globals, argv, true, false));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
@@ -509,7 +509,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // submit the call
                 if(!fn->cfunc) {
                     // python function
-                    VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true));
+                    VM__push_frame(self, Frame__new(co, p0, fn->module, fn->globals, argv, true, false));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
@@ -525,7 +525,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // copy buffer back to stack
                 self->stack.sp = argv + co->nlocals;
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
-                Frame* frame = Frame__new(co, &fn->module, p0, argv, true);
+                Frame* frame = Frame__new(co, p0, fn->module, fn->globals, argv, true, false);
                 pk_newgenerator(py_retval(), frame, p0, self->stack.sp);
                 self->stack.sp = p0;  // reset the stack
                 return RES_RETURN;
