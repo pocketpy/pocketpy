@@ -7,6 +7,7 @@
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/modules.h"
 #include "pocketpy/interpreter/typeinfo.h"
+#include "pocketpy/interpreter/name.h"
 
 // TODO:
 // 1. __eq__ and __ne__ fallbacks
@@ -41,6 +42,7 @@ typedef struct VM {
     py_StackRef __curr_function;
     py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
+    InternedNames names;
     FixedMemoryPool pool_frame;
     ManagedHeap heap;
     ValueStack stack;  // put `stack` at the end for better cache locality

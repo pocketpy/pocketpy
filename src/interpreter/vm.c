@@ -57,6 +57,7 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
 
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
+    InternedNames__ctor(&self->names);
 
     ModuleDict__ctor(&self->modules, NULL, *py_NIL());
     TypeList__ctor(&self->types);
@@ -258,6 +259,7 @@ void VM__dtor(VM* self) {
     TypeList__dtor(&self->types);
     FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__clear(&self->stack);
+    InternedNames__dtor(&self->names);
 }
 
 void VM__push_frame(VM* self, Frame* frame) {
@@ -281,7 +283,11 @@ static void _clip_int(int* value, int min, int max) {
     if(*value > max) *value = max;
 }
 
-bool pk__parse_int_slice(py_Ref slice, int length, int* restrict start, int* restrict stop, int* restrict step) {
+bool pk__parse_int_slice(py_Ref slice,
+                         int length,
+                         int* restrict start,
+                         int* restrict stop,
+                         int* restrict step) {
     if(py_isint(slice)) {
         int index = py_toint(slice);
         bool ok = pk__normalize_index(&index, length);
@@ -431,9 +437,8 @@ static bool
                                  co->name->data);
             } else {
                 // add to **kwargs
-                bool ok = py_dict_setitem(&buffer[decl->starred_kwarg],
-                                                 py_name2ref(key),
-                                                 &p1[2 * j + 1]);
+                bool ok =
+                    py_dict_setitem(&buffer[decl->starred_kwarg], py_name2ref(key), &p1[2 * j + 1]);
                 if(!ok) return false;
             }
         }
@@ -480,7 +485,8 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // submit the call
                 if(!fn->cfunc) {
                     // python function
-                    VM__push_frame(self, Frame__new(co, p0, fn->module, fn->globals, argv, true, false));
+                    VM__push_frame(self,
+                                   Frame__new(co, p0, fn->module, fn->globals, argv, true, false));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
@@ -509,7 +515,8 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // submit the call
                 if(!fn->cfunc) {
                     // python function
-                    VM__push_frame(self, Frame__new(co, p0, fn->module, fn->globals, argv, true, false));
+                    VM__push_frame(self,
+                                   Frame__new(co, p0, fn->module, fn->globals, argv, true, false));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
@@ -692,6 +699,11 @@ void ManagedHeap__mark(ManagedHeap* self) {
     pk__mark_value(&vm->curr_exception);
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
         pk__mark_value(&vm->reg[i]);
+    }
+    // mark interned names
+    for(int i = 0; i < vm->names.r_interned.length; i++) {
+        RInternedEntry* entry = c11__at(RInternedEntry, &vm->names.r_interned, i);
+        pk__mark_value(&entry->obj);
     }
 }
 

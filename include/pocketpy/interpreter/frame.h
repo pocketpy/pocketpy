@@ -4,7 +4,6 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/namedict.h"
 #include "pocketpy/objects/object.h"
-#include "pocketpy/common/strname.h"
 #include "pocketpy/pocketpy.h"
 
 py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, py_Name name);
