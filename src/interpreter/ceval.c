@@ -194,6 +194,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
                 /*****************************************/
             case OP_LOAD_FAST: {
+                assert(!frame->is_locals_proxy);
                 PUSH(&frame->locals[byte.arg]);
                 if(py_isnil(TOP())) {
                     py_Name name = c11__getitem(uint16_t, &frame->co->varnames, byte.arg);
@@ -220,7 +221,6 @@ FrameResult VM__run_top_frame(VM* self) {
                         }
                     }
                 }
-                // `LOAD_
                 // globals
                 if(py_getitem(&frame->p0[0], TOP())) {
                     py_assign(TOP(), py_retval());
@@ -343,7 +343,11 @@ FrameResult VM__run_top_frame(VM* self) {
                 TypeError("'%t' object is not subscriptable", SECOND()->type);
                 goto __ERROR;
             }
-            case OP_STORE_FAST: frame->locals[byte.arg] = POPX(); DISPATCH();
+            case OP_STORE_FAST: {
+                assert(!frame->is_locals_proxy);
+                frame->locals[byte.arg] = POPX();
+                DISPATCH();
+            }
             case OP_STORE_NAME: {
                 // assert(frame->is_dynamic);
                 py_Name name = byte.arg;
@@ -405,6 +409,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_DELETE_FAST: {
+                assert(!frame->is_locals_proxy);
                 py_Ref tmp = &frame->locals[byte.arg];
                 if(py_isnil(tmp)) {
                     py_Name name = c11__getitem(py_Name, &frame->co->varnames, byte.arg);

@@ -501,7 +501,7 @@ void py_newglobals(py_Ref out) {
     if(frame->globals->type == tp_module) {
         pk_mappingproxy__namedict(out, frame->globals);
     } else {
-        *out = *frame->globals; // dict
+        *out = *frame->globals;  // dict
     }
 }
 
@@ -511,9 +511,9 @@ void py_newlocals(py_Ref out) {
         py_newglobals(out);
         return;
     }
-    if(!frame->is_locals_proxy){
+    if(!frame->is_locals_proxy) {
         pk_mappingproxy__locals(out, frame);
-    }else{
+    } else {
         *out = *frame->locals;
     }
 }
@@ -529,6 +529,7 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
             if(py_isnone(py_arg(1))) {
                 py_newglobals(py_pushtmp());
             } else {
+                if(!py_checktype(py_arg(1), tp_dict)) return false;
                 py_push(py_arg(1));
             }
             py_pushnone();
@@ -538,6 +539,7 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
             if(py_isnone(py_arg(1))) {
                 py_newglobals(py_pushtmp());
             } else {
+                if(!py_checktype(py_arg(1), tp_dict)) return false;
                 py_push(py_arg(1));
             }
             py_push(py_arg(2));
@@ -562,12 +564,15 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
     // [globals, locals, code]
     CodeObject* co = py_touserdata(code);
     if(!co->src->is_dynamic) {
+        py_shrink(3);
         if(argc != 1)
             return ValueError("code object is not dynamic, `globals` and `locals` must be None");
-        py_shrink(3);
     }
+
     Frame* frame = pk_current_vm->top_frame;
-    return pk_exec(co, frame ? frame->module : NULL);
+    bool ok = pk_execdyn(co, frame ? frame->module : NULL, py_peek(-3), py_peek(-2));
+    py_shrink(3);
+    return ok;
 }
 
 static bool builtins_exec(int argc, py_Ref argv) {
@@ -787,7 +792,9 @@ static bool super__new__(int argc, py_Ref argv) {
                 Function* func = py_touserdata(callable);
                 if(func->clazz != NULL) {
                     class_arg = *(py_Type*)PyObject__userdata(func->clazz);
-                    if(frame->co->nlocals > 0) self_arg = &frame->locals[0];
+                    if(frame->co->nlocals > 0) {
+                        if(!frame->is_locals_proxy) self_arg = &frame->locals[0];
+                    }
                 }
             }
         }

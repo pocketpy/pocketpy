@@ -28,10 +28,14 @@ static bool generator__next__(int argc, py_Ref argv) {
     if(ud->state == 2) return StopIteration();
 
     // reset frame->p0
-    int locals_offset = ud->frame->locals - ud->frame->p0;
-    ud->frame->p0 = py_peek(0);
-    ud->frame->locals = ud->frame->p0 + locals_offset;
-
+    if(!ud->frame->is_locals_proxy){
+        int locals_offset = ud->frame->locals - ud->frame->p0;
+        ud->frame->p0 = py_peek(0);
+        ud->frame->locals = ud->frame->p0 + locals_offset;
+    }else{
+        ud->frame->p0 = py_peek(0);
+    }
+    
     // restore the context
     py_Ref backup = py_getslot(argv, 0);
     int length = py_list_len(backup);

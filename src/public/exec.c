@@ -7,12 +7,11 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/compiler/compiler.h"
-
-static void code__gc_mark(void* ud) { CodeObject__gc_mark(ud); }
+#include <assert.h>
 
 py_Type pk_code__register() {
     py_Type type = pk_newtype("code", tp_object, NULL, (py_Dtor)CodeObject__dtor, false, true);
-    pk__tp_set_marker(type, code__gc_mark);
+    pk__tp_set_marker(type, (void (*)(void *))CodeObject__gc_mark);
     return type;
 }
 
@@ -57,16 +56,34 @@ bool pk_exec(CodeObject* co, py_Ref module) {
     assert(module->type == tp_module);
 
     py_StackRef sp = vm->stack.sp;
-    if(co->src->is_dynamic) sp -= 3;  // [globals, locals, code]
-
-    const bool is_p0_function = false;
-    const bool is_locals_proxy = true;
-    Frame* frame = Frame__new(co, sp, module, module, sp, is_p0_function, is_locals_proxy);
+    Frame* frame = Frame__new(co, sp, module, module, sp, false, false);
     VM__push_frame(vm, frame);
     FrameResult res = VM__run_top_frame(vm);
     if(res == RES_ERROR) return false;
-    if(res == RES_RETURN) return true;
-    c11__unreachable();
+    assert(res == RES_RETURN);
+    return true;
+}
+
+bool pk_execdyn(CodeObject* co, py_Ref module, py_Ref globals, py_Ref locals) {
+    VM* vm = pk_current_vm;
+    if(!module) module = &vm->main;
+    assert(module->type == tp_module);
+
+    py_StackRef sp = vm->stack.sp;
+    assert(globals != NULL && locals != NULL);
+
+    if(globals->type == tp_namedict) {
+        globals = py_getslot(globals, 0);
+        assert(globals->type == tp_module);
+    } else {
+        assert(globals->type == tp_dict);
+    }
+    Frame* frame = Frame__new(co, sp, module, globals, locals, false, true);
+    VM__push_frame(vm, frame);
+    FrameResult res = VM__run_top_frame(vm);
+    if(res == RES_ERROR) return false;
+    assert(res == RES_RETURN);
+    return true;
 }
 
 bool py_exec(const char* source, const char* filename, enum py_CompileMode mode, py_Ref module) {

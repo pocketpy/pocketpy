@@ -96,6 +96,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name);
 bool pk_callmagic(py_Name name, int argc, py_Ref argv);
 
 bool pk_exec(CodeObject* co, py_Ref module);
+bool pk_execdyn(CodeObject* co, py_Ref module, py_Ref globals, py_Ref locals);
 
 /// Assumes [a, b] are on the stack, performs a binary op.
 /// The result is stored in `self->last_retval`.

@@ -79,7 +79,7 @@ int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {
     }
     if(iblock < 0) return -1;
     UnwindTarget* uw = Frame__find_unwind_target(self, iblock);
-    _s->sp = (self->locals + uw->offset);  // unwind the stack
+    _s->sp = (Frame__locals_sp(self) + uw->offset);  // unwind the stack
     return c11__at(CodeBlock, &self->co->blocks, iblock)->end;
 }
 
@@ -95,10 +95,10 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
     int iblock = Frame__iblock(self);
     UnwindTarget* existing = Frame__find_unwind_target(self, iblock);
     if(existing) {
-        existing->offset = sp - self->locals;
+        existing->offset = sp - Frame__locals_sp(self);
     } else {
         UnwindTarget* prev = self->uw_list;
-        self->uw_list = UnwindTarget__new(prev, iblock, sp - self->locals);
+        self->uw_list = UnwindTarget__new(prev, iblock, sp - Frame__locals_sp(self));
     }
 }
 
@@ -146,6 +146,77 @@ int Frame__delglobal(Frame* self, py_Name name) {
         return found ? 1 : 0;
     } else {
         return py_dict_delitem(self->globals, py_name2ref(name));
+    }
+}
+
+int Frame__getlocal(Frame* self, py_Name name) {
+    if(self->is_locals_proxy) {
+        py_StackRef p0 = py_peek(0);
+        py_push(self->locals);
+        py_pushmethod(__getitem__);
+        py_push(py_name2ref(name));
+        bool ok = py_vectorcall(1, 0);
+        if(!ok) {
+            if(py_matchexc(tp_KeyError)) {
+                py_clearexc(p0);
+                return 0;
+            }
+            return -1;
+        }
+        return 1;
+    } else {
+        py_Ref slot = Frame__getlocal_noproxy(self, name);
+        if(slot == NULL) return 0;  // bad slot
+        if(py_isnil(slot)) {
+            UnboundLocalError(name);
+            return -1;
+        }
+        py_assign(py_retval(), slot);
+        return 1;
+    }
+}
+
+int Frame__setlocal(Frame* self, py_Name name, py_TValue* val) {
+    if(self->is_locals_proxy) {
+        py_push(self->locals);
+        py_pushmethod(__setitem__);
+        py_push(py_name2ref(name));
+        py_push(val);
+        bool ok = py_vectorcall(2, 0);
+        if(!ok) return -1;
+        return 1;
+    } else {
+        py_Ref slot = Frame__getlocal_noproxy(self, name);
+        if(slot == NULL) return 0;  // bad slot
+        *slot = *val;
+        return 1;
+    }
+}
+
+int Frame__dellocal(Frame* self, py_Name name) {
+    if(self->is_locals_proxy) {
+        py_StackRef p0 = py_peek(0);
+        py_push(self->locals);
+        py_pushmethod(__delitem__);
+        py_push(py_name2ref(name));
+        bool ok = py_vectorcall(1, 0);
+        if(!ok) {
+            if(py_matchexc(tp_KeyError)) {
+                py_clearexc(p0);
+                return 0;
+            }
+            return -1;
+        }
+        return 1;
+    } else {
+        py_Ref slot = Frame__getlocal_noproxy(self, name);
+        if(slot == NULL) return 0;  // bad slot
+        if(py_isnil(slot)) {
+            UnboundLocalError(name);
+            return -1;
+        }
+        py_newnil(slot);
+        return 1;
     }
 }
 
