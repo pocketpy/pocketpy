@@ -131,7 +131,6 @@ py_Type pk_staticmethod__register();
 py_Type pk_classmethod__register();
 py_Type pk_generator__register();
 py_Type pk_namedict__register();
-py_Type pk_locals__register();
 py_Type pk_code__register();
 
 py_TValue pk_builtins__register();

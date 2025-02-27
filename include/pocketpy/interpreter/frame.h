@@ -6,7 +6,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/pocketpy.h"
 
-py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, py_Name name);
+void FastLocals__to_dict(py_TValue* locals, const CodeObject* co) PY_RETURN;
 NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co);
 
 typedef struct ValueStack {
@@ -17,7 +17,7 @@ typedef struct ValueStack {
 } ValueStack;
 
 void ValueStack__ctor(ValueStack* self);
-void ValueStack__clear(ValueStack* self);
+void ValueStack__dtor(ValueStack* self);
 
 typedef struct UnwindTarget {
     struct UnwindTarget* next;
@@ -58,7 +58,7 @@ bool Frame__setglobal(Frame* self, py_Name name, py_TValue* val) PY_RAISE;
 int Frame__delglobal(Frame* self, py_Name name) PY_RAISE;
 
 int Frame__getlocal(Frame* self, py_Name name) PY_RAISE PY_RETURN;
-int Frame__setlocal(Frame* self, py_Name name, py_TValue* val) PY_RAISE;
+bool Frame__setlocal(Frame* self, py_Name name, py_TValue* val) PY_RAISE;
 int Frame__dellocal(Frame* self, py_Name name) PY_RAISE;
 
 py_Ref Frame__getclosure(Frame* self, py_Name name);

@@ -511,11 +511,17 @@ void py_newlocals(py_Ref out) {
         py_newglobals(out);
         return;
     }
-    if(!frame->is_locals_proxy) {
-        pk_mappingproxy__locals(out, frame);
-    } else {
-        *out = *frame->locals;
+    if(frame->is_locals_proxy) {
+        if(frame->locals->type == tp_locals) {
+            frame = frame->locals->_ptr;
+        } else {
+            assert(frame->locals->type == tp_dict);
+            *out = *frame->locals;
+            return;
+        }
     }
+    FastLocals__to_dict(frame->locals, frame->co);
+    py_assign(out, py_retval());
 }
 
 static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_CompileMode mode) {

@@ -11,12 +11,21 @@ void ValueStack__ctor(ValueStack* self) {
     self->end = self->begin + PK_VM_STACK_SIZE;
 }
 
-void ValueStack__clear(ValueStack* self) { self->sp = self->begin; }
+void ValueStack__dtor(ValueStack* self) { self->sp = self->begin; }
 
-py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, py_Name name) {
-    int index = c11_smallmap_n2i__get(&co->varnames_inv, name, -1);
-    if(index == -1) return NULL;
-    return &locals[index];
+void FastLocals__to_dict(py_TValue* locals, const CodeObject* co) {
+    py_StackRef dict = py_pushtmp();
+    py_newdict(dict);
+    c11__foreach(c11_smallmap_n2i_KV, &co->varnames_inv, entry) {
+        py_TValue* value = &locals[entry->value];
+        if(!py_isnil(value)) {
+            bool ok = py_dict_setitem(dict, py_name2ref(entry->key), value);
+            assert(ok);
+            (void)ok;
+        }
+    }
+    py_assign(py_retval(), dict);
+    py_pop();
 }
 
 NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co) {
@@ -151,78 +160,62 @@ int Frame__delglobal(Frame* self, py_Name name) {
 
 int Frame__getlocal(Frame* self, py_Name name) {
     if(self->is_locals_proxy) {
-        py_StackRef p0 = py_peek(0);
-        py_push(self->locals);
-        py_pushmethod(__getitem__);
-        py_push(py_name2ref(name));
-        bool ok = py_vectorcall(1, 0);
-        if(!ok) {
-            if(py_matchexc(tp_KeyError)) {
-                py_clearexc(p0);
-                return 0;
-            }
-            return -1;
+        if(self->locals->type == tp_locals) {
+            self = self->locals->_ptr;
+        } else {
+            assert(self->locals->type == tp_dict);
+            return py_dict_getitem(self->locals, py_name2ref(name));
         }
-        return 1;
-    } else {
-        py_Ref slot = Frame__getlocal_noproxy(self, name);
-        if(slot == NULL) return 0;  // bad slot
-        if(py_isnil(slot)) {
-            UnboundLocalError(name);
-            return -1;
-        }
-        py_assign(py_retval(), slot);
-        return 1;
     }
+    py_Ref slot = Frame__getlocal_noproxy(self, name);
+    if(slot == NULL) return 0;  // bad slot
+    if(py_isnil(slot)) {
+        UnboundLocalError(name);
+        return -1;
+    }
+    py_assign(py_retval(), slot);
+    return 1;
 }
 
-int Frame__setlocal(Frame* self, py_Name name, py_TValue* val) {
+bool Frame__setlocal(Frame* self, py_Name name, py_TValue* val) {
     if(self->is_locals_proxy) {
-        py_push(self->locals);
-        py_pushmethod(__setitem__);
-        py_push(py_name2ref(name));
-        py_push(val);
-        bool ok = py_vectorcall(2, 0);
-        if(!ok) return -1;
-        return 1;
-    } else {
-        py_Ref slot = Frame__getlocal_noproxy(self, name);
-        if(slot == NULL) return 0;  // bad slot
-        *slot = *val;
-        return 1;
+        if(self->locals->type == tp_locals) {
+            self = self->locals->_ptr;
+        } else {
+            assert(self->locals->type == tp_dict);
+            return py_dict_setitem(self->locals, py_name2ref(name), val);
+        }
     }
+    py_Ref slot = Frame__getlocal_noproxy(self, name);
+    if(slot == NULL) return false;  // bad slot
+    *slot = *val;
+    return true;
 }
 
 int Frame__dellocal(Frame* self, py_Name name) {
     if(self->is_locals_proxy) {
-        py_StackRef p0 = py_peek(0);
-        py_push(self->locals);
-        py_pushmethod(__delitem__);
-        py_push(py_name2ref(name));
-        bool ok = py_vectorcall(1, 0);
-        if(!ok) {
-            if(py_matchexc(tp_KeyError)) {
-                py_clearexc(p0);
-                return 0;
-            }
-            return -1;
+        if(self->locals->type == tp_locals) {
+            self = self->locals->_ptr;
+        } else {
+            assert(self->locals->type == tp_dict);
+            return py_dict_delitem(self->locals, py_name2ref(name));
         }
-        return 1;
-    } else {
-        py_Ref slot = Frame__getlocal_noproxy(self, name);
-        if(slot == NULL) return 0;  // bad slot
-        if(py_isnil(slot)) {
-            UnboundLocalError(name);
-            return -1;
-        }
-        py_newnil(slot);
-        return 1;
     }
+    py_Ref slot = Frame__getlocal_noproxy(self, name);
+    if(slot == NULL) return 0;  // bad slot
+    if(py_isnil(slot)) {
+        UnboundLocalError(name);
+        return -1;
+    }
+    py_newnil(slot);
+    return 1;
 }
 
 py_StackRef Frame__getlocal_noproxy(Frame* self, py_Name name) {
     assert(!self->is_locals_proxy);
-    return FastLocals__try_get_by_name(self->locals, self->co, name);
+    int index = c11_smallmap_n2i__get(&self->co->varnames_inv, name, -1);
+    if(index == -1) return NULL;
+    return &self->locals[index];
 }
 
 py_Ref Frame__getclosure(Frame* self, py_Name name) {

@@ -127,7 +127,7 @@ void VM__ctor(VM* self) {
     validate(tp_Exception, pk_Exception__register());
     validate(tp_bytes, pk_bytes__register());
     validate(tp_namedict, pk_namedict__register());
-    validate(tp_locals, pk_locals__register());
+    validate(tp_locals, pk_newtype("locals", tp_object, NULL, NULL, false, true));
     validate(tp_code, pk_code__register());
 
     validate(tp_dict, pk_dict__register());
@@ -258,7 +258,7 @@ void VM__dtor(VM* self) {
     ModuleDict__dtor(&self->modules);
     TypeList__dtor(&self->types);
     FixedMemoryPool__dtor(&self->pool_frame);
-    ValueStack__clear(&self->stack);
+    ValueStack__dtor(&self->stack);
     InternedNames__dtor(&self->names);
 }
 

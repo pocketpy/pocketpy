@@ -135,7 +135,6 @@ PK_API bool py_compile(const char* source,
 /// Python equivalent to `globals()`.
 PK_API void py_newglobals(py_OutRef);
 /// Python equivalent to `locals()`.
-/// @return a temporary object, which expires on the associated function return.
 PK_API void py_newlocals(py_OutRef);
 
 /************* Values Creation *************/
