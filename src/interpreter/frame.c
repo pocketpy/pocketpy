@@ -78,6 +78,13 @@ void Frame__delete(Frame* self) {
     FixedMemoryPool__dealloc(&pk_current_vm->pool_frame, self);
 }
 
+py_StackRef Frame__locals_sp(Frame *self){
+    if(!self->is_locals_proxy){
+        return self->locals;
+    }
+    return self->p0;
+}
+
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {
     // try to find a parent try block
     int iblock = Frame__iblock(self);

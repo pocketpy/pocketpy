@@ -181,6 +181,10 @@ FrameResult VM__run_top_frame(VM* self) {
                 Function* ud = py_newobject(SP(), tp_function, 0, sizeof(Function));
                 Function__ctor(ud, decl, frame->module, frame->globals);
                 if(decl->nested) {
+                    if(frame->is_locals_proxy) {
+                        RuntimeError("cannot create closure from locals proxy");
+                        goto __ERROR;
+                    }
                     ud->closure = FastLocals__to_namedict(frame->locals, frame->co);
                     py_Name name = py_name(decl->code.name->data);
                     // capture itself to allow recursion
