@@ -65,44 +65,46 @@ If you have a struct like this:
 ```c
 typedef struct MyStruct{
     int x;
-    int y;
+    int datasize;
+    int* data;
 }MyStruct;
 ```
 
+`x` is some kind of property of the struct, and this struct is used for store `datasize` numbers.
+
 Here's how you can create a `MyStruct`:
 ```c
-// 1. Define the "new" function to create a MyStruct.
-MyStruct* py_new_MyStruct(py_OutRef out, int x, int y) {
-    // 2. Create a new object.
-    MyStruct* res = py_newobject(out, tp_object, 2, sizeof(MyStruct));
-    // 3. Put x and y into the object.
-    res->x = x;
-    res->y = y;
-    return res;
-}
-// 4. Define a wrapper function with the signature `py_CFunction`.
+// 1. Define a wrapper function with the signature `py_CFunction`.
 bool MyStruct__new__(int argc, py_Ref argv) {
-    // 5. Check the number of arguments.
+    // 2. Check the number of arguments.
     PY_CHECK_ARGC(3);
-    // 6. Check the type of arguments.
+    // 3. Check the type of arguments.
     PY_CHECK_ARG_TYPE(0, tp_type);
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
-    // 7. Convert the arguments into C types.
+    // 4. Convert the arguments into C types.
+    py_Type cls = py_totype(py_arg(0));
     int x = py_toint(py_arg(1));
-    int y = py_toint(py_arg(2));
-    // 8. Call the previous function to create MyStruct.
-    MyStruct* res = py_new_MyStruct(py_pushtmp(), x, y);
-    // 9. Set the created MyStruct into the return value register.
+    int datasize = py_toint(py_arg(2));
+    // 5. Create a MyStruct instance, where `datasize` gives correspond slots to store numbers.
+    MyStruct* res = py_newobject(py_pushtmp(), cls, datasize, sizeof(MyStruct));
+    // 6. Set the values.
+    res->x = x;
+    res->datasize = datasize;
+    // 7. `data` is in the head of slots, init `data` with zeros.
+    res->data = py_getslot(py_peek(-1), 0);
+    for (int i = 0; i < datasize; i++) {
+        res->data[i] = 0;
+    }
+    // 8. Put the created struct into the return value register.
     py_assign(py_retval(), py_peek(-1));
-    // 10. The result is already in the return value register, pop MyStruct is safe now.
+    // 9. Pop the struct safely.
     py_pop();
-    // 11. Don't forget to return `true`.
     return true;
 }
 ```
 
-We also would like to have a function to get x from `MyStruct`:
+Function for getting the property `x` from `MyStruct`:
 ```c
 bool MyStruct_x(int argc, py_Ref argv) {
     // 1. Check the number of arguments.
@@ -116,22 +118,72 @@ bool MyStruct_x(int argc, py_Ref argv) {
 }
 ```
 
-Similar to the simple function binding, you can bind your struct to a python module:
+Function for getting a specified number from `data`:
 ```c
-// 1. Put MyStruct into a new module `mystruct`
-py_GlobalRef mod = py_newmodule("mystruct");
-// 2. MyStruct is named as `custom_struct`
-py_Type mystruct = py_newtype("custom_struct", tp_object, mod, NULL);
-// 3. Bind functions.
-py_bind(py_tpobject(mystruct), "__new__(cls, x: int, y: int)", MyStruct__new__);
-py_bind(mod, "get_x(cls: mystruct)", MyStruct_x);
+bool MyStruct_data_get(int argc, py_Ref argv) {
+    // 1. Check the number and type of arguments.
+    PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    // 2. Convert the arguments into C types.
+    MyStruct* self = py_touserdata(argv);
+    int index = py_toint(py_arg(1));
+    // 3. Exception if the index is out of range.
+    if (index >= self->datasize) {
+        IndexError("Not a valid index");
+    }
+    // 4. Return the value.
+    py_newint(py_retval(), self->data[index]);
+    // 5. Return `true`.
+    return true;
+}
 ```
 
-Now you can use MyStruct like this:
+Function for setting a number's value in `data`:
+```c
+bool MyStruct_data_set(int argc, py_Ref argv) {
+    // 1. Check the number and type of arguments.
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    // 2. Convert the arguments into C types.
+    MyStruct* self = py_touserdata(argv);
+    int index = py_toint(py_arg(1));
+    int value = py_toint(py_arg(2));
+    // 3. Exception if the index is out of range.
+    if (index >= self->datasize) {
+        IndexError("Not a valid index");
+    }
+    // 4. Set the value.
+    self->data[index] = value;
+    // 5. All functions should have a return value. None is returned here.
+    py_newnone(py_retval());
+    // 6. Return `true`.
+    return true;
+}
+```
+
+Now you can bind the functions to the new module `mmystruct`:
+```c
+py_GlobalRef mod = py_newmodule("mystruct");
+// 1. Add a custom type.
+py_Type mystruct = py_newtype("custom_struct", tp_object, mod, NULL);
+// 2. Bind the function of creating MyStruct.
+py_bind(py_tpobject(mystruct), "__new__(cls, x: int, datasize: int)", MyStruct__new__);
+// 3. Bind the property `x`.
+py_bindproperty(mystruct, "x", MyStruct_x, NULL);
+// 4. Bind magic methods of operating numbers in `data`.
+py_bindmagic(mystruct, __getitem__, MyStruct_data_get);
+py_bindmagic(mystruct, __setitem__, MyStruct_data_set);
+```
+
+You can use it like this:
 ```python
 import mystruct
-test = mystruct.custom_struct(10, 100)
-print(mystruct.get_x(test))
+test = mystruct.custom_struct(3,4) # x=3, 4 slots for data
+print(test.x)
+print(test[1]) # 0
+test[1] = 100
+print(test[1]) # 100
 ```
 
 ### Bind a function with arbitrary argument lists
