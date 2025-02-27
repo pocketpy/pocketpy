@@ -137,4 +137,3 @@ py_TValue pk_builtins__register();
 
 /* mappingproxy */
 void pk_mappingproxy__namedict(py_Ref out, py_Ref object);
-void pk_mappingproxy__locals(py_Ref out, Frame* frame);

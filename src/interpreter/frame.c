@@ -54,7 +54,9 @@ Frame* Frame__new(const CodeObject* co,
                   py_Ref locals,
                   bool is_p0_function,
                   bool is_locals_proxy) {
-    assert(module->type == tp_module || module->type == tp_dict);
+    assert(module->type == tp_module);
+    assert(globals->type == tp_module || globals->type == tp_dict);
+    assert(locals->type == tp_locals || locals->type == tp_dict || locals->type == tp_nil);
     Frame* self = FixedMemoryPool__alloc(&pk_current_vm->pool_frame);
     self->f_back = NULL;
     self->co = co;
@@ -78,10 +80,8 @@ void Frame__delete(Frame* self) {
     FixedMemoryPool__dealloc(&pk_current_vm->pool_frame, self);
 }
 
-py_StackRef Frame__locals_sp(Frame *self){
-    if(!self->is_locals_proxy){
-        return self->locals;
-    }
+py_StackRef Frame__locals_sp(Frame* self) {
+    if(!self->is_locals_proxy) { return self->locals; }
     return self->p0;
 }
 

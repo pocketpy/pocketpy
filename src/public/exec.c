@@ -3,15 +3,13 @@
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
-#include "pocketpy/common/sstream.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/compiler/compiler.h"
 #include <assert.h>
 
 py_Type pk_code__register() {
     py_Type type = pk_newtype("code", tp_object, NULL, (py_Dtor)CodeObject__dtor, false, true);
-    pk__tp_set_marker(type, (void (*)(void *))CodeObject__gc_mark);
+    pk__tp_set_marker(type, (void (*)(void*))CodeObject__gc_mark);
     return type;
 }
 
@@ -56,7 +54,7 @@ bool pk_exec(CodeObject* co, py_Ref module) {
     assert(module->type == tp_module);
 
     py_StackRef sp = vm->stack.sp;
-    Frame* frame = Frame__new(co, sp, module, module, sp, false, false);
+    Frame* frame = Frame__new(co, sp, module, module, py_NIL(), false, false);
     VM__push_frame(vm, frame);
     FrameResult res = VM__run_top_frame(vm);
     if(res == RES_ERROR) return false;
@@ -70,7 +68,7 @@ bool pk_execdyn(CodeObject* co, py_Ref module, py_Ref globals, py_Ref locals) {
     assert(module->type == tp_module);
 
     py_StackRef sp = vm->stack.sp;
-    assert(globals != NULL && locals != NULL);
+    assert(globals != NULL);
 
     if(globals->type == tp_namedict) {
         globals = py_getslot(globals, 0);

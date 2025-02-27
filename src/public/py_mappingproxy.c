@@ -1,9 +1,7 @@
 #include "pocketpy/pocketpy.h"
 
-#include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
-#include "pocketpy/common/sstream.h"
 #include <stdbool.h>
 
 void pk_mappingproxy__namedict(py_Ref out, py_Ref object) {
@@ -103,16 +101,4 @@ py_Type pk_namedict__register() {
     py_bindmethod(type, "items", namedict_items);
     py_bindmethod(type, "clear", namedict_clear);
     return type;
-}
-
-//////////////////////
-
-void pk_mappingproxy__locals(py_Ref out, Frame* frame) {
-    assert(frame->is_p0_function && !frame->is_locals_proxy);
-    out->type = tp_locals;
-    out->is_ptr = false;
-    out->extra = 0;
-    // this is a weak reference
-    // locals() will expire when the frame is destroyed
-    out->_ptr = frame;
 }

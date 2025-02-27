@@ -208,38 +208,31 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_LOAD_NAME: {
-                // assert(frame->is_dynamic);
                 py_Name name = byte.arg;
-                py_TValue* tmp;
-                py_assign(SP()++, py_name2ref(name));
                 // locals
-                if(!py_isnone(&frame->p0[1])) {
-                    if(py_getitem(&frame->p0[1], TOP())) {
-                        py_assign(TOP(), py_retval());
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                        } else {
-                            goto __ERROR;
-                        }
-                    }
+                int res = Frame__getlocal(frame, name);
+                if(res == 1) {
+                    PUSH(&self->last_retval);
+                    DISPATCH();
+                }
+                if(res == -1) goto __ERROR;
+                // closure
+                py_Ref tmp = Frame__getclosure(frame, name);
+                if(tmp != NULL) {
+                    PUSH(tmp);
+                    DISPATCH();
                 }
                 // globals
-                if(py_getitem(&frame->p0[0], TOP())) {
-                    py_assign(TOP(), py_retval());
+                res = Frame__getglobal(frame, name);
+                if(res == 1) {
+                    PUSH(&self->last_retval);
                     DISPATCH();
-                } else {
-                    if(py_matchexc(tp_KeyError)) {
-                        py_clearexc(NULL);
-                    } else {
-                        goto __ERROR;
-                    }
                 }
+                if(res == -1) goto __ERROR;
                 // builtins
                 tmp = py_getdict(&self->builtins, name);
                 if(tmp != NULL) {
-                    py_assign(TOP(), tmp);
+                    PUSH(tmp);
                     DISPATCH();
                 }
                 NameError(name);
@@ -353,36 +346,22 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_STORE_NAME: {
-                // assert(frame->is_dynamic);
                 py_Name name = byte.arg;
-                py_assign(SP()++, py_name2ref(name));
-                // [value, name]
-                if(!py_isnone(&frame->p0[1])) {
+                if(frame->locals != NULL) {
                     // locals
-                    if(py_setitem(&frame->p0[1], TOP(), SECOND())) {
-                        STACK_SHRINK(2);
+                    int res = Frame__setlocal(frame, name, TOP());
+                    if(res == 1) {
+                        POP();
                         DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                            NameError(name);
-                        }
-                        goto __ERROR;
                     }
+                    if(res == 0) NameError(name);
+                    goto __ERROR;
                 } else {
                     // globals
-                    if(py_setitem(&frame->p0[0], TOP(), SECOND())) {
-                        STACK_SHRINK(2);
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                            NameError(name);
-                        }
-                        goto __ERROR;
-                    }
+                    if(!Frame__setglobal(frame, name, TOP())) { goto __ERROR; }
+                    POP();
+                    DISPATCH();
                 }
-                DISPATCH();
             }
             case OP_STORE_GLOBAL: {
                 if(!Frame__setglobal(frame, byte.arg, TOP())) goto __ERROR;
@@ -424,42 +403,27 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_DELETE_NAME: {
-                // assert(frame->is_dynamic);
                 py_Name name = byte.arg;
-                py_assign(SP()++, py_name2ref(name));
-                if(!py_isnone(&frame->p0[1])) {
+                if(frame->locals != NULL) {
                     // locals
-                    if(py_delitem(&frame->p0[1], TOP())) {
-                        POP();
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                            NameError(name);
-                        }
-                        goto __ERROR;
-                    }
+                    int res = Frame__dellocal(frame, name);
+                    if(res == 1) DISPATCH();
+                    if(res == 0) NameError(name);
+                    goto __ERROR;
                 } else {
                     // globals
-                    if(py_delitem(&frame->p0[0], TOP())) {
-                        POP();
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                            NameError(name);
-                        }
-                        goto __ERROR;
-                    }
+                    int res = Frame__delglobal(frame, name);
+                    if(res == 1) DISPATCH();
+                    if(res == 0) NameError(name);
+                    goto __ERROR;
+                    DISPATCH();
                 }
-                DISPATCH();
             }
             case OP_DELETE_GLOBAL: {
                 py_Name name = byte.arg;
                 int res = Frame__delglobal(frame, name);
                 if(res == 1) DISPATCH();
                 if(res == -1) goto __ERROR;
-                // res == 0
                 NameError(name);
                 goto __ERROR;
             }
