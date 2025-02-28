@@ -536,7 +536,7 @@ PK_API void py_clearexc(py_StackRef p0);
 #define AttributeError(self, n)                                                                    \
     py_exception(tp_AttributeError, "'%t' object has no attribute '%n'", (self)->type, (n))
 #define UnboundLocalError(n)                                                                       \
-    py_exception(tp_UnboundLocalError, "local variable '%n' referenced before assignment", (n))
+    py_exception(tp_UnboundLocalError, "cannot access local variable '%n' where it is not associated with a value", (n))
 
 PK_API bool StopIteration() PY_RAISE;
 PK_API bool KeyError(py_Ref key) PY_RAISE;

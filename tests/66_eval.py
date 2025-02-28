@@ -31,12 +31,10 @@ def f():
     )
     assert b == 8
 
-class G: pass
-
 def abc():
-    g = G()
-    exec('a=1', g.__dict__)
-    return g.a
+    g = {}
+    exec('a=1', g)
+    return g['a']
 
 res = abc()
 assert (res==1), res
@@ -69,6 +67,11 @@ except NameError:
     pass
 
 # https://github.com/pocketpy/pocketpy/issues/339
-code = '\nprint(x)\ndef f():\n  print(x)\nf()\n'
+res = []
+
+code = '\nres.append(x)\ndef f():\n  res.append(x)\nf()\n'
 x = 33
 exec(code, {'x': 42})
+assert res == [42, 42]
+assert x == 33
+

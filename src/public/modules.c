@@ -554,11 +554,10 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
             if(py_isnone(py_arg(1))) {
                 py_newglobals(py_pushtmp());
             } else {
-                if(!py_checktype(py_arg(1), tp_dict)) return false;
                 py_push(py_arg(1));
             }
             // locals
-            pk_push_special_locals();
+            py_pushnil();
             break;
         }
         case 3: {
@@ -566,14 +565,12 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
             if(py_isnone(py_arg(1))) {
                 py_newglobals(py_pushtmp());
             } else {
-                if(!py_checktype(py_arg(1), tp_dict)) return false;
                 py_push(py_arg(1));
             }
             // locals
             if(py_isnone(py_arg(2))) {
-                pk_push_special_locals();
+                py_pushnil();
             } else {
-                if(!py_checktype(py_arg(2), tp_dict)) return false;
                 py_push(py_arg(2));
             }
             break;

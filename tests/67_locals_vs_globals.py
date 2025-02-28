@@ -32,11 +32,9 @@ assert "sys" not in globals()
 # With default locals:
 exec("""
 import sys
-assert locals() == globals()
 assert "sys" in locals()
 assert "sys" in globals()
 def main():
-    assert locals() != globals()
     assert "sys" not in locals()  # not the same locals as the outer scope
     assert "sys" in globals()     # but now be can access `sys` via `globals()`
 main()

@@ -68,14 +68,23 @@ bool pk_execdyn(CodeObject* co, py_Ref module, py_Ref globals, py_Ref locals) {
     assert(module->type == tp_module);
 
     py_StackRef sp = vm->stack.sp;
-    assert(globals != NULL);
+    assert(globals != NULL && locals != NULL);
 
+    // check globals
     if(globals->type == tp_namedict) {
         globals = py_getslot(globals, 0);
         assert(globals->type == tp_module);
     } else {
-        assert(globals->type == tp_dict);
+        if(!py_istype(globals, tp_dict)) { return TypeError("globals must be a dict object"); }
     }
+    // check locals
+    switch(locals->type) {
+        case tp_locals: break;
+        case tp_dict: break;
+        case tp_nil: break;
+        default: return TypeError("locals must be a dict object");
+    }
+
     Frame* frame = Frame__new(co, sp, module, globals, locals, true);
     VM__push_frame(vm, frame);
     FrameResult res = VM__run_top_frame(vm);

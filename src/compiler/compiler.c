@@ -105,18 +105,16 @@ void NameExpr__emit_(Expr* self_, Ctx* ctx) {
         // we know this is a local variable
         Ctx__emit_(ctx, OP_LOAD_FAST, index, self->line);
     } else {
-        Opcode op;
-        // otherwise, if we are running dynamically, force `OP_LOAD_NAME`
-        if(ctx->co->src->is_dynamic) {
-            op = OP_LOAD_NAME;
-            // `OP_LOAD_NAME` won't handle `OP_LOAD_CLASS_GLOBAL`
-            // so `exec()` will raise an error for @property.setter
-        } else {
-            op = ctx->level <= 1 ? OP_LOAD_GLOBAL : OP_LOAD_NONLOCAL;
-            if(ctx->is_compiling_class && self->scope == NAME_GLOBAL) {
-                // if we are compiling a class, we should use `OP_LOAD_CLASS_GLOBAL`
-                // this is for @property.setter
-                op = OP_LOAD_CLASS_GLOBAL;
+        Opcode op = ctx->level <= 1 ? OP_LOAD_GLOBAL : OP_LOAD_NONLOCAL;
+        if(self->scope == NAME_GLOBAL) {
+            if(ctx->co->src->is_dynamic) {
+                op = OP_LOAD_NAME;
+            } else {
+                if(ctx->is_compiling_class) {
+                    // if we are compiling a class, we should use `OP_LOAD_CLASS_GLOBAL`
+                    // this is for @property.setter
+                    op = OP_LOAD_CLASS_GLOBAL;
+                }
             }
         }
         Ctx__emit_(ctx, op, self->name, self->line);
