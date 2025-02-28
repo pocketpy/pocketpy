@@ -498,23 +498,47 @@ void py_newglobals(py_Ref out) {
         pk_mappingproxy__namedict(out, &pk_current_vm->main);
         return;
     }
-    if(frame->is_dynamic) {
-        py_assign(out, &frame->p0[0]);
+    if(frame->globals->type == tp_module) {
+        pk_mappingproxy__namedict(out, frame->globals);
     } else {
-        pk_mappingproxy__namedict(out, frame->module);
+        *out = *frame->globals;  // dict
     }
 }
 
 void py_newlocals(py_Ref out) {
     Frame* frame = pk_current_vm->top_frame;
-    if(frame->is_dynamic) {
-        py_assign(out, &frame->p0[1]);
+    if(!frame) {
+        py_newdict(out);
         return;
     }
-    if(frame->has_function) {
-        pk_mappingproxy__locals(out, frame);
+    if(frame->is_locals_special) {
+        switch(frame->locals->type) {
+            case tp_locals: frame = frame->locals->_ptr; break;
+            case tp_dict: *out = *frame->locals; return;
+            case tp_nil: py_newdict(out); return;
+            default: c11__unreachable();
+        }
+    }
+    FastLocals__to_dict(frame->locals, frame->co);
+    py_assign(out, py_retval());
+}
+
+static void pk_push_special_locals() {
+    Frame* frame = pk_current_vm->top_frame;
+    if(!frame) {
+        py_pushnil();
+        return;
+    }
+    if(frame->is_locals_special) {
+        py_push(frame->locals);
     } else {
-        py_newglobals(out);
+        py_StackRef out = py_pushtmp();
+        out->type = tp_locals;
+        out->is_ptr = false;
+        out->extra = 0;
+        // this is a weak reference
+        // which will expire when the frame is destroyed
+        out->_ptr = frame;
     }
 }
 
@@ -522,52 +546,64 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
     switch(argc) {
         case 1: {
             py_newglobals(py_pushtmp());
-            py_newlocals(py_pushtmp());
+            pk_push_special_locals();
             break;
         }
         case 2: {
+            // globals
             if(py_isnone(py_arg(1))) {
                 py_newglobals(py_pushtmp());
             } else {
                 py_push(py_arg(1));
             }
-            py_pushnone();
+            // locals
+            py_pushnil();
             break;
         }
         case 3: {
+            // globals
             if(py_isnone(py_arg(1))) {
                 py_newglobals(py_pushtmp());
             } else {
                 py_push(py_arg(1));
             }
-            py_push(py_arg(2));
+            // locals
+            if(py_isnone(py_arg(2))) {
+                py_pushnil();
+            } else {
+                py_push(py_arg(2));
+            }
             break;
         }
         default: return TypeError("%s() takes at most 3 arguments", title);
     }
 
-    py_Ref code;
     if(py_isstr(argv)) {
         bool ok = py_compile(py_tostr(argv), "<string>", mode, true);
         if(!ok) return false;
-        code = py_retval();
+        py_push(py_retval());
     } else if(py_istype(argv, tp_code)) {
-        code = argv;
+        py_push(argv);
     } else {
         return TypeError("%s() expected 'str' or 'code', got '%t'", title, argv->type);
     }
 
-    py_push(code);  // keep it alive
-
-    // [globals, locals, code]
-    CodeObject* co = py_touserdata(code);
-    if(!co->src->is_dynamic) {
-        if(argc != 1)
-            return ValueError("code object is not dynamic, so globals and locals must be None");
-        py_shrink(3);
-    }
     Frame* frame = pk_current_vm->top_frame;
-    return pk_exec(co, frame ? frame->module : NULL);
+    // [globals, locals, code]
+    CodeObject* code = py_touserdata(py_peek(-1));
+    if(code->src->is_dynamic) {
+        bool ok = pk_execdyn(code, frame ? frame->module : NULL, py_peek(-3), py_peek(-2));
+        py_shrink(3);
+        return ok;
+    } else {
+        if(argc != 1) {
+            return ValueError(
+                "code object is not dynamic, `globals` and `locals` must not be specified");
+        }
+        bool ok = pk_exec(code, frame ? frame->module : NULL);
+        py_shrink(3);
+        return ok;
+    }
 }
 
 static bool builtins_exec(int argc, py_Ref argv) {
@@ -736,6 +772,7 @@ py_TValue pk_builtins__register() {
 
 static void function__gc_mark(void* ud) {
     Function* func = ud;
+    if(func->globals) pk__mark_value(func->globals);
     if(func->closure) pk__mark_namedict(func->closure);
     FuncDecl__gc_mark(func->decl);
 }
@@ -779,14 +816,14 @@ static bool super__new__(int argc, py_Ref argv) {
     py_Ref self_arg = NULL;
     if(argc == 1) {
         // super()
-        if(frame->has_function) {
+        if(!frame->is_locals_special) {
             py_TValue* callable = frame->p0;
             if(callable->type == tp_boundmethod) callable = py_getslot(frame->p0, 1);
             if(callable->type == tp_function) {
                 Function* func = py_touserdata(callable);
                 if(func->clazz != NULL) {
                     class_arg = *(py_Type*)PyObject__userdata(func->clazz);
-                    if(frame->co->nlocals > 0) self_arg = &frame->locals[0];
+                    if(frame->co->nlocals > 0) { self_arg = &frame->locals[0]; }
                 }
             }
         }

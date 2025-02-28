@@ -33,7 +33,7 @@ static bool stack_format_object(VM* self, c11_sv spec);
     } while(0)
 #define DISPATCH_JUMP_ABSOLUTE(__target)                                                           \
     do {                                                                                           \
-        frame->ip = c11__at(Bytecode, &frame->co->codes, __target);                                \
+        frame->ip = __target;                                                                      \
         goto __NEXT_STEP;                                                                          \
     } while(0)
 
@@ -86,15 +86,18 @@ static bool unpack_dict_to_buffer(py_Ref key, py_Ref val, void* ctx) {
 
 FrameResult VM__run_top_frame(VM* self) {
     Frame* frame = self->top_frame;
+    Bytecode* codes;
+
     const Frame* base_frame = frame;
 
     while(true) {
         Bytecode byte;
     __NEXT_FRAME:
+        codes = frame->co->codes.data;
         frame->ip++;
 
     __NEXT_STEP:
-        byte = *frame->ip;
+        byte = codes[frame->ip];
 
 #ifndef NDEBUG
         pk_print_stack(self, frame, byte);
@@ -176,8 +179,12 @@ FrameResult VM__run_top_frame(VM* self) {
                 CHECK_STACK_OVERFLOW();
                 FuncDecl_ decl = c11__getitem(FuncDecl_, &frame->co->func_decls, byte.arg);
                 Function* ud = py_newobject(SP(), tp_function, 0, sizeof(Function));
-                Function__ctor(ud, decl, frame->module);
+                Function__ctor(ud, decl, frame->module, frame->globals);
                 if(decl->nested) {
+                    if(frame->is_locals_special) {
+                        RuntimeError("cannot create closure from special locals");
+                        goto __ERROR;
+                    }
                     ud->closure = FastLocals__to_namedict(frame->locals, frame->co);
                     py_Name name = py_name(decl->code.name->data);
                     // capture itself to allow recursion
@@ -191,6 +198,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
                 /*****************************************/
             case OP_LOAD_FAST: {
+                assert(!frame->is_locals_special);
                 PUSH(&frame->locals[byte.arg]);
                 if(py_isnil(TOP())) {
                     py_Name name = c11__getitem(uint16_t, &frame->co->varnames, byte.arg);
@@ -200,38 +208,45 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_LOAD_NAME: {
-                assert(frame->is_dynamic);
+                assert(frame->is_locals_special);
                 py_Name name = byte.arg;
-                py_TValue* tmp;
-                py_newstr(SP()++, py_name2str(name));
                 // locals
-                if(!py_isnone(&frame->p0[1])) {
-                    if(py_getitem(&frame->p0[1], TOP())) {
-                        py_assign(TOP(), py_retval());
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                        } else {
+                switch(frame->locals->type) {
+                    case tp_locals: {
+                        Frame* noproxy = frame->locals->_ptr;
+                        py_Ref slot = Frame__getlocal_noproxy(noproxy, name);
+                        if(slot == NULL) break;
+                        if(py_isnil(slot)) {
+                            UnboundLocalError(name);
                             goto __ERROR;
                         }
+                        PUSH(slot);
+                        DISPATCH();
                     }
-                }
-                // globals
-                if(py_getitem(&frame->p0[0], TOP())) {
-                    py_assign(TOP(), py_retval());
-                    DISPATCH();
-                } else {
-                    if(py_matchexc(tp_KeyError)) {
-                        py_clearexc(NULL);
-                    } else {
+                    case tp_dict: {
+                        int res = py_dict_getitem(frame->locals, py_name2ref(name));
+                        if(res == 1) {
+                            PUSH(&self->last_retval);
+                            DISPATCH();
+                        }
+                        if(res == 0) break;
+                        assert(res == -1);
                         goto __ERROR;
                     }
+                    case tp_nil: break;
+                    default: c11__unreachable();
                 }
+                // globals
+                int res = Frame__getglobal(frame, name);
+                if(res == 1) {
+                    PUSH(&self->last_retval);
+                    DISPATCH();
+                }
+                if(res == -1) goto __ERROR;
                 // builtins
-                tmp = py_getdict(&self->builtins, name);
+                py_Ref tmp = py_getdict(&self->builtins, name);
                 if(tmp != NULL) {
-                    py_assign(TOP(), tmp);
+                    PUSH(tmp);
                     DISPATCH();
                 }
                 NameError(name);
@@ -239,16 +254,18 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_LOAD_NONLOCAL: {
                 py_Name name = byte.arg;
-                py_Ref tmp = Frame__f_closure_try_get(frame, name);
+                py_Ref tmp = Frame__getclosure(frame, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
                 }
-                tmp = py_getdict(frame->module, name);
-                if(tmp != NULL) {
-                    PUSH(tmp);
+                int res = Frame__getglobal(frame, name);
+                if(res == 1) {
+                    PUSH(&self->last_retval);
                     DISPATCH();
                 }
+                if(res == -1) goto __ERROR;
+
                 tmp = py_getdict(&self->builtins, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
@@ -259,12 +276,13 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_LOAD_GLOBAL: {
                 py_Name name = byte.arg;
-                py_Ref tmp = py_getdict(frame->module, name);
-                if(tmp != NULL) {
-                    PUSH(tmp);
+                int res = Frame__getglobal(frame, name);
+                if(res == 1) {
+                    PUSH(&self->last_retval);
                     DISPATCH();
                 }
-                tmp = py_getdict(&self->builtins, name);
+                if(res == -1) goto __ERROR;
+                py_Ref tmp = py_getdict(&self->builtins, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -289,11 +307,12 @@ FrameResult VM__run_top_frame(VM* self) {
                     DISPATCH();
                 }
                 // load global if attribute not found
-                tmp = py_getdict(frame->module, name);
-                if(tmp) {
-                    PUSH(tmp);
+                int res = Frame__getglobal(frame, name);
+                if(res == 1) {
+                    PUSH(&self->last_retval);
                     DISPATCH();
                 }
+                if(res == -1) goto __ERROR;
                 tmp = py_getdict(&self->builtins, name);
                 if(tmp) {
                     PUSH(tmp);
@@ -335,41 +354,41 @@ FrameResult VM__run_top_frame(VM* self) {
                 TypeError("'%t' object is not subscriptable", SECOND()->type);
                 goto __ERROR;
             }
-            case OP_STORE_FAST: frame->locals[byte.arg] = POPX(); DISPATCH();
-            case OP_STORE_NAME: {
-                assert(frame->is_dynamic);
-                py_Name name = byte.arg;
-                py_newstr(SP()++, py_name2str(name));
-                // [value, name]
-                if(!py_isnone(&frame->p0[1])) {
-                    // locals
-                    if(py_setitem(&frame->p0[1], TOP(), SECOND())) {
-                        STACK_SHRINK(2);
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                            NameError(name);
-                        }
-                        goto __ERROR;
-                    }
-                } else {
-                    // globals
-                    if(py_setitem(&frame->p0[0], TOP(), SECOND())) {
-                        STACK_SHRINK(2);
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                            NameError(name);
-                        }
-                        goto __ERROR;
-                    }
-                }
+            case OP_STORE_FAST: {
+                assert(!frame->is_locals_special);
+                frame->locals[byte.arg] = POPX();
                 DISPATCH();
             }
+            case OP_STORE_NAME: {
+                assert(frame->is_locals_special);
+                py_Name name = byte.arg;
+                switch(frame->locals->type) {
+                    case tp_locals: {
+                        Frame* noproxy = frame->locals->_ptr;
+                        py_Ref slot = Frame__getlocal_noproxy(noproxy, name);
+                        if(slot == NULL) {
+                            UnboundLocalError(name);
+                            goto __ERROR;
+                        }
+                        *slot = POPX();
+                        DISPATCH();
+                    }
+                    case tp_dict: {
+                        if(!py_dict_setitem(frame->locals, py_name2ref(name), TOP())) goto __ERROR;
+                        POP();
+                        DISPATCH();
+                    }
+                    case tp_nil: {
+                        // globals
+                        if(!Frame__setglobal(frame, name, TOP())) goto __ERROR;
+                        POP();
+                        DISPATCH();
+                    }
+                    default: c11__unreachable();
+                }
+            }
             case OP_STORE_GLOBAL: {
-                py_setdict(frame->module, byte.arg, TOP());
+                if(!Frame__setglobal(frame, byte.arg, TOP())) goto __ERROR;
                 POP();
                 DISPATCH();
             }
@@ -397,6 +416,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_DELETE_FAST: {
+                assert(!frame->is_locals_special);
                 py_Ref tmp = &frame->locals[byte.arg];
                 if(py_isnil(tmp)) {
                     py_Name name = c11__getitem(py_Name, &frame->co->varnames, byte.arg);
@@ -407,44 +427,42 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_DELETE_NAME: {
-                assert(frame->is_dynamic);
+                assert(frame->is_locals_special);
                 py_Name name = byte.arg;
-                py_newstr(SP()++, py_name2str(name));
-                if(!py_isnone(&frame->p0[1])) {
-                    // locals
-                    if(py_delitem(&frame->p0[1], TOP())) {
-                        POP();
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                            NameError(name);
+                switch(frame->locals->type) {
+                    case tp_locals: {
+                        Frame* noproxy = frame->locals->_ptr;
+                        py_Ref slot = Frame__getlocal_noproxy(noproxy, name);
+                        if(slot == NULL || py_isnil(slot)) {
+                            UnboundLocalError(name);
+                            goto __ERROR;
                         }
+                        py_newnil(slot);
+                        DISPATCH();
+                    }
+                    case tp_dict: {
+                        int res = py_dict_delitem(frame->locals, py_name2ref(name));
+                        if(res == 1) DISPATCH();
+                        if(res == 0) UnboundLocalError(name);
                         goto __ERROR;
                     }
-                } else {
-                    // globals
-                    if(py_delitem(&frame->p0[0], TOP())) {
-                        POP();
-                        DISPATCH();
-                    } else {
-                        if(py_matchexc(tp_KeyError)) {
-                            py_clearexc(NULL);
-                            NameError(name);
-                        }
+                    case tp_nil: {
+                        // globals
+                        int res = Frame__delglobal(frame, name);
+                        if(res == 1) DISPATCH();
+                        if(res == 0) NameError(name);
                         goto __ERROR;
                     }
+                    default: c11__unreachable();
                 }
-                DISPATCH();
             }
             case OP_DELETE_GLOBAL: {
                 py_Name name = byte.arg;
-                bool ok = py_deldict(frame->module, name);
-                if(!ok) {
-                    NameError(name);
-                    goto __ERROR;
-                }
-                DISPATCH();
+                int res = Frame__delglobal(frame, name);
+                if(res == 1) DISPATCH();
+                if(res == -1) goto __ERROR;
+                NameError(name);
+                goto __ERROR;
             }
 
             case OP_DELETE_ATTR: {
@@ -493,11 +511,10 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_BUILD_TUPLE: {
                 py_TValue tmp;
-                py_newtuple(&tmp, byte.arg);
+                py_Ref p = py_newtuple(&tmp, byte.arg);
                 py_TValue* begin = SP() - byte.arg;
-                for(int i = 0; i < byte.arg; i++) {
-                    py_tuple_setitem(&tmp, i, begin + i);
-                }
+                for(int i = 0; i < byte.arg; i++)
+                    p[i] = begin[i];
                 SP() = begin;
                 PUSH(&tmp);
                 DISPATCH();
@@ -860,7 +877,7 @@ FrameResult VM__run_top_frame(VM* self) {
                             ImportError("cannot import name '%n'", name);
                             goto __ERROR;
                         } else {
-                            py_setdict(frame->module, name, value);
+                            if(!Frame__setglobal(frame, name, value)) goto __ERROR;
                         }
                     }
                 } else {
@@ -869,7 +886,7 @@ FrameResult VM__run_top_frame(VM* self) {
                         if(!kv->key) continue;
                         c11_sv name = py_name2sv(kv->key);
                         if(name.size == 0 || name.data[0] == '_') continue;
-                        py_setdict(frame->module, kv->key, &kv->value);
+                        if(!Frame__setglobal(frame, kv->key, &kv->value)) goto __ERROR;
                     }
                 }
                 POP();
@@ -998,8 +1015,7 @@ FrameResult VM__run_top_frame(VM* self) {
             case OP_END_CLASS: {
                 // [cls or decorated]
                 py_Name name = byte.arg;
-                // set into f_globals
-                py_setdict(frame->module, name, TOP());
+                if(!Frame__setglobal(frame, name, TOP())) goto __ERROR;
 
                 if(py_istype(TOP(), tp_type)) {
                     // call on_end_subclass
@@ -1166,7 +1182,7 @@ FrameResult VM__run_top_frame(VM* self) {
         py_BaseException__stpush(&self->curr_exception,
                                  frame->co->src,
                                  Frame__lineno(frame),
-                                 frame->has_function ? frame->co->name->data : NULL);
+                                 !frame->is_locals_special ? frame->co->name->data : NULL);
     __ERROR_RE_RAISE:
         do {
         } while(0);
@@ -1183,6 +1199,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 return RES_ERROR;
             }
             frame = self->top_frame;
+            codes = frame->co->codes.data;
             goto __ERROR;
         }
     }

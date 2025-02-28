@@ -7,7 +7,7 @@ static bool Enum__wrapper_field(py_Name name, py_Ref value, void* ctx) {
     if(name_sv.size == 0 || name_sv.data[0] == '_') return true;
     py_push(ctx);
     py_pushnil();
-    py_newstr(py_pushtmp(), py_name2str(name));
+    py_assign(py_pushtmp(), py_name2ref(name));
     py_push(value);
     bool ok = py_vectorcall(2, 0);
     if(!ok) return false;

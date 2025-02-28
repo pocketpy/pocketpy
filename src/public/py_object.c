@@ -84,7 +84,7 @@ static bool type__base__(int argc, py_Ref argv) {
 static bool type__name__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_TypeInfo* ti = pk__type_info(py_totype(argv));
-    py_newstr(py_retval(), py_name2str(ti->name));
+    py_assign(py_retval(), py_name2ref(ti->name));
     return true;
 }
 

@@ -23,7 +23,6 @@ typedef enum FuncType {
 typedef enum NameScope {
     NAME_LOCAL,
     NAME_GLOBAL,
-    NAME_GLOBAL_UNKNOWN,
 } NameScope;
 
 typedef enum CodeBlockType {
@@ -128,11 +127,12 @@ void FuncDecl__gc_mark(const FuncDecl* self);
 // runtime function
 typedef struct Function {
     FuncDecl_ decl;
-    py_TValue module;      // weak ref
-    PyObject* clazz;       // weak ref
-    NameDict* closure;     // strong ref
-    py_CFunction cfunc;    // wrapped C function
+    py_GlobalRef module;    // maybe NULL, weak ref
+    py_Ref globals;         // maybe NULL, strong ref
+    NameDict* closure;      // maybe NULL, strong ref
+    PyObject* clazz;        // weak ref; for super()
+    py_CFunction cfunc;     // wrapped C function; for decl-based binding
 } Function;
 
-void Function__ctor(Function* self, FuncDecl_ decl, py_TValue* module);
+void Function__ctor(Function* self, FuncDecl_ decl, py_GlobalRef module, py_Ref globals);
 void Function__dtor(Function* self);

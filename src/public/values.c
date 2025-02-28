@@ -104,7 +104,7 @@ py_Name
     decl->docstring = docstring;
     // construct the function
     Function* ud = py_newobject(out, tp_function, slots, sizeof(Function));
-    Function__ctor(ud, decl, NULL);
+    Function__ctor(ud, decl, NULL, NULL);
     ud->cfunc = f;
     CodeObject__dtor(&code);
     PK_DECREF(source);

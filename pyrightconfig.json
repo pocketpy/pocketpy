@@ -3,5 +3,6 @@
     "reportMissingModuleSource": "none",
     "reportArgumentType": "none",
     "reportWildcardImportFromLibrary": "none",
+    "reportRedeclaration": "none",
     "pythonVersion": "3.12"
 }

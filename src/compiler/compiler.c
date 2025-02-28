@@ -102,17 +102,20 @@ void NameExpr__emit_(Expr* self_, Ctx* ctx) {
     NameExpr* self = (NameExpr*)self_;
     int index = c11_smallmap_n2i__get(&ctx->co->varnames_inv, self->name, -1);
     if(self->scope == NAME_LOCAL && index >= 0) {
+        // we know this is a local variable
         Ctx__emit_(ctx, OP_LOAD_FAST, index, self->line);
     } else {
         Opcode op = ctx->level <= 1 ? OP_LOAD_GLOBAL : OP_LOAD_NONLOCAL;
-        if(ctx->is_compiling_class && self->scope == NAME_GLOBAL) {
-            // if we are compiling a class, we should use OP_LOAD_ATTR_GLOBAL instead of
-            // OP_LOAD_GLOBAL this supports @property.setter
-            op = OP_LOAD_CLASS_GLOBAL;
-            // exec()/eval() won't work with OP_LOAD_ATTR_GLOBAL in class body
-        } else {
-            // we cannot determine the scope when calling exec()/eval()
-            if(self->scope == NAME_GLOBAL_UNKNOWN) op = OP_LOAD_NAME;
+        if(self->scope == NAME_GLOBAL) {
+            if(ctx->co->src->is_dynamic) {
+                op = OP_LOAD_NAME;
+            } else {
+                if(ctx->is_compiling_class) {
+                    // if we are compiling a class, we should use `OP_LOAD_CLASS_GLOBAL`
+                    // this is for @property.setter
+                    op = OP_LOAD_CLASS_GLOBAL;
+                }
+            }
         }
         Ctx__emit_(ctx, op, self->name, self->line);
     }
@@ -124,8 +127,11 @@ bool NameExpr__emit_del(Expr* self_, Ctx* ctx) {
         case NAME_LOCAL:
             Ctx__emit_(ctx, OP_DELETE_FAST, Ctx__add_varname(ctx, self->name), self->line);
             break;
-        case NAME_GLOBAL: Ctx__emit_(ctx, OP_DELETE_GLOBAL, self->name, self->line); break;
-        case NAME_GLOBAL_UNKNOWN: Ctx__emit_(ctx, OP_DELETE_NAME, self->name, self->line); break;
+        case NAME_GLOBAL: {
+            Opcode op = ctx->co->src->is_dynamic ? OP_DELETE_NAME : OP_DELETE_GLOBAL;
+            Ctx__emit_(ctx, op, self->name, self->line);
+            break;
+        }
         default: c11__unreachable();
     }
     return true;
@@ -1219,8 +1225,10 @@ static int Ctx__add_const(Ctx* self, py_Ref v) {
 static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line) {
     switch(scope) {
         case NAME_LOCAL: Ctx__emit_(self, OP_STORE_FAST, Ctx__add_varname(self, name), line); break;
-        case NAME_GLOBAL: Ctx__emit_(self, OP_STORE_GLOBAL, name, line); break;
-        case NAME_GLOBAL_UNKNOWN: Ctx__emit_(self, OP_STORE_NAME, name, line); break;
+        case NAME_GLOBAL: {
+            Opcode op = self->co->src->is_dynamic ? OP_STORE_NAME : OP_STORE_GLOBAL;
+            Ctx__emit_(self, op, name, line);
+        } break;
         default: c11__unreachable();
     }
 }
@@ -1331,9 +1339,7 @@ static void Compiler__dtor(Compiler* self) {
     if((err = B)) return err
 
 static NameScope name_scope(Compiler* self) {
-    NameScope s = self->contexts.length > 1 ? NAME_LOCAL : NAME_GLOBAL;
-    if(self->src->is_dynamic && s == NAME_GLOBAL) s = NAME_GLOBAL_UNKNOWN;
-    return s;
+    return self->contexts.length > 1 ? NAME_LOCAL : NAME_GLOBAL;
 }
 
 Error* SyntaxError(Compiler* self, const char* fmt, ...) {
@@ -1720,7 +1726,7 @@ static Error* exprName(Compiler* self) {
     NameScope scope = name_scope(self);
     // promote this name to global scope if needed
     if(c11_smallmap_n2i__contains(&ctx()->global_names, name)) {
-        if(scope == NAME_GLOBAL_UNKNOWN) return SyntaxError(self, "cannot use global keyword here");
+        if(self->src->is_dynamic) return SyntaxError(self, "cannot use global keyword here");
         scope = NAME_GLOBAL;
     }
     NameExpr* e = NameExpr__new(prev()->line, name, scope);
@@ -2185,9 +2191,9 @@ static Error* read_literal(Compiler* self, py_Ref out) {
                 if(curr()->type == TK_RPAREN) break;
             }
             consume(TK_RPAREN);
-            py_newtuple(out, count);
+            py_Ref p = py_newtuple(out, count);
             for(int i = 0; i < count; i++) {
-                py_tuple_setitem(out, i, &cpnts[i]);
+                p[i] = cpnts[i];
             }
             return NULL;
         }

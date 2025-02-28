@@ -477,22 +477,21 @@ static py_Type pkl__fix_type(py_Type type, c11_smallmap_n2i* type_mapping) {
 
 bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_n2i* type_mapping) {
     py_StackRef p0 = py_peek(0);
-    py_StackRef memo = py_pushtmp();
-    py_newtuple(memo, memo_length);
+    py_Ref p_memo = py_newtuple(py_pushtmp(), memo_length);
     while(true) {
         PickleOp op = (PickleOp)*p;
         p++;
         switch(op) {
             case PKL_MEMO_GET: {
                 int index = pkl__read_int(&p);
-                py_Ref val = py_tuple_getitem(memo, index);
+                py_Ref val = &p_memo[index];
                 assert(!py_isnil(val));
                 py_push(val);
                 break;
             }
             case PKL_MEMO_SET: {
                 int index = pkl__read_int(&p);
-                py_tuple_setitem(memo, index, py_peek(-1));
+                p_memo[index] = *py_peek(-1);
                 break;
             }
             case PKL_NIL: {
@@ -589,10 +588,9 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
             case PKL_BUILD_TUPLE: {
                 int length = pkl__read_int(&p);
                 py_OutRef val = py_retval();
-                py_newtuple(val, length);
+                py_Ref p = py_newtuple(val, length);
                 for(int i = length - 1; i >= 0; i--) {
-                    py_StackRef item = py_peek(-1);
-                    py_tuple_setitem(val, i, item);
+                    p[i] = *py_peek(-1);
                     py_pop();
                 }
                 py_push(val);

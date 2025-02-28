@@ -1,10 +1,6 @@
 #pragma once
 
-#include "pocketpy/common/str.h"
-#include "pocketpy/common/strname.h"
-#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/sourcedata.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/pocketpy.h"
 
 typedef struct{
