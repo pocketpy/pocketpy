@@ -63,60 +63,63 @@ py_bind(mod, "add(a, b=1)", py_add);
 ### Bind a struct
 If you have a struct like this:
 ```c
-typedef struct MyStruct{
-    int x;
+typedef struct MyStruct {
+    int p;
     int datasize;
-    int* data;
+    py_TValue* data;
 }MyStruct;
 ```
 
-`x` is some kind of property of the struct, and this struct is used for store `datasize` numbers.
+`p` is some kind of property of the struct, and this struct is used for storing `datasize` numbers.
 
 Here's how you can create a `MyStruct`:
 ```c
 // 1. Define a wrapper function with the signature `py_CFunction`.
 bool MyStruct__new__(int argc, py_Ref argv) {
     // 2. Check the number of arguments.
-    PY_CHECK_ARGC(3);
+    PY_CHECK_ARGC(4);
     // 3. Check the type of arguments.
     PY_CHECK_ARG_TYPE(0, tp_type);
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
-    // 4. Convert the arguments into C types.
+    // 4. Convert the arguments into C types. Create a custom type for `MyStruct`.
     py_Type cls = py_totype(py_arg(0));
-    int x = py_toint(py_arg(1));
+    int p = py_toint(py_arg(1));
     int datasize = py_toint(py_arg(2));
+    py_Ref default_value = py_arg(3);
     // 5. Create a MyStruct instance, where `datasize` gives correspond slots to store numbers.
-    MyStruct* res = py_newobject(py_pushtmp(), cls, datasize, sizeof(MyStruct));
+    py_StackRef res_ref = py_pushtmp();
+    MyStruct* res = py_newobject(res_ref, cls, datasize, sizeof(MyStruct));
     // 6. Set the values.
-    res->x = x;
+    res->p = p;
     res->datasize = datasize;
     // 7. `data` is in the head of slots, init `data` with zeros.
-    res->data = py_getslot(py_peek(-1), 0);
+    res->data = py_getslot(res_ref, 0);
     for (int i = 0; i < datasize; i++) {
-        res->data[i] = 0;
+        res->data[i] = *default_value;
     }
     // 8. Put the created struct into the return value register.
-    py_assign(py_retval(), py_peek(-1));
+    py_assign(py_retval(), res_ref);
     // 9. Pop the struct safely.
     py_pop();
     return true;
 }
 ```
 
-Function for getting the property `x` from `MyStruct`:
+Function for getting the property `p` from `MyStruct`:
 ```c
-bool MyStruct_x(int argc, py_Ref argv) {
+bool MyStruct_p(int argc, py_Ref argv) {
     // 1. Check the number of arguments.
     PY_CHECK_ARGC(1);
     // 2. Convert the arguments into C types.
     MyStruct* self = py_touserdata(argv);
-    // 3. Set the x value.
-    py_newint(py_retval(), self->x);
+    // 3. Set the p value.
+    py_newint(py_retval(), self->p);
     // 4. Return `true`.
     return true;
 }
 ```
+**Be careful**, we assume `p` is a property of `MyStruct`, so later `p` is bound as a **read-only** property.
 
 Function for getting a specified number from `data`:
 ```c
@@ -129,10 +132,10 @@ bool MyStruct_data_get(int argc, py_Ref argv) {
     int index = py_toint(py_arg(1));
     // 3. Exception if the index is out of range.
     if (index >= self->datasize) {
-        IndexError("Not a valid index");
+        return IndexError("%d is not a valid index in an array of length %d.", index, self->datasize);
     }
     // 4. Return the value.
-    py_newint(py_retval(), self->data[index]);
+    py_assign(py_retval(), self->data + index);
     // 5. Return `true`.
     return true;
 }
@@ -144,33 +147,33 @@ bool MyStruct_data_set(int argc, py_Ref argv) {
     // 1. Check the number and type of arguments.
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
     // 2. Convert the arguments into C types.
     MyStruct* self = py_touserdata(argv);
     int index = py_toint(py_arg(1));
-    int value = py_toint(py_arg(2));
+    py_Ref value = py_arg(2);
     // 3. Exception if the index is out of range.
     if (index >= self->datasize) {
-        IndexError("Not a valid index");
+        return IndexError("%d is not a valid index in an array of length %d.", index, self->datasize);
     }
     // 4. Set the value.
-    self->data[index] = value;
+    self->data[index] = *value;
     // 5. All functions should have a return value. None is returned here.
     py_newnone(py_retval());
     // 6. Return `true`.
     return true;
 }
 ```
+The two functions above provide a method of operating numbers that stores in `data` array. In python, `data[index]` uses the magic methods `__getitem__` and `__setitem__`.
 
-Now you can bind the functions to the new module `mmystruct`:
+Now you can bind the functions to the new module `mystruct`:
 ```c
 py_GlobalRef mod = py_newmodule("mystruct");
 // 1. Add a custom type.
 py_Type mystruct = py_newtype("custom_struct", tp_object, mod, NULL);
 // 2. Bind the function of creating MyStruct.
-py_bind(py_tpobject(mystruct), "__new__(cls, x: int, datasize: int)", MyStruct__new__);
-// 3. Bind the property `x`.
-py_bindproperty(mystruct, "x", MyStruct_x, NULL);
+py_bind(py_tpobject(mystruct), "__new__(cls, p: int, datasize: int, default_value: int | None = None)", MyStruct__new__);
+// 3. Bind the property `p`.
+py_bindproperty(mystruct, "p", MyStruct_p, NULL);
 // 4. Bind magic methods of operating numbers in `data`.
 py_bindmagic(mystruct, __getitem__, MyStruct_data_get);
 py_bindmagic(mystruct, __setitem__, MyStruct_data_set);
@@ -179,11 +182,15 @@ py_bindmagic(mystruct, __setitem__, MyStruct_data_set);
 You can use it like this:
 ```python
 import mystruct
-test = mystruct.custom_struct(3,4) # x=3, 4 slots for data
-print(test.x)
-print(test[1]) # 0
-test[1] = 100
+test = mystruct.custom_struct(3,4) # p=3, 4 slots for data
+print(test.p) # 3
+print(test[0]) # __getitem__, None
+test[0] = 1.3 # __setitem__, 1.3
+test[1] = 100 # __setitem__, 100
+print(test[0]) # 1.3
 print(test[1]) # 100
+print(test[4]) # IndexError: 4 is not a valid index in an array of length 4.
+test.p = 100 # TypeError: readonly attribute: `p`
 ```
 
 ### Bind a function with arbitrary argument lists
@@ -220,7 +227,7 @@ py_bind(mod, "sum(*values: tuple[int])", py_sum);
 It can be used like this:
 ```python
 import sumary
-print(sumary.sum(2,3,4,5,6))
+print(sumary.sum(2,3,4,5,6)) # 20
 ```
 
 #### Make a simple print function
@@ -230,32 +237,40 @@ is not necessary. It's so simple that only string argument is acceptable.
 Here's an implementation:
 ```c
 bool py_print(int argc, py_Ref argv) {
-    // 1. *values is always a tuple.
+	// 1. *values is always a tuple.
 	PY_CHECK_ARG_TYPE(0, tp_tuple);
-    // 2. Get the length of tuple.
+	// 2. Convert the argument into C type.
+	py_Ref tuple = py_arg(0);
+	// 3. Get the length of the tuple.
 	int len = py_tuple_len(py_arg(0));
 	const char* end = "\n";
 	const char* sep = " ";
-    // 3. First arg is sep, but it could be None. 
+	// 4. First arg is sep, but it could be None. 
 	if (!py_isnone(py_arg(1))) {
 		PY_CHECK_ARG_TYPE(1, tp_str);
 		sep = py_tostr(py_arg(1));
 	}
-    // 4. Second arg is end, it also can be None.
+	// 5. Second arg is end, it also can be None.
 	if (!py_isnone(py_arg(2))) {
 		PY_CHECK_ARG_TYPE(2, tp_str);
 		end = py_tostr(py_arg(2));
 	}
-    // 5. Print.
+	// 6. Print.
 	for (int i = 0; i < len; i++) {
 		if (i > 0) {
 			printf("%s", sep);
 		}
-        // 6. It can print iterable like `list` if you modify this line.
-		printf("%s", py_tostr(py_tuple_getitem(py_arg(0), i)));
+		// 7. It can print iterable like `list` if you modify this line.
+		py_Ref to_print = py_tuple_getitem(py_arg(0), i);
+		if (py_istype(to_print, tp_int)) {
+			printf("%lld", py_toint(to_print));
+		}
+		else if (py_istype(to_print, tp_str)) {
+			printf("%s", py_tostr(to_print));
+		}
 	}
 	printf("%s", end);
-    // 7. All the functions should return a value, here None is returned.
+	// 8. All the functions should return a value, here None is returned.
 	py_newnone(py_retval());
 	return true;
 }
@@ -264,13 +279,13 @@ bool py_print(int argc, py_Ref argv) {
 And then bind:
 ```c
 py_GlobalRef mod = py_newmodule("myprint");
-py_bind(mod, "my_print(*values: object, sep: str | None = None, end: str | None = None)", py_print);
+py_bind(mod, "my_print(*values, sep: str | None = None, end: str | None = None)", py_print);
 ```
 
 It can print names like this:
 ```python
 import myprint
-myprint.my_print('Bob','Mary', end = 'Cake', sep = '|')
+myprint.my_print(123456,'Mary', end = 'Cake', sep = '|') # 123456|MaryCake
 ```
 
 
@@ -281,3 +296,4 @@ See also:
 + [`py_bindproperty`](/c-api/functions/#py_bindproperty)
 + [`py_newmodule`](/c-api/functions/#py_newmodule)
 + [`py_newtype`](/c-api/functions/#py_newtype)
++ [Application in TIC-80](https://github.com/nesbox/TIC-80/blob/main/src/api/python.c)
