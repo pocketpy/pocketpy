@@ -511,13 +511,12 @@ void py_newlocals(py_Ref out) {
         py_newglobals(out);
         return;
     }
-    if(frame->is_locals_proxy) {
-        if(frame->locals->type == tp_locals) {
-            frame = frame->locals->_ptr;
-        } else {
-            assert(frame->locals->type == tp_dict);
-            *out = *frame->locals;
-            return;
+    if(frame->is_locals_special) {
+        switch(frame->locals->type) {
+            case tp_locals: frame = frame->locals->_ptr; break;
+            case tp_dict: *out = *frame->locals; return;
+            case tp_nil: py_newglobals(out); return;
+            default: c11__unreachable();
         }
     }
     FastLocals__to_dict(frame->locals, frame->co);
@@ -530,20 +529,16 @@ static void pk_push_locals_proxy() {
         py_pushnil();
         return;
     }
-    if(frame->is_locals_proxy) {
+    if(frame->is_locals_special) {
         py_push(frame->locals);
     } else {
-        if(py_isnil(frame->locals)) {
-            py_pushnil();
-        } else {
-            py_StackRef out = py_pushtmp();
-            out->type = tp_locals;
-            out->is_ptr = false;
-            out->extra = 0;
-            // this is a weak reference
-            // which will expire when the frame is destroyed
-            out->_ptr = frame;
-        }
+        py_StackRef out = py_pushtmp();
+        out->type = tp_locals;
+        out->is_ptr = false;
+        out->extra = 0;
+        // this is a weak reference
+        // which will expire when the frame is destroyed
+        out->_ptr = frame;
     }
 }
 
@@ -827,16 +822,14 @@ static bool super__new__(int argc, py_Ref argv) {
     py_Ref self_arg = NULL;
     if(argc == 1) {
         // super()
-        if(frame->is_p0_function && !frame->is_locals_proxy) {
+        if(!frame->is_locals_special) {
             py_TValue* callable = frame->p0;
             if(callable->type == tp_boundmethod) callable = py_getslot(frame->p0, 1);
             if(callable->type == tp_function) {
                 Function* func = py_touserdata(callable);
                 if(func->clazz != NULL) {
                     class_arg = *(py_Type*)PyObject__userdata(func->clazz);
-                    if(frame->co->nlocals > 0) {
-                        if(!frame->is_locals_proxy) self_arg = &frame->locals[0];
-                    }
+                    if(frame->co->nlocals > 0) { self_arg = &frame->locals[0]; }
                 }
             }
         }

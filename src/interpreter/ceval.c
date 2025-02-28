@@ -181,8 +181,8 @@ FrameResult VM__run_top_frame(VM* self) {
                 Function* ud = py_newobject(SP(), tp_function, 0, sizeof(Function));
                 Function__ctor(ud, decl, frame->module, frame->globals);
                 if(decl->nested) {
-                    if(frame->is_locals_proxy) {
-                        RuntimeError("cannot create closure from locals proxy");
+                    if(frame->is_locals_special) {
+                        RuntimeError("cannot create closure from special locals");
                         goto __ERROR;
                     }
                     ud->closure = FastLocals__to_namedict(frame->locals, frame->co);
@@ -198,7 +198,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
                 /*****************************************/
             case OP_LOAD_FAST: {
-                assert(!frame->is_locals_proxy);
+                assert(!frame->is_locals_special);
                 PUSH(&frame->locals[byte.arg]);
                 if(py_isnil(TOP())) {
                     py_Name name = c11__getitem(uint16_t, &frame->co->varnames, byte.arg);
@@ -341,7 +341,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_STORE_FAST: {
-                assert(!frame->is_locals_proxy);
+                assert(!frame->is_locals_special);
                 frame->locals[byte.arg] = POPX();
                 DISPATCH();
             }
@@ -392,7 +392,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_DELETE_FAST: {
-                assert(!frame->is_locals_proxy);
+                assert(!frame->is_locals_special);
                 py_Ref tmp = &frame->locals[byte.arg];
                 if(py_isnil(tmp)) {
                     py_Name name = c11__getitem(py_Name, &frame->co->varnames, byte.arg);
@@ -1146,7 +1146,7 @@ FrameResult VM__run_top_frame(VM* self) {
         py_BaseException__stpush(&self->curr_exception,
                                  frame->co->src,
                                  Frame__lineno(frame),
-                                 frame->is_p0_function ? frame->co->name->data : NULL);
+                                 !frame->is_locals_special ? frame->co->name->data : NULL);
     __ERROR_RE_RAISE:
         do {
         } while(0);

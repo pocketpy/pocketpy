@@ -52,11 +52,12 @@ Frame* Frame__new(const CodeObject* co,
                   py_GlobalRef module,
                   py_Ref globals,
                   py_Ref locals,
-                  bool is_p0_function,
-                  bool is_locals_proxy) {
+                  bool is_locals_special) {
     assert(module->type == tp_module);
     assert(globals->type == tp_module || globals->type == tp_dict);
-    assert(locals->type == tp_locals || locals->type == tp_dict || locals->type == tp_nil);
+    if(is_locals_special) {
+        assert(locals->type == tp_nil || locals->type == tp_locals || locals->type == tp_dict);
+    }
     Frame* self = FixedMemoryPool__alloc(&pk_current_vm->pool_frame);
     self->f_back = NULL;
     self->co = co;
@@ -64,8 +65,7 @@ Frame* Frame__new(const CodeObject* co,
     self->module = module;
     self->globals = globals;
     self->locals = locals;
-    self->is_p0_function = is_p0_function;
-    self->is_locals_proxy = is_locals_proxy;
+    self->is_locals_special = is_locals_special;
     self->ip = -1;
     self->uw_list = NULL;
     return self;
@@ -81,8 +81,7 @@ void Frame__delete(Frame* self) {
 }
 
 py_StackRef Frame__locals_sp(Frame* self) {
-    if(!self->is_locals_proxy) { return self->locals; }
-    return self->p0;
+    return !self->is_locals_special ? self->locals : self->p0;
 }
 
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {
@@ -120,7 +119,7 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
 
 void Frame__gc_mark(Frame* self) {
     pk__mark_value(self->globals);
-    if(self->is_locals_proxy) pk__mark_value(self->locals);
+    if(self->is_locals_special) pk__mark_value(self->locals);
     CodeObject__gc_mark(self->co);
 }
 
@@ -166,12 +165,12 @@ int Frame__delglobal(Frame* self, py_Name name) {
 }
 
 int Frame__getlocal(Frame* self, py_Name name) {
-    if(self->is_locals_proxy) {
-        if(self->locals->type == tp_locals) {
-            self = self->locals->_ptr;
-        } else {
-            assert(self->locals->type == tp_dict);
-            return py_dict_getitem(self->locals, py_name2ref(name));
+    if(self->is_locals_special) {
+        switch(self->locals->type) {
+            case tp_locals: self = self->locals->_ptr; break;
+            case tp_dict: return py_dict_getitem(self->locals, py_name2ref(name));
+            case tp_nil: return 0;
+            default: c11__unreachable();
         }
     }
     py_Ref slot = Frame__getlocal_noproxy(self, name);
@@ -185,12 +184,12 @@ int Frame__getlocal(Frame* self, py_Name name) {
 }
 
 bool Frame__setlocal(Frame* self, py_Name name, py_TValue* val) {
-    if(self->is_locals_proxy) {
-        if(self->locals->type == tp_locals) {
-            self = self->locals->_ptr;
-        } else {
-            assert(self->locals->type == tp_dict);
-            return py_dict_setitem(self->locals, py_name2ref(name), val);
+    if(self->is_locals_special) {
+        switch(self->locals->type) {
+            case tp_locals: self = self->locals->_ptr; break;
+            case tp_dict: return py_dict_setitem(self->locals, py_name2ref(name), val);
+            case tp_nil: return false;
+            default: c11__unreachable();
         }
     }
     py_Ref slot = Frame__getlocal_noproxy(self, name);
@@ -200,12 +199,12 @@ bool Frame__setlocal(Frame* self, py_Name name, py_TValue* val) {
 }
 
 int Frame__dellocal(Frame* self, py_Name name) {
-    if(self->is_locals_proxy) {
-        if(self->locals->type == tp_locals) {
-            self = self->locals->_ptr;
-        } else {
-            assert(self->locals->type == tp_dict);
-            return py_dict_delitem(self->locals, py_name2ref(name));
+    if(self->is_locals_special) {
+        switch(self->locals->type) {
+            case tp_locals: self = self->locals->_ptr; break;
+            case tp_dict: return py_dict_delitem(self->locals, py_name2ref(name));
+            case tp_nil: return 0;
+            default: c11__unreachable();
         }
     }
     py_Ref slot = Frame__getlocal_noproxy(self, name);
@@ -219,14 +218,15 @@ int Frame__dellocal(Frame* self, py_Name name) {
 }
 
 py_StackRef Frame__getlocal_noproxy(Frame* self, py_Name name) {
-    assert(!self->is_locals_proxy);
+    assert(!self->is_locals_special);
     int index = c11_smallmap_n2i__get(&self->co->varnames_inv, name, -1);
     if(index == -1) return NULL;
     return &self->locals[index];
 }
 
 py_Ref Frame__getclosure(Frame* self, py_Name name) {
-    if(!self->is_p0_function) return NULL;
+    if(self->is_locals_special) return NULL;
+    assert(self->p0->type == tp_function);
     Function* ud = py_touserdata(self->p0);
     if(ud->closure == NULL) return NULL;
     return NameDict__try_get(ud->closure, name);

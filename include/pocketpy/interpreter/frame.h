@@ -34,9 +34,8 @@ typedef struct Frame {
     py_StackRef p0;  // unwinding base
     py_GlobalRef module;
     py_Ref globals;  // a module object or a dict object
-    py_Ref locals;   // locals base or a proxy object (such as dict)
-    bool is_p0_function;
-    bool is_locals_proxy;
+    py_Ref locals;
+    bool is_locals_special;
     int ip;
     UnwindTarget* uw_list;
 } Frame;
@@ -46,8 +45,7 @@ Frame* Frame__new(const CodeObject* co,
                   py_GlobalRef module,
                   py_Ref globals,
                   py_Ref locals,
-                  bool is_p0_function,
-                  bool is_locals_proxy);
+                  bool is_locals_special);
 void Frame__delete(Frame* self);
 
 int Frame__lineno(const Frame* self);
