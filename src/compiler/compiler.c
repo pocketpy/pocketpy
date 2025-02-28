@@ -2317,6 +2317,7 @@ static Error* compile_function(Compiler* self, int decorators) {
 
 static Error* compile_class(Compiler* self, int decorators) {
     Error* err;
+    if(ctx()->level > 1) return SyntaxError(self, "class definition not allowed here");
     consume(TK_ID);
     py_Name name = py_namev(Token__sv(prev()));
     bool has_base = false;
