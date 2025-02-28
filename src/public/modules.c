@@ -523,7 +523,7 @@ void py_newlocals(py_Ref out) {
     py_assign(out, py_retval());
 }
 
-static void pk_push_locals_proxy() {
+static void pk_push_special_locals() {
     Frame* frame = pk_current_vm->top_frame;
     if(!frame) {
         py_pushnil();
@@ -546,7 +546,7 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
     switch(argc) {
         case 1: {
             py_newglobals(py_pushtmp());
-            pk_push_locals_proxy();
+            pk_push_special_locals();
             break;
         }
         case 2: {
@@ -558,7 +558,7 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
                 py_push(py_arg(1));
             }
             // locals
-            pk_push_locals_proxy();
+            pk_push_special_locals();
             break;
         }
         case 3: {
@@ -571,7 +571,7 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
             }
             // locals
             if(py_isnone(py_arg(2))) {
-                pk_push_locals_proxy();
+                pk_push_special_locals();
             } else {
                 if(!py_checktype(py_arg(2), tp_dict)) return false;
                 py_push(py_arg(2));
@@ -581,22 +581,19 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
         default: return TypeError("%s() takes at most 3 arguments", title);
     }
 
-    py_Ref tmp_code;
     if(py_isstr(argv)) {
         bool ok = py_compile(py_tostr(argv), "<string>", mode, true);
         if(!ok) return false;
-        tmp_code = py_retval();
+        py_push(py_retval());
     } else if(py_istype(argv, tp_code)) {
-        tmp_code = argv;
+        py_push(argv);
     } else {
         return TypeError("%s() expected 'str' or 'code', got '%t'", title, argv->type);
     }
 
-    py_push(tmp_code);  // keep it alive
     Frame* frame = pk_current_vm->top_frame;
-
     // [globals, locals, code]
-    CodeObject* code = py_touserdata(tmp_code);
+    CodeObject* code = py_touserdata(py_peek(-1));
     if(code->src->is_dynamic) {
         bool ok = pk_execdyn(code, frame ? frame->module : NULL, py_peek(-3), py_peek(-2));
         py_shrink(3);

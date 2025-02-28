@@ -160,59 +160,6 @@ int Frame__delglobal(Frame* self, py_Name name) {
     }
 }
 
-int Frame__getlocal(Frame* self, py_Name name) {
-    if(self->is_locals_special) {
-        switch(self->locals->type) {
-            case tp_locals: self = self->locals->_ptr; break;
-            case tp_dict: return py_dict_getitem(self->locals, py_name2ref(name));
-            case tp_nil: return 0;
-            default: c11__unreachable();
-        }
-    }
-    py_Ref slot = Frame__getlocal_noproxy(self, name);
-    if(slot == NULL) return 0;  // bad slot
-    if(py_isnil(slot)) {
-        UnboundLocalError(name);
-        return -1;
-    }
-    py_assign(py_retval(), slot);
-    return 1;
-}
-
-bool Frame__setlocal(Frame* self, py_Name name, py_TValue* val) {
-    if(self->is_locals_special) {
-        switch(self->locals->type) {
-            case tp_locals: self = self->locals->_ptr; break;
-            case tp_dict: return py_dict_setitem(self->locals, py_name2ref(name), val);
-            case tp_nil: return false;
-            default: c11__unreachable();
-        }
-    }
-    py_Ref slot = Frame__getlocal_noproxy(self, name);
-    if(slot == NULL) return false;  // bad slot
-    *slot = *val;
-    return true;
-}
-
-int Frame__dellocal(Frame* self, py_Name name) {
-    if(self->is_locals_special) {
-        switch(self->locals->type) {
-            case tp_locals: self = self->locals->_ptr; break;
-            case tp_dict: return py_dict_delitem(self->locals, py_name2ref(name));
-            case tp_nil: return 0;
-            default: c11__unreachable();
-        }
-    }
-    py_Ref slot = Frame__getlocal_noproxy(self, name);
-    if(slot == NULL) return 0;  // bad slot
-    if(py_isnil(slot)) {
-        UnboundLocalError(name);
-        return -1;
-    }
-    py_newnil(slot);
-    return 1;
-}
-
 py_StackRef Frame__getlocal_noproxy(Frame* self, py_Name name) {
     assert(!self->is_locals_special);
     int index = c11_smallmap_n2i__get(&self->co->varnames_inv, name, -1);

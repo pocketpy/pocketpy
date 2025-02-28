@@ -208,29 +208,43 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_LOAD_NAME: {
+                assert(frame->is_locals_special);
                 py_Name name = byte.arg;
                 // locals
-                int res = Frame__getlocal(frame, name);
-                if(res == 1) {
-                    PUSH(&self->last_retval);
-                    DISPATCH();
-                }
-                if(res == -1) goto __ERROR;
-                // closure
-                py_Ref tmp = Frame__getclosure(frame, name);
-                if(tmp != NULL) {
-                    PUSH(tmp);
-                    DISPATCH();
+                switch(frame->locals->type) {
+                    case tp_locals: {
+                        Frame* noproxy = frame->locals->_ptr;
+                        py_Ref slot = Frame__getlocal_noproxy(noproxy, name);
+                        if(slot == NULL) break;
+                        if(py_isnil(slot)) {
+                            UnboundLocalError(name);
+                            goto __ERROR;
+                        }
+                        PUSH(slot);
+                        DISPATCH();
+                    }
+                    case tp_dict: {
+                        int res = py_dict_getitem(frame->locals, py_name2ref(name));
+                        if(res == 1) {
+                            PUSH(&self->last_retval);
+                            DISPATCH();
+                        }
+                        if(res == 0) break;
+                        assert(res == -1);
+                        goto __ERROR;
+                    }
+                    case tp_nil: break;
+                    default: c11__unreachable();
                 }
                 // globals
-                res = Frame__getglobal(frame, name);
+                int res = Frame__getglobal(frame, name);
                 if(res == 1) {
                     PUSH(&self->last_retval);
                     DISPATCH();
                 }
                 if(res == -1) goto __ERROR;
                 // builtins
-                tmp = py_getdict(&self->builtins, name);
+                py_Ref tmp = py_getdict(&self->builtins, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -346,21 +360,31 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_STORE_NAME: {
+                assert(frame->is_locals_special);
                 py_Name name = byte.arg;
-                if(frame->locals != NULL) {
-                    // locals
-                    int res = Frame__setlocal(frame, name, TOP());
-                    if(res == 1) {
+                switch(frame->locals->type) {
+                    case tp_locals: {
+                        Frame* noproxy = frame->locals->_ptr;
+                        py_Ref slot = Frame__getlocal_noproxy(noproxy, name);
+                        if(slot == NULL) {
+                            UnboundLocalError(name);
+                            goto __ERROR;
+                        }
+                        *slot = POPX();
+                        DISPATCH();
+                    }
+                    case tp_dict: {
+                        if(!py_dict_setitem(frame->locals, py_name2ref(name), TOP())) goto __ERROR;
                         POP();
                         DISPATCH();
                     }
-                    if(res == 0) NameError(name);
-                    goto __ERROR;
-                } else {
-                    // globals
-                    if(!Frame__setglobal(frame, name, TOP())) { goto __ERROR; }
-                    POP();
-                    DISPATCH();
+                    case tp_nil: {
+                        // globals
+                        if(!Frame__setglobal(frame, name, TOP())) goto __ERROR;
+                        POP();
+                        DISPATCH();
+                    }
+                    default: c11__unreachable();
                 }
             }
             case OP_STORE_GLOBAL: {
@@ -403,20 +427,33 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_DELETE_NAME: {
+                assert(frame->is_locals_special);
                 py_Name name = byte.arg;
-                if(frame->locals != NULL) {
-                    // locals
-                    int res = Frame__dellocal(frame, name);
-                    if(res == 1) DISPATCH();
-                    if(res == 0) NameError(name);
-                    goto __ERROR;
-                } else {
-                    // globals
-                    int res = Frame__delglobal(frame, name);
-                    if(res == 1) DISPATCH();
-                    if(res == 0) NameError(name);
-                    goto __ERROR;
-                    DISPATCH();
+                switch(frame->locals->type) {
+                    case tp_locals: {
+                        Frame* noproxy = frame->locals->_ptr;
+                        py_Ref slot = Frame__getlocal_noproxy(noproxy, name);
+                        if(slot == NULL || py_isnil(slot)) {
+                            UnboundLocalError(name);
+                            goto __ERROR;
+                        }
+                        py_newnil(slot);
+                        DISPATCH();
+                    }
+                    case tp_dict: {
+                        int res = py_dict_delitem(frame->locals, py_name2ref(name));
+                        if(res == 1) DISPATCH();
+                        if(res == 0) UnboundLocalError(name);
+                        goto __ERROR;
+                    }
+                    case tp_nil: {
+                        // globals
+                        int res = Frame__delglobal(frame, name);
+                        if(res == 1) DISPATCH();
+                        if(res == 0) NameError(name);
+                        goto __ERROR;
+                    }
+                    default: c11__unreachable();
                 }
             }
             case OP_DELETE_GLOBAL: {

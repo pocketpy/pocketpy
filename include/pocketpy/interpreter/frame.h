@@ -55,10 +55,6 @@ int Frame__getglobal(Frame* self, py_Name name) PY_RAISE PY_RETURN;
 bool Frame__setglobal(Frame* self, py_Name name, py_TValue* val) PY_RAISE;
 int Frame__delglobal(Frame* self, py_Name name) PY_RAISE;
 
-int Frame__getlocal(Frame* self, py_Name name) PY_RAISE PY_RETURN;
-bool Frame__setlocal(Frame* self, py_Name name, py_TValue* val) PY_RAISE;
-int Frame__dellocal(Frame* self, py_Name name) PY_RAISE;
-
 py_Ref Frame__getclosure(Frame* self, py_Name name);
 py_StackRef Frame__getlocal_noproxy(Frame* self, py_Name name);
 
