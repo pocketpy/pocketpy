@@ -70,7 +70,7 @@ typedef struct MyStruct {
 }MyStruct;
 ```
 
-`p` is some kind of property of the struct, and this struct is used for storing `datasize` numbers.
+`p` is some kind of property of the struct, and this struct is used for storing `datasize` python objects.
 
 Here's how you can create a `MyStruct`:
 ```c
@@ -87,20 +87,21 @@ bool MyStruct__new__(int argc, py_Ref argv) {
     int p = py_toint(py_arg(1));
     int datasize = py_toint(py_arg(2));
     py_Ref default_value = py_arg(3);
-    // 5. Create a MyStruct instance, where `datasize` gives correspond slots to store numbers.
+    // 5. Prepare a temporary reference for `MyStruct`.
     py_StackRef res_ref = py_pushtmp();
+    // 6. Create a MyStruct instance, where `datasize` gives correspond slots to store numbers.
     MyStruct* res = py_newobject(res_ref, cls, datasize, sizeof(MyStruct));
-    // 6. Set the values.
+    // 7. Set the values.
     res->p = p;
     res->datasize = datasize;
-    // 7. `data` is in the head of slots, init `data` with zeros.
+    // 8. `data` is in the head of slots, init `data` with zeros.
     res->data = py_getslot(res_ref, 0);
     for (int i = 0; i < datasize; i++) {
         res->data[i] = *default_value;
     }
-    // 8. Put the created struct into the return value register.
+    // 9. Put the created struct into the return value register.
     py_assign(py_retval(), res_ref);
-    // 9. Pop the struct safely.
+    // 10. Pop the struct safely.
     py_pop();
     return true;
 }
@@ -187,15 +188,16 @@ print(test.p) # 3
 print(test[0]) # __getitem__, None
 test[0] = 1.3 # __setitem__, 1.3
 test[1] = 100 # __setitem__, 100
+test[2] = 'hello world' # __setitem__, hello world
 print(test[0]) # 1.3
 print(test[1]) # 100
+print(test[2]) # hello world
 print(test[4]) # IndexError: 4 is not a valid index in an array of length 4.
 test.p = 100 # TypeError: readonly attribute: `p`
 ```
 
 ### Bind a function with arbitrary argument lists
-Sometimes you want a function that takes arbitrary input arguments. For example, sum several numbers in the table, 
-or make a simple `print` function.
+Sometimes you want a function that takes arbitrary input arguments. For example, sum several numbers in the table, or make a simple `print` function.
 
 #### Sum several numbers
 Say you have 2,3,4,5,6 and put them into the `sum` function. Here's an implementation:
