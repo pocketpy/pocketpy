@@ -176,6 +176,7 @@ void VM__ctor(VM* self) {
     INJECT_BUILTIN_EXC(ImportError, tp_Exception);
     INJECT_BUILTIN_EXC(AssertionError, tp_Exception);
     INJECT_BUILTIN_EXC(KeyError, tp_Exception);
+    INJECT_BUILTIN_EXC(Timeout, tp_Exception);
 
 #undef INJECT_BUILTIN_EXC
 #undef validate

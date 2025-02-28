@@ -26,6 +26,9 @@ typedef struct VM {
     py_TValue builtins;  // builtins module
     py_TValue main;      // __main__ module
 
+    py_i64 max_steps;
+    py_i64 used_steps;
+
     py_Callbacks callbacks;
 
     py_TValue ascii_literals[128+1];

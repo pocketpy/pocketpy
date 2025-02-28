@@ -109,6 +109,15 @@ FrameResult VM__run_top_frame(VM* self) {
             goto __ERROR;
         }
 
+        if (self->max_steps > 0) {
+          if (self->used_steps >= self->max_steps) {
+            py_exception(tp_Timeout, "execution timed out");
+            goto __ERROR;
+          }
+          self->used_steps++;
+        }
+
+
         switch((Opcode)byte.op) {
             case OP_NO_OP: DISPATCH();
             /*****************************************/

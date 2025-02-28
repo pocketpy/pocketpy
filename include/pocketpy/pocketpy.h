@@ -735,6 +735,7 @@ enum py_PredefinedTypes {
     tp_ImportError,
     tp_AssertionError,
     tp_KeyError,
+    tp_Timeout,
     /* linalg */
     tp_vec2,
     tp_vec3,

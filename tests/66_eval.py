@@ -74,3 +74,11 @@ exec(code, {'x': 42, 'res': res})
 assert res == [42, 42]
 assert x == 33
 
+code = '''
+while True:
+  pass
+'''
+try:
+  exec_jailed(100000, code)
+except Timeout:
+  pass

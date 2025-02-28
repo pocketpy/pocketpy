@@ -612,6 +612,20 @@ static bool builtins_exec(int argc, py_Ref argv) {
     return ok;
 }
 
+static bool builtins_exec_jailed(int argc, py_Ref argv) {
+    VM* vm = pk_current_vm;
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    int was_jailed = (vm->max_steps > 0);
+    if (!was_jailed) {
+      vm->max_steps = py_toint(py_arg(0));
+      vm->used_steps = 0;
+    }
+    bool ok = _builtins_execdyn("exec", argc - 1, argv + 1, EXEC_MODE);
+    if (!was_jailed) vm->max_steps = 0;
+    py_newnone(py_retval());
+    return ok;
+}
+
 static bool builtins_eval(int argc, py_Ref argv) {
     return _builtins_execdyn("eval", argc, argv, EVAL_MODE);
 }
@@ -755,6 +769,7 @@ py_TValue pk_builtins__register() {
     py_bindfunc(builtins, "globals", builtins_globals);
     py_bindfunc(builtins, "locals", builtins_locals);
     py_bindfunc(builtins, "exec", builtins_exec);
+    py_bindfunc(builtins, "exec_jailed", builtins_exec_jailed);
     py_bindfunc(builtins, "eval", builtins_eval);
     py_bindfunc(builtins, "compile", builtins_compile);
 
