@@ -57,6 +57,7 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
 
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
+    InternedNames__ctor(&self->names);
 
     ModuleDict__ctor(&self->modules, NULL, *py_NIL());
     TypeList__ctor(&self->types);
@@ -126,7 +127,7 @@ void VM__ctor(VM* self) {
     validate(tp_Exception, pk_Exception__register());
     validate(tp_bytes, pk_bytes__register());
     validate(tp_namedict, pk_namedict__register());
-    validate(tp_locals, pk_locals__register());
+    validate(tp_locals, pk_newtype("locals", tp_object, NULL, NULL, false, true));
     validate(tp_code, pk_code__register());
 
     validate(tp_dict, pk_dict__register());
@@ -257,7 +258,8 @@ void VM__dtor(VM* self) {
     ModuleDict__dtor(&self->modules);
     TypeList__dtor(&self->types);
     FixedMemoryPool__dtor(&self->pool_frame);
-    ValueStack__clear(&self->stack);
+    ValueStack__dtor(&self->stack);
+    InternedNames__dtor(&self->names);
 }
 
 void VM__push_frame(VM* self, Frame* frame) {
@@ -281,7 +283,11 @@ static void _clip_int(int* value, int min, int max) {
     if(*value > max) *value = max;
 }
 
-bool pk__parse_int_slice(py_Ref slice, int length, int* restrict start, int* restrict stop, int* restrict step) {
+bool pk__parse_int_slice(py_Ref slice,
+                         int length,
+                         int* restrict start,
+                         int* restrict stop,
+                         int* restrict step) {
     if(py_isint(slice)) {
         int index = py_toint(slice);
         bool ok = pk__normalize_index(&index, length);
@@ -399,9 +405,9 @@ static bool
     if(decl->starred_arg != -1) {
         int exceed_argc = p1 - t;
         py_Ref vargs = &buffer[decl->starred_arg];
-        py_newtuple(vargs, exceed_argc);
+        py_Ref data = py_newtuple(vargs, exceed_argc);
         for(int j = 0; j < exceed_argc; j++) {
-            py_tuple_setitem(vargs, j, t++);
+            data[j] = *t++;
         }
     } else {
         // kwdefaults override
@@ -431,9 +437,8 @@ static bool
                                  co->name->data);
             } else {
                 // add to **kwargs
-                bool ok = py_dict_setitem_by_str(&buffer[decl->starred_kwarg],
-                                                 py_name2str(key),
-                                                 &p1[2 * j + 1]);
+                bool ok =
+                    py_dict_setitem(&buffer[decl->starred_kwarg], py_name2ref(key), &p1[2 * j + 1]);
                 if(!ok) return false;
             }
         }
@@ -480,7 +485,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // submit the call
                 if(!fn->cfunc) {
                     // python function
-                    VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true));
+                    VM__push_frame(self, Frame__new(co, p0, fn->module, fn->globals, argv, false));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
@@ -509,7 +514,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // submit the call
                 if(!fn->cfunc) {
                     // python function
-                    VM__push_frame(self, Frame__new(co, &fn->module, p0, argv, true));
+                    VM__push_frame(self, Frame__new(co, p0, fn->module, fn->globals, argv, false));
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
@@ -525,7 +530,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // copy buffer back to stack
                 self->stack.sp = argv + co->nlocals;
                 memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
-                Frame* frame = Frame__new(co, &fn->module, p0, argv, true);
+                Frame* frame = Frame__new(co, p0, fn->module, fn->globals, argv, false);
                 pk_newgenerator(py_retval(), frame, p0, self->stack.sp);
                 self->stack.sp = p0;  // reset the stack
                 return RES_RETURN;
@@ -692,6 +697,11 @@ void ManagedHeap__mark(ManagedHeap* self) {
     pk__mark_value(&vm->curr_exception);
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
         pk__mark_value(&vm->reg[i]);
+    }
+    // mark interned names
+    for(int i = 0; i < vm->names.r_interned.length; i++) {
+        RInternedEntry* entry = c11__at(RInternedEntry, &vm->names.r_interned, i);
+        pk__mark_value(&entry->obj);
     }
 }
 

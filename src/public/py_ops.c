@@ -153,7 +153,7 @@ bool py_getattr(py_Ref self, py_Name name) {
     if(fallback) {
         py_push(fallback);
         py_push(self);
-        py_newstr(py_pushtmp(), py_name2str(name));
+        py_assign(py_pushtmp(), py_name2ref(name));
         return py_vectorcall(1, 0);
     }
 

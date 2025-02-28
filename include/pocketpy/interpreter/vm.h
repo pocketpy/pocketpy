@@ -7,6 +7,7 @@
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/modules.h"
 #include "pocketpy/interpreter/typeinfo.h"
+#include "pocketpy/interpreter/name.h"
 
 // TODO:
 // 1. __eq__ and __ne__ fallbacks
@@ -41,6 +42,7 @@ typedef struct VM {
     py_StackRef __curr_function;
     py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
+    InternedNames names;
     FixedMemoryPool pool_frame;
     ManagedHeap heap;
     ValueStack stack;  // put `stack` at the end for better cache locality
@@ -94,6 +96,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name);
 bool pk_callmagic(py_Name name, int argc, py_Ref argv);
 
 bool pk_exec(CodeObject* co, py_Ref module);
+bool pk_execdyn(CodeObject* co, py_Ref module, py_Ref globals, py_Ref locals);
 
 /// Assumes [a, b] are on the stack, performs a binary op.
 /// The result is stored in `self->last_retval`.
@@ -128,11 +131,9 @@ py_Type pk_staticmethod__register();
 py_Type pk_classmethod__register();
 py_Type pk_generator__register();
 py_Type pk_namedict__register();
-py_Type pk_locals__register();
 py_Type pk_code__register();
 
 py_TValue pk_builtins__register();
 
 /* mappingproxy */
 void pk_mappingproxy__namedict(py_Ref out, py_Ref object);
-void pk_mappingproxy__locals(py_Ref out, Frame* frame);

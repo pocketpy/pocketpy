@@ -4,10 +4,9 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/namedict.h"
 #include "pocketpy/objects/object.h"
-#include "pocketpy/common/strname.h"
 #include "pocketpy/pocketpy.h"
 
-py_TValue* FastLocals__try_get_by_name(py_TValue* locals, const CodeObject* co, py_Name name);
+void FastLocals__to_dict(py_TValue* locals, const CodeObject* co) PY_RETURN;
 NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co);
 
 typedef struct ValueStack {
@@ -18,7 +17,7 @@ typedef struct ValueStack {
 } ValueStack;
 
 void ValueStack__ctor(ValueStack* self);
-void ValueStack__clear(ValueStack* self);
+void ValueStack__dtor(ValueStack* self);
 
 typedef struct UnwindTarget {
     struct UnwindTarget* next;
@@ -31,28 +30,33 @@ void UnwindTarget__delete(UnwindTarget* self);
 
 typedef struct Frame {
     struct Frame* f_back;
-    const Bytecode* ip;
     const CodeObject* co;
+    py_StackRef p0;  // unwinding base
     py_GlobalRef module;
-    py_StackRef p0;      // unwinding base
-    py_StackRef locals;  // locals base
-    bool has_function;   // is p0 a function?
-    bool is_dynamic;     // is dynamic frame?
+    py_Ref globals;  // a module object or a dict object
+    py_Ref locals;
+    bool is_locals_special;
+    int ip;
     UnwindTarget* uw_list;
 } Frame;
 
 Frame* Frame__new(const CodeObject* co,
-                  py_GlobalRef module,
                   py_StackRef p0,
-                  py_StackRef locals,
-                  bool has_function);
+                  py_GlobalRef module,
+                  py_Ref globals,
+                  py_Ref locals,
+                  bool is_locals_special);
 void Frame__delete(Frame* self);
 
-int Frame__ip(const Frame* self);
 int Frame__lineno(const Frame* self);
 int Frame__iblock(const Frame* self);
-py_TValue* Frame__f_locals_try_get(Frame* self, py_Name name);
-py_TValue* Frame__f_closure_try_get(Frame* self, py_Name name);
+
+int Frame__getglobal(Frame* self, py_Name name) PY_RAISE PY_RETURN;
+bool Frame__setglobal(Frame* self, py_Name name, py_TValue* val) PY_RAISE;
+int Frame__delglobal(Frame* self, py_Name name) PY_RAISE;
+
+py_Ref Frame__getclosure(Frame* self, py_Name name);
+py_StackRef Frame__getlocal_noproxy(Frame* self, py_Name name);
 
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack*);
 

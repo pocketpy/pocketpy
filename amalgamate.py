@@ -11,7 +11,7 @@ ROOT = 'include/pocketpy'
 PUBLIC_HEADERS = ['config.h', 'export.h', 'linalg.h', 'pocketpy.h']
 
 COPYRIGHT = '''/*
- *  Copyright (c) 2024 blueloveTH
+ *  Copyright (c) 2025 blueloveTH
  *  Distributed Under The MIT License
  *  https://github.com/pocketpy/pocketpy
  */

@@ -135,7 +135,6 @@ PK_API bool py_compile(const char* source,
 /// Python equivalent to `globals()`.
 PK_API void py_newglobals(py_OutRef);
 /// Python equivalent to `locals()`.
-/// @return a temporary object, which expires on the associated function return.
 PK_API void py_newlocals(py_OutRef);
 
 /************* Values Creation *************/
@@ -176,7 +175,7 @@ PK_API void py_newellipsis(py_OutRef);
 PK_API void py_newnil(py_OutRef);
 /// Create a `tuple` with `n` UNINITIALIZED elements.
 /// You should initialize all elements before using it.
-PK_API void py_newtuple(py_OutRef, int n);
+PK_API py_ObjectRef py_newtuple(py_OutRef, int n);
 /// Create an empty `list`.
 PK_API void py_newlist(py_OutRef);
 /// Create a `list` with `n` UNINITIALIZED elements.
@@ -204,6 +203,8 @@ PK_API void py_newboundmethod(py_OutRef out, py_Ref self, py_Ref func);
 PK_API py_Name py_name(const char*);
 /// Convert a name to a null-terminated string.
 PK_API const char* py_name2str(py_Name);
+/// Convert a name to a python `str` object with cache.
+PK_API py_GlobalRef py_name2ref(py_Name);
 /// Convert a `c11_sv` to a name.
 PK_API py_Name py_namev(c11_sv);
 /// Convert a name to a `c11_sv`.
@@ -535,7 +536,7 @@ PK_API void py_clearexc(py_StackRef p0);
 #define AttributeError(self, n)                                                                    \
     py_exception(tp_AttributeError, "'%t' object has no attribute '%n'", (self)->type, (n))
 #define UnboundLocalError(n)                                                                       \
-    py_exception(tp_UnboundLocalError, "local variable '%n' referenced before assignment", (n))
+    py_exception(tp_UnboundLocalError, "cannot access local variable '%n' where it is not associated with a value", (n))
 
 PK_API bool StopIteration() PY_RAISE;
 PK_API bool KeyError(py_Ref key) PY_RAISE;

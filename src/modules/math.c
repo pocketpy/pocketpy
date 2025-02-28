@@ -136,11 +136,9 @@ static bool math_modf(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     double i;
     double f = modf(py_tofloat(py_arg(0)), &i);
-    py_newtuple(py_retval(), 2);
-    py_Ref _0 = py_tuple_getitem(py_retval(), 0);
-    py_Ref _1 = py_tuple_getitem(py_retval(), 1);
-    py_newfloat(_0, f);
-    py_newfloat(_1, i);
+    py_Ref p = py_newtuple(py_retval(), 2);
+    py_newfloat(&p[0], f);
+    py_newfloat(&p[1], i);
     return true;
 }
 

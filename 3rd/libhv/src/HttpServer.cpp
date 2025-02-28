@@ -208,34 +208,32 @@ static bool libhv_HttpServer_ws_recv(int argc, py_Ref argv) {
         py_newnone(py_retval());
         return true;
     }
-    py_newtuple(py_retval(), 2);
+    py_Ref data = py_newtuple(py_retval(), 2);
     switch(msg.type) {
         case WsMessageType::onopen: {
             // "onopen", (channel, request)
             assert(msg.request != nullptr);
-            py_newstr(py_tuple_getitem(py_retval(), 0), "onopen");
-            py_Ref args = py_tuple_getitem(py_retval(), 1);
-            py_newtuple(args, 2);
-            py_newint(py_tuple_getitem(args, 0), (py_i64)msg.channel);
-            libhv_HttpRequest_create(py_tuple_getitem(args, 1), msg.request);
+            py_newstr(py_offset(data, 0), "onopen");
+            py_Ref p = py_newtuple(py_offset(data, 1), 2);
+            py_newint(py_offset(p, 0), (py_i64)msg.channel);
+            libhv_HttpRequest_create(py_offset(p, 1), msg.request);
             break;
         }
         case WsMessageType::onclose: {
             // "onclose", channel
-            py_newstr(py_tuple_getitem(py_retval(), 0), "onclose");
-            py_newint(py_tuple_getitem(py_retval(), 1), (py_i64)msg.channel);
+            py_newstr(py_offset(data, 0), "onclose");
+            py_newint(py_offset(data, 1), (py_i64)msg.channel);
             break;
         }
         case WsMessageType::onmessage: {
             // "onmessage", (channel, body)
-            py_newstr(py_tuple_getitem(py_retval(), 0), "onmessage");
-            py_Ref args = py_tuple_getitem(py_retval(), 1);
-            py_newtuple(args, 2);
-            py_newint(py_tuple_getitem(args, 0), (py_i64)msg.channel);
+            py_newstr(py_offset(data, 0), "onmessage");
+            py_Ref p = py_newtuple(py_offset(data, 1), 2);
+            py_newint(py_offset(p, 0), (py_i64)msg.channel);
             c11_sv sv;
             sv.data = msg.body.data();
             sv.size = msg.body.size();
-            py_newstrv(py_tuple_getitem(args, 1), sv);
+            py_newstrv(py_offset(p, 1), sv);
             break;
         }
     }
