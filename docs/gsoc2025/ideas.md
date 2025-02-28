@@ -24,3 +24,5 @@ pocketpy is planning to provide a tensor library `cTensor` for users who want to
 
 In this project, students will help develop and test the `cTensor` library, which is written in C11. We expect students to have a good understanding of further mathematics and C programming.
 
+> This year we also accept custom project ideas. If you are not interested in the above, you can propose your own idea and contact me via `blueloveth@foxmail.com`. We will discuss the feasibility and mentorship for your idea.
+
