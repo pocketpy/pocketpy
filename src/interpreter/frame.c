@@ -80,10 +80,6 @@ void Frame__delete(Frame* self) {
     FixedMemoryPool__dealloc(&pk_current_vm->pool_frame, self);
 }
 
-py_StackRef Frame__locals_sp(Frame* self) {
-    return !self->is_locals_special ? self->locals : self->p0;
-}
-
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {
     // try to find a parent try block
     int iblock = Frame__iblock(self);
@@ -94,7 +90,7 @@ int Frame__prepare_jump_exception_handler(Frame* self, ValueStack* _s) {
     }
     if(iblock < 0) return -1;
     UnwindTarget* uw = Frame__find_unwind_target(self, iblock);
-    _s->sp = (Frame__locals_sp(self) + uw->offset);  // unwind the stack
+    _s->sp = (self->p0 + uw->offset);  // unwind the stack
     return c11__at(CodeBlock, &self->co->blocks, iblock)->end;
 }
 
@@ -110,10 +106,10 @@ void Frame__set_unwind_target(Frame* self, py_TValue* sp) {
     int iblock = Frame__iblock(self);
     UnwindTarget* existing = Frame__find_unwind_target(self, iblock);
     if(existing) {
-        existing->offset = sp - Frame__locals_sp(self);
+        existing->offset = sp - self->p0;
     } else {
         UnwindTarget* prev = self->uw_list;
-        self->uw_list = UnwindTarget__new(prev, iblock, sp - Frame__locals_sp(self));
+        self->uw_list = UnwindTarget__new(prev, iblock, sp - self->p0);
     }
 }
 

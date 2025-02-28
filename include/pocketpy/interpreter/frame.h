@@ -62,8 +62,6 @@ int Frame__dellocal(Frame* self, py_Name name) PY_RAISE;
 py_Ref Frame__getclosure(Frame* self, py_Name name);
 py_StackRef Frame__getlocal_noproxy(Frame* self, py_Name name);
 
-py_StackRef Frame__locals_sp(Frame* self);
-
 int Frame__prepare_jump_exception_handler(Frame* self, ValueStack*);
 
 UnwindTarget* Frame__find_unwind_target(Frame* self, int iblock);
