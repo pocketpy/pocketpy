@@ -508,14 +508,14 @@ void py_newglobals(py_Ref out) {
 void py_newlocals(py_Ref out) {
     Frame* frame = pk_current_vm->top_frame;
     if(!frame) {
-        py_newglobals(out);
+        py_newdict(out);
         return;
     }
     if(frame->is_locals_special) {
         switch(frame->locals->type) {
             case tp_locals: frame = frame->locals->_ptr; break;
             case tp_dict: *out = *frame->locals; return;
-            case tp_nil: py_newglobals(out); return;
+            case tp_nil: py_newdict(out); return;
             default: c11__unreachable();
         }
     }

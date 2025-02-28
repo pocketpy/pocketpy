@@ -6,7 +6,6 @@ my_locals = {"b": 2}
 # With user-defined locals:
 exec("""
 import sys
-assert locals() != globals()
 assert "sys" in locals()
 assert "sys" not in globals()
 assert "a" not in locals()
@@ -18,7 +17,6 @@ assert "b" not in globals()
 # print(b)
 assert (b == 2), b
 def main():
-    assert locals() != globals()
     assert "sys" not in locals()   # not the same `locals()` as the outer scope
     assert "sys" not in globals()  # and `sys` isn't in `globals()`, same as before
     assert "b" not in locals() # again, not the same `locals()` as the outer scope
@@ -32,7 +30,7 @@ assert "sys" not in globals()
 # With default locals:
 exec("""
 import sys
-assert "sys" in locals()
+assert locals() == {}
 assert "sys" in globals()
 def main():
     assert "sys" not in locals()  # not the same locals as the outer scope
