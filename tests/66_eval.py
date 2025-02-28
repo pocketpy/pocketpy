@@ -68,10 +68,9 @@ except NameError:
 
 # https://github.com/pocketpy/pocketpy/issues/339
 res = []
-
 code = '\nres.append(x)\ndef f():\n  res.append(x)\nf()\n'
 x = 33
-exec(code, {'x': 42})
+exec(code, {'x': 42, 'res': res})
 assert res == [42, 42]
 assert x == 33
 
