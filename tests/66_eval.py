@@ -93,10 +93,12 @@ res = []
 exec_jailed(100000, code, {'__builtins__': {'z': lambda x: res.append(x)}})
 assert res == [1, 2]
 
-code = '''
-print(1)
-'''
 try:
-  exec_jailed(100000, code, {'__builtins__': {}})
+  exec_jailed(100000, 'print(1)', {'__builtins__': {}})
 except NameError:
+  pass
+
+try:
+  exec_jailed(100000, 'import sys')
+except ImportError:
   pass
