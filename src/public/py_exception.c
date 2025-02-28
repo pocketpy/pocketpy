@@ -88,8 +88,8 @@ static bool BaseException_args(int argc, py_Ref argv){
     PY_CHECK_ARGC(1);
     py_Ref arg = py_getslot(argv, 0);
     if(!py_isnil(arg)) {
-        py_newtuple(py_retval(), 1);
-        py_setslot(py_retval(), 0, arg);
+        py_Ref p = py_newtuple(py_retval(), 1);
+        p[0] = *arg;
     }else{
         py_newtuple(py_retval(), 0);
     }

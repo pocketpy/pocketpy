@@ -5,12 +5,13 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
-void py_newtuple(py_Ref out, int n) {
+py_ObjectRef py_newtuple(py_Ref out, int n) {
     VM* vm = pk_current_vm;
     PyObject* obj = ManagedHeap__gcnew(&vm->heap, tp_tuple, n, 0);
     out->type = tp_tuple;
     out->is_ptr = true;
     out->_obj = obj;
+    return PyObject__slots(obj);
 }
 
 py_Ref py_tuple_getitem(py_Ref self, int i) { return py_getslot(self, i); }
@@ -59,9 +60,9 @@ static bool tuple__new__(int argc, py_Ref argv) {
         py_Ref tmp = py_pushtmp();
         *tmp = *py_retval();  // backup the list
         int length = py_list_len(tmp);
-        py_newtuple(py_retval(), length);
+        py_Ref p = py_newtuple(py_retval(), length);
         for(int i = 0; i < py_tuple_len(py_retval()); i++) {
-            py_tuple_setitem(py_retval(), i, py_list_getitem(tmp, i));
+            p[i] = *py_list_getitem(tmp, i);
         }
         py_pop();
         return true;
@@ -86,9 +87,9 @@ static bool tuple__getitem__(int argc, py_Ref argv) {
         py_newlist(tmp);
         PK_SLICE_LOOP(i, start, stop, step) py_list_append(tmp, py_getslot(argv, i));
         // convert list to tuple
-        py_newtuple(py_retval(), py_list_len(tmp));
+        py_Ref p = py_newtuple(py_retval(), py_list_len(tmp));
         for(int i = 0; i < py_tuple_len(py_retval()); i++) {
-            py_tuple_setitem(py_retval(), i, py_list_getitem(tmp, i));
+            p[i] = *py_list_getitem(tmp, i);
         }
         py_pop();
         return true;

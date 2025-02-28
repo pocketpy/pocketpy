@@ -2193,9 +2193,9 @@ static Error* read_literal(Compiler* self, py_Ref out) {
                 if(curr()->type == TK_RPAREN) break;
             }
             consume(TK_RPAREN);
-            py_newtuple(out, count);
+            py_Ref p = py_newtuple(out, count);
             for(int i = 0; i < count; i++) {
-                py_tuple_setitem(out, i, &cpnts[i]);
+                p[i] = cpnts[i];
             }
             return NULL;
         }

@@ -432,12 +432,12 @@ static bool vec2_smoothdamp_STATIC(int argc, py_Ref argv) {
     }
 
     py_Ref ret = py_retval();
-    py_newtuple(ret, 2);
-    py_newvec2(py_tuple_getitem(ret, 0),
+    py_Ref p = py_newtuple(ret, 2);
+    py_newvec2(&p[0],
                (c11_vec2){
                    {output_x, output_y}
     });
-    py_newvec2(py_tuple_getitem(ret, 1), currentVelocity);
+    py_newvec2(&p[1], currentVelocity);
     return true;
 }
 

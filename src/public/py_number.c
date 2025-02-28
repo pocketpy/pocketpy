@@ -181,9 +181,9 @@ static bool int__divmod__(int argc, py_Ref argv) {
     py_i64 lhs = py_toint(&argv[0]);
     py_i64 rhs = py_toint(&argv[1]);
     if(rhs == 0) return ZeroDivisionError("integer division or modulo by zero");
-    py_newtuple(py_retval(), 2);
-    py_newint(py_getslot(py_retval(), 0), cpy11__fast_floor_div(lhs, rhs));
-    py_newint(py_getslot(py_retval(), 1), cpy11__fast_mod(lhs, rhs));
+    py_Ref p = py_newtuple(py_retval(), 2);
+    py_newint(&p[0], cpy11__fast_floor_div(lhs, rhs));
+    py_newint(&p[1], cpy11__fast_mod(lhs, rhs));
     return true;
 }
 

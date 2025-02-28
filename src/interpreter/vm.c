@@ -405,9 +405,9 @@ static bool
     if(decl->starred_arg != -1) {
         int exceed_argc = p1 - t;
         py_Ref vargs = &buffer[decl->starred_arg];
-        py_newtuple(vargs, exceed_argc);
+        py_Ref data = py_newtuple(vargs, exceed_argc);
         for(int j = 0; j < exceed_argc; j++) {
-            py_tuple_setitem(vargs, j, t++);
+            data[j] = *t++;
         }
     } else {
         // kwdefaults override

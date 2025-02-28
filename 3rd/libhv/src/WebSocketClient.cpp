@@ -59,7 +59,7 @@ py_Type libhv_register_WebSocketClient(py_GlobalRef mod) {
                     http_headers* p_headers = (http_headers*)ctx;
                     if(!py_checkstr(key)) return false;
                     if(!py_checkstr(value)) return false;
-                    p_headers->operator[](py_tostr(key)) = py_tostr(value);
+                    p_headers->operator[] (py_tostr(key)) = py_tostr(value);
                     return true;
                 },
                 &headers);
@@ -99,22 +99,21 @@ py_Type libhv_register_WebSocketClient(py_GlobalRef mod) {
             py_newnone(py_retval());
             return true;
         } else {
-            py_newtuple(py_retval(), 2);
+            py_Ref p = py_newtuple(py_retval(), 2);
             switch(mq_msg.first) {
                 case WsMessageType::onopen: {
-                    py_newstr(py_tuple_getitem(py_retval(), 0), "onopen");
-                    py_newnone(py_tuple_getitem(py_retval(), 1));
+                    py_newstr(py_offset(p, 0), "onopen");
+                    py_newnone(py_offset(p, 1));
                     break;
                 }
                 case WsMessageType::onclose: {
-                    py_newstr(py_tuple_getitem(py_retval(), 0), "onclose");
-                    py_newnone(py_tuple_getitem(py_retval(), 1));
+                    py_newstr(py_offset(p, 0), "onclose");
+                    py_newnone(py_offset(p, 1));
                     break;
                 }
                 case WsMessageType::onmessage: {
-                    py_newstr(py_tuple_getitem(py_retval(), 0), "onmessage");
-                    py_newstrv(py_tuple_getitem(py_retval(), 1),
-                               {mq_msg.second.data(), (int)mq_msg.second.size()});
+                    py_newstr(py_offset(p, 0), "onmessage");
+                    py_newstrv(py_offset(p, 1), {mq_msg.second.data(), (int)mq_msg.second.size()});
                     break;
                 }
             }

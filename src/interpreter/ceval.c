@@ -474,11 +474,10 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_BUILD_TUPLE: {
                 py_TValue tmp;
-                py_newtuple(&tmp, byte.arg);
+                py_Ref p = py_newtuple(&tmp, byte.arg);
                 py_TValue* begin = SP() - byte.arg;
-                for(int i = 0; i < byte.arg; i++) {
-                    py_tuple_setitem(&tmp, i, begin + i);
-                }
+                for(int i = 0; i < byte.arg; i++)
+                    p[i] = begin[i];
                 SP() = begin;
                 PUSH(&tmp);
                 DISPATCH();

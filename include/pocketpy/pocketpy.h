@@ -175,7 +175,7 @@ PK_API void py_newellipsis(py_OutRef);
 PK_API void py_newnil(py_OutRef);
 /// Create a `tuple` with `n` UNINITIALIZED elements.
 /// You should initialize all elements before using it.
-PK_API void py_newtuple(py_OutRef, int n);
+PK_API py_ObjectRef py_newtuple(py_OutRef, int n);
 /// Create an empty `list`.
 PK_API void py_newlist(py_OutRef);
 /// Create a `list` with `n` UNINITIALIZED elements.

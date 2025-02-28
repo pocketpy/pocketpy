@@ -496,14 +496,14 @@ static bool dict_items(int argc, py_Ref argv) {
 static bool dict_keys(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
-    py_newtuple(py_retval(), self->length);
+    py_Ref p = py_newtuple(py_retval(), self->length);
     DictIterator iter;
     DictIterator__ctor(&iter, self);
     int i = 0;
     while(1) {
         DictEntry* entry = DictIterator__next(&iter);
         if(!entry) break;
-        py_tuple_setitem(py_retval(), i++, &entry->key);
+        p[i++] = entry->key;
     }
     assert(i == self->length);
     return true;
@@ -512,14 +512,14 @@ static bool dict_keys(int argc, py_Ref argv) {
 static bool dict_values(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
-    py_newtuple(py_retval(), self->length);
+    py_Ref p = py_newtuple(py_retval(), self->length);
     DictIterator iter;
     DictIterator__ctor(&iter, self);
     int i = 0;
     while(1) {
         DictEntry* entry = DictIterator__next(&iter);
         if(!entry) break;
-        py_tuple_setitem(py_retval(), i++, &entry->val);
+        p[i++] = entry->val;
     }
     assert(i == self->length);
     return true;
@@ -570,9 +570,9 @@ static bool dict_items__next__(int argc, py_Ref argv) {
     DictIterator* iter = py_touserdata(py_arg(0));
     DictEntry* entry = (DictIterator__next(iter));
     if(entry) {
-        py_newtuple(py_retval(), 2);
-        py_tuple_setitem(py_retval(), 0, &entry->key);
-        py_tuple_setitem(py_retval(), 1, &entry->val);
+        py_Ref p = py_newtuple(py_retval(), 2);
+        p[0] = entry->key;
+        p[1] = entry->val;
         return true;
     }
     return StopIteration();

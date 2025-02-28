@@ -606,8 +606,7 @@ static bool array2d_like_get_bounding_rect(int argc, py_Ref argv) {
     if(width <= 0 || height <= 0) {
         return ValueError("value not found");
     } else {
-        py_newtuple(py_retval(), 4);
-        py_TValue* data = py_tuple_data(py_retval());
+        py_TValue* data = py_newtuple(py_retval(), 4);
         py_newint(&data[0], left);
         py_newint(&data[1], top);
         py_newint(&data[2], width);
@@ -786,8 +785,7 @@ static bool array2d_like_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_array2d_like_iterator* self = py_touserdata(argv);
     if(self->j >= self->array->n_rows) return StopIteration();
-    py_newtuple(py_retval(), 2);
-    py_TValue* data = py_tuple_data(py_retval());
+    py_TValue* data = py_newtuple(py_retval(), 2);
     py_newvec2i(&data[0],
                 (c11_vec2i){
                     {self->i, self->j}
@@ -1081,14 +1079,13 @@ static bool chunked_array2d__delitem__(int argc, py_Ref argv) {
 static bool chunked_array2d__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_chunked_array2d* self = py_touserdata(argv);
-    py_newtuple(py_pushtmp(), self->chunks.length);
+    py_Ref data = py_newtuple(py_pushtmp(), self->chunks.length);
     for(int i = 0; i < self->chunks.length; i++) {
-        py_Ref slot = py_tuple_getitem(py_peek(-1), i);
         c11_chunked_array2d_chunks_KV* kv =
             c11__at(c11_chunked_array2d_chunks_KV, &self->chunks, i);
-        py_newtuple(slot, 2);
-        py_newvec2i(py_tuple_getitem(slot, 0), kv->key);
-        py_tuple_setitem(slot, 1, &kv->value[0]);
+        py_Ref p = py_newtuple(&data[i], 2);
+        py_newvec2i(&p[0], kv->key);  // pos
+        p[1] = kv->value[0];          // context
     }
     bool ok = py_iter(py_peek(-1));
     if(!ok) return false;
@@ -1147,10 +1144,9 @@ static bool chunked_array2d_world_to_chunk(int argc, py_Ref argv) {
     c11_vec2i pos = py_tovec2i(&argv[1]);
     c11_vec2i chunk_pos, local_pos;
     c11_chunked_array2d__world_to_chunk(self, pos.x, pos.y, &chunk_pos, &local_pos);
-    py_newtuple(py_retval(), 2);
-    py_TValue* data = py_tuple_data(py_retval());
-    py_newvec2i(&data[0], chunk_pos);
-    py_newvec2i(&data[1], local_pos);
+    py_TValue* p = py_newtuple(py_retval(), 2);
+    py_newvec2i(&p[0], chunk_pos);
+    py_newvec2i(&p[1], local_pos);
     return true;
 }
 
