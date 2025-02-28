@@ -253,6 +253,20 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
                 if(res == -1) goto __ERROR;
                 // builtins
+                if (self->max_steps > 0) {
+                    int res = Frame__getglobal(frame, py_name("__builtins__"));
+                    if (res == 1) {
+                        py_Ref builtins = &self->last_retval;
+                        if(!py_istype(builtins, tp_dict)) { return TypeError("__builtins__ must be a dict object"); }
+                        res = py_dict_getitem(builtins, py_name2ref(name));
+                        if (res == 1) {
+                            PUSH(&self->last_retval);
+                            DISPATCH();
+                        }
+                    }
+                    NameError(name);
+                    goto __ERROR;
+                }
                 py_Ref tmp = py_getdict(&self->builtins, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
@@ -275,6 +289,20 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
                 if(res == -1) goto __ERROR;
 
+                if (self->max_steps > 0) {
+                    int res = Frame__getglobal(frame, py_name("__builtins__"));
+                    if (res == 1) {
+                        py_Ref builtins = &self->last_retval;
+                        if(!py_istype(builtins, tp_dict)) { return TypeError("__builtins__ must be a dict object"); }
+                        res = py_dict_getitem(builtins, py_name2ref(name));
+                        if (res == 1) {
+                            PUSH(&self->last_retval);
+                            DISPATCH();
+                        }
+                    }
+                    NameError(name);
+                    goto __ERROR;
+                }
                 tmp = py_getdict(&self->builtins, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
@@ -291,6 +319,20 @@ FrameResult VM__run_top_frame(VM* self) {
                     DISPATCH();
                 }
                 if(res == -1) goto __ERROR;
+                if (self->max_steps > 0) {
+                    int res = Frame__getglobal(frame, py_name("__builtins__"));
+                    if (res == 1) {
+                        py_Ref builtins = &self->last_retval;
+                        if(!py_istype(builtins, tp_dict)) { return TypeError("__builtins__ must be a dict object"); }
+                        res = py_dict_getitem(builtins, py_name2ref(name));
+                        if (res == 1) {
+                            PUSH(&self->last_retval);
+                            DISPATCH();
+                        }
+                    }
+                    NameError(name);
+                    goto __ERROR;
+                }
                 py_Ref tmp = py_getdict(&self->builtins, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
@@ -322,6 +364,20 @@ FrameResult VM__run_top_frame(VM* self) {
                     DISPATCH();
                 }
                 if(res == -1) goto __ERROR;
+                if (self->max_steps > 0) {
+                    int res = Frame__getglobal(frame, py_name("__builtins__"));
+                    if (res == 1) {
+                        py_Ref builtins = &self->last_retval;
+                        if(!py_istype(builtins, tp_dict)) { return TypeError("__builtins__ must be a dict object"); }
+                        res = py_dict_getitem(builtins, py_name2ref(name));
+                        if (res == 1) {
+                            PUSH(&self->last_retval);
+                            DISPATCH();
+                        }
+                    }
+                    NameError(name);
+                    goto __ERROR;
+                }
                 tmp = py_getdict(&self->builtins, name);
                 if(tmp) {
                     PUSH(tmp);

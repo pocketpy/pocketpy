@@ -82,3 +82,21 @@ try:
   exec_jailed(100000, code)
 except Timeout:
   pass
+
+code = '''
+def f():
+  z(1)
+f()
+z(2)
+'''
+res = []
+exec_jailed(100000, code, {'__builtins__': {'z': lambda x: res.append(x)}})
+assert res == [1, 2]
+
+code = '''
+print(1)
+'''
+try:
+  exec_jailed(100000, code, {'__builtins__': {}})
+except NameError:
+  pass
