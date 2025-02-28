@@ -69,6 +69,10 @@ int load_module_from_dll_desktop_only(const char* path) PY_RAISE PY_RETURN;
 
 int py_import(const char* path_cstr) {
     VM* vm = pk_current_vm;
+    if (vm->max_steps > 0) {
+      ImportError("not allowed in safe context");
+      return -1;
+    }
     c11_sv path = {path_cstr, strlen(path_cstr)};
     if(path.size == 0) return ValueError("empty module name");
 
