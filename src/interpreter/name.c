@@ -37,11 +37,10 @@ py_Name py_namev(c11_sv name) {
     char* p = PK_MALLOC(name.size + 1);
     memcpy(p, name.data, name.size);
     p[name.size] = '\0';
-    RInternedEntry entry;
-    entry.data = p;
-    entry.size = name.size;
-    entry.obj.type = tp_nil;
-    c11_vector__push(RInternedEntry, &self->r_interned, entry);
+    RInternedEntry* entry = c11_vector__emplace(&self->r_interned);
+    entry->data = p;
+    entry->size = name.size;
+    memset(&entry->obj, 0, sizeof(py_TValue));
     index = self->r_interned.length;  // 1-based
     // save to _interned
     c11_smallmap_s2n__set(&self->interned, (c11_sv){p, name.size}, index);
@@ -66,7 +65,7 @@ py_GlobalRef py_name2ref(py_Name index) {
     InternedNames* self = &pk_current_vm->names;
     assert(index > 0 && index <= self->interned.length);
     RInternedEntry* entry = c11__at(RInternedEntry, &self->r_interned, index - 1);
-    if(entry->obj.type == tp_nil){
+    if(entry->obj.type == tp_nil) {
         c11_sv sv;
         sv.data = entry->data;
         sv.size = entry->size;
@@ -74,4 +73,3 @@ py_GlobalRef py_name2ref(py_Name index) {
     }
     return &entry->obj;
 }
-
