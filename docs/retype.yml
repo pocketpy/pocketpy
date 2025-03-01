@@ -16,13 +16,13 @@ links:
     icon: play
     link: "https://pocketpy.dev/static/web/"
     target: blank
+  - text: "Live Examples"
+    icon: code
+    link: "https://pocketpy.github.io/examples/"
+    target: blank
   - text: "Github"
     icon: mark-github
     link: https://github.com/blueloveth/pocketpy
-    target: blank
-  - text: Issues
-    link: https://github.com/blueloveth/pocketpy/issues
-    icon: issue-opened
     target: blank
   - text: Discord
     link: https://discord.gg/WWaq72GzXv

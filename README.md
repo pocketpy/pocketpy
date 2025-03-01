@@ -30,6 +30,7 @@ Developers are able to write Python bindings via C-API or pybind11 compatible in
 
 Please see https://pocketpy.dev for details and try the following resources.
 + [Live Python Demo](https://pocketpy.dev/static/web/): Run Python code in your browser
++ [Live C Examples](https://pocketpy.github.io/examples/): Explore C-APIs in your browser
 
 ## Supported Platforms
 
