@@ -619,8 +619,8 @@ static bool builtins_eval(int argc, py_Ref argv) {
 static bool
     pk_smartexec(const char* source, py_Ref module, enum py_CompileMode mode, va_list args) {
     if(module == NULL) module = &pk_current_vm->main;
-    pk_mappingproxy__namedict(py_pushtmp(), module);  // globals
-    py_newdict(py_pushtmp());                         // locals
+    py_newglobals(py_pushtmp());  // globals
+    py_newdict(py_pushtmp());     // locals
     bool ok = py_compile(source, "<string>", mode, true);
     if(!ok) return false;
     py_push(py_retval());
@@ -658,7 +658,10 @@ static bool
             py_dict_setitem_by_str(locals, "_", val);
         }
     }
-    return pk_exec(co, module);
+    ok = pk_execdyn(co, module, py_peek(-3), locals);
+    if(!ok) return false;
+    py_shrink(3);
+    return true;
 }
 
 bool py_smartexec(const char* source, py_Ref module, ...) {
