@@ -4,7 +4,7 @@
 #include <string.h>
 #include <assert.h>
 #include "pocketpy/pocketpy.h"
-#include "lz4libs/lz4.h"
+#include "lz4/lib/lz4.h"
 
 static bool lz4_compress(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
