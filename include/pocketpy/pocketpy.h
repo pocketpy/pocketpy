@@ -316,6 +316,19 @@ PK_API bool py_checkinstance(py_Ref self, py_Type type) PY_RAISE;
 #define py_checkbool(self) py_checktype(self, tp_bool)
 #define py_checkstr(self) py_checktype(self, tp_str)
 
+// Internal helper function that checks if a value is an int and, if not, returns an error with context.
+static inline bool py_checkint_with_context(py_Ref self, py_Type type, const char* func, int line) {
+    if (self->type == type) {
+        return true;
+    }
+    // TypeError is assumed to be a function that prints an error message and returns false.
+    return TypeError("In %s (line %d): expected '%t', got '%t'", func, line, type, self->type);
+}
+
+// Macro to use for additional context when checking int arguments.
+#define PY_CHECK_INT_ARG(i) \
+    if (!py_checkint_with_context(py_arg(i), tp_int, __func__, __LINE__)) return false;
+
 /************* References *************/
 
 /// Get the i-th register.
