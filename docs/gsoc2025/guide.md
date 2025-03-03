@@ -49,7 +49,7 @@ Type "exit()" to exit.
 
 ### Coding style guide
 
-See [Coding Style Guide](../coding_style_guide.md).
+See [Coding Style Guide](../coding-style-guide.md).
 
 ### Contact us
 
