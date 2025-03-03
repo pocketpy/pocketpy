@@ -2858,7 +2858,6 @@ const static PrattRule rules[TK__COUNT__] = {
 };
 // clang-format on
 
-#undef static_assert_expr_size
 #undef vtcall
 #undef vtemit_
 #undef vtemit_del

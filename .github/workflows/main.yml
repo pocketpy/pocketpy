@@ -70,6 +70,7 @@ jobs:
       if: github.ref == 'refs/heads/main'
     - name: Compile and Test
       run: |
+        python scripts/check_pragma_once.py include
         mkdir -p output/x86_64
         python cmake_build.py
         python scripts/run_tests.py
