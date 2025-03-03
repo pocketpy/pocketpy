@@ -18,7 +18,7 @@
 #define equal(a, b) ((a) == (b))
 #endif
 
-/* Temprary macros */
+/* Temporary macros */
 #define partial_less(a, b) less((a).key, (b))
 #define CONCAT(A, B) CONCAT_(A, B)
 #define CONCAT_(A, B) A##B

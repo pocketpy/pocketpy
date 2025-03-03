@@ -1343,14 +1343,14 @@ static bool stack_format_object(VM* self, c11_sv spec) {
         } else {
             // {10.2f}
             IntParsingResult res = c11__parse_uint(c11_sv__slice2(spec, 0, dot), &width, 10);
-            if(res != IntParsing_SUCCESS) return ValueError("invalid format specifer");
+            if(res != IntParsing_SUCCESS) return ValueError("invalid format specifier");
         }
         IntParsingResult res = c11__parse_uint(c11_sv__slice(spec, dot + 1), &precision, 10);
-        if(res != IntParsing_SUCCESS) return ValueError("invalid format specifer");
+        if(res != IntParsing_SUCCESS) return ValueError("invalid format specifier");
     } else {
         // {10s}
         IntParsingResult res = c11__parse_uint(spec, &width, 10);
-        if(res != IntParsing_SUCCESS) return ValueError("invalid format specifer");
+        if(res != IntParsing_SUCCESS) return ValueError("invalid format specifier");
         precision = -1;
     }
 

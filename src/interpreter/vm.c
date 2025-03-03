@@ -147,7 +147,7 @@ void VM__ctor(VM* self) {
 
     self->builtins = pk_builtins__register();
 
-    // inject some builtin expections
+    // inject some builtin exceptions
 #define INJECT_BUILTIN_EXC(name, TBase)                                                            \
     do {                                                                                           \
         py_Type type = pk_newtype(#name, TBase, &self->builtins, NULL, false, true);               \
