@@ -5,15 +5,11 @@ project(pocketpy)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# use IPO
-option(PK_BUILD_WITH_IPO "" TRUE)
-include(CheckIPOSupported)
-check_ipo_supported(RESULT result)
-
-if(result AND PK_BUILD_WITH_IPO)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+# use UNITY_BUILD if CMake version >= 3.16
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.16")
+    option(PK_BUILD_WITH_UNITY "" TRUE)
 else()
-    message(WARNING ">> IPO disabled. You will not get the best performance.")
+    option(PK_BUILD_WITH_UNITY "" FALSE)
 endif()
 
 if(WIN32)
@@ -94,13 +90,20 @@ else()
     target_link_libraries(main ${PROJECT_NAME})
 endif()
 
-if(UNIX)
+if(UNIX AND NOT APPLE)
     target_link_libraries(${PROJECT_NAME} m)
     if(PK_ENABLE_OS)
         target_link_libraries(${PROJECT_NAME} dl)
     endif()
 endif()
 
+if(PK_BUILD_WITH_UNITY)
+    set_source_files_properties(${POCKETPY_SRC} PROPERTIES UNITY_GROUP "pocketpy")
+    set_target_properties(${PROJECT_NAME} PROPERTIES UNITY_BUILD_MODE GROUP)
+    set_target_properties(${PROJECT_NAME} PROPERTIES UNITY_BUILD ON)
+endif()
+
+############################################
 if(PK_BUILD_MODULE_LZ4)
     target_link_libraries(${PROJECT_NAME} lz4)
 endif()

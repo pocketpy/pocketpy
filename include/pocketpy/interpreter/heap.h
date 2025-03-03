@@ -1,3 +1,5 @@
+#pragma once
+
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/objectpool.h"
 
