@@ -703,7 +703,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
 static bool PickleObject__py_submit(PickleObject* self, py_OutRef out) {
     c11_sbuf cleartext;
     c11_sbuf__ctor(&cleartext);
-    // line 1: type mappping
+    // line 1: type mapping
     for(py_Type type = 0; type < self->used_types_length; type++) {
         if(self->used_types[type]) {
             c11_sbuf__write_int(&cleartext, type);

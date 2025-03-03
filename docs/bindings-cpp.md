@@ -288,4 +288,4 @@ Need further discussion.
 
 - in-place operators, such as `+=`, `-=`, `*=`, etc., are not supported in pocketpy.
 
-- thre return value of `globals` is immutable in pocketpy.
+- the return value of `globals` is immutable in pocketpy.

@@ -197,7 +197,7 @@ PK_API py_Name py_newfunction(py_OutRef out,
 /// Create a `boundmethod` object.
 PK_API void py_newboundmethod(py_OutRef out, py_Ref self, py_Ref func);
 
-/************* Name Convertions *************/
+/************* Name Conversions *************/
 
 /// Convert a null-terminated string to a name.
 PK_API py_Name py_name(const char*);
@@ -506,7 +506,7 @@ PK_API int py_import(const char* path) PY_RAISE PY_RETURN;
 
 /// Raise an exception by type and message. Always return false.
 PK_API bool py_exception(py_Type type, const char* fmt, ...) PY_RAISE;
-/// Raise an expection object. Always return false.
+/// Raise an exception object. Always return false.
 PK_API bool py_raise(py_Ref) PY_RAISE;
 /// Print the current exception.
 /// The exception will be set as handled.
