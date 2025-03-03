@@ -269,7 +269,6 @@ class PocketpyBindings {
       _py_newglobalsPtr.asFunction<void Function(py_OutRef)>();
 
   /// Python equivalent to `locals()`.
-  /// @return a temporary object, which expires on the associated function return.
   void py_newlocals(
     py_OutRef arg0,
   ) {
@@ -421,6 +420,23 @@ class PocketpyBindings {
   late final _py_newstrv =
       _py_newstrvPtr.asFunction<void Function(py_OutRef, c11_sv)>();
 
+  /// Create a formatted `str` object.
+  void py_newfstr(
+    py_OutRef arg0,
+    ffi.Pointer<ffi.Char> arg1,
+  ) {
+    return _py_newfstr(
+      arg0,
+      arg1,
+    );
+  }
+
+  late final _py_newfstrPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(py_OutRef, ffi.Pointer<ffi.Char>)>>('py_newfstr');
+  late final _py_newfstr = _py_newfstrPtr
+      .asFunction<void Function(py_OutRef, ffi.Pointer<ffi.Char>)>();
+
   /// Create a `bytes` object with `n` UNINITIALIZED bytes.
   ffi.Pointer<ffi.UnsignedChar> py_newbytes(
     py_OutRef arg0,
@@ -499,7 +515,7 @@ class PocketpyBindings {
 
   /// Create a `tuple` with `n` UNINITIALIZED elements.
   /// You should initialize all elements before using it.
-  void py_newtuple(
+  py_ObjectRef py_newtuple(
     py_OutRef arg0,
     int n,
   ) {
@@ -510,10 +526,10 @@ class PocketpyBindings {
   }
 
   late final _py_newtuplePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef, ffi.Int)>>(
+      _lookup<ffi.NativeFunction<py_ObjectRef Function(py_OutRef, ffi.Int)>>(
           'py_newtuple');
   late final _py_newtuple =
-      _py_newtuplePtr.asFunction<void Function(py_OutRef, int)>();
+      _py_newtuplePtr.asFunction<py_ObjectRef Function(py_OutRef, int)>();
 
   /// Create an empty `list`.
   void py_newlist(
@@ -666,6 +682,21 @@ class PocketpyBindings {
           'py_name2str');
   late final _py_name2str =
       _py_name2strPtr.asFunction<ffi.Pointer<ffi.Char> Function(int)>();
+
+  /// Convert a name to a python `str` object with cache.
+  py_GlobalRef py_name2ref(
+    int arg0,
+  ) {
+    return _py_name2ref(
+      arg0,
+    );
+  }
+
+  late final _py_name2refPtr =
+      _lookup<ffi.NativeFunction<py_GlobalRef Function(py_Name)>>(
+          'py_name2ref');
+  late final _py_name2ref =
+      _py_name2refPtr.asFunction<py_GlobalRef Function(int)>();
 
   /// Convert a `c11_sv` to a name.
   int py_namev(
@@ -1132,7 +1163,7 @@ class PocketpyBindings {
   late final _py_tpcall =
       _py_tpcallPtr.asFunction<bool Function(int, int, py_Ref)>();
 
-  /// Check if the object is an instance of the given type.
+  /// Check if the object is an instance of the given type exactly.
   /// Raise `TypeError` if the check fails.
   bool py_checktype(
     py_Ref self,
@@ -1149,6 +1180,24 @@ class PocketpyBindings {
           'py_checktype');
   late final _py_checktype =
       _py_checktypePtr.asFunction<bool Function(py_Ref, int)>();
+
+  /// Check if the object is an instance of the given type or its subclass.
+  /// Raise `TypeError` if the check fails.
+  bool py_checkinstance(
+    py_Ref self,
+    int type,
+  ) {
+    return _py_checkinstance(
+      self,
+      type,
+    );
+  }
+
+  late final _py_checkinstancePtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Type)>>(
+          'py_checkinstance');
+  late final _py_checkinstance =
+      _py_checkinstancePtr.asFunction<bool Function(py_Ref, int)>();
 
   /// Get the i-th register.
   /// All registers are located in a contiguous memory.
@@ -2851,6 +2900,9 @@ final class c11_vec2i extends ffi.Union {
 
   @ffi.Array.multi([2])
   external ffi.Array<ffi.Int> data;
+
+  @ffi.Int64()
+  external int _i64;
 }
 
 final class UnnamedStruct1 extends ffi.Struct {
@@ -2972,6 +3024,9 @@ final class py_Callbacks extends ffi.Struct {
   external ffi
       .Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>
       print;
+
+  /// Used by `input` to get a character.
+  external ffi.Pointer<ffi.NativeFunction<ffi.Int Function()>> getchar;
 }
 
 /// Python compiler modes.
@@ -2999,6 +3054,9 @@ typedef py_i64 = ffi.Int64;
 /// A 64-bit floating-point type. Corresponds to `float` in python.
 typedef py_f64 = ffi.Double;
 
+/// A reference which has the same lifespan as the python object.
+typedef py_ObjectRef = ffi.Pointer<py_TValue>;
+
 /// Native function signature.
 /// @param argc number of arguments.
 /// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
@@ -3022,9 +3080,6 @@ typedef py_Dtor
 
 /// An item reference to a container object. It invalidates when the container is modified.
 typedef py_ItemRef = ffi.Pointer<py_TValue>;
-
-/// A reference which has the same lifespan as the python object.
-typedef py_ObjectRef = ffi.Pointer<py_TValue>;
 
 /// Python favored string formatting.
 /// %d: int
@@ -3202,17 +3257,20 @@ abstract class py_PredefinedTypes {
   static const int tp_mat3x3 = 57;
 
   /// array2d
-  static const int tp_array2d = 58;
-  static const int tp_array2d_iterator = 59;
+  static const int tp_array2d_like = 58;
+  static const int tp_array2d_like_iterator = 59;
+  static const int tp_array2d = 60;
+  static const int tp_array2d_view = 61;
+  static const int tp_chunked_array2d = 62;
 }
 
-const String PK_VERSION = '2.0.5';
+const String PK_VERSION = '2.0.6';
 
 const int PK_VERSION_MAJOR = 2;
 
 const int PK_VERSION_MINOR = 0;
 
-const int PK_VERSION_PATCH = 5;
+const int PK_VERSION_PATCH = 6;
 
 const int PK_LOW_MEMORY_MODE = 0;
 
