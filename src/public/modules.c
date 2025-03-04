@@ -773,7 +773,7 @@ py_TValue pk_builtins__register() {
     return *builtins;
 }
 
-static void function__gc_mark(void* ud) {
+void function__gc_mark(void* ud) {
     Function* func = ud;
     if(func->globals) pk__mark_value(func->globals);
     if(func->closure) {
@@ -800,9 +800,6 @@ static bool function__doc__(int argc, py_Ref argv) {
 py_Type pk_function__register() {
     py_Type type =
         pk_newtype("function", tp_object, NULL, (void (*)(void*))Function__dtor, false, true);
-
-    pk__tp_set_marker(type, function__gc_mark);
-
     py_bindproperty(type, "__doc__", function__doc__, NULL);
     return type;
 }

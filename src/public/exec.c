@@ -9,7 +9,6 @@
 
 py_Type pk_code__register() {
     py_Type type = pk_newtype("code", tp_object, NULL, (py_Dtor)CodeObject__dtor, false, true);
-    pk__tp_set_marker(type, (void (*)(void*))CodeObject__gc_mark);
     return type;
 }
 

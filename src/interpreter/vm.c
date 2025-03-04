@@ -604,12 +604,6 @@ void PyObject__dtor(PyObject* self) {
     if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
 }
 
-void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*)) {
-    py_TypeInfo* ti = pk__type_info(type);
-    assert(ti->gc_mark == NULL);
-    ti->gc_mark = gc_mark;
-}
-
 void PyObject__mark(PyObject* obj) {
     assert(!obj->gc_marked);
 
@@ -651,10 +645,19 @@ void PyObject__mark(PyObject* obj) {
             if(self->frame) Frame__gc_mark(self->frame);
             break;
         }
-        default: {
-            py_TypeInfo* ti = pk__type_info(obj->type);
-            if(ti->gc_mark) ti->gc_mark(ud);
+        case tp_function: {
+            function__gc_mark(ud);
+            break;
         }
+        case tp_code: {
+            CodeObject* self = ud;
+            CodeObject__gc_mark(self);
+            break;
+        }
+        case tp_chunked_array2d: {
+            c11_chunked_array2d__mark(ud);
+        }
+        default: return;
     }
 }
 

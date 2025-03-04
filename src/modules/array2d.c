@@ -1211,7 +1211,7 @@ void c11_chunked_array2d__dtor(c11_chunked_array2d* self) {
     c11_chunked_array2d_chunks__dtor(&self->chunks);
 }
 
-static void c11_chunked_array2d__mark(void* ud) {
+void c11_chunked_array2d__mark(void* ud) {
     c11_chunked_array2d* self = ud;
     pk__mark_value(&self->default_T);
     pk__mark_value(&self->context_builder);
@@ -1291,7 +1291,6 @@ static bool chunked_array2d_view_chunks(int argc, py_Ref argv) {
 static void register_chunked_array2d(py_Ref mod) {
     py_Type type =
         py_newtype("chunked_array2d", tp_object, mod, (py_Dtor)c11_chunked_array2d__dtor);
-    pk__tp_set_marker(type, c11_chunked_array2d__mark);
     assert(type == tp_chunked_array2d);
 
     py_bind(py_tpobject(type),

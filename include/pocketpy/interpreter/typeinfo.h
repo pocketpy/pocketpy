@@ -23,7 +23,6 @@ typedef struct py_TypeInfo {
     py_TValue annotations;  // type annotations
 
     void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
-    void (*gc_mark)(void* ud);
 
     /* Magic Slots */
     py_TValue magic_0[PK_MAGIC_SLOTS_COMMON_LENGTH];  // common magic slots

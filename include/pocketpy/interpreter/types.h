@@ -23,3 +23,6 @@ typedef struct {
 } Dict;
 
 typedef c11_vector List;
+
+void c11_chunked_array2d__mark(void* ud);
+void function__gc_mark(void* ud);
