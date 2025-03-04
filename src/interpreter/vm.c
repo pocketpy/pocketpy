@@ -447,7 +447,9 @@ static bool
 }
 
 FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall) {
+#ifndef NDEBUG
     pk_print_stack(self, self->top_frame, (Bytecode){0});
+#endif
 
     py_Ref p1 = self->stack.sp - kwargc * 2;
     py_Ref p0 = p1 - argc - 2;

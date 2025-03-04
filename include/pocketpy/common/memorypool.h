@@ -9,7 +9,7 @@ typedef struct FixedMemoryPool {
     int exceeded_bytes;
 
     char** _free_list;
-    char** _free_list_end;
+    int _free_list_length;
 } FixedMemoryPool;
 
 void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int BlockCount);

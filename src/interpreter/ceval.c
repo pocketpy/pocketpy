@@ -199,13 +199,14 @@ FrameResult VM__run_top_frame(VM* self) {
                 /*****************************************/
             case OP_LOAD_FAST: {
                 assert(!frame->is_locals_special);
-                PUSH(&frame->locals[byte.arg]);
-                if(py_isnil(TOP())) {
-                    py_Name name = c11__getitem(uint16_t, &frame->co->varnames, byte.arg);
-                    UnboundLocalError(name);
-                    goto __ERROR;
+                py_Ref val = &frame->locals[byte.arg];
+                if(!py_isnil(val)) {
+                    PUSH(val);
+                    DISPATCH();
                 }
-                DISPATCH();
+                py_Name name = c11__getitem(uint16_t, &frame->co->varnames, byte.arg);
+                UnboundLocalError(name);
+                goto __ERROR;
             }
             case OP_LOAD_NAME: {
                 assert(frame->is_locals_special);
