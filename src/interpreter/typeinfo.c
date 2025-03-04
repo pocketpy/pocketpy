@@ -60,18 +60,14 @@ py_TValue* TypeList__magic(py_TypeInfo* self, unsigned index) {
     return self->magic_1 + index;
 }
 
-py_TValue* TypeList__magic_readonly_nullable(py_TypeInfo* self, unsigned index) {
+py_TValue* TypeList__magic_readonly(py_TypeInfo* self, unsigned index) {
     if(index > __xor__) {
         // common magic slots
-        py_TValue* slot = TypeList__magic_common(self, index);
-        if(py_isnil(slot)) return NULL;
-        return slot;
+        return TypeList__magic_common(self, index);
     }
     // uncommon magic slots
-    if(self->magic_1 == NULL) return NULL;
-    py_TValue* slot = self->magic_1 + index;
-    if(py_isnil(slot)) return NULL;
-    return slot;
+    if(self->magic_1 == NULL) return py_NIL();
+    return self->magic_1 + index;
 }
 
 #undef CHUNK_SIZE

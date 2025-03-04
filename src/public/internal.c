@@ -227,8 +227,9 @@ py_Ref py_tpfindmagic(py_Type t, py_Name name) {
     assert(py_ismagicname(name));
     py_TypeInfo* ti = pk__type_info(t);
     do {
-        py_Ref f = TypeList__magic_readonly_nullable(ti, name);
-        if(f != NULL) return f;
+        py_Ref f = TypeList__magic_readonly(ti, name);
+        assert(f != NULL);
+        if(!py_isnil(f)) return f;
         ti = ti->base_ti;
     } while(ti);
     return NULL;
