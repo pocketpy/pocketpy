@@ -3,8 +3,8 @@
 #include "pocketpy/pocketpy.h"
 #include <limits.h>
 
-static bool c11_array2d_like_is_valid(c11_array2d_like* self, unsigned int col, unsigned int row) {
-    return col < self->n_cols && row < self->n_rows;
+static bool c11_array2d_like_is_valid(c11_array2d_like* self, int col, int row) {
+    return col >= 0 && col < self->n_cols && row >= 0 && row < self->n_rows;
 }
 
 static py_Ref c11_array2d__get(c11_array2d* self, int col, int row) {
