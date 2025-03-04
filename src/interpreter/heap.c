@@ -38,9 +38,12 @@ void ManagedHeap__collect_if_needed(ManagedHeap* self) {
     self->freed_ma[1] = self->freed_ma[2];
     self->freed_ma[2] = freed;
     int avg_freed = (self->freed_ma[0] + self->freed_ma[1] + self->freed_ma[2]) / 3;
-    int upper = self->gc_threshold * 2;
-    int lower = c11__max(PK_GC_MIN_THRESHOLD, self->gc_threshold / 2 + 1);
-    self->gc_threshold = c11__min(c11__max(avg_freed, lower), upper);
+    const int upper = PK_GC_MIN_THRESHOLD * 2;
+    const int lower = PK_GC_MIN_THRESHOLD / 2;
+    float free_ratio = (float)avg_freed / PK_GC_MIN_THRESHOLD;
+    int new_threshold = self->gc_threshold * (1 / free_ratio);
+    // printf("gc_threshold=%d, avg_freed=%d, new_threshold=%d\n", self->gc_threshold, avg_freed, new_threshold);
+    self->gc_threshold = c11__min(c11__max(new_threshold, lower), upper);
 }
 
 int ManagedHeap__collect(ManagedHeap* self) {
