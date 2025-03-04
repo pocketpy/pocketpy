@@ -97,17 +97,15 @@ FrameResult VM__run_top_frame(VM* self) {
         frame->ip++;
 
     __NEXT_STEP:
+        if(self->callbacks.tracefunc) {
+            // TODO: implement tracing mechanism
+        }
+
         byte = codes[frame->ip];
 
 #ifndef NDEBUG
         pk_print_stack(self, frame, byte);
 #endif
-
-        if(self->is_signal_interrupted) {
-            self->is_signal_interrupted = false;
-            py_exception(tp_KeyboardInterrupt, "");
-            goto __ERROR;
-        }
 
         switch((Opcode)byte.op) {
             case OP_NO_OP: DISPATCH();

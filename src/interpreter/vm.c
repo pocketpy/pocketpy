@@ -68,10 +68,10 @@ void VM__ctor(VM* self) {
     self->callbacks.importfile = pk_default_importfile;
     self->callbacks.print = pk_default_print;
     self->callbacks.getchar = getchar;
+    self->callbacks.tracefunc = NULL;
 
     self->last_retval = *py_NIL();
     self->curr_exception = *py_NIL();
-    self->is_signal_interrupted = false;
     self->is_curr_exc_handled = false;
 
     self->ctx = NULL;

@@ -34,6 +34,33 @@ typedef struct c11_sv {
     int size;
 } c11_sv;
 
+// An enum for tracing events.
+enum py_TraceEvent {
+    TraceEvent_Line,
+    TraceEvent_Call,
+    TraceEvent_Return,
+    TraceEvent_Exception,
+};
+
+/// A struct contains the arguments of the tracing event.
+union py_TraceEventArg {
+    struct {
+        int _;
+    } line;
+
+    struct {
+        int _;
+    } call;
+
+    struct {
+        int _;
+    } return_;
+
+    struct {
+        int _;
+    } exception;
+};
+
 /// A struct contains the callbacks of the VM.
 typedef struct py_Callbacks {
     /// Used by `__import__` to load source code of a module.
@@ -42,6 +69,8 @@ typedef struct py_Callbacks {
     void (*print)(const char*);
     /// Used by `input` to get a character.
     int (*getchar)();
+    /// C-style `sys.settrace` function.
+    void (*tracefunc)(enum py_TraceEvent, union py_TraceEventArg);
 } py_Callbacks;
 
 #define PY_RAISE
@@ -89,8 +118,6 @@ PK_API void py_resetvm();
 PK_API void* py_getvmctx();
 /// Set the current VM context. This is used for user-defined data.
 PK_API void py_setvmctx(void* ctx);
-/// Interrupt the current VM and raise a `KeyboardInterrupt` exception.
-PK_API void py_interrupt();
 /// Set `sys.argv`. Used for storing command-line arguments.
 PK_API void py_sys_setargv(int argc, char** argv);
 /// Setup the callbacks for the current VM.
@@ -103,9 +130,9 @@ PK_API py_Callbacks* py_callbacks();
 /// @param module target module. Use NULL for the main module.
 /// @return `true` if the execution is successful or `false` if an exception is raised.
 PK_API bool py_exec(const char* source,
-                       const char* filename,
-                       enum py_CompileMode mode,
-                       py_Ref module) PY_RAISE PY_RETURN;
+                    const char* filename,
+                    enum py_CompileMode mode,
+                    py_Ref module) PY_RAISE PY_RETURN;
 
 /// Evaluate a source string. Equivalent to `py_exec(source, "<string>", EVAL_MODE, module)`.
 PK_API bool py_eval(const char* source, py_Ref module) PY_RAISE PY_RETURN;
@@ -128,9 +155,9 @@ PK_API bool py_smarteval(const char* source, py_Ref module, ...) PY_RAISE PY_RET
 /// Compile a source string into a code object.
 /// Use python's `exec()` or `eval()` to execute it.
 PK_API bool py_compile(const char* source,
-                          const char* filename,
-                          enum py_CompileMode mode,
-                          bool is_dynamic) PY_RAISE PY_RETURN;
+                       const char* filename,
+                       enum py_CompileMode mode,
+                       bool is_dynamic) PY_RAISE PY_RETURN;
 
 /// Python equivalent to `globals()`.
 PK_API void py_newglobals(py_OutRef);
@@ -190,10 +217,10 @@ PK_API void py_newslice(py_OutRef);
 PK_API void py_newnativefunc(py_OutRef, py_CFunction);
 /// Create a `function` object.
 PK_API py_Name py_newfunction(py_OutRef out,
-                                 const char* sig,
-                                 py_CFunction f,
-                                 const char* docstring,
-                                 int slots);
+                              const char* sig,
+                              py_CFunction f,
+                              const char* docstring,
+                              int slots);
 /// Create a `boundmethod` object.
 PK_API void py_newboundmethod(py_OutRef out, py_Ref self, py_Ref func);
 
@@ -219,10 +246,7 @@ PK_API c11_sv py_name2sv(py_Name);
 /// @param base base type.
 /// @param module module where the type is defined. Use `NULL` for built-in types.
 /// @param dtor destructor function. Use `NULL` if not needed.
-PK_API py_Type py_newtype(const char* name,
-                             py_Type base,
-                             const py_GlobalRef module,
-                             py_Dtor dtor);
+PK_API py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, py_Dtor dtor);
 
 /// Create a new object.
 /// @param out output reference.
@@ -478,11 +502,10 @@ PK_API py_StackRef py_pushtmp();
 /// If return false: `[self] -> [self]` (no change).
 PK_API bool py_pushmethod(py_Name name);
 /// Call a callable object via pocketpy's calling convention.
-/// You need to prepare the stack using this form: `callable, self/nil, arg1, arg2, ..., k1, v1, k2, v2, ...`
-/// `argc` is the number of positional arguments excluding `self`.
-/// `kwargc` is the number of keyword arguments, i.e. the number of key-value pairs.
-/// The result will be set to `py_retval()`.
-/// The stack size will be reduced by `2 + argc + kwargc * 2`.
+/// You need to prepare the stack using this form: `callable, self/nil, arg1, arg2, ..., k1, v1, k2,
+/// v2, ...` `argc` is the number of positional arguments excluding `self`. `kwargc` is the number
+/// of keyword arguments, i.e. the number of key-value pairs. The result will be set to
+/// `py_retval()`. The stack size will be reduced by `2 + argc + kwargc * 2`.
 PK_API bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE PY_RETURN;
 /// Evaluate an expression and push the result to the stack.
 /// This function is used for testing.
@@ -536,7 +559,9 @@ PK_API void py_clearexc(py_StackRef p0);
 #define AttributeError(self, n)                                                                    \
     py_exception(tp_AttributeError, "'%t' object has no attribute '%n'", (self)->type, (n))
 #define UnboundLocalError(n)                                                                       \
-    py_exception(tp_UnboundLocalError, "cannot access local variable '%n' where it is not associated with a value", (n))
+    py_exception(tp_UnboundLocalError,                                                             \
+                 "cannot access local variable '%n' where it is not associated with a value",      \
+                 (n))
 
 PK_API bool StopIteration() PY_RAISE;
 PK_API bool KeyError(py_Ref key) PY_RAISE;
@@ -672,15 +697,15 @@ PK_API int py_replinput(char* buf, int max_size);
 /// %t: py_Type
 /// %n: py_Name
 
-enum py_MagicNames {
-    py_MagicNames__NULL,  // 0 is reserved
+enum py_MagicName {
+    py_MagicName__NULL,  // 0 is reserved
 
 #define MAGIC_METHOD(x) x,
 #include "pocketpy/xmacros/magics.h"
 #undef MAGIC_METHOD
 };
 
-enum py_PredefinedTypes {
+enum py_PredefinedType {
     tp_nil = 0,
     tp_object = 1,
     tp_type,  // py_Type
