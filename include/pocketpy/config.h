@@ -23,7 +23,7 @@
     #if PK_LOW_MEMORY_MODE
         #define PK_GC_MIN_THRESHOLD     2048
     #else
-        #define PK_GC_MIN_THRESHOLD     16384
+        #define PK_GC_MIN_THRESHOLD     32768
     #endif
 #endif
 
