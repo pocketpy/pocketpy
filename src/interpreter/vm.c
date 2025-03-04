@@ -604,13 +604,6 @@ void PyObject__dtor(PyObject* self) {
     if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
 }
 
-void pk__mark_namedict(NameDict* dict) {
-    for(int i = 0; i < dict->length; i++) {
-        NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
-        pk__mark_value(&kv->value);
-    }
-}
-
 void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*)) {
     py_TypeInfo* ti = pk__type_info(type);
     assert(ti->gc_mark == NULL);
@@ -627,12 +620,42 @@ void PyObject__mark(PyObject* obj) {
         for(int i = 0; i < obj->slots; i++)
             pk__mark_value(p + i);
     } else if(obj->slots == -1) {
-        NameDict* dict = PyObject__dict(obj);
-        pk__mark_namedict(dict);
+        NameDict* namedict = PyObject__dict(obj);
+        for(int i = 0; i < namedict->length; i++) {
+            NameDict_KV* kv = c11__at(NameDict_KV, namedict, i);
+            pk__mark_value(&kv->value);
+        }
     }
 
-    py_TypeInfo* ti = pk__type_info(obj->type);
-    if(ti->gc_mark) ti->gc_mark(PyObject__userdata(obj));
+    void* ud = PyObject__userdata(obj);
+    switch(obj->type) {
+        case tp_list: {
+            List* self = ud;
+            for(int i = 0; i < self->length; i++) {
+                pk__mark_value(c11__at(py_TValue, self, i));
+            }
+            break;
+        }
+        case tp_dict: {
+            Dict* self = ud;
+            for(int i = 0; i < self->entries.length; i++) {
+                DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+                if(py_isnil(&entry->key)) continue;
+                pk__mark_value(&entry->key);
+                pk__mark_value(&entry->val);
+            }
+            break;
+        }
+        case tp_generator: {
+            Generator* self = ud;
+            if(self->frame) Frame__gc_mark(self->frame);
+            break;
+        }
+        default: {
+            py_TypeInfo* ti = pk__type_info(obj->type);
+            if(ti->gc_mark) ti->gc_mark(ud);
+        }
+    }
 }
 
 void FuncDecl__gc_mark(const FuncDecl* self) {

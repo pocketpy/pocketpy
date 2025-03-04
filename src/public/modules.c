@@ -776,7 +776,13 @@ py_TValue pk_builtins__register() {
 static void function__gc_mark(void* ud) {
     Function* func = ud;
     if(func->globals) pk__mark_value(func->globals);
-    if(func->closure) pk__mark_namedict(func->closure);
+    if(func->closure) {
+        NameDict* namedict = func->closure;
+        for(int i = 0; i < namedict->length; i++) {
+            NameDict_KV* kv = c11__at(NameDict_KV, namedict, i);
+            pk__mark_value(&kv->value);
+        }
+    }
     FuncDecl__gc_mark(func->decl);
 }
 

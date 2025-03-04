@@ -5,8 +5,6 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
-#define PK_DICT_MAX_COLLISION 4
-
 static uint32_t Dict__next_cap(uint32_t cap) {
     switch(cap) {
         case 7: return 17;
@@ -53,22 +51,7 @@ static uint32_t Dict__next_cap(uint32_t cap) {
     }
 }
 
-typedef struct {
-    uint64_t hash;
-    py_TValue key;
-    py_TValue val;
-} DictEntry;
 
-typedef struct {
-    int _[PK_DICT_MAX_COLLISION];
-} DictIndex;
-
-typedef struct {
-    int length;
-    uint32_t capacity;
-    DictIndex* indices;
-    c11_vector /*T=DictEntry*/ entries;
-} Dict;
 
 typedef struct {
     DictEntry* curr;
@@ -525,20 +508,8 @@ static bool dict_values(int argc, py_Ref argv) {
     return true;
 }
 
-static void dict__gc_mark(void* ud) {
-    Dict* self = ud;
-    for(int i = 0; i < self->entries.length; i++) {
-        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
-        if(py_isnil(&entry->key)) continue;
-        pk__mark_value(&entry->key);
-        pk__mark_value(&entry->val);
-    }
-}
-
 py_Type pk_dict__register() {
     py_Type type = pk_newtype("dict", tp_object, NULL, (void (*)(void*))Dict__dtor, false, false);
-
-    pk__tp_set_marker(type, dict__gc_mark);
 
     py_bindmagic(type, __new__, dict__new__);
     py_bindmagic(type, __init__, dict__init__);

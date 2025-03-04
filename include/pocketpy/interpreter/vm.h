@@ -8,6 +8,7 @@
 #include "pocketpy/interpreter/modules.h"
 #include "pocketpy/interpreter/typeinfo.h"
 #include "pocketpy/interpreter/name.h"
+#include "pocketpy/interpreter/types.h"
 
 // TODO:
 // 1. __eq__ and __ne__ fallbacks
@@ -58,7 +59,6 @@ bool pk__parse_int_slice(py_Ref slice, int length, int* restrict start, int* res
 bool pk__normalize_index(int* index, int length);
 
 #define pk__mark_value(val) if((val)->is_ptr && !(val)->_obj->gc_marked) PyObject__mark((val)->_obj)
-void pk__mark_namedict(NameDict*);
 void pk__tp_set_marker(py_Type type, void (*gc_mark)(void*));
 bool pk__object_new(int argc, py_Ref argv);
 py_TypeInfo* pk__type_info(py_Type type);

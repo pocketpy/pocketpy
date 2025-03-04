@@ -5,8 +5,6 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 
-typedef c11_vector List;
-
 void py_newlist(py_Ref out) {
     List* ud = py_newobject(out, tp_list, 0, sizeof(List));
     c11_vector__ctor(ud, sizeof(py_TValue));
@@ -404,18 +402,9 @@ static bool list__contains__(int argc, py_Ref argv) {
     return pk_arraycontains(py_arg(0), py_arg(1));
 }
 
-static void list__gc_mark(void* ud) {
-    List* self = ud;
-    for(int i = 0; i < self->length; i++) {
-        pk__mark_value(c11__at(py_TValue, self, i));
-    }
-}
-
 py_Type pk_list__register() {
     py_Type type =
         pk_newtype("list", tp_object, NULL, (void (*)(void*))c11_vector__dtor, false, true);
-
-    pk__tp_set_marker(type, list__gc_mark);
 
     py_bindmagic(type, __len__, list__len__);
     py_bindmagic(type, __eq__, list__eq__);
