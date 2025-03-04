@@ -31,7 +31,7 @@ public:
         info.name = name;
 
         py_newfunction(
-            py_tpgetmagic(this->index(), py_MagicNames::__new__),
+            py_tpgetmagic(this->index(), __new__),
             "__new__(type, *args, **kwargs)",
             [](int, py_Ref stack) {
                 auto cls = py_offset(stack, 0);
