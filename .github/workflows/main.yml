@@ -58,8 +58,6 @@ jobs:
       with:
         version: 15
         platform: x64
-    - name: Install dependencies
-      run: sudo apt-get install -y libclang-rt-15-dev
     - name: Unit Test with Coverage
       run: bash run_tests.sh
     - name: Upload coverage reports to Codecov
