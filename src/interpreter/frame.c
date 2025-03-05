@@ -174,3 +174,10 @@ py_Ref Frame__getclosure(Frame* self, py_Name name) {
     if(ud->closure == NULL) return NULL;
     return NameDict__try_get(ud->closure, name);
 }
+
+SourceLocation Frame__source_location(Frame* self) {
+    SourceLocation loc;
+    loc.lineno = Frame__lineno(self);
+    loc.src = self->co->src;
+    return loc;
+}

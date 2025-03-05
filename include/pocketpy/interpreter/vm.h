@@ -18,11 +18,6 @@
 // 5. stack effect of each opcode
 // 6. py_TypeInfo
 
-typedef struct SourceLocation {
-    SourceData_ src;
-    int lineno;
-} SourceLocation;
-
 typedef struct TraceInfo {
     SourceLocation prev_loc;
     py_TraceFunc tracefunc;

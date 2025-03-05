@@ -40,6 +40,11 @@ typedef struct Frame {
     UnwindTarget* uw_list;
 } Frame;
 
+typedef struct SourceLocation {
+    SourceData_ src;
+    int lineno;
+} SourceLocation;
+
 Frame* Frame__new(const CodeObject* co,
                   py_StackRef p0,
                   py_GlobalRef module,
@@ -64,3 +69,4 @@ UnwindTarget* Frame__find_unwind_target(Frame* self, int iblock);
 void Frame__set_unwind_target(Frame* self, py_TValue* sp);
 
 void Frame__gc_mark(Frame* self);
+SourceLocation Frame__source_location(Frame* self);

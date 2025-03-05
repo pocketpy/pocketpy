@@ -97,11 +97,18 @@ FrameResult VM__run_top_frame(VM* self) {
         frame->ip++;
 
     __NEXT_STEP:
-        if(self->trace_info.tracefunc) {
-            // TODO: implement tracing mechanism
-        }
-
         byte = codes[frame->ip];
+
+        if(self->trace_info.tracefunc) {
+            SourceLocation loc = Frame__source_location(frame);
+            SourceLocation prev_loc = self->trace_info.prev_loc;
+            if(loc.lineno != prev_loc.lineno || loc.src != prev_loc.src) {
+                if(prev_loc.src) PK_DECREF(prev_loc.src);
+                PK_INCREF(loc.src);
+                self->trace_info.prev_loc = loc;
+                self->trace_info.tracefunc((py_Frame*)frame, TRACE_EVENT_LINE);
+            }
+        }
 
 #ifndef NDEBUG
         pk_print_stack(self, frame, byte);
@@ -1440,3 +1447,13 @@ static bool stack_format_object(VM* self, c11_sv spec) {
 #undef SP
 #undef INSERT_THIRD
 #undef vectorcall_opcall
+
+void py_sys_settrace(py_TraceFunc func) {
+    TraceInfo* info = &pk_current_vm->trace_info;
+    info->tracefunc = func;
+    if(info->prev_loc.src) {
+        PK_DECREF(info->prev_loc.src);
+        info->prev_loc.src = NULL;
+    }
+    info->prev_loc.lineno = -1;
+}
