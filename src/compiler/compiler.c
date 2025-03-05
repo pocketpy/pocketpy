@@ -1046,7 +1046,7 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
     Opcode opcode = OP_CALL;
     if(vargs || vkwargs) {
         // in this case, there is at least one *args or **kwargs as StarredExpr
-        // OP_CALL_VARGS needs to unpack them via __vectorcall_buffer
+        // OP_CALL_VARGS needs to unpack them via vectorcall_buffer
         opcode = OP_CALL_VARGS;
     }
 

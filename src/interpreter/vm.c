@@ -68,15 +68,15 @@ void VM__ctor(VM* self) {
     self->callbacks.importfile = pk_default_importfile;
     self->callbacks.print = pk_default_print;
     self->callbacks.getchar = getchar;
-    self->callbacks.tracefunc = NULL;
 
     self->last_retval = *py_NIL();
     self->curr_exception = *py_NIL();
     self->is_curr_exc_handled = false;
 
     self->ctx = NULL;
-    self->__curr_class = NULL;
-    self->__curr_function = NULL;
+    self->curr_class = NULL;
+    self->curr_function = NULL;
+    memset(&self->trace_info, 0, sizeof(TraceInfo));
 
     FixedMemoryPool__ctor(&self->pool_frame, sizeof(Frame), 32);
 
@@ -479,11 +479,11 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
 
         switch(fn->decl->type) {
             case FuncType_NORMAL: {
-                bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
+                bool ok = prepare_py_call(self->vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
                 // copy buffer back to stack
                 self->stack.sp = argv + co->nlocals;
-                memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
+                memcpy(argv, self->vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 // submit the call
                 if(!fn->cfunc) {
                     // python function
@@ -491,10 +491,10 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
-                    self->__curr_function = p0;
+                    self->curr_function = p0;
                     bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
                     self->stack.sp = p0;
-                    self->__curr_function = NULL;
+                    self->curr_function = NULL;
                     return ok ? RES_RETURN : RES_ERROR;
                 }
             }
@@ -520,18 +520,18 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
-                    self->__curr_function = p0;
+                    self->curr_function = p0;
                     bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
                     self->stack.sp = p0;
-                    self->__curr_function = NULL;
+                    self->curr_function = NULL;
                     return ok ? RES_RETURN : RES_ERROR;
                 }
             case FuncType_GENERATOR: {
-                bool ok = prepare_py_call(self->__vectorcall_buffer, argv, p1, kwargc, fn->decl);
+                bool ok = prepare_py_call(self->vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
                 // copy buffer back to stack
                 self->stack.sp = argv + co->nlocals;
-                memcpy(argv, self->__vectorcall_buffer, co->nlocals * sizeof(py_TValue));
+                memcpy(argv, self->vectorcall_buffer, co->nlocals * sizeof(py_TValue));
                 Frame* frame = Frame__new(co, p0, fn->module, fn->globals, argv, false);
                 pk_newgenerator(py_retval(), frame, p0, self->stack.sp);
                 self->stack.sp = p0;  // reset the stack

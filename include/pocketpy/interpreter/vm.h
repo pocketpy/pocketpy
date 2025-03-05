@@ -18,6 +18,16 @@
 // 5. stack effect of each opcode
 // 6. py_TypeInfo
 
+typedef struct SourceLocation {
+    SourceData_ src;
+    int lineno;
+} SourceLocation;
+
+typedef struct TraceInfo {
+    SourceLocation prev_loc;
+    py_TraceFunc tracefunc;
+} TraceInfo;
+
 typedef struct VM {
     Frame* top_frame;
 
@@ -38,9 +48,10 @@ typedef struct VM {
     py_TValue reg[8];  // users' registers
     void* ctx;         // user-defined context
 
-    py_StackRef __curr_class;
-    py_StackRef __curr_function;
-    py_TValue __vectorcall_buffer[PK_MAX_CO_VARNAMES];
+    py_StackRef curr_class;
+    py_StackRef curr_function;
+    TraceInfo trace_info;
+    py_TValue vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
     InternedNames names;
     FixedMemoryPool pool_frame;

@@ -34,45 +34,6 @@ typedef struct c11_sv {
     int size;
 } c11_sv;
 
-// An enum for tracing events.
-enum py_TraceEvent {
-    TraceEvent_Line,
-    TraceEvent_Call,
-    TraceEvent_Return,
-    TraceEvent_Exception,
-};
-
-/// A struct contains the arguments of the tracing event.
-union py_TraceEventArg {
-    struct {
-        int _;
-    } line;
-
-    struct {
-        int _;
-    } call;
-
-    struct {
-        int _;
-    } return_;
-
-    struct {
-        int _;
-    } exception;
-};
-
-/// A struct contains the callbacks of the VM.
-typedef struct py_Callbacks {
-    /// Used by `__import__` to load source code of a module.
-    char* (*importfile)(const char*);
-    /// Used by `print` to output a string.
-    void (*print)(const char*);
-    /// Used by `input` to get a character.
-    int (*getchar)();
-    /// C-style `sys.settrace` function.
-    void (*tracefunc)(enum py_TraceEvent, union py_TraceEventArg);
-} py_Callbacks;
-
 #define PY_RAISE
 #define PY_RETURN
 
@@ -88,6 +49,28 @@ typedef py_TValue* py_StackRef;
 typedef py_TValue* py_ItemRef;
 /// An output reference for returning a value.
 typedef py_TValue* py_OutRef;
+
+typedef struct py_Frame py_Frame;
+
+// An enum for tracing events.
+enum py_TraceEvent {
+    TRACE_EVENT_LINE,
+    TRACE_EVENT_CALL,
+    TRACE_EVENT_RETURN,
+    TRACE_EVENT_EXCEPTION,
+};
+
+typedef void (*py_TraceFunc)(py_Frame* frame, enum py_TraceEvent);
+
+/// A struct contains the callbacks of the VM.
+typedef struct py_Callbacks {
+    /// Used by `__import__` to load source code of a module.
+    char* (*importfile)(const char*);
+    /// Used by `print` to output a string.
+    void (*print)(const char*);
+    /// Used by `input` to get a character.
+    int (*getchar)();
+} py_Callbacks;
 
 /// Native function signature.
 /// @param argc number of arguments.
@@ -120,6 +103,8 @@ PK_API void* py_getvmctx();
 PK_API void py_setvmctx(void* ctx);
 /// Set `sys.argv`. Used for storing command-line arguments.
 PK_API void py_sys_setargv(int argc, char** argv);
+/// Set the trace function for the current VM.
+PK_API void py_sys_settrace(py_TraceFunc func);
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
 

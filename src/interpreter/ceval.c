@@ -97,7 +97,7 @@ FrameResult VM__run_top_frame(VM* self) {
         frame->ip++;
 
     __NEXT_STEP:
-        if(self->callbacks.tracefunc) {
+        if(self->trace_info.tracefunc) {
             // TODO: implement tracing mechanism
         }
 
@@ -298,9 +298,9 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             case OP_LOAD_CLASS_GLOBAL: {
-                assert(self->__curr_class);
+                assert(self->curr_class);
                 py_Name name = byte.arg;
-                py_Ref tmp = py_getdict(self->__curr_class, name);
+                py_Ref tmp = py_getdict(self->curr_class, name);
                 if(tmp) {
                     PUSH(tmp);
                     DISPATCH();
@@ -691,7 +691,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_TValue* sp = SP();
                 py_TValue* p1 = sp - kwargc * 2;
                 py_TValue* base = p1 - argc;
-                py_TValue* buf = self->__vectorcall_buffer;
+                py_TValue* buf = self->vectorcall_buffer;
 
                 for(py_TValue* curr = base; curr != p1; curr++) {
                     if(curr->type != tp_star_wrapper) {
@@ -1008,7 +1008,7 @@ FrameResult VM__run_top_frame(VM* self) {
                                           base_ti->is_python,
                                           false);
                 PUSH(py_tpobject(type));
-                self->__curr_class = TOP();
+                self->curr_class = TOP();
                 DISPATCH();
             }
             case OP_END_CLASS: {
@@ -1033,11 +1033,11 @@ FrameResult VM__run_top_frame(VM* self) {
                 // class with decorator is unsafe currently
                 // it skips the above check
                 POP();
-                self->__curr_class = NULL;
+                self->curr_class = NULL;
                 DISPATCH();
             }
             case OP_STORE_CLASS_ATTR: {
-                assert(self->__curr_class);
+                assert(self->curr_class);
                 py_Name name = byte.arg;
                 // TOP() can be a function, classmethod or custom decorator
                 py_Ref actual_func = TOP();
@@ -1046,16 +1046,16 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
                 if(actual_func->type == tp_function) {
                     Function* ud = py_touserdata(actual_func);
-                    ud->clazz = self->__curr_class->_obj;
+                    ud->clazz = self->curr_class->_obj;
                 }
-                py_setdict(self->__curr_class, name, TOP());
+                py_setdict(self->curr_class, name, TOP());
                 POP();
                 DISPATCH();
             }
             case OP_ADD_CLASS_ANNOTATION: {
-                assert(self->__curr_class);
+                assert(self->curr_class);
                 // [type_hint string]
-                py_Type type = py_totype(self->__curr_class);
+                py_Type type = py_totype(self->curr_class);
                 py_TypeInfo* ti = TypeList__get(&self->types, type);
                 if(py_isnil(&ti->annotations)) py_newdict(&ti->annotations);
                 bool ok = py_dict_setitem_by_str(&ti->annotations, py_name2str(byte.arg), TOP());

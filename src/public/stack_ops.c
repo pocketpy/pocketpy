@@ -69,7 +69,7 @@ void py_setslot(py_Ref self, int i, py_Ref val) {
 }
 
 py_StackRef py_inspect_currentfunction(){
-    return pk_current_vm->__curr_function;
+    return pk_current_vm->curr_function;
 }
 
 py_GlobalRef py_inspect_currentmodule(){
