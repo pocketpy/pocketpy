@@ -44,7 +44,7 @@ typedef struct VM {
     void* ctx;         // user-defined context
 
     py_StackRef curr_class;
-    py_StackRef curr_function;
+    py_StackRef curr_decl_based_function;
     TraceInfo trace_info;
     py_TValue vectorcall_buffer[PK_MAX_CO_VARNAMES];
 

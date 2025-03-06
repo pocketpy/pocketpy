@@ -75,7 +75,7 @@ void VM__ctor(VM* self) {
 
     self->ctx = NULL;
     self->curr_class = NULL;
-    self->curr_function = NULL;
+    self->curr_decl_based_function = NULL;
     memset(&self->trace_info, 0, sizeof(TraceInfo));
 
     FixedMemoryPool__ctor(&self->pool_frame, sizeof(py_Frame), 32);
@@ -492,10 +492,10 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
-                    self->curr_function = p0;
+                    self->curr_decl_based_function = p0;
                     bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
                     self->stack.sp = p0;
-                    self->curr_function = NULL;
+                    self->curr_decl_based_function = NULL;
                     return ok ? RES_RETURN : RES_ERROR;
                 }
             }
@@ -521,10 +521,10 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
-                    self->curr_function = p0;
+                    self->curr_decl_based_function = p0;
                     bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
                     self->stack.sp = p0;
-                    self->curr_function = NULL;
+                    self->curr_decl_based_function = NULL;
                     return ok ? RES_RETURN : RES_ERROR;
                 }
             case FuncType_GENERATOR: {

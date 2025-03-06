@@ -29,15 +29,15 @@ void py_setdict(py_Ref self, py_Name name, py_Ref val) {
     }
 }
 
-py_ItemRef py_emplacedict(py_Ref self, py_Name name){
+py_ItemRef py_emplacedict(py_Ref self, py_Name name) {
     py_setdict(self, name, py_NIL());
     return py_getdict(self, name);
 }
 
-bool py_applydict(py_Ref self, bool (*f)(py_Name, py_Ref, void *), void *ctx){
+bool py_applydict(py_Ref self, bool (*f)(py_Name, py_Ref, void*), void* ctx) {
     assert(self && self->is_ptr);
     NameDict* dict = PyObject__dict(self->_obj);
-    for(int i = 0; i < dict->length; i++){
+    for(int i = 0; i < dict->length; i++) {
         NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
         bool ok = f(kv->key, &kv->value, ctx);
         if(!ok) return false;
@@ -68,15 +68,21 @@ void py_setslot(py_Ref self, int i, py_Ref val) {
     PyObject__slots(self->_obj)[i] = *val;
 }
 
-py_StackRef py_inspect_currentfunction(){
-    return pk_current_vm->curr_function;
+py_StackRef py_inspect_currentfunction() {
+    VM* vm = pk_current_vm;
+    if(vm->curr_decl_based_function) { return vm->curr_decl_based_function; }
+    py_Frame* frame = vm->top_frame;
+    if(!frame || frame->is_locals_special) return NULL;
+    return frame->p0;
 }
 
-py_GlobalRef py_inspect_currentmodule(){
+py_GlobalRef py_inspect_currentmodule() {
     py_Frame* frame = pk_current_vm->top_frame;
     if(!frame) return NULL;
     return frame->module;
 }
+
+py_Frame* py_inspect_currentframe() { return pk_current_vm->top_frame; }
 
 void py_assign(py_Ref dst, py_Ref src) { *dst = *src; }
 
@@ -111,7 +117,7 @@ void py_pushnone() {
     py_newnone(vm->stack.sp++);
 }
 
-void py_pushname(py_Name name){
+void py_pushname(py_Name name) {
     VM* vm = pk_current_vm;
     py_newint(vm->stack.sp++, name);
 }

@@ -188,3 +188,9 @@ const char* py_Frame_sourceloc(py_Frame* self, int* lineno) {
     *lineno = loc.lineno;
     return loc.src->filename->data;
 }
+
+py_StackRef py_Frame_function(py_Frame* self) {
+    if(self->is_locals_special) return NULL;
+    assert(self->p0->type == tp_function);
+    return self->p0;
+}

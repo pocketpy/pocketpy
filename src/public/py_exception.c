@@ -154,7 +154,7 @@ void py_clearexc(py_StackRef p0) {
     vm->is_curr_exc_handled = false;
     /* Don't clear this, because StopIteration() may corrupt the class definition */
     // vm->curr_class = NULL;
-    vm->curr_function = NULL;
+    vm->curr_decl_based_function = NULL;
     if(p0) vm->stack.sp = p0;
 }
 

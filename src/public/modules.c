@@ -797,10 +797,18 @@ static bool function__doc__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool function__name__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Function* func = py_touserdata(py_arg(0));
+    py_newstr(py_retval(), func->decl->code.name->data);
+    return true;
+}
+
 py_Type pk_function__register() {
     py_Type type =
         pk_newtype("function", tp_object, NULL, (void (*)(void*))Function__dtor, false, true);
     py_bindproperty(type, "__doc__", function__doc__, NULL);
+    py_bindproperty(type, "__name__", function__name__, NULL);
     return type;
 }
 

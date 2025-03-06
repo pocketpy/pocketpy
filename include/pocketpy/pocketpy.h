@@ -110,6 +110,9 @@ PK_API py_Callbacks* py_callbacks();
 
 /// Get the current source location of the frame.
 PK_API const char* py_Frame_sourceloc(py_Frame* frame, int* lineno);
+/// Get the function object of the frame.
+/// Returns `NULL` if not available.
+PK_API py_StackRef py_Frame_function(py_Frame* frame);
 
 /// Run a source string.
 /// @param source source string.
@@ -388,7 +391,9 @@ PK_API py_StackRef py_inspect_currentfunction();
 /// Get the current `module` object where the code is executed.
 /// Return `NULL` if not available.
 PK_API py_GlobalRef py_inspect_currentmodule();
-
+/// Get the current frame object.
+/// Return `NULL` if not available.
+PK_API py_Frame* py_inspect_currentframe();
 /************* Bindings *************/
 
 /// Bind a function to the object via "decl-based" style.
