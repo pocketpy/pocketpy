@@ -66,7 +66,13 @@ static bool stack_format_object(VM* self, c11_sv spec);
         FrameResult res = VM__vectorcall(self, (argc), (kwargc), true);                            \
         switch(res) {                                                                              \
             case RES_RETURN: PUSH(&self->last_retval); break;                                      \
-            case RES_CALL: frame = self->top_frame; goto __NEXT_FRAME;                             \
+            case RES_CALL: {                                                                       \
+                frame = self->top_frame;                                                           \
+                if(self->trace_info.tracefunc) {                                                   \
+                    self->trace_info.tracefunc((py_Frame*)frame, TRACE_EVENT_CALL);                \
+                }                                                                                  \
+                goto __NEXT_FRAME;                                                                 \
+            }                                                                                      \
             case RES_ERROR: goto __ERROR;                                                          \
             default: c11__unreachable();                                                           \
         }                                                                                          \
@@ -750,6 +756,9 @@ FrameResult VM__run_top_frame(VM* self) {
                     self->last_retval = POPX();
                 } else {
                     py_newnone(&self->last_retval);
+                }
+                if(self->trace_info.tracefunc) {
+                    self->trace_info.tracefunc((py_Frame*)frame, TRACE_EVENT_RETURN);
                 }
                 VM__pop_frame(self);
                 if(frame == base_frame) {  // [ frameBase<- ]

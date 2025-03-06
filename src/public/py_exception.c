@@ -17,7 +17,6 @@ typedef struct BaseException {
     c11_vector /*T=BaseExceptionFrame*/ stacktrace;
 } BaseException;
 
-
 void py_BaseException__stpush(py_Ref self, SourceData_ src, int lineno, const char* func_name) {
     BaseException* ud = py_touserdata(self);
     if(ud->stacktrace.length >= 7) return;
@@ -84,13 +83,13 @@ static bool _py_BaseException__str__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool BaseException_args(int argc, py_Ref argv){
+static bool BaseException_args(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Ref arg = py_getslot(argv, 0);
     if(!py_isnil(arg)) {
         py_Ref p = py_newtuple(py_retval(), 1);
         p[0] = *arg;
-    }else{
+    } else {
         py_newtuple(py_retval(), 0);
     }
     return true;
@@ -101,7 +100,7 @@ static bool StopIteration_value(int argc, py_Ref argv) {
     py_Ref arg = py_getslot(argv, 0);
     if(py_isnil(arg)) {
         py_newnone(py_retval());
-    }else{
+    } else {
         py_assign(py_retval(), arg);
     }
     return true;
@@ -252,6 +251,10 @@ bool py_raise(py_Ref exc) {
     }
     vm->curr_exception = *exc;
     vm->is_curr_exc_handled = false;
+    if(vm->trace_info.tracefunc && !py_istype(exc, tp_StopIteration)) {
+        Frame* frame = vm->top_frame;
+        vm->trace_info.tracefunc((py_Frame*)frame, TRACE_EVENT_EXCEPTION);
+    }
     return false;
 }
 
