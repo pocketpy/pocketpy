@@ -20,7 +20,7 @@
 
 typedef struct TraceInfo {
     SourceLocation prev_loc;
-    py_TraceFunc tracefunc;
+    py_TraceFunc func;
 } TraceInfo;
 
 typedef struct VM {

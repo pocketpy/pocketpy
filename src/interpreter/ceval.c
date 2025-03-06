@@ -66,13 +66,7 @@ static bool stack_format_object(VM* self, c11_sv spec);
         FrameResult res = VM__vectorcall(self, (argc), (kwargc), true);                            \
         switch(res) {                                                                              \
             case RES_RETURN: PUSH(&self->last_retval); break;                                      \
-            case RES_CALL: {                                                                       \
-                frame = self->top_frame;                                                           \
-                if(self->trace_info.tracefunc) {                                                   \
-                    self->trace_info.tracefunc(frame, TRACE_EVENT_CALL);                           \
-                }                                                                                  \
-                goto __NEXT_FRAME;                                                                 \
-            }                                                                                      \
+            case RES_CALL: frame = self->top_frame; goto __NEXT_FRAME;                             \
             case RES_ERROR: goto __ERROR;                                                          \
             default: c11__unreachable();                                                           \
         }                                                                                          \
@@ -105,14 +99,14 @@ FrameResult VM__run_top_frame(VM* self) {
     __NEXT_STEP:
         byte = codes[frame->ip];
 
-        if(self->trace_info.tracefunc) {
+        if(self->trace_info.func) {
             SourceLocation loc = Frame__source_location(frame);
             SourceLocation prev_loc = self->trace_info.prev_loc;
             if(loc.lineno != prev_loc.lineno || loc.src != prev_loc.src) {
                 if(prev_loc.src) PK_DECREF(prev_loc.src);
                 PK_INCREF(loc.src);
                 self->trace_info.prev_loc = loc;
-                self->trace_info.tracefunc(frame, TRACE_EVENT_LINE);
+                self->trace_info.func(frame, TRACE_EVENT_LINE);
             }
         }
 
@@ -756,9 +750,6 @@ FrameResult VM__run_top_frame(VM* self) {
                     self->last_retval = POPX();
                 } else {
                     py_newnone(&self->last_retval);
-                }
-                if(self->trace_info.tracefunc) {
-                    self->trace_info.tracefunc(frame, TRACE_EVENT_RETURN);
                 }
                 VM__pop_frame(self);
                 if(frame == base_frame) {  // [ frameBase<- ]
@@ -1459,7 +1450,7 @@ static bool stack_format_object(VM* self, c11_sv spec) {
 
 void py_sys_settrace(py_TraceFunc func) {
     TraceInfo* info = &pk_current_vm->trace_info;
-    info->tracefunc = func;
+    info->func = func;
     if(info->prev_loc.src) {
         PK_DECREF(info->prev_loc.src);
         info->prev_loc.src = NULL;

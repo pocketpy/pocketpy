@@ -265,13 +265,14 @@ void VM__dtor(VM* self) {
 void VM__push_frame(VM* self, py_Frame* frame) {
     frame->f_back = self->top_frame;
     self->top_frame = frame;
+    if(self->trace_info.func) self->trace_info.func(frame, TRACE_EVENT_PUSH);
 }
 
 void VM__pop_frame(VM* self) {
     assert(self->top_frame);
     py_Frame* frame = self->top_frame;
+    if(self->trace_info.func) self->trace_info.func(frame, TRACE_EVENT_POP);
     // reset stack pointer
-
     self->stack.sp = frame->p0;
     // pop frame and delete
     self->top_frame = frame->f_back;

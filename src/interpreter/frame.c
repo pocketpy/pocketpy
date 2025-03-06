@@ -48,11 +48,11 @@ UnwindTarget* UnwindTarget__new(UnwindTarget* next, int iblock, int offset) {
 void UnwindTarget__delete(UnwindTarget* self) { PK_FREE(self); }
 
 py_Frame* Frame__new(const CodeObject* co,
-                  py_StackRef p0,
-                  py_GlobalRef module,
-                  py_Ref globals,
-                  py_Ref locals,
-                  bool is_locals_special) {
+                     py_StackRef p0,
+                     py_GlobalRef module,
+                     py_Ref globals,
+                     py_Ref locals,
+                     bool is_locals_special) {
     assert(module->type == tp_module);
     assert(globals->type == tp_module || globals->type == tp_dict);
     if(is_locals_special) {
@@ -121,6 +121,7 @@ void Frame__gc_mark(py_Frame* self) {
 
 int Frame__lineno(const py_Frame* self) {
     int ip = self->ip;
+    if(ip < 0) return 0;
     return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).lineno;
 }
 
@@ -180,4 +181,10 @@ SourceLocation Frame__source_location(py_Frame* self) {
     loc.lineno = Frame__lineno(self);
     loc.src = self->co->src;
     return loc;
+}
+
+const char* py_Frame_sourceloc(py_Frame* self, int* lineno) {
+    SourceLocation loc = Frame__source_location(self);
+    *lineno = loc.lineno;
+    return loc.src->filename->data;
 }

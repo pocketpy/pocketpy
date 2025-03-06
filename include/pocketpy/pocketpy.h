@@ -55,9 +55,9 @@ typedef struct py_Frame py_Frame;
 // An enum for tracing events.
 enum py_TraceEvent {
     TRACE_EVENT_LINE,
-    TRACE_EVENT_CALL,
-    TRACE_EVENT_RETURN,
     TRACE_EVENT_EXCEPTION,
+    TRACE_EVENT_PUSH,
+    TRACE_EVENT_POP,
 };
 
 typedef void (*py_TraceFunc)(py_Frame* frame, enum py_TraceEvent);
@@ -107,6 +107,9 @@ PK_API void py_sys_setargv(int argc, char** argv);
 PK_API void py_sys_settrace(py_TraceFunc func);
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
+
+/// Get the current source location of the frame.
+PK_API const char* py_Frame_sourceloc(py_Frame* frame, int* lineno);
 
 /// Run a source string.
 /// @param source source string.
