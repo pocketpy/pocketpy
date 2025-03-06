@@ -50,9 +50,9 @@ int main(int argc, char** argv) {
 #if _WIN32
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigint_handler, TRUE);
+    // SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigint_handler, TRUE);
 #else
-    signal(SIGINT, sigint_handler);
+    // signal(SIGINT, sigint_handler);
 #endif
 
     if(argc > 2) {
