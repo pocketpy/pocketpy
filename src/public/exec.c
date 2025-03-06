@@ -53,7 +53,7 @@ bool pk_exec(CodeObject* co, py_Ref module) {
     assert(module->type == tp_module);
 
     py_StackRef sp = vm->stack.sp;
-    Frame* frame = Frame__new(co, sp, module, module, py_NIL(), true);
+    py_Frame* frame = Frame__new(co, sp, module, module, py_NIL(), true);
     VM__push_frame(vm, frame);
     FrameResult res = VM__run_top_frame(vm);
     if(res == RES_ERROR) return false;
@@ -84,7 +84,7 @@ bool pk_execdyn(CodeObject* co, py_Ref module, py_Ref globals, py_Ref locals) {
         default: return TypeError("locals must be a dict object");
     }
 
-    Frame* frame = Frame__new(co, sp, module, globals, locals, true);
+    py_Frame* frame = Frame__new(co, sp, module, globals, locals, true);
     VM__push_frame(vm, frame);
     FrameResult res = VM__run_top_frame(vm);
     if(res == RES_ERROR) return false;

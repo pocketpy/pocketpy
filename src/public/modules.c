@@ -493,7 +493,7 @@ static bool builtins_locals(int argc, py_Ref argv) {
 }
 
 void py_newglobals(py_Ref out) {
-    Frame* frame = pk_current_vm->top_frame;
+    py_Frame* frame = pk_current_vm->top_frame;
     if(!frame) {
         pk_mappingproxy__namedict(out, &pk_current_vm->main);
         return;
@@ -506,7 +506,7 @@ void py_newglobals(py_Ref out) {
 }
 
 void py_newlocals(py_Ref out) {
-    Frame* frame = pk_current_vm->top_frame;
+    py_Frame* frame = pk_current_vm->top_frame;
     if(!frame) {
         py_newdict(out);
         return;
@@ -524,7 +524,7 @@ void py_newlocals(py_Ref out) {
 }
 
 static void pk_push_special_locals() {
-    Frame* frame = pk_current_vm->top_frame;
+    py_Frame* frame = pk_current_vm->top_frame;
     if(!frame) {
         py_pushnil();
         return;
@@ -588,7 +588,7 @@ static bool _builtins_execdyn(const char* title, int argc, py_Ref argv, enum py_
         return TypeError("%s() expected 'str' or 'code', got '%t'", title, argv->type);
     }
 
-    Frame* frame = pk_current_vm->top_frame;
+    py_Frame* frame = pk_current_vm->top_frame;
     // [globals, locals, code]
     CodeObject* code = py_touserdata(py_peek(-1));
     if(code->src->is_dynamic) {
@@ -818,7 +818,7 @@ py_Type pk_nativefunc__register() {
 
 static bool super__new__(int argc, py_Ref argv) {
     py_Type class_arg = 0;
-    Frame* frame = pk_current_vm->top_frame;
+    py_Frame* frame = pk_current_vm->top_frame;
     py_Ref self_arg = NULL;
     if(argc == 1) {
         // super()

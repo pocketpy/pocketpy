@@ -69,7 +69,7 @@ static bool stack_format_object(VM* self, c11_sv spec);
             case RES_CALL: {                                                                       \
                 frame = self->top_frame;                                                           \
                 if(self->trace_info.tracefunc) {                                                   \
-                    self->trace_info.tracefunc((py_Frame*)frame, TRACE_EVENT_CALL);                \
+                    self->trace_info.tracefunc(frame, TRACE_EVENT_CALL);                           \
                 }                                                                                  \
                 goto __NEXT_FRAME;                                                                 \
             }                                                                                      \
@@ -91,10 +91,10 @@ static bool unpack_dict_to_buffer(py_Ref key, py_Ref val, void* ctx) {
 }
 
 FrameResult VM__run_top_frame(VM* self) {
-    Frame* frame = self->top_frame;
+    py_Frame* frame = self->top_frame;
     Bytecode* codes;
 
-    const Frame* base_frame = frame;
+    const py_Frame* base_frame = frame;
 
     while(true) {
         Bytecode byte;
@@ -112,7 +112,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 if(prev_loc.src) PK_DECREF(prev_loc.src);
                 PK_INCREF(loc.src);
                 self->trace_info.prev_loc = loc;
-                self->trace_info.tracefunc((py_Frame*)frame, TRACE_EVENT_LINE);
+                self->trace_info.tracefunc(frame, TRACE_EVENT_LINE);
             }
         }
 
@@ -225,7 +225,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 // locals
                 switch(frame->locals->type) {
                     case tp_locals: {
-                        Frame* noproxy = frame->locals->_ptr;
+                        py_Frame* noproxy = frame->locals->_ptr;
                         py_Ref slot = Frame__getlocal_noproxy(noproxy, name);
                         if(slot == NULL) break;
                         if(py_isnil(slot)) {
@@ -376,7 +376,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Name name = byte.arg;
                 switch(frame->locals->type) {
                     case tp_locals: {
-                        Frame* noproxy = frame->locals->_ptr;
+                        py_Frame* noproxy = frame->locals->_ptr;
                         py_Ref slot = Frame__getlocal_noproxy(noproxy, name);
                         if(slot == NULL) {
                             UnboundLocalError(name);
@@ -443,7 +443,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Name name = byte.arg;
                 switch(frame->locals->type) {
                     case tp_locals: {
-                        Frame* noproxy = frame->locals->_ptr;
+                        py_Frame* noproxy = frame->locals->_ptr;
                         py_Ref slot = Frame__getlocal_noproxy(noproxy, name);
                         if(slot == NULL || py_isnil(slot)) {
                             UnboundLocalError(name);
@@ -758,7 +758,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     py_newnone(&self->last_retval);
                 }
                 if(self->trace_info.tracefunc) {
-                    self->trace_info.tracefunc((py_Frame*)frame, TRACE_EVENT_RETURN);
+                    self->trace_info.tracefunc(frame, TRACE_EVENT_RETURN);
                 }
                 VM__pop_frame(self);
                 if(frame == base_frame) {  // [ frameBase<- ]

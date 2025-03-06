@@ -5,7 +5,7 @@
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
 
-void pk_newgenerator(py_Ref out, Frame* frame, py_TValue* begin, py_TValue* end) {
+void pk_newgenerator(py_Ref out, py_Frame* frame, py_TValue* begin, py_TValue* end) {
     Generator* ud = py_newobject(out, tp_generator, 1, sizeof(Generator));
     ud->frame = frame;
     ud->state = 0;

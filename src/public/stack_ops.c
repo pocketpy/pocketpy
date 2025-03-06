@@ -73,7 +73,7 @@ py_StackRef py_inspect_currentfunction(){
 }
 
 py_GlobalRef py_inspect_currentmodule(){
-    Frame* frame = pk_current_vm->top_frame;
+    py_Frame* frame = pk_current_vm->top_frame;
     if(!frame) return NULL;
     return frame->module;
 }

@@ -252,8 +252,8 @@ bool py_raise(py_Ref exc) {
     vm->curr_exception = *exc;
     vm->is_curr_exc_handled = false;
     if(vm->trace_info.tracefunc && !py_istype(exc, tp_StopIteration)) {
-        Frame* frame = vm->top_frame;
-        vm->trace_info.tracefunc((py_Frame*)frame, TRACE_EVENT_EXCEPTION);
+        py_Frame* frame = vm->top_frame;
+        vm->trace_info.tracefunc(frame, TRACE_EVENT_EXCEPTION);
     }
     return false;
 }

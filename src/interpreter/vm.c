@@ -78,7 +78,7 @@ void VM__ctor(VM* self) {
     self->curr_function = NULL;
     memset(&self->trace_info, 0, sizeof(TraceInfo));
 
-    FixedMemoryPool__ctor(&self->pool_frame, sizeof(Frame), 32);
+    FixedMemoryPool__ctor(&self->pool_frame, sizeof(py_Frame), 32);
 
     ManagedHeap__ctor(&self->heap);
     ValueStack__ctor(&self->stack);
@@ -262,14 +262,14 @@ void VM__dtor(VM* self) {
     InternedNames__dtor(&self->names);
 }
 
-void VM__push_frame(VM* self, Frame* frame) {
+void VM__push_frame(VM* self, py_Frame* frame) {
     frame->f_back = self->top_frame;
     self->top_frame = frame;
 }
 
 void VM__pop_frame(VM* self) {
     assert(self->top_frame);
-    Frame* frame = self->top_frame;
+    py_Frame* frame = self->top_frame;
     // reset stack pointer
 
     self->stack.sp = frame->p0;
@@ -532,7 +532,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 // copy buffer back to stack
                 self->stack.sp = argv + co->nlocals;
                 memcpy(argv, self->vectorcall_buffer, co->nlocals * sizeof(py_TValue));
-                Frame* frame = Frame__new(co, p0, fn->module, fn->globals, argv, false);
+                py_Frame* frame = Frame__new(co, p0, fn->module, fn->globals, argv, false);
                 pk_newgenerator(py_retval(), frame, p0, self->stack.sp);
                 self->stack.sp = p0;  // reset the stack
                 return RES_RETURN;
@@ -717,7 +717,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
         pk__mark_value(&ti->annotations);
     }
     // mark frame
-    for(Frame* frame = vm->top_frame; frame; frame = frame->f_back) {
+    for(py_Frame* frame = vm->top_frame; frame; frame = frame->f_back) {
         Frame__gc_mark(frame);
     }
     // mark vm's registers
@@ -733,7 +733,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
     }
 }
 
-void pk_print_stack(VM* self, Frame* frame, Bytecode byte) {
+void pk_print_stack(VM* self, py_Frame* frame, Bytecode byte) {
     return;
     if(frame == NULL || py_isnil(&self->main)) return;
 

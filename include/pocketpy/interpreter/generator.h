@@ -4,10 +4,10 @@
 #include "pocketpy/pocketpy.h"
 
 typedef struct Generator{
-    Frame* frame;
+    py_Frame* frame;
     int state;
 } Generator;
 
-void pk_newgenerator(py_Ref out, Frame* frame, py_TValue* begin, py_TValue* end);
+void pk_newgenerator(py_Ref out, py_Frame* frame, py_TValue* begin, py_TValue* end);
 
 void Generator__dtor(Generator* ud);

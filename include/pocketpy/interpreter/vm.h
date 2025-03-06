@@ -24,7 +24,7 @@ typedef struct TraceInfo {
 } TraceInfo;
 
 typedef struct VM {
-    Frame* top_frame;
+    py_Frame* top_frame;
 
     ModuleDict modules;
     TypeList types;
@@ -57,7 +57,7 @@ typedef struct VM {
 void VM__ctor(VM* self);
 void VM__dtor(VM* self);
 
-void VM__push_frame(VM* self, Frame* frame);
+void VM__push_frame(VM* self, py_Frame* frame);
 void VM__pop_frame(VM* self);
 
 bool pk__parse_int_slice(py_Ref slice, int length, int* restrict start, int* restrict stop, int* restrict step);
@@ -108,7 +108,7 @@ bool pk_execdyn(CodeObject* co, py_Ref module, py_Ref globals, py_Ref locals);
 /// The stack remains unchanged.
 bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop);
 
-void pk_print_stack(VM* self, Frame* frame, Bytecode byte);
+void pk_print_stack(VM* self, py_Frame* frame, Bytecode byte);
 
 // type registration
 void pk_object__register();
