@@ -804,11 +804,27 @@ static bool function__name__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool function__repr__(int argc, py_Ref argv) {
+    // <function f at 0x10365b9c0>
+    PY_CHECK_ARGC(1);
+    Function* func = py_touserdata(py_arg(0));
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    c11_sbuf__write_cstr(&buf, "<function ");
+    c11_sbuf__write_cstr(&buf, func->decl->code.name->data);
+    c11_sbuf__write_cstr(&buf, " at ");
+    c11_sbuf__write_ptr(&buf, func);
+    c11_sbuf__write_char(&buf, '>');
+    c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
 py_Type pk_function__register() {
     py_Type type =
         pk_newtype("function", tp_object, NULL, (void (*)(void*))Function__dtor, false, true);
     py_bindproperty(type, "__doc__", function__doc__, NULL);
     py_bindproperty(type, "__name__", function__name__, NULL);
+    py_bindmagic(type, __repr__, function__repr__);
     return type;
 }
 
