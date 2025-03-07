@@ -103,7 +103,7 @@ void c11_sbuf__write_quoted(c11_sbuf* self, c11_sv sv, char quote) {
                 if(i + u8bytes > sv.size) u8bytes = 0;  // invalid utf8
                 if(u8bytes <= 1) {
                     // not a valid utf8 char, or ascii
-                    if(!isprint(c)) {
+                    if(!isprint((unsigned char)c)) {
                         unsigned char uc = (unsigned char)c;
                         c11_sbuf__write_cstrn(self, "\\x", 2);
                         c11_sbuf__write_char(self, PK_HEX_TABLE[uc >> 4]);
