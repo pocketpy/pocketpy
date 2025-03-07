@@ -24,9 +24,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc g++
 
-      - name: Set up CMake
-        uses: jwlawson/actions-setup-cmake@v1.10
-
       - name: Test
         run: |
           cd include/pybind11/tests
@@ -42,9 +39,6 @@ jobs:
 
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Set up CMake
-        uses: jwlawson/actions-setup-cmake@v1.10
 
       - name: Test
         run: |
@@ -64,9 +58,6 @@ jobs:
           brew install llvm
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
           source ~/.zshrc
-
-      - name: Set up CMake
-        uses: jwlawson/actions-setup-cmake@v1.10
 
       - name: Test
         run: |
