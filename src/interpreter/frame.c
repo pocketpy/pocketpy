@@ -121,8 +121,11 @@ void Frame__gc_mark(py_Frame* self) {
 
 int Frame__lineno(const py_Frame* self) {
     int ip = self->ip;
-    if(ip < 0) return 0;
-    return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).lineno;
+    if(ip >= 0)
+        return c11__getitem(BytecodeEx, &self->co->codes_ex, ip).lineno;
+    if(!self->is_locals_special)
+        return self->co->start_line;
+    return 0;
 }
 
 int Frame__iblock(const py_Frame* self) {
