@@ -13,14 +13,6 @@ static bool stack_format_object(VM* self, c11_sv spec);
 #define CHECK_RETURN_FROM_EXCEPT_OR_FINALLY()                                                      \
     if(self->is_curr_exc_handled) py_clearexc(NULL)
 
-#define CHECK_STACK_OVERFLOW()                                                                     \
-    do {                                                                                           \
-        if(self->stack.sp > self->stack.end) {                                                     \
-            py_exception(tp_StackOverflowError, "");                                               \
-            goto __ERROR;                                                                          \
-        }                                                                                          \
-    } while(0)
-
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
@@ -61,6 +53,7 @@ static bool stack_format_object(VM* self, c11_sv spec);
         *SECOND() = *THIRD();                                                                      \
     } while(0)
 
+// Must use a DISPATCH() after vectorcall_opcall() immediately!
 #define vectorcall_opcall(argc, kwargc)                                                            \
     do {                                                                                           \
         FrameResult res = VM__vectorcall(self, (argc), (kwargc), true);                            \
@@ -93,6 +86,11 @@ FrameResult VM__run_top_frame(VM* self) {
     while(true) {
         Bytecode byte;
     __NEXT_FRAME:
+        if(self->stack.sp > self->stack.end) {
+            py_exception(tp_StackOverflowError, "");
+            goto __ERROR;
+        }
+
         codes = frame->co->codes.data;
         frame->ip++;
 
@@ -149,39 +147,32 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             /*****************************************/
             case OP_LOAD_CONST: {
-                CHECK_STACK_OVERFLOW();
                 PUSH(c11__at(py_TValue, &frame->co->consts, byte.arg));
                 DISPATCH();
             }
             case OP_LOAD_NONE: {
-                CHECK_STACK_OVERFLOW();
                 py_newnone(SP()++);
                 DISPATCH();
             }
             case OP_LOAD_TRUE: {
-                CHECK_STACK_OVERFLOW();
                 py_newbool(SP()++, true);
                 DISPATCH();
             }
             case OP_LOAD_FALSE: {
-                CHECK_STACK_OVERFLOW();
                 py_newbool(SP()++, false);
                 DISPATCH();
             }
             /*****************************************/
             case OP_LOAD_SMALL_INT: {
-                CHECK_STACK_OVERFLOW();
                 py_newint(SP()++, (int16_t)byte.arg);
                 DISPATCH();
             }
             /*****************************************/
             case OP_LOAD_ELLIPSIS: {
-                CHECK_STACK_OVERFLOW();
                 py_newellipsis(SP()++);
                 DISPATCH();
             }
             case OP_LOAD_FUNCTION: {
-                CHECK_STACK_OVERFLOW();
                 FuncDecl_ decl = c11__getitem(FuncDecl_, &frame->co->func_decls, byte.arg);
                 Function* ud = py_newobject(SP(), tp_function, 0, sizeof(Function));
                 Function__ctor(ud, decl, frame->module, frame->globals);
@@ -352,8 +343,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     } else {
                         INSERT_THIRD();     // [?, a, b]
                         *THIRD() = *magic;  // [__getitem__, a, b]
-                        if(!py_vectorcall(1, 0)) goto __ERROR;
-                        PUSH(py_retval());
+                        vectorcall_opcall(1, 0);
                     }
                     DISPATCH();
                 }
@@ -503,8 +493,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_newnil(SP()++);     // [complex, NULL]
                 py_newint(SP()++, 0);  // [complex, NULL, 0]
                 *SP()++ = tmp;         // [complex, NULL, 0, x]
-                if(!py_vectorcall(2, 0)) goto __ERROR;
-                PUSH(py_retval());
+                vectorcall_opcall(2, 0);
                 DISPATCH();
             }
             case OP_BUILD_BYTES: {
@@ -1079,8 +1068,7 @@ FrameResult VM__run_top_frame(VM* self) {
                               TOP()->type);
                     goto __ERROR;
                 }
-                if(!py_vectorcall(0, 0)) goto __ERROR;
-                PUSH(py_retval());
+                vectorcall_opcall(0, 0);
                 DISPATCH();
             }
             case OP_WITH_EXIT: {

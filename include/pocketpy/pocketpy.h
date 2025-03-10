@@ -495,10 +495,12 @@ PK_API py_StackRef py_pushtmp();
 /// If return false: `[self] -> [self]` (no change).
 PK_API bool py_pushmethod(py_Name name);
 /// Call a callable object via pocketpy's calling convention.
-/// You need to prepare the stack using this form: `callable, self/nil, arg1, arg2, ..., k1, v1, k2,
-/// v2, ...` `argc` is the number of positional arguments excluding `self`. `kwargc` is the number
-/// of keyword arguments, i.e. the number of key-value pairs. The result will be set to
-/// `py_retval()`. The stack size will be reduced by `2 + argc + kwargc * 2`.
+/// You need to prepare the stack using the following format:
+/// `callable, self/nil, arg1, arg2, ..., k1, v1, k2, v2, ...`.
+/// `argc` is the number of positional arguments excluding `self`.
+/// `kwargc` is the number of keyword arguments.
+/// The result will be set to `py_retval()`.
+/// The stack size will be reduced by `2 + argc + kwargc * 2`.
 PK_API bool py_vectorcall(uint16_t argc, uint16_t kwargc) PY_RAISE PY_RETURN;
 /// Evaluate an expression and push the result to the stack.
 /// This function is used for testing.
