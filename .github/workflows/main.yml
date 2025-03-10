@@ -92,10 +92,18 @@ jobs:
         uses: jirutka/setup-alpine@v1
         with:
           arch: x86
-          packages: gcc g++ make cmake libc-dev linux-headers python3
+          packages: gcc g++ make cmake libc-dev linux-headers python3 gdb
       - name: Build and Test
         run: |
           uname -m
+
+          python cmake_build.py Debug
+          # gdb_commands.txt
+          echo "run" > gdb_commands.txt
+          echo "backtrace" >> gdb_commands.txt
+          echo "quit" >> gdb_commands.txt
+          gdb -batch -x gdb_commands.txt --args ./main tests/77_builtin_func_1.py
+
           python cmake_build.py
           python scripts/run_tests.py
           python scripts/run_tests.py benchmark

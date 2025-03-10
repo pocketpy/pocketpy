@@ -8,9 +8,12 @@ def test_file(filepath, cpython=False):
     if cpython:
         return os.system("python " + filepath) == 0
     if sys.platform == 'win32':
-        return os.system("main.exe " + filepath) == 0
+        code = os.system("main.exe " + filepath)
     else:
-        return os.system("./main " + filepath) == 0
+        code = os.system("./main " + filepath)
+    if code != 0:
+        print('Return code:', code)
+    return code == 0
 
 def test_dir(path):
     print("Testing directory:", path)
