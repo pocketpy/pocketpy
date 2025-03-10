@@ -71,6 +71,10 @@ void VM__ctor(VM* self) {
 
     self->last_retval = *py_NIL();
     self->curr_exception = *py_NIL();
+
+    self->recursion_depth = 0;
+    self->max_recursion_depth = 1000;
+    
     self->is_curr_exc_handled = false;
 
     self->ctx = NULL;
@@ -162,7 +166,7 @@ void VM__ctor(VM* self) {
     py_setdict(&self->builtins, py_name("StopIteration"), py_tpobject(tp_StopIteration));
 
     INJECT_BUILTIN_EXC(SyntaxError, tp_Exception);
-    INJECT_BUILTIN_EXC(StackOverflowError, tp_Exception);
+    INJECT_BUILTIN_EXC(RecursionError, tp_Exception);
     INJECT_BUILTIN_EXC(OSError, tp_Exception);
     INJECT_BUILTIN_EXC(NotImplementedError, tp_Exception);
     INJECT_BUILTIN_EXC(TypeError, tp_Exception);
@@ -265,6 +269,7 @@ void VM__dtor(VM* self) {
 void VM__push_frame(VM* self, py_Frame* frame) {
     frame->f_back = self->top_frame;
     self->top_frame = frame;
+    self->recursion_depth++;
     if(self->trace_info.func) self->trace_info.func(frame, TRACE_EVENT_PUSH);
 }
 
@@ -277,6 +282,7 @@ void VM__pop_frame(VM* self) {
     // pop frame and delete
     self->top_frame = frame->f_back;
     Frame__delete(frame);
+    self->recursion_depth--;
 }
 
 static void _clip_int(int* value, int min, int max) {
@@ -469,12 +475,6 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
     py_Ref argv = p0 + 1 + (int)py_isnil(p0 + 1);
 
     if(p0->type == tp_function) {
-        // check stack overflow
-        if(self->stack.sp > self->stack.end) {
-            py_exception(tp_StackOverflowError, "");
-            return RES_ERROR;
-        }
-
         Function* fn = py_touserdata(p0);
         const CodeObject* co = &fn->decl->code;
 

@@ -64,6 +64,7 @@ static bool generator__next__(int argc, py_Ref argv) {
         }
         vm->stack.sp = ud->frame->p0;
         vm->top_frame = vm->top_frame->f_back;
+        vm->recursion_depth--;
         ud->state = 1;
         return true;
     } else {

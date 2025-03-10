@@ -86,8 +86,8 @@ FrameResult VM__run_top_frame(VM* self) {
     while(true) {
         Bytecode byte;
     __NEXT_FRAME:
-        if(self->stack.sp > self->stack.end) {
-            py_exception(tp_StackOverflowError, "");
+        if(self->recursion_depth >= self->max_recursion_depth) {
+            py_exception(tp_RecursionError, "maximum recursion depth exceeded");
             goto __ERROR;
         }
 
@@ -403,7 +403,7 @@ FrameResult VM__run_top_frame(VM* self) {
                         if(!py_callcfunc(magic->_cfunc, 3, THIRD())) goto __ERROR;
                         STACK_SHRINK(4);
                     } else {
-                        *FOURTH() = *magic;  // [__selitem__, a, b, val]
+                        *FOURTH() = *magic;  // [__setitem__, a, b, val]
                         if(!py_vectorcall(2, 0)) goto __ERROR;
                     }
                     DISPATCH();

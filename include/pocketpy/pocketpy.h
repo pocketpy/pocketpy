@@ -741,7 +741,7 @@ enum py_PredefinedType {
     tp_KeyboardInterrupt,
     tp_StopIteration,
     tp_SyntaxError,
-    tp_StackOverflowError,
+    tp_RecursionError,
     tp_OSError,
     tp_NotImplementedError,
     tp_TypeError,

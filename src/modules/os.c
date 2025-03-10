@@ -240,9 +240,28 @@ void pk__add_module_io() {}
 
 #endif
 
+static bool sys_setrecursionlimit(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    int limit = py_toint(py_arg(0));
+    if(limit <= pk_current_vm->recursion_depth) return ValueError("the limit is too low");
+    pk_current_vm->max_recursion_depth = limit;
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool sys_getrecursionlimit(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    py_newint(py_retval(), pk_current_vm->max_recursion_depth);
+    return true;
+}
+
 void pk__add_module_sys() {
     py_Ref mod = py_newmodule("sys");
     py_newstr(py_emplacedict(mod, py_name("platform")), PY_SYS_PLATFORM_STRING);
     py_newstr(py_emplacedict(mod, py_name("version")), PK_VERSION);
     py_newlist(py_emplacedict(mod, py_name("argv")));
+
+    py_bindfunc(mod, "setrecursionlimit", sys_setrecursionlimit);
+    py_bindfunc(mod, "getrecursionlimit", sys_getrecursionlimit);
 }
