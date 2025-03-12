@@ -191,6 +191,13 @@ assert (1 == '1') is False
 assert 1 == 1.0
 
 assert chr(97) is 'a'
+assert ord('a') == 97
+
+assert ord('🥕') == 0x1f955
+assert chr(0x1f955) == '🥕'
+
+assert ord('测') == 27979
+assert chr(27979) == '测'
 
 exit()
 

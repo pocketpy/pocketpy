@@ -449,9 +449,16 @@ static bool builtins_delattr(int argc, py_Ref argv) {
 static bool builtins_chr(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_int);
-    py_i64 val = py_toint(py_arg(0));
-    if(val < 0 || val > 128) { return ValueError("chr() arg not in range(128)"); }
-    py_assign(py_retval(), &pk_current_vm->ascii_literals[val]);
+    uint32_t val = py_toint(py_arg(0));
+    if(val >= 0 && val < 128) {
+        py_assign(py_retval(), &pk_current_vm->ascii_literals[val]);
+    } else {
+        // convert to utf-8
+        char utf8[4];
+        int len = c11__u32_to_u8(val, utf8);
+        if(len == -1) return ValueError("invalid unicode code point: %d", val);
+        py_newstrv(py_retval(), (c11_sv){utf8, len});
+    }
     return true;
 }
 

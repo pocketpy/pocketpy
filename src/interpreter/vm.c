@@ -74,7 +74,7 @@ void VM__ctor(VM* self) {
 
     self->recursion_depth = 0;
     self->max_recursion_depth = 1000;
-    
+
     self->is_curr_exc_handled = false;
 
     self->ctx = NULL;
@@ -92,7 +92,7 @@ void VM__ctor(VM* self) {
         char* p = py_newstrn(&self->ascii_literals[i], 1);
         *p = i;
     }
-    py_newstrn(&self->ascii_literals[128], 0);
+    py_newstrn(&self->ascii_literals[128], 0);  // empty string
 
     // 0: unused
     void* placeholder = TypeList__emplace(&self->types);

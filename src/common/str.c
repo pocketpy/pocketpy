@@ -316,6 +316,38 @@ int c11__u8_value(int u8bytes, const char* data) {
     return (int)value;
 }
 
+int c11__u32_to_u8(uint32_t utf32_char, char utf8_output[4]) {
+    int length = 0;
+
+    if(utf32_char <= 0x7F) {
+        // 1-byte UTF-8
+        utf8_output[0] = (char)utf32_char;
+        length = 1;
+    } else if(utf32_char <= 0x7FF) {
+        // 2-byte UTF-8
+        utf8_output[0] = (char)(0xC0 | ((utf32_char >> 6) & 0x1F));
+        utf8_output[1] = (char)(0x80 | (utf32_char & 0x3F));
+        length = 2;
+    } else if(utf32_char <= 0xFFFF) {
+        // 3-byte UTF-8
+        utf8_output[0] = (char)(0xE0 | ((utf32_char >> 12) & 0x0F));
+        utf8_output[1] = (char)(0x80 | ((utf32_char >> 6) & 0x3F));
+        utf8_output[2] = (char)(0x80 | (utf32_char & 0x3F));
+        length = 3;
+    } else if(utf32_char <= 0x10FFFF) {
+        // 4-byte UTF-8
+        utf8_output[0] = (char)(0xF0 | ((utf32_char >> 18) & 0x07));
+        utf8_output[1] = (char)(0x80 | ((utf32_char >> 12) & 0x3F));
+        utf8_output[2] = (char)(0x80 | ((utf32_char >> 6) & 0x3F));
+        utf8_output[3] = (char)(0x80 | (utf32_char & 0x3F));
+        length = 4;
+    } else {
+        // Invalid UTF-32 character
+        return -1;
+    }
+    return length;
+}
+
 IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base) {
     *out = 0;
 
