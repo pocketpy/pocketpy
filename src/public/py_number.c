@@ -123,9 +123,7 @@ static bool number__pow__(int argc, py_Ref argv) {
     return true;
 }
 
-static py_i64 i64_abs(py_i64 x) {
-    return x < 0 ? -x : x;
-}
+static py_i64 i64_abs(py_i64 x) { return x < 0 ? -x : x; }
 
 static py_i64 cpy11__fast_floor_div(py_i64 a, py_i64 b) {
     assert(b != 0);
@@ -316,7 +314,7 @@ static bool int__new__(int argc, py_Ref argv) {
                 return true;
             }
             case tp_str: break;  // leave to the next block
-            default: return pk_callmagic(__int__, 1, argv + 1);
+            default: return TypeError("int() argument must be a string, number or boolean");
         }
     }
     // 2+ args -> error
