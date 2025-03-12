@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "pocketpy.h"
 
@@ -29,7 +30,7 @@ static void sigint_handler(int sig) { py_interrupt(); }
 
 #endif
 
-char* read_file(const char* path) {
+static char* read_file(const char* path) {
     FILE* file = fopen(path, "rb");
     if(file == NULL) {
         printf("Error: file not found\n");
@@ -44,6 +45,27 @@ char* read_file(const char* path) {
     return buffer;
 }
 
+static void tracefunc(py_Frame* frame, enum py_TraceEvent event) {
+    int line;
+    const char* filename = py_Frame_sourceloc(frame, &line);
+    const char* event_str;
+    switch(event) {
+        case TRACE_EVENT_LINE:
+            event_str = "line";
+            break;
+        case TRACE_EVENT_EXCEPTION:
+            event_str = "exception";
+            break;
+        case TRACE_EVENT_PUSH:
+            event_str = "push";
+            break;
+        case TRACE_EVENT_POP:
+            event_str = "pop";
+            break;
+    }
+    printf("\x1b[30m%s:%d, event=%s\x1b[0m\n", filename, line, event_str);
+}
+
 static char buf[2048];
 
 int main(int argc, char** argv) {
@@ -55,15 +77,27 @@ int main(int argc, char** argv) {
     // signal(SIGINT, sigint_handler);
 #endif
 
-    if(argc > 2) {
-        printf("Usage: pocketpy [filename]\n");
-        return 0;
+    bool trace = false;
+    const char* filename = NULL;
+
+    for(int i = 1; i < argc; i++) {
+        if(strcmp(argv[i], "--trace") == 0) {
+            trace = true;
+            continue;
+        }
+        if(filename == NULL) {
+            filename = argv[i];
+            continue;
+        }
+        printf("Usage: pocketpy [--trace] filename\n");
     }
 
     py_initialize();
     py_sys_setargv(argc, argv);
 
-    if(argc == 1) {
+    if(trace) py_sys_settrace(tracefunc);
+
+    if(filename == NULL) {
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
         printf("[%d bit] on %s", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
 #ifndef NDEBUG
@@ -89,9 +123,9 @@ int main(int argc, char** argv) {
             }
         }
     } else {
-        char* source = read_file(argv[1]);
+        char* source = read_file(filename);
         if(source) {
-            if(!py_exec(source, argv[1], EXEC_MODE, NULL)) py_printexc();
+            if(!py_exec(source, filename, EXEC_MODE, NULL)) py_printexc();
             free(source);
         }
     }
