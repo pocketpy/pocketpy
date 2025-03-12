@@ -96,13 +96,14 @@ jobs:
       - name: Build and Test
         run: |
           uname -m
+          python -c "import struct; print(8 * struct.calcsize('P'))"
 
-          python cmake_build.py Debug
-          # gdb_commands.txt
-          echo "run" > gdb_commands.txt
-          echo "backtrace" >> gdb_commands.txt
-          echo "quit" >> gdb_commands.txt
-          gdb -batch -x gdb_commands.txt --args ./main tests/77_builtin_func_1.py
+          # python cmake_build.py Debug
+          # # gdb_commands.txt
+          # echo "run" > gdb_commands.txt
+          # echo "backtrace" >> gdb_commands.txt
+          # echo "quit" >> gdb_commands.txt
+          # gdb -batch -x gdb_commands.txt --args ./main tests/77_builtin_func_1.py
 
           python cmake_build.py
           python scripts/run_tests.py
