@@ -114,13 +114,11 @@ bool py_call(py_Ref f, int argc, py_Ref argv) {
     if(f->type == tp_nativefunc) {
         return py_callcfunc(f->_cfunc, argc, argv);
     } else {
-        py_StackRef p0 = py_peek(0);
         py_push(f);
         py_pushnil();
         for(int i = 0; i < argc; i++)
             py_push(py_offset(argv, i));
         bool ok = py_vectorcall(argc, 0);
-        pk_current_vm->stack.sp = p0;
         return ok;
     }
 }

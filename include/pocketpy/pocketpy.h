@@ -594,7 +594,7 @@ PK_API bool py_isidentical(py_Ref, py_Ref);
 /// Call a function.
 /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
 /// The result will be set to `py_retval()`.
-/// The stack remains unchanged after the operation.
+/// The stack remains unchanged if successful.
 PK_API bool py_call(py_Ref f, int argc, py_Ref argv) PY_RAISE PY_RETURN;
 
 #ifndef NDEBUG
