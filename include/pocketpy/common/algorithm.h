@@ -8,7 +8,7 @@
     do {                                                                                           \
         T* __first = ptr;                                                                          \
         int __len = count;                                                                         \
-        while(__len > 8) {                                                                         \
+        while(__len >= 8) {                                                                        \
             int __l2 = __len >> 1;                                                                 \
             T* __m = __first + __l2;                                                               \
             if(less((*__m), (key))) {                                                              \
@@ -18,9 +18,23 @@
                 __len = __l2;                                                                      \
             }                                                                                      \
         }                                                                                          \
-        while(__len && less(*__first, (key))) {                                                    \
-            ++__first;                                                                             \
-            --__len;                                                                               \
+        switch(__len) {                                                                            \
+            case 7:                                                                                \
+                if(less(*__first, (key))) __first++;                                               \
+            case 6:                                                                                \
+                if(less(*__first, (key))) __first++;                                               \
+            case 5:                                                                                \
+                if(less(*__first, (key))) __first++;                                               \
+            case 4:                                                                                \
+                if(less(*__first, (key))) __first++;                                               \
+            case 3:                                                                                \
+                if(less(*__first, (key))) __first++;                                               \
+            case 2:                                                                                \
+                if(less(*__first, (key))) __first++;                                               \
+            case 1:                                                                                \
+                if(less(*__first, (key))) __first++;                                               \
+            case 0: break;                                                                         \
+            default: c11__unreachable();                                                           \
         }                                                                                          \
         *(out_index) = __first - (T*)(ptr);                                                        \
     } while(0)
