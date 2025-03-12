@@ -171,9 +171,12 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
 
     if(name == __new__) {
         // __new__ acts like a @staticmethod
-        if(py_istype(self, tp_type)) {
+        if(self->type == tp_type) {
             // T.__new__(...)
             type = py_totype(self);
+        } else if(self->type == tp_super) {
+            // super(T, obj).__new__(...)
+            type = *(py_Type*)py_touserdata(self);
         } else {
             // invalid usage of `__new__`
             return false;
@@ -187,12 +190,16 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
         return false;
     }
 
+    py_TValue self_bak;  // to avoid overlapping
     // handle super() proxy
     if(py_istype(self, tp_super)) {
         type = *(py_Type*)py_touserdata(self);
-        *self = *py_getslot(self, 0);
+        // BUG: here we modify `self` which refers to the stack directly
+        // If `pk_loadmethod` fails, `self` will be corrupted
+        self_bak = *py_getslot(self, 0);
     } else {
         type = self->type;
+        self_bak = *self;
     }
 
     py_Ref cls_var = py_tpfindname(type, name);
@@ -200,8 +207,6 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
         switch(cls_var->type) {
             case tp_function:
             case tp_nativefunc: {
-                py_TValue self_bak = *self;
-                // `out` may overlap with `self`. If we assign `out`, `self` may be corrupted.
                 self[0] = *cls_var;
                 self[1] = self_bak;
                 break;

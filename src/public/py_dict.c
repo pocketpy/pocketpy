@@ -283,7 +283,7 @@ static bool dict__init__(int argc, py_Ref argv) {
     for(int i = 0; i < length; i++) {
         py_Ref tuple = &p[i];
         if(!py_istuple(tuple) || py_tuple_len(tuple) != 2) {
-            return TypeError("dict.__init__() argument must be a list of tuple-2");
+            return ValueError("dict.__init__() argument must be a list of tuple-2");
         }
         py_Ref key = py_tuple_getitem(tuple, 0);
         py_Ref val = py_tuple_getitem(tuple, 1);

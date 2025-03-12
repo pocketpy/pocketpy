@@ -388,7 +388,7 @@ static bool float__new__(int argc, py_Ref argv) {
             py_newfloat(py_retval(), float_out);
             return true;
         }
-        default: return pk_callmagic(__float__, 1, argv + 1);
+        default: return TypeError("float() argument must be a string or a real number");
     }
 }
 

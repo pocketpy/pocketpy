@@ -70,21 +70,21 @@ try:
     dict([(1, 2, 3)])
     print('未能拦截错误, 在测试 dict')
     exit(1)
-except:
+except ValueError:
     pass
 
 try:
     dict([(1, 2)], 1)
     print('未能拦截错误, 在测试 dict')
     exit(1)
-except:
+except TypeError:
     pass
 
 try:
     hash(dict([(1,2)]))
     print('未能拦截错误, 在测试 dict.__hash__')
     exit(1)
-except:
+except TypeError:
     pass
 
 # test dict.__iter__
@@ -102,7 +102,7 @@ try:
     {1:2, 3:4}.get(1,1, 1)
     print('未能拦截错误, 在测试 dict.get')
     exit(1)
-except:
+except TypeError:
     pass
 
 # 未完全测试准确性-----------------------------------------------

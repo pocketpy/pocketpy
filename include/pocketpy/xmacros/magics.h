@@ -8,7 +8,6 @@ MAGIC_METHOD(__ge__)
 /////////////////////////////
 MAGIC_METHOD(__neg__)
 MAGIC_METHOD(__abs__)
-MAGIC_METHOD(__float__)
 MAGIC_METHOD(__int__)
 MAGIC_METHOD(__round__)
 MAGIC_METHOD(__divmod__)
