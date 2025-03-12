@@ -447,7 +447,10 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
             }
             case ',': add_token(self, TK_COMMA); return NULL;
             case ':': {
-                if(is_fstring) { return eat_fstring_spec(self, eof); }
+                if(is_fstring) {
+                    // BUG: f"{stack[2:]}"
+                    return eat_fstring_spec(self, eof);
+                }
                 add_token(self, TK_COLON);
                 return NULL;
             }

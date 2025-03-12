@@ -199,8 +199,6 @@ assert chr(0x1f955) == '🥕'
 assert ord('测') == 27979
 assert chr(27979) == '测'
 
-exit()
-
 # test format()
 assert "Hello, {}!".format("World") == "Hello, World!"
 assert "{} {} {}".format("I", "love", "Python") == "I love Python"
@@ -214,14 +212,19 @@ assert "{0}={1}".format('{0}', '{1}') == "{0}={1}"
 assert "{{{0}}}".format(1) == "{1}"
 assert "{0}{1}{1}".format(1, 2, 3) == "122"
 
-# try:
-#     "{0}={1}}".format(1, 2)
-#     exit(1)
-# except ValueError:
-#     pass
+try:
+    "{0}={1}}".format(1, 2)
+    exit(1)
+except ValueError:
+    pass
 
 assert "{{{}xxx{}x}}".format(1, 2) == "{1xxx2x}"
 assert "{{abc}}".format() == "{abc}"
 
 # test f-string
-# stack=[1,2,3,4]; assert f"{stack[2:]}" == '[3, 4]'
+assert f"{1+2}" == "3"
+# assert f"{1, 2, 3}" == "(1, 2, 3)"
+assert f"{(1, 2, 3)}" == "(1, 2, 3)"
+
+# stack=[1,2,3,4]
+# assert f"{stack[2:]}" == '[3, 4]'
