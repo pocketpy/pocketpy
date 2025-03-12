@@ -90,11 +90,6 @@ FrameResult VM__run_top_frame(VM* self) {
             py_exception(tp_RecursionError, "maximum recursion depth exceeded");
             goto __ERROR;
         }
-        if(self->stack.sp >= self->stack.end) {
-            c11__abort(
-                "Stack overflow! Please increase PK_VM_STACK_SIZE or reduce the max recursion limit.");
-        }
-
         codes = frame->co->codes.data;
         frame->ip++;
 
