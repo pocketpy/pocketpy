@@ -8,7 +8,7 @@ label: "Project Ideas"
 
 + Difficulty Level: 3/5 (Medium)
 + Skill: TypeScript; C
-+ Project Length: Small
++ Project Length: Medium
 
 Community users have reported that there is no convenient way to debug python applications interpreted by pocketpy. Fortunately, VSCode provides a mechanism of [Debugger Extension](https://code.visualstudio.com/api/extension-guides/debugger-extension) that allows us to integrate pocketpy debugger into VSCode UI through Debug Adapter Protocol (DAP).
 
@@ -18,7 +18,7 @@ This project aims to develop a VSCode plugin like [Python Debugger](https://mark
 
 + Difficulty Level: 4/5 (Hard)
 + Skill: C; Further Mathematics
-+ Project Length: Medium
++ Project Length: Small or Medium
 
 pocketpy is providing a tensor library `cTensor` for users who want to integrate neural networks into their applications. `cTensor` implements automatic differentiation and dynamic compute graph. It allows users to train and deploy neural networks on client-side devices like mobile phones and microcontrollers (e.g. ESP32-C3). We have a runable prototype located at [pocketpy/cTensor](https://github.com/pocketpy/cTensor). But math operators have not been implemented yet.
 
