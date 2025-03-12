@@ -103,15 +103,6 @@ class PocketpyBindings {
   late final _py_setvmctx =
       _py_setvmctxPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
-  /// Interrupt the current VM and raise a `KeyboardInterrupt` exception.
-  void py_interrupt() {
-    return _py_interrupt();
-  }
-
-  late final _py_interruptPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_interrupt');
-  late final _py_interrupt = _py_interruptPtr.asFunction<void Function()>();
-
   /// Set `sys.argv`. Used for storing command-line arguments.
   void py_sys_setargv(
     int argc,
@@ -130,6 +121,21 @@ class PocketpyBindings {
   late final _py_sys_setargv = _py_sys_setargvPtr
       .asFunction<void Function(int, ffi.Pointer<ffi.Pointer<ffi.Char>>)>();
 
+  /// Set the trace function for the current VM.
+  void py_sys_settrace(
+    py_TraceFunc func,
+  ) {
+    return _py_sys_settrace(
+      func,
+    );
+  }
+
+  late final _py_sys_settracePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_TraceFunc)>>(
+          'py_sys_settrace');
+  late final _py_sys_settrace =
+      _py_sys_settracePtr.asFunction<void Function(py_TraceFunc)>();
+
   /// Setup the callbacks for the current VM.
   ffi.Pointer<py_Callbacks> py_callbacks() {
     return _py_callbacks();
@@ -140,6 +146,41 @@ class PocketpyBindings {
           'py_callbacks');
   late final _py_callbacks =
       _py_callbacksPtr.asFunction<ffi.Pointer<py_Callbacks> Function()>();
+
+  /// Get the current source location of the frame.
+  ffi.Pointer<ffi.Char> py_Frame_sourceloc(
+    ffi.Pointer<py_Frame> frame,
+    ffi.Pointer<ffi.Int> lineno,
+  ) {
+    return _py_Frame_sourceloc(
+      frame,
+      lineno,
+    );
+  }
+
+  late final _py_Frame_sourcelocPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(ffi.Pointer<py_Frame>,
+              ffi.Pointer<ffi.Int>)>>('py_Frame_sourceloc');
+  late final _py_Frame_sourceloc = _py_Frame_sourcelocPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+          ffi.Pointer<py_Frame>, ffi.Pointer<ffi.Int>)>();
+
+  /// Get the function object of the frame.
+  /// Returns `NULL` if not available.
+  py_StackRef py_Frame_function(
+    ffi.Pointer<py_Frame> frame,
+  ) {
+    return _py_Frame_function(
+      frame,
+    );
+  }
+
+  late final _py_Frame_functionPtr =
+      _lookup<ffi.NativeFunction<py_StackRef Function(ffi.Pointer<py_Frame>)>>(
+          'py_Frame_function');
+  late final _py_Frame_function = _py_Frame_functionPtr
+      .asFunction<py_StackRef Function(ffi.Pointer<py_Frame>)>();
 
   /// Run a source string.
   /// @param source source string.
@@ -1474,6 +1515,18 @@ class PocketpyBindings {
   late final _py_inspect_currentmodule =
       _py_inspect_currentmodulePtr.asFunction<py_GlobalRef Function()>();
 
+  /// Get the current frame object.
+  /// Return `NULL` if not available.
+  ffi.Pointer<py_Frame> py_inspect_currentframe() {
+    return _py_inspect_currentframe();
+  }
+
+  late final _py_inspect_currentframePtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<py_Frame> Function()>>(
+          'py_inspect_currentframe');
+  late final _py_inspect_currentframe = _py_inspect_currentframePtr
+      .asFunction<ffi.Pointer<py_Frame> Function()>();
+
   /// Bind a function to the object via "decl-based" style.
   /// @param obj the target object.
   /// @param sig signature of the function. e.g. `add(x, y)`.
@@ -1828,9 +1881,10 @@ class PocketpyBindings {
       _py_pushmethodPtr.asFunction<bool Function(int)>();
 
   /// Call a callable object via pocketpy's calling convention.
-  /// You need to prepare the stack using this form: `callable, self/nil, arg1, arg2, ..., k1, v1, k2, v2, ...`
+  /// You need to prepare the stack using the following format:
+  /// `callable, self/nil, arg1, arg2, ..., k1, v1, k2, v2, ...`.
   /// `argc` is the number of positional arguments excluding `self`.
-  /// `kwargc` is the number of keyword arguments, i.e. the number of key-value pairs.
+  /// `kwargc` is the number of keyword arguments.
   /// The result will be set to `py_retval()`.
   /// The stack size will be reduced by `2 + argc + kwargc * 2`.
   bool py_vectorcall(
@@ -1947,7 +2001,7 @@ class PocketpyBindings {
   late final _py_exception =
       _py_exceptionPtr.asFunction<bool Function(int, ffi.Pointer<ffi.Char>)>();
 
-  /// Raise an expection object. Always return false.
+  /// Raise an exception object. Always return false.
   bool py_raise(
     py_Ref arg0,
   ) {
@@ -3013,6 +3067,16 @@ final class c11_sv extends ffi.Struct {
   external int size;
 }
 
+final class py_Frame extends ffi.Opaque {}
+
+/// An enum for tracing events.
+abstract class py_TraceEvent {
+  static const int TRACE_EVENT_LINE = 0;
+  static const int TRACE_EVENT_EXCEPTION = 1;
+  static const int TRACE_EVENT_PUSH = 2;
+  static const int TRACE_EVENT_POP = 3;
+}
+
 /// A struct contains the callbacks of the VM.
 final class py_Callbacks extends ffi.Struct {
   /// Used by `__import__` to load source code of a module.
@@ -3039,6 +3103,12 @@ abstract class py_CompileMode {
   static const int SINGLE_MODE = 2;
 }
 
+typedef py_TraceFunc = ffi.Pointer<
+    ffi.NativeFunction<ffi.Void Function(ffi.Pointer<py_Frame>, ffi.Int32)>>;
+
+/// A specific location in the value stack of the VM.
+typedef py_StackRef = ffi.Pointer<py_TValue>;
+
 /// A generic reference to a python object.
 typedef py_Ref = ffi.Pointer<py_TValue>;
 
@@ -3063,9 +3133,6 @@ typedef py_ObjectRef = ffi.Pointer<py_TValue>;
 /// @return `true` if the function is successful or `false` if an exception is raised.
 typedef py_CFunction = ffi.Pointer<
     ffi.NativeFunction<ffi.Bool Function(ffi.Int argc, py_StackRef argv)>>;
-
-/// A specific location in the value stack of the VM.
-typedef py_StackRef = ffi.Pointer<py_TValue>;
 
 /// An integer that represents a python identifier. This is to achieve string pooling and fast name
 /// resolution.
@@ -3092,9 +3159,9 @@ typedef py_ItemRef = ffi.Pointer<py_TValue>;
 /// %p: void*
 /// %t: py_Type
 /// %n: py_Name
-abstract class py_MagicNames {
+abstract class py_MagicName {
   /// 0 is reserved
-  static const int py_MagicNames__NULL = 0;
+  static const int py_MagicName__NULL = 0;
 
   /// math operators
   static const int __lt__ = 1;
@@ -3105,70 +3172,68 @@ abstract class py_MagicNames {
   /// //////////////////////////
   static const int __neg__ = 5;
   static const int __abs__ = 6;
-  static const int __float__ = 7;
-  static const int __int__ = 8;
-  static const int __round__ = 9;
-  static const int __divmod__ = 10;
+  static const int __round__ = 7;
+  static const int __divmod__ = 8;
 
   /// //////////////////////////
-  static const int __add__ = 11;
-  static const int __radd__ = 12;
-  static const int __sub__ = 13;
-  static const int __rsub__ = 14;
-  static const int __mul__ = 15;
-  static const int __rmul__ = 16;
-  static const int __truediv__ = 17;
-  static const int __rtruediv__ = 18;
-  static const int __floordiv__ = 19;
-  static const int __rfloordiv__ = 20;
-  static const int __mod__ = 21;
-  static const int __rmod__ = 22;
-  static const int __pow__ = 23;
-  static const int __rpow__ = 24;
-  static const int __matmul__ = 25;
-  static const int __lshift__ = 26;
-  static const int __rshift__ = 27;
-  static const int __and__ = 28;
-  static const int __or__ = 29;
-  static const int __xor__ = 30;
+  static const int __add__ = 9;
+  static const int __radd__ = 10;
+  static const int __sub__ = 11;
+  static const int __rsub__ = 12;
+  static const int __mul__ = 13;
+  static const int __rmul__ = 14;
+  static const int __truediv__ = 15;
+  static const int __rtruediv__ = 16;
+  static const int __floordiv__ = 17;
+  static const int __rfloordiv__ = 18;
+  static const int __mod__ = 19;
+  static const int __rmod__ = 20;
+  static const int __pow__ = 21;
+  static const int __rpow__ = 22;
+  static const int __matmul__ = 23;
+  static const int __lshift__ = 24;
+  static const int __rshift__ = 25;
+  static const int __and__ = 26;
+  static const int __or__ = 27;
+  static const int __xor__ = 28;
 
   /// //////////////////////////
-  static const int __repr__ = 31;
-  static const int __str__ = 32;
-  static const int __hash__ = 33;
-  static const int __len__ = 34;
-  static const int __iter__ = 35;
-  static const int __next__ = 36;
-  static const int __contains__ = 37;
-  static const int __bool__ = 38;
-  static const int __invert__ = 39;
+  static const int __repr__ = 29;
+  static const int __str__ = 30;
+  static const int __hash__ = 31;
+  static const int __len__ = 32;
+  static const int __iter__ = 33;
+  static const int __next__ = 34;
+  static const int __contains__ = 35;
+  static const int __bool__ = 36;
+  static const int __invert__ = 37;
 
   /// //////////////////////////
-  static const int __eq__ = 40;
-  static const int __ne__ = 41;
+  static const int __eq__ = 38;
+  static const int __ne__ = 39;
 
   /// indexer
-  static const int __getitem__ = 42;
-  static const int __setitem__ = 43;
-  static const int __delitem__ = 44;
+  static const int __getitem__ = 40;
+  static const int __setitem__ = 41;
+  static const int __delitem__ = 42;
 
   /// specials
-  static const int __new__ = 45;
-  static const int __init__ = 46;
-  static const int __call__ = 47;
-  static const int __enter__ = 48;
-  static const int __exit__ = 49;
-  static const int __name__ = 50;
-  static const int __all__ = 51;
-  static const int __package__ = 52;
-  static const int __path__ = 53;
-  static const int __class__ = 54;
-  static const int __getattr__ = 55;
-  static const int __reduce__ = 56;
-  static const int __missing__ = 57;
+  static const int __new__ = 43;
+  static const int __init__ = 44;
+  static const int __call__ = 45;
+  static const int __enter__ = 46;
+  static const int __exit__ = 47;
+  static const int __name__ = 48;
+  static const int __all__ = 49;
+  static const int __package__ = 50;
+  static const int __path__ = 51;
+  static const int __class__ = 52;
+  static const int __getattr__ = 53;
+  static const int __reduce__ = 54;
+  static const int __missing__ = 55;
 }
 
-abstract class py_PredefinedTypes {
+abstract class py_PredefinedType {
   static const int tp_nil = 0;
   static const int tp_object = 1;
 
@@ -3234,7 +3299,7 @@ abstract class py_PredefinedTypes {
   static const int tp_KeyboardInterrupt = 36;
   static const int tp_StopIteration = 37;
   static const int tp_SyntaxError = 38;
-  static const int tp_StackOverflowError = 39;
+  static const int tp_RecursionError = 39;
   static const int tp_OSError = 40;
   static const int tp_NotImplementedError = 41;
   static const int tp_TypeError = 42;
@@ -3264,19 +3329,19 @@ abstract class py_PredefinedTypes {
   static const int tp_chunked_array2d = 62;
 }
 
-const String PK_VERSION = '2.0.6';
+const String PK_VERSION = '2.0.7';
 
 const int PK_VERSION_MAJOR = 2;
 
 const int PK_VERSION_MINOR = 0;
 
-const int PK_VERSION_PATCH = 6;
+const int PK_VERSION_PATCH = 7;
 
 const int PK_LOW_MEMORY_MODE = 0;
 
 const int PK_ENABLE_OS = 1;
 
-const int PK_GC_MIN_THRESHOLD = 16384;
+const int PK_GC_MIN_THRESHOLD = 32768;
 
 const int PK_VM_STACK_SIZE = 16384;
 
