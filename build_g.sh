@@ -1,6 +1,6 @@
 set -e
 
-python prebuild.py
+# python prebuild.py
 
 SRC=$(find src/ -name "*.c")
 
