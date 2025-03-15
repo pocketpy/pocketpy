@@ -79,3 +79,12 @@ try:
     assert False
 except TypeError:
     assert True
+
+
+class A:
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+a = A(1, ['2', False, None])
+assert json.dumps(a.__dict__) == '{"a": 1, "b": ["2", false, null]}'

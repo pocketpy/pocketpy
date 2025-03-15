@@ -62,6 +62,15 @@ static bool json__write_dict_kv(py_Ref k, py_Ref v, void* ctx_) {
     return json__write_object(ctx->buf, v);
 }
 
+static bool json__write_namedict_kv(py_Name k, py_Ref v, void* ctx_) {
+    json__write_dict_kv_ctx* ctx = ctx_;
+    if(!ctx->first) c11_sbuf__write_cstr(ctx->buf, ", ");
+    ctx->first = false;
+    c11_sbuf__write_quoted(ctx->buf, py_name2sv(k), '"');
+    c11_sbuf__write_cstr(ctx->buf, ": ");
+    return json__write_object(ctx->buf, v);
+}
+
 static bool json__write_object(c11_sbuf* buf, py_TValue* obj) {
     switch(obj->type) {
         case tp_NoneType: c11_sbuf__write_cstr(buf, "null"); return true;
@@ -94,6 +103,14 @@ static bool json__write_object(c11_sbuf* buf, py_TValue* obj) {
             c11_sbuf__write_char(buf, '{');
             json__write_dict_kv_ctx ctx = {.buf = buf, .first = true};
             bool ok = py_dict_apply(obj, json__write_dict_kv, &ctx);
+            if(!ok) return false;
+            c11_sbuf__write_char(buf, '}');
+            return true;
+        }
+        case tp_namedict: {
+            c11_sbuf__write_char(buf, '{');
+            json__write_dict_kv_ctx ctx = {.buf = buf, .first = true};
+            bool ok = py_applydict(py_getslot(obj, 0), json__write_namedict_kv, &ctx);
             if(!ok) return false;
             c11_sbuf__write_char(buf, '}');
             return true;
