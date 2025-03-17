@@ -1,21 +1,25 @@
+# Function to check if all elements in an iterable are True
 def all(iterable):
     for i in iterable:
         if not i:
             return False
     return True
 
+# Function to check if any element in an iterable is True
 def any(iterable):
     for i in iterable:
         if i:
             return True
     return False
 
+# Function to yield pairs of index and element from an iterable, starting from a given index
 def enumerate(iterable, start=0):
     n = start
     for elem in iterable:
         yield n, elem
         n += 1
 
+# Helper function to reduce a list of arguments to a single value based on a comparison operation
 def __minmax_reduce(op, args):
     if len(args) == 2:  # min(1, 2)
         return args[0] if op(args[0], args[1]) else args[1]
@@ -37,29 +41,35 @@ def __minmax_reduce(op, args):
             res = i
     return res
 
+# Function to find the minimum value in a list of arguments, optionally using a key function
 def min(*args, key=None):
     key = key or (lambda x: x)
     return __minmax_reduce(lambda x,y: key(x)<key(y), args)
 
+# Function to find the maximum value in a list of arguments, optionally using a key function
 def max(*args, key=None):
     key = key or (lambda x: x)
     return __minmax_reduce(lambda x,y: key(x)>key(y), args)
 
+# Function to sum all elements in an iterable
 def sum(iterable):
     res = 0
     for i in iterable:
         res += i
     return res
 
+# Function to apply a function to each element of an iterable and yield the results
 def map(f, iterable):
     for i in iterable:
         yield f(i)
 
+# Function to filter elements of an iterable based on a predicate function
 def filter(f, iterable):
     for i in iterable:
         if f(i):
             yield i
 
+# Function to yield pairs of elements from two iterables
 def zip(a, b):
     a = iter(a)
     b = iter(b)
@@ -71,17 +81,20 @@ def zip(a, b):
             break
         yield ai, bi
 
+# Function to return a reversed version of an iterable
 def reversed(iterable):
     a = list(iterable)
     a.reverse()
     return a
 
+# Function to return a sorted version of an iterable, optionally using a key function and reverse flag
 def sorted(iterable, key=None, reverse=False):
     a = list(iterable)
     a.sort(key=key, reverse=reverse)
     return a
 
 ##### str #####
+# Function to format a string with given arguments and keyword arguments
 def __format_string(self: str, *args, **kwargs) -> str:
     def tokenizeString(s: str):
         tokens = []
@@ -195,6 +208,7 @@ str.format = __format_string
 del __format_string
 
 
+# Function to print the documentation of an object
 def help(obj):
     if hasattr(obj, '__func__'):
         obj = obj.__func__
@@ -202,10 +216,12 @@ def help(obj):
     if obj.__doc__:
         print(obj.__doc__)
 
+# Function to create a complex number
 def complex(real, imag=0):
     import cmath
     return cmath.complex(real, imag) # type: ignore
 
+# Function to return a list of attributes of an object
 def dir(obj) -> list[str]:
     tp_module = type(__import__('math'))
     if isinstance(obj, tp_module):
@@ -223,6 +239,7 @@ def dir(obj) -> list[str]:
         cls = cls.__base__
     return sorted(list(names))
 
+# Class to represent a set
 class set:
     def __init__(self, iterable=None):
         iterable = iterable or []
