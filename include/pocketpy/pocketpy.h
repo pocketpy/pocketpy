@@ -110,6 +110,10 @@ PK_API py_Callbacks* py_callbacks();
 
 /// Get the current source location of the frame.
 PK_API const char* py_Frame_sourceloc(py_Frame* frame, int* lineno);
+/// Python equivalent to `globals()` with respect to the given frame.
+PK_API void py_Frame_newglobals(py_Frame* frame, py_OutRef out);
+/// Python equivalent to `locals()` with respect to the given frame.
+PK_API void py_Frame_newlocals(py_Frame* frame, py_OutRef out);
 /// Get the function object of the frame.
 /// Returns `NULL` if not available.
 PK_API py_StackRef py_Frame_function(py_Frame* frame);

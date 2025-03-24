@@ -501,33 +501,12 @@ static bool builtins_locals(int argc, py_Ref argv) {
 
 void py_newglobals(py_Ref out) {
     py_Frame* frame = pk_current_vm->top_frame;
-    if(!frame) {
-        pk_mappingproxy__namedict(out, &pk_current_vm->main);
-        return;
-    }
-    if(frame->globals->type == tp_module) {
-        pk_mappingproxy__namedict(out, frame->globals);
-    } else {
-        *out = *frame->globals;  // dict
-    }
+    py_Frame_newglobals(frame, out);
 }
 
 void py_newlocals(py_Ref out) {
     py_Frame* frame = pk_current_vm->top_frame;
-    if(!frame) {
-        py_newdict(out);
-        return;
-    }
-    if(frame->is_locals_special) {
-        switch(frame->locals->type) {
-            case tp_locals: frame = frame->locals->_ptr; break;
-            case tp_dict: *out = *frame->locals; return;
-            case tp_nil: py_newdict(out); return;
-            default: c11__unreachable();
-        }
-    }
-    FastLocals__to_dict(frame->locals, frame->co);
-    py_assign(out, py_retval());
+    py_Frame_newlocals(frame, out);
 }
 
 static void pk_push_special_locals() {
