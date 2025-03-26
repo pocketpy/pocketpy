@@ -1,6 +1,4 @@
-<!-- 
-
-Note:
+<!-- Note:
 This site was created by modifying code pen https://codepen.io/antonmedv/pen/PoPoGwg
 written by 'Anton Medvedev' the license can be found bellow.
 
@@ -24,8 +22,7 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
--->
+DEALINGS IN THE SOFTWARE. -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -38,7 +35,7 @@ DEALINGS IN THE SOFTWARE.
   <script src="static/codejar/codejar.js"></script>
   <script src="static/codejar/linenumbers.js"></script>
   <script src="static/highlight.js/highlight.min.js"></script>
-  <link rel="stylesheet" href="static/highlight.js/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="static/highlight.js/github-dark-dimmed.min.css" id="highlight-theme">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
   <style>
@@ -48,7 +45,7 @@ DEALINGS IN THE SOFTWARE.
       display: block;
       overflow-x: auto;
       padding: .5em;
-      background: #282a36
+      background: #282a36;
     }
 
     .hljs-keyword,
@@ -56,12 +53,12 @@ DEALINGS IN THE SOFTWARE.
     .hljs-literal,
     .hljs-section,
     .hljs-link {
-      color: #73cbde
+      color: #73cbde;
     }
 
     .hljs,
     .hljs-subst {
-      color: #f8f8f2
+      color: #f8f8f2;
     }
 
     .hljs-string,
@@ -75,14 +72,14 @@ DEALINGS IN THE SOFTWARE.
     .hljs-variable,
     .hljs-template-tag,
     .hljs-template-variable {
-      color: #f1fa8c
+      color: #f1fa8c;
     }
 
     .hljs-comment,
     .hljs-quote,
     .hljs-deletion,
     .hljs-meta {
-      color: #6272a4
+      color: #6272a4;
     }
 
     .hljs-keyword,
@@ -94,15 +91,20 @@ DEALINGS IN THE SOFTWARE.
     .hljs-type,
     .hljs-name,
     .hljs-strong {
-      font-weight: bold
+      font-weight: bold;
     }
 
     .hljs-emphasis {
-      font-style: italic
+      font-style: italic;
     }
 
     :root {
       --window-width: 80%;
+      --editor-bg: #282a36;
+      --editor-text: #f8f8f2;
+      --output-bg: #282a36;
+      --output-text: #ffffff;
+      --editor-line-highlight: rgba(255, 255, 255, 0.07);
     }
 
     body {
@@ -184,6 +186,8 @@ DEALINGS IN THE SOFTWARE.
       padding: 10px;
       resize: none !important;
       tab-size: 4;
+      background-color: var(--editor-bg);
+      color: var(--editor-text);
     }
 
     #run-button {
@@ -191,6 +195,14 @@ DEALINGS IN THE SOFTWARE.
       padding-right: 10px;
       font-weight: bold;
       cursor: pointer;
+    }
+
+    #theme-toggle {
+      padding-left: 10px;
+      padding-right: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-right: 10px;
     }
 
     #code-editor.hljs {
@@ -201,10 +213,10 @@ DEALINGS IN THE SOFTWARE.
       font-family: "PT Mono", monospace;
       width: var(--window-width);
       min-height: 50px;
-      background-color: #282a36;
+      background-color: var(--output-bg);
       border-radius: 6px;
       padding: 10px;
-      color: white;
+      color: var(--output-text);
       margin: 0 !important;
     }
 
@@ -231,6 +243,57 @@ DEALINGS IN THE SOFTWARE.
       font-size: 16px;
       margin-bottom: 30px;
     }
+
+    /* VS Code Light+ theme styles */
+    .editor-light-theme {
+      --editor-bg: #FFFFFF;
+      --editor-text: #000000;
+      --output-bg: #FFFFFF;
+      --output-text: #000000;
+      --editor-line-highlight: rgba(0, 0, 0, 0.07);
+    }
+
+    .editor-light-theme .hljs {
+      background: #FFFFFF;
+      color: #000000;
+    }
+
+    /* Syntax colors matching VS Code Light+ */
+    .editor-light-theme .hljs-keyword,
+    .editor-light-theme .hljs-selector-tag,
+    .editor-light-theme .hljs-literal {
+      color: #0000FF; /* Blue for keywords */
+    }
+
+    .editor-light-theme .hljs-string {
+      color: #A31515; /* Maroon for strings */
+    }
+
+    .editor-light-theme .hljs-comment {
+      color: #008000; /* Green for comments */
+      font-style: italic;
+    }
+
+    .editor-light-theme .hljs-number {
+      color: #098658; /* Green for numbers */
+    }
+
+    .editor-light-theme .hljs-built_in,
+    .editor-light-theme .hljs-title {
+      color: #795E26; /* Brown for built-ins */
+    }
+
+    .editor-light-theme .hljs-params {
+      color: #001080; /* Dark blue for parameters */
+    }
+
+    .editor-light-theme .hljs-function {
+      color: #000000; /* Black for function names */
+    }
+
+    .editor-light-theme .hljs-meta {
+      color: #AF00DB; /* Purple for meta tags */
+    }
   </style>
 
   <title>Try Online</title>
@@ -244,6 +307,7 @@ DEALINGS IN THE SOFTWARE.
       <div class="window-header">
         <div class="action-buttons"></div>
         <div class="controls">
+          <div id="theme-toggle">Light</div>
           <div id="run-button">Run</div>
         </div>
       </div>
@@ -276,6 +340,9 @@ DEALINGS IN THE SOFTWARE.
     let code_editor = document.querySelector('#code-editor');
     let code_output = document.querySelector('#code-output');
     let run_button = document.querySelector('#run-button');
+    let themeToggle = document.querySelector('#theme-toggle');
+    let highlightTheme = document.querySelector('#highlight-theme');
+    let mainElement = document.querySelector('main');
 
     code_editor.textContent = '# A recursive fibonacci function.\ndef fib(n):\n  if n < 2:\n    return n\n  return fib(n-1) + fib(n-2)\n\n# Prints all fibonacci from 0 to 10 exclusive.\nfor i in range(10):\n  print(f"fib({i}) = {fib(i)}")\n';
 
@@ -285,7 +352,24 @@ DEALINGS IN THE SOFTWARE.
     });
 
     highlight(code_editor);
-    CodeJar(code_editor, highlight); //, { indentOn: /[(\[{:]$/});
+    CodeJar(code_editor, highlight);
+
+    // Theme toggle functionality
+    themeToggle.addEventListener('click', function() {
+      if (mainElement.classList.contains('editor-light-theme')) {
+        // Switch to dark theme
+        mainElement.classList.remove('editor-light-theme');
+        highlightTheme.href = 'static/highlight.js/github-dark-dimmed.min.css';
+        themeToggle.textContent = 'Light';
+      } else {
+        // Switch to light theme
+        mainElement.classList.add('editor-light-theme');
+        highlightTheme.href = 'static/highlight.js/vs.min.css'; // Changed to VS theme
+        themeToggle.textContent = 'Dark';
+      }
+      // Re-highlight the code with the new theme
+      highlight(code_editor);
+    });
 
     window.onload = function () {
       run_button.onclick = function () {
