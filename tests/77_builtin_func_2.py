@@ -172,13 +172,22 @@ class A:
     def __call__(self):
         pass
 
+    @staticmethod
+    def staticmethod():
+        pass
+
+    @classmethod
+    def classmethod(cls):
+        pass
+
 assert callable(A) is True      # type
 assert callable(A()) is True    # instance with __call__
 assert callable(A.__call__) is True  # bound method
 assert callable(A.__init__) is True  # bound method
 assert callable(print) is True  # builtin function
 assert callable(isinstance) is True  # builtin function
-
+assert callable(A.staticmethod) is True  # staticmethod
+assert callable(A.classmethod) is True  # classmethod
 
 assert id(0) is None
 assert id(2**62) is None
@@ -241,3 +250,8 @@ assert min([
 
 assert min(1, 2) == 1
 assert max(1, 2) == 2
+
+def fn(): pass
+assert repr(fn).startswith('<function fn at')
+
+assert repr(round) == '<nativefunc object>'

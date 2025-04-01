@@ -43,3 +43,9 @@ from math import (
     sin,
     cos
 )
+
+# test reload (dummy)
+import importlib
+importlib.reload(test2.a)
+
+assert __import__('math').pi > 3
