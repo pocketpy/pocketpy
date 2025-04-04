@@ -18,3 +18,5 @@ assert encoded.decode() == res
 
 decoded = base64.b64decode(encoded)
 assert decoded == data
+
+assert base64.b64decode('8J+llQ==') == '🥕'.encode()

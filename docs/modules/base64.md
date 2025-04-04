@@ -7,6 +7,6 @@ label: base64
 
 Encode bytes-like object `b` using the standard Base64 alphabet.
 
-### `base64.b64decode(b: bytes) -> bytes`
+### `base64.b64decode(b: str | bytes) -> bytes`
 
 Decode Base64 encoded bytes-like object `b`.

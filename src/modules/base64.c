@@ -178,9 +178,17 @@ static bool base64_b64encode(int argc, py_Ref argv) {
 
 static bool base64_b64decode(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    PY_CHECK_ARG_TYPE(0, tp_bytes);
     int src_size;
-    unsigned char* src_data = py_tobytes(argv, &src_size);
+    void* src_data;
+    if(py_istype(argv, tp_str)) {
+        c11_sv sv = py_tosv(argv);
+        src_data = (void*)sv.data;
+        src_size = sv.size;
+    } else if(py_istype(argv, tp_bytes)) {
+        src_data = py_tobytes(argv, &src_size);
+    } else {
+        return TypeError("expect bytes or str, got %t", argv->type);
+    }
     unsigned char* dst_data = py_newbytes(py_retval(), src_size);
     int size = base64_decode((const char*)src_data, src_size, dst_data);
     py_bytes_resize(py_retval(), size);
