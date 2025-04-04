@@ -232,6 +232,7 @@ void VM__ctor(VM* self) {
     pk__add_module_enum();
     pk__add_module_inspect();
     pk__add_module_pickle();
+    pk__add_module_base64();
     pk__add_module_importlib();
 
     pk__add_module_conio();
