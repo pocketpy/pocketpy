@@ -445,6 +445,11 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
 bool py_pickle_loads(const unsigned char* data, int size) {
     const unsigned char* p = data;
 
+    // \xf0\x9f\xa5\x95
+    if(size < 4 || p[0] != 240 || p[1] != 159 || p[2] != 165 || p[3] != 149)
+        return ValueError("invalid pickle data");
+    p += 4;
+
     c11_smallmap_n2i type_mapping;
     c11_smallmap_n2i__ctor(&type_mapping);
 
@@ -703,6 +708,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
 static bool PickleObject__py_submit(PickleObject* self, py_OutRef out) {
     c11_sbuf cleartext;
     c11_sbuf__ctor(&cleartext);
+    c11_sbuf__write_cstr(&cleartext, "\xf0\x9f\xa5\x95");
     // line 1: type mapping
     for(py_Type type = 0; type < self->used_types_length; type++) {
         if(self->used_types[type]) {
