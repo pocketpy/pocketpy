@@ -170,7 +170,7 @@ static bool base64_b64encode(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_bytes);
     int src_size;
     unsigned char* src_data = py_tobytes(argv, &src_size);
-    unsigned char* dst_data = py_newbytes(py_retval(), src_size * 2);
+    unsigned char* dst_data = py_newbytes(py_retval(), src_size * 4 / 3 + 4);
     int size = base64_encode(src_data, src_size, (char*)dst_data);
     py_bytes_resize(py_retval(), size);
     return true;
