@@ -55,6 +55,14 @@ static bool pkpy_memory_usage(int argc, py_Ref argv) {
     return true;
 }
 
+static bool pkpy_is_user_defined_type(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_type);
+    py_TypeInfo* ti = pk__type_info(py_totype(argv));
+    py_newbool(py_retval(), ti->is_python);
+    return true;
+}
+
 void pk__add_module_pkpy() {
     py_Ref mod = py_newmodule("pkpy");
 
@@ -90,6 +98,7 @@ void pk__add_module_pkpy() {
     py_pop();
 
     py_bindfunc(mod, "memory_usage", pkpy_memory_usage);
+    py_bindfunc(mod, "is_user_defined_type", pkpy_is_user_defined_type);
 }
 
 #undef DEF_TVALUE_METHODS
