@@ -616,7 +616,7 @@ PK_API bool py_repr(py_Ref val) PY_RAISE PY_RETURN;
 /// Python equivalent to `len(val)`.
 PK_API bool py_len(py_Ref val) PY_RAISE PY_RETURN;
 /// Python equivalent to `json.dumps(val)`.
-PK_API bool py_json_dumps(py_Ref val) PY_RAISE PY_RETURN;
+PK_API bool py_json_dumps(py_Ref val, int indent) PY_RAISE PY_RETURN;
 /// Python equivalent to `json.loads(val)`.
 PK_API bool py_json_loads(const char* source) PY_RAISE PY_RETURN;
 /// Python equivalent to `pickle.dumps(val)`.
