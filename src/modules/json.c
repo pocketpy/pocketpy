@@ -53,6 +53,10 @@ static void json__write_indent(c11_sbuf* buf, int n_spaces) {
 
 static bool json__write_array(c11_sbuf* buf, py_TValue* arr, int length, int indent, int depth) {
     c11_sbuf__write_char(buf, '[');
+    if(length == 0) {
+        c11_sbuf__write_char(buf, ']');
+        return true;
+    }
     if(indent > 0) c11_sbuf__write_char(buf, '\n');
     int n_spaces = indent * depth;
     const char* sep = indent > 0 ? ",\n" : ", ";
@@ -125,6 +129,10 @@ static bool json__write_object(c11_sbuf* buf, py_TValue* obj, int indent, int de
         }
         case tp_dict: {
             c11_sbuf__write_char(buf, '{');
+            if(py_dict_len(obj) == 0) {
+                c11_sbuf__write_char(buf, '}');
+                return true;
+            }
             if(indent > 0) c11_sbuf__write_char(buf, '\n');
             json__write_dict_kv_ctx ctx = {.buf = buf,
                                            .first = true,
@@ -140,13 +148,18 @@ static bool json__write_object(c11_sbuf* buf, py_TValue* obj, int indent, int de
             return true;
         }
         case tp_namedict: {
+            py_Ref original = py_getslot(obj, 0);
             c11_sbuf__write_char(buf, '{');
+            if(PyObject__dict(original->_obj)->length == 0) {
+                c11_sbuf__write_char(buf, '}');
+                return true;
+            }
             if(indent > 0) c11_sbuf__write_char(buf, '\n');
             json__write_dict_kv_ctx ctx = {.buf = buf,
                                            .first = true,
                                            .indent = indent,
                                            .depth = depth + 1};
-            bool ok = py_applydict(py_getslot(obj, 0), json__write_namedict_kv, &ctx);
+            bool ok = py_applydict(original, json__write_namedict_kv, &ctx);
             if(!ok) return false;
             if(indent > 0) {
                 c11_sbuf__write_char(buf, '\n');
