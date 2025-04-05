@@ -217,7 +217,7 @@ static bool libhv_HttpClient__send_request(py_Ref arg_self,
             return ValueError("HttpClient: data and json cannot be set at the same time");
         }
 
-        if(!py_json_dumps(arg_json)) return false;
+        if(!py_json_dumps(arg_json, 0)) return false;
         req->body = py_tostr(py_retval());
         req->headers["Content-Type"] = "application/json";
     }

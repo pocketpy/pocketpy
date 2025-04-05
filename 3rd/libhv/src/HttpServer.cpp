@@ -136,7 +136,7 @@ static bool libhv_HttpServer_dispatch(int argc, py_Ref argv) {
                 break;
             }
             default: {
-                if(!py_json_dumps(object)) return false;
+                if(!py_json_dumps(object, 0)) return false;
                 c11_sv sv = py_tosv(py_retval());
                 ctx->response->String(std::string(sv.data, sv.size));
                 ctx->response->SetContentType(APPLICATION_JSON);
