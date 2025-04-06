@@ -24,6 +24,8 @@ Union = _PLACEHOLDER
 Optional = _PLACEHOLDER
 Callable = _PLACEHOLDER
 Type = _PLACEHOLDER
+TypeAlias = _PLACEHOLDER
+NewType = _PLACEHOLDER
 
 Literal = _PLACEHOLDER
 LiteralString = _PLACEHOLDER
@@ -39,9 +41,13 @@ Self = _PLACEHOLDER
 
 Protocol = object
 Generic = object
+Never = object
 
 TYPE_CHECKING = False
 
 # decorators
 overload = lambda x: x
 final = lambda x: x
+
+# exhaustiveness checking
+assert_never = lambda x: x
