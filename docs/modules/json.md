@@ -7,7 +7,7 @@ label: json
 
 Decode a JSON string into a python object.
 
-### `json.dumps(obj) -> str`
+### `json.dumps(obj, indent=0) -> str`
 
 Encode a python object into a JSON string.
 
