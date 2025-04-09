@@ -166,6 +166,42 @@ class PocketpyBindings {
       ffi.Pointer<ffi.Char> Function(
           ffi.Pointer<py_Frame>, ffi.Pointer<ffi.Int>)>();
 
+  /// Python equivalent to `globals()` with respect to the given frame.
+  void py_Frame_newglobals(
+    ffi.Pointer<py_Frame> frame,
+    py_OutRef out,
+  ) {
+    return _py_Frame_newglobals(
+      frame,
+      out,
+    );
+  }
+
+  late final _py_Frame_newglobalsPtr = _lookup<
+          ffi
+          .NativeFunction<ffi.Void Function(ffi.Pointer<py_Frame>, py_OutRef)>>(
+      'py_Frame_newglobals');
+  late final _py_Frame_newglobals = _py_Frame_newglobalsPtr
+      .asFunction<void Function(ffi.Pointer<py_Frame>, py_OutRef)>();
+
+  /// Python equivalent to `locals()` with respect to the given frame.
+  void py_Frame_newlocals(
+    ffi.Pointer<py_Frame> frame,
+    py_OutRef out,
+  ) {
+    return _py_Frame_newlocals(
+      frame,
+      out,
+    );
+  }
+
+  late final _py_Frame_newlocalsPtr = _lookup<
+          ffi
+          .NativeFunction<ffi.Void Function(ffi.Pointer<py_Frame>, py_OutRef)>>(
+      'py_Frame_newlocals');
+  late final _py_Frame_newlocals = _py_Frame_newlocalsPtr
+      .asFunction<void Function(ffi.Pointer<py_Frame>, py_OutRef)>();
+
   /// Get the function object of the frame.
   /// Returns `NULL` if not available.
   py_StackRef py_Frame_function(
@@ -2225,7 +2261,7 @@ class PocketpyBindings {
   /// Call a function.
   /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
   /// The result will be set to `py_retval()`.
-  /// The stack remains unchanged after the operation.
+  /// The stack remains unchanged if successful.
   bool py_call(
     py_Ref f,
     int argc,
@@ -2306,16 +2342,19 @@ class PocketpyBindings {
   /// Python equivalent to `json.dumps(val)`.
   bool py_json_dumps(
     py_Ref val,
+    int indent,
   ) {
     return _py_json_dumps(
       val,
+      indent,
     );
   }
 
   late final _py_json_dumpsPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>('py_json_dumps');
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, ffi.Int)>>(
+          'py_json_dumps');
   late final _py_json_dumps =
-      _py_json_dumpsPtr.asFunction<bool Function(py_Ref)>();
+      _py_json_dumpsPtr.asFunction<bool Function(py_Ref, int)>();
 
   /// Python equivalent to `json.loads(val)`.
   bool py_json_loads(
@@ -3106,14 +3145,14 @@ abstract class py_CompileMode {
 typedef py_TraceFunc = ffi.Pointer<
     ffi.NativeFunction<ffi.Void Function(ffi.Pointer<py_Frame>, ffi.Int32)>>;
 
+/// An output reference for returning a value.
+typedef py_OutRef = ffi.Pointer<py_TValue>;
+
 /// A specific location in the value stack of the VM.
 typedef py_StackRef = ffi.Pointer<py_TValue>;
 
 /// A generic reference to a python object.
 typedef py_Ref = ffi.Pointer<py_TValue>;
-
-/// An output reference for returning a value.
-typedef py_OutRef = ffi.Pointer<py_TValue>;
 
 /// A global reference which has the same lifespan as the VM.
 typedef py_GlobalRef = ffi.Pointer<py_TValue>;
@@ -3329,13 +3368,13 @@ abstract class py_PredefinedType {
   static const int tp_chunked_array2d = 62;
 }
 
-const String PK_VERSION = '2.0.7';
+const String PK_VERSION = '2.0.8';
 
 const int PK_VERSION_MAJOR = 2;
 
 const int PK_VERSION_MINOR = 0;
 
-const int PK_VERSION_PATCH = 7;
+const int PK_VERSION_PATCH = 8;
 
 const int PK_LOW_MEMORY_MODE = 0;
 
