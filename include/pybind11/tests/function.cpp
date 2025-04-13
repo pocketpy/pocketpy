@@ -195,6 +195,18 @@ TEST_F(PYBIND11_TEST, overload) {
 
     EXPECT_EVAL_EQ("cal(1, 2)", 3);
     EXPECT_EVAL_EQ("cal(1, 2, 3)", 6);
+
+    struct Point {
+        static int sum(int x) { return x; }
+
+        static int sum(int x, int y) { return x + y; }
+    };
+
+    py::class_<Point>(m, "Point")
+        .def_static("sum", py::overload_cast<int>(&Point::sum))
+        .def_static("sum", py::overload_cast<int, int>(&Point::sum));
+    EXPECT_EVAL_EQ("Point.sum(1)", 1);
+    EXPECT_EVAL_EQ("Point.sum(1, 2)", 3);
 }
 
 TEST_F(PYBIND11_TEST, return_value_policy) {
@@ -399,4 +411,3 @@ TEST_F(PYBIND11_TEST, overload_cast) {
 }
 
 }  // namespace
-

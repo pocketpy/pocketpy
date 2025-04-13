@@ -591,10 +591,8 @@ class property : public object {
         object(type::of<property>()(getter, setter)) {}
 };
 
-class staticmethod : public object {
-    PKBIND_TYPE_IMPL(object, staticmethod, tp_staticmethod);
-
-    staticmethod(handle method) : object(type::of<staticmethod>()(method)) {}
+class staticmethod : public cpp_function {
+    PKBIND_TYPE_IMPL(cpp_function, staticmethod, tp_staticmethod);
 };
 
 namespace impl {
@@ -619,8 +617,7 @@ void bind_function(handle obj, const char* name_, Fn&& fn, const Extras&... extr
             py_setdict(
                 obj.ptr(),
                 name,
-                staticmethod(cpp_function(is_method, name_, std::forward<Fn>(fn), extras...).ptr())
-                    .ptr());
+                staticmethod(is_method, name_, std::forward<Fn>(fn), extras...).ptr());
         } else {
             if constexpr(has_named_args && is_method) {
                 py_setdict(
