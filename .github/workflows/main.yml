@@ -24,7 +24,7 @@ jobs:
       run: |
         python amalgamate.py
         cd amalgamated
-        cl.exe /std:c11 /utf-8 /Ox /I. pocketpy.c main.c /link /out:pkpy.exe
+        cl.exe /std:c11 /experimental:c11atomics /utf-8 /Ox /I. pocketpy.c main.c /link /out:pkpy.exe
   build_win32:
     runs-on: windows-latest
     steps:
