@@ -138,3 +138,7 @@ Frame: 3
 Frame: 4
 World Generation Complete 3 10000 10
 ```
+
+`ComputeThread` used `pickle` module to serialize the data between threads.
+So parameters and return values must be supported by `pickle`.
+See [pickle](https://pocketpy.dev/modules/pickle/) for more details.
