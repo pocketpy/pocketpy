@@ -81,7 +81,7 @@ PyObject* ManagedHeap__gcnew(ManagedHeap* self, py_Type type, int slots, int uds
     PyObject* obj;
     // header + slots + udsize
     int size = sizeof(PyObject) + PK_OBJ_SLOTS_SIZE(slots) + udsize;
-    if(!PK_LOW_MEMORY_MODE && size <= kPoolMaxBlockSize) {
+    if(size <= kPoolMaxBlockSize) {
         obj = MultiPool__alloc(&self->small_objects, size);
         assert(obj != NULL);
     } else {
