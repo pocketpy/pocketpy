@@ -73,7 +73,7 @@ It is safe to use `main` branch in production if CI badge is green.
 To compile it with your project, these flags must be set:
 
 + `--std=c11` flag must be set
-+ For MSVC, `/utf-8` flag must be set
++ For MSVC, `/utf-8` and `/experimental:c11atomics` flag must be set
 + `NDEBUG` macro should be defined for release build, or you will get poor performance
 
 For amalgamated build, run `python amalgamate.py` to generate `pocketpy.c` and `pocketpy.h` in `amalgamated/` directory.
