@@ -7,8 +7,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 
-#include <threads.h>
-#include <stdatomic.h>
+#include "pocketpy/common/threads.h"
 
 #define DEF_TVALUE_METHODS(T, Field)                                                               \
     static bool TValue_##T##__new__(int argc, py_Ref argv) {                                       \
@@ -108,7 +107,7 @@ typedef struct c11_ComputeThread {
     int last_retval_size;
     char* last_error;
 
-    thrd_t thread;
+    c11_thrd_t thread;
     void* job;
     void (*job_dtor)(void*);
 } c11_ComputeThread;
@@ -130,6 +129,8 @@ static void c11_ComputeThread__dtor(c11_ComputeThread* self) {
         c11__abort("ComputeThread(%d) is not done yet!! But the object was deleted.",
                    self->vm_index);
     }
+    if(self->last_retval_data) PK_FREE(self->last_retval_data);
+    if(self->last_error) PK_FREE(self->last_error);
     c11_ComputeThread__reset_job(self, NULL, NULL);
     _pk_compute_thread_flags[self->vm_index] = false;
 }
@@ -189,7 +190,7 @@ static bool ComputeThread_join(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_ComputeThread* self = py_touserdata(argv);
     while(!self->is_done)
-        thrd_yield();
+        c11_thrd_yield();
     py_newnone(py_retval());
     return true;
 }
@@ -214,7 +215,7 @@ static bool ComputeThread_last_retval(int argc, py_Ref argv) {
     return py_pickle_loads(self->last_retval_data, self->last_retval_size);
 }
 
-static int ComputeThreadJob_call(void* arg) {
+static c11_thrd_retval_t ComputeThreadJob_call(void* arg) {
     ComputeThreadJobCall* job = arg;
     c11_ComputeThread* self = job->self;
     c11_ComputeThread__on_job_begin(self);
@@ -238,17 +239,17 @@ static int ComputeThreadJob_call(void* arg) {
     self->last_retval_data = c11_memdup(retval_data, retval_size);
     self->last_retval_size = retval_size;
     self->is_done = true;
-    return 0;
+    return (c11_thrd_retval_t)0;
 
 __ERROR:
     self->last_error = py_formatexc();
     self->is_done = true;
     py_clearexc(p0);
     py_newnone(py_retval());
-    return 0;
+    return (c11_thrd_retval_t)0;
 }
 
-static int ComputeThreadJob_exec(void* arg) {
+static c11_thrd_retval_t ComputeThreadJob_exec(void* arg) {
     ComputeThreadJobExec* job = arg;
     c11_ComputeThread* self = job->self;
     c11_ComputeThread__on_job_begin(self);
@@ -261,13 +262,13 @@ static int ComputeThreadJob_exec(void* arg) {
     self->last_retval_data = c11_memdup(retval_data, retval_size);
     self->last_retval_size = retval_size;
     self->is_done = true;
-    return 0;
+    return (c11_thrd_retval_t)0;
 
 __ERROR:
     self->last_error = py_formatexc();
     self->is_done = true;
     py_clearexc(p0);
-    return 0;
+    return (c11_thrd_retval_t)0;
 }
 
 static bool ComputeThread_exec(int argc, py_Ref argv) {
@@ -284,8 +285,8 @@ static bool ComputeThread_exec(int argc, py_Ref argv) {
     c11_ComputeThread__reset_job(self, job, ComputeThreadJobExec__dtor);
     /**************************/
     self->is_done = false;
-    int res = thrd_create(&self->thread, ComputeThreadJob_exec, job);
-    if(res != thrd_success) {
+    bool ok = c11_thrd_create(&self->thread, ComputeThreadJob_exec, job);
+    if(!ok) {
         self->is_done = true;
         return OSError("thrd_create() failed");
     }
@@ -307,8 +308,8 @@ static bool ComputeThread_eval(int argc, py_Ref argv) {
     c11_ComputeThread__reset_job(self, job, ComputeThreadJobExec__dtor);
     /**************************/
     self->is_done = false;
-    int res = thrd_create(&self->thread, ComputeThreadJob_exec, job);
-    if(res != thrd_success) {
+    bool ok = c11_thrd_create(&self->thread, ComputeThreadJob_exec, job);
+    if(!ok) {
         self->is_done = true;
         return OSError("thrd_create() failed");
     }
@@ -344,8 +345,8 @@ static bool ComputeThread_call(int argc, py_Ref argv) {
     c11_ComputeThread__reset_job(self, job, ComputeThreadJobCall__dtor);
     /**************************/
     self->is_done = false;
-    int res = thrd_create(&self->thread, ComputeThreadJob_call, job);
-    if(res != thrd_success) {
+    bool ok = c11_thrd_create(&self->thread, ComputeThreadJob_call, job);
+    if(!ok) {
         self->is_done = true;
         return OSError("thrd_create() failed");
     }
