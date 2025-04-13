@@ -348,6 +348,20 @@ int c11__u32_to_u8(uint32_t utf32_char, char utf8_output[4]) {
     return length;
 }
 
+char* c11_strdup(const char* str){
+    int len = strlen(str);
+    char* dst = PK_MALLOC(len + 1);
+    memcpy(dst, str, len);
+    dst[len] = '\0';
+    return dst;
+}
+
+unsigned char* c11_memdup(const unsigned char* src, int size) {
+    unsigned char* dst = PK_MALLOC(size);
+    memcpy(dst, src, size);
+    return dst;
+}
+
 IntParsingResult c11__parse_uint(c11_sv text, int64_t* out, int base) {
     *out = 0;
 

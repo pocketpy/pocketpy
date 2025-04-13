@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, Literal
 from linalg import vec2, vec2i
 
 class TValue[T]:
@@ -17,3 +17,22 @@ def memory_usage() -> str:
 
 def is_user_defined_type(t: type) -> bool:
     """Check if a type is user-defined. This means the type was created by executing python `class` statement."""
+
+def currentvm() -> int:
+    """Return the current VM index."""
+
+
+class ComputeThread:
+    def __init__(self, vm_index: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]): ...
+
+    @property
+    def is_done(self) -> bool: ...
+
+    def join(self) -> None: ...
+
+    def last_error(self) -> str | None: ...
+    def last_retval(self): ...
+
+    def exec(self, source: str) -> None: ...
+    def eval(self, source: str) -> None: ...
+    def call(self, eval_src: str, *args, **kwargs) -> None: ...

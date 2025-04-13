@@ -68,6 +68,9 @@ int c11__u8_header(unsigned char c, bool suppress);
 int c11__u8_value(int u8bytes, const char* data);
 int c11__u32_to_u8(uint32_t utf32_char, char utf8_output[4]);
 
+char* c11_strdup(const char* str);
+unsigned char* c11_memdup(const unsigned char* data, int size);
+
 typedef enum IntParsingResult {
     IntParsing_SUCCESS,
     IntParsing_FAILURE,
