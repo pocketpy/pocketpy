@@ -5,7 +5,7 @@ thread_1 = ComputeThread(1)
 thread_2 = ComputeThread(2)
 
 for t in [thread_1, thread_2]:
-    t.exec('''
+    t.exec_blocked('''
 def func(a):
     from pkpy import currentvm
     print("Hello from thread", currentvm(), "a =", a)
@@ -13,10 +13,13 @@ def func(a):
         if i % 100000 == 0:
             print(i, "from thread", currentvm())
     return a
+                   
+x = 123
 ''')
-    
-thread_1.wait_for_done()
-thread_2.wait_for_done()
+assert thread_1.eval_blocked('x') == 123
+
+# thread_1.wait_for_done()
+# thread_2.wait_for_done()
 
 thread_1.call('func', [1, 2, 3])
 thread_2.call('func', [4, 5, 6])
