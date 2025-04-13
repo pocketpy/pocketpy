@@ -15,8 +15,8 @@ def func(a):
     return a
 ''')
     
-thread_1.join()
-thread_2.join()
+thread_1.wait_for_done()
+thread_2.wait_for_done()
 
 thread_1.call('func', [1, 2, 3])
 thread_2.call('func', [4, 5, 6])

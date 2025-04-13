@@ -186,7 +186,7 @@ static bool ComputeThread_is_done(int argc, py_Ref argv) {
     return true;
 }
 
-static bool ComputeThread_join(int argc, py_Ref argv) {
+static bool ComputeThread_wait_for_done(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_ComputeThread* self = py_touserdata(argv);
     while(!self->is_done)
@@ -360,7 +360,7 @@ static void pk_ComputeThread__register(py_Ref mod) {
     py_bindmagic(type, __new__, ComputeThread__new__);
     py_bindmagic(type, __init__, ComputeThread__init__);
     py_bindproperty(type, "is_done", ComputeThread_is_done, NULL);
-    py_bindmethod(type, "join", ComputeThread_join);
+    py_bindmethod(type, "wait_for_done", ComputeThread_wait_for_done);
     py_bindmethod(type, "last_error", ComputeThread_last_error);
     py_bindmethod(type, "last_retval", ComputeThread_last_retval);
 
