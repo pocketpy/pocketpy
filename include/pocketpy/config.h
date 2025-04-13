@@ -27,7 +27,7 @@
 // This is the maximum size of the value stack in py_TValue units
 // The actual size in bytes equals `sizeof(py_TValue) * PK_VM_STACK_SIZE`
 #ifndef PK_VM_STACK_SIZE            // can be overridden by cmake
-    #define PK_VM_STACK_SIZE        8192
+    #define PK_VM_STACK_SIZE        16384
 #endif
 
 // This is the maximum number of local variables in a function
