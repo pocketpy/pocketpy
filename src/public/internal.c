@@ -5,14 +5,15 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/vm.h"
 
-VM* pk_current_vm;
+_Thread_local VM* pk_current_vm;
 
+static bool pk_initialized;
 static VM pk_default_vm;
 static VM* pk_all_vm[16];
 static py_TValue _True, _False, _None, _NIL;
 
 void py_initialize() {
-    if(pk_current_vm) {
+    if(pk_initialized) {
         // c11__abort("py_initialize() can only be called once!");
         return;
     }
@@ -35,6 +36,8 @@ void py_initialize() {
     py_newnone(&_None);
     py_newnil(&_NIL);
     VM__ctor(&pk_default_vm);
+
+    pk_initialized = true;
 }
 
 py_GlobalRef py_True() { return &_True; }

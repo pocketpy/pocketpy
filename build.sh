@@ -16,10 +16,11 @@ if [ $? -ne 0 ]; then
 fi
 
 SRC=$(find src/ -name "*.c")
+SRC2=${1:-src2/main.c}
 
 echo "> Compiling and linking source files... "
 
-clang -std=c11 -O2 -Wfatal-errors -Iinclude -DNDEBUG -o main src2/main.c $SRC -lm -ldl
+clang -std=c11 -O2 -Wfatal-errors -Iinclude -DNDEBUG -o main $SRC $SRC2 -lm -ldl
 
 if [ $? -eq 0 ]; then
     echo "Build completed. Type \"./main\" to enter REPL."

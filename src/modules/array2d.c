@@ -909,7 +909,10 @@ static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_
     if(!py_isnone(&self->context_builder)) {
         py_newvec2i(&data[0], pos);
         bool ok = py_call(&self->context_builder, 1, &data[0]);
-        if(!ok) return NULL;
+        if(!ok) {
+            PK_FREE(data);
+            return NULL;
+        }
         data[0] = *py_retval();
     } else {
         data[0] = *py_None();
@@ -1103,6 +1106,7 @@ static bool chunked_array2d__len__(int argc, py_Ref argv) {
 static bool chunked_array2d_clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_chunked_array2d* self = py_touserdata(argv);
+    c11__foreach(c11_chunked_array2d_chunks_KV, &self->chunks, p_kv) PK_FREE(p_kv->value);
     c11_chunked_array2d_chunks__clear(&self->chunks);
     self->last_visited.value = NULL;
     py_newnone(py_retval());
@@ -1166,9 +1170,16 @@ static bool chunked_array2d_remove_chunk(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_vec2i);
     c11_chunked_array2d* self = py_touserdata(argv);
     c11_vec2i pos = py_tovec2i(&argv[1]);
-    bool ok = c11_chunked_array2d_chunks__del(&self->chunks, pos);
-    self->last_visited.value = NULL;
-    py_newbool(py_retval(), ok);
+    py_TValue* data = c11_chunked_array2d_chunks__get(&self->chunks, pos, NULL);
+    if(data != NULL) {
+        PK_FREE(data);
+        bool ok = c11_chunked_array2d_chunks__del(&self->chunks, pos);
+        assert(ok);
+        self->last_visited.value = NULL;
+        py_newbool(py_retval(), ok);
+    } else {
+        py_newbool(py_retval(), false);
+    }
     return true;
 }
 

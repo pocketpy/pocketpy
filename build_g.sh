@@ -12,6 +12,8 @@ if [ "$(uname)" == "Darwin" ]; then
     SANITIZE_FLAGS="-fsanitize=address,undefined"
 fi
 
+SRC2=${1:-src2/main.c}
+
 echo "Compiling C files..."
-clang $FLAGS $SANITIZE_FLAGS $SRC src2/main.c -o main
+clang $FLAGS $SANITIZE_FLAGS $SRC $SRC2 -o main
 

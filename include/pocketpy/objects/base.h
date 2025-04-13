@@ -4,7 +4,7 @@
 
 typedef struct PyObject PyObject;
 typedef struct VM VM;
-extern VM* pk_current_vm;
+extern _Thread_local VM* pk_current_vm;
 
 typedef struct py_TValue {
     py_Type type;
