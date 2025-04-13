@@ -139,6 +139,15 @@ Frame: 4
 World Generation Complete 3 10000 10
 ```
 
-`ComputeThread` used `pickle` module to serialize the data between threads.
-So parameters and return values must be supported by `pickle`.
+`ComputeThread` uses `pickle` module to serialize the data between threads.
+Parameters and return values must be supported by `pickle`.
 See [pickle](https://pocketpy.dev/modules/pickle/) for more details.
+
+Since `ComputeThread` is backed by a separate `VM` instance,
+it does not share any state with the main thread
+except for the parameters you pass to it.
+Therefore, common python modules will be imported twice in each thread.
+
+If you want to identify which VM instance the module is running in,
+you can call `pkpy.currentvm` or let your `ComputeThread` set some special flags
+before importing these modules.
