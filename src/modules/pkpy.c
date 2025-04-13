@@ -271,7 +271,7 @@ __ERROR:
     return (c11_thrd_retval_t)0;
 }
 
-static bool ComputeThread_exec(int argc, py_Ref argv) {
+static bool ComputeThread_submit_exec(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_ComputeThread* self = py_touserdata(py_arg(0));
     if(!self->is_done) return OSError("thread is not done yet");
@@ -294,7 +294,7 @@ static bool ComputeThread_exec(int argc, py_Ref argv) {
     return true;
 }
 
-static bool ComputeThread_eval(int argc, py_Ref argv) {
+static bool ComputeThread_submit_eval(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_ComputeThread* self = py_touserdata(py_arg(0));
     if(!self->is_done) return OSError("thread is not done yet");
@@ -317,7 +317,7 @@ static bool ComputeThread_eval(int argc, py_Ref argv) {
     return true;
 }
 
-static bool ComputeThread_call(int argc, py_Ref argv) {
+static bool ComputeThread_submit_call(int argc, py_Ref argv) {
     PY_CHECK_ARGC(4);
     c11_ComputeThread* self = py_touserdata(py_arg(0));
     if(!self->is_done) return OSError("thread is not done yet");
@@ -383,7 +383,7 @@ __ERROR:
     return false;
 }
 
-static bool ComputeThread_exec_blocked(int argc, py_Ref argv) {
+static bool ComputeThread_exec(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_ComputeThread* self = py_touserdata(py_arg(0));
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -391,7 +391,7 @@ static bool ComputeThread_exec_blocked(int argc, py_Ref argv) {
     return c11_ComputeThread__exec_blocked(self, source, EXEC_MODE);
 }
 
-static bool ComputeThread_eval_blocked(int argc, py_Ref argv) {
+static bool ComputeThread_eval(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_ComputeThread* self = py_touserdata(py_arg(0));
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -409,12 +409,12 @@ static void pk_ComputeThread__register(py_Ref mod) {
     py_bindmethod(type, "last_error", ComputeThread_last_error);
     py_bindmethod(type, "last_retval", ComputeThread_last_retval);
 
+    py_bindmethod(type, "submit_exec", ComputeThread_submit_exec);
+    py_bindmethod(type, "submit_eval", ComputeThread_submit_eval);
+    py_bind(py_tpobject(type), "submit_call(self, eval_src, *args, **kwargs)", ComputeThread_submit_call);
+
     py_bindmethod(type, "exec", ComputeThread_exec);
     py_bindmethod(type, "eval", ComputeThread_eval);
-    py_bind(py_tpobject(type), "call(self, eval_src, *args, **kwargs)", ComputeThread_call);
-
-    py_bindmethod(type, "exec_blocked", ComputeThread_exec_blocked);
-    py_bindmethod(type, "eval_blocked", ComputeThread_eval_blocked);
 }
 
 void pk__add_module_pkpy() {

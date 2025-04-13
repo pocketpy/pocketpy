@@ -69,10 +69,10 @@ thread = ComputeThread(1)
 print("Game Start")
 
 # import worldgen.py
-thread.exec_blocked('from worldgen import gen_world')
+thread.exec('from worldgen import gen_world')
 
 print("Submit WorldGen Job")
-thread.call('gen_world', 3, (100, 100), 10)
+thread.submit_call('gen_world', 3, (100, 100), 10)
 
 # wait for worldgen to finish
 for i in range(1, 100000):
