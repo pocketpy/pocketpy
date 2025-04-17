@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     ###################################################
@@ -27,7 +27,7 @@ jobs:
       uses: mymindstorm/setup-emsdk@v12
       with:
         version: latest
-        actions-cache-folder: 'emsdk-cache'
+        actions-cache-folder: 'emsdk-cache-v2'
     - name: Compile
       run: |
         bash build_web.sh
