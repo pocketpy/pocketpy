@@ -6,7 +6,7 @@
 
 #include "pocketpy/config.h"
 #include "pocketpy/export.h"
-#include "pocketpy/linalg.h"
+#include "pocketpy/vmath.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -667,7 +667,7 @@ PK_API bool
 /// noexcept
 PK_API int py_dict_len(py_Ref self);
 
-/************* linalg module *************/
+/************* vmath module *************/
 void py_newvec2(py_OutRef out, c11_vec2);
 void py_newvec3(py_OutRef out, c11_vec3);
 void py_newvec2i(py_OutRef out, c11_vec2i);
@@ -761,7 +761,7 @@ enum py_PredefinedType {
     tp_ImportError,
     tp_AssertionError,
     tp_KeyError,
-    /* linalg */
+    /* vmath */
     tp_vec2,
     tp_vec3,
     tp_vec2i,

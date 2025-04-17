@@ -1,4 +1,4 @@
-from linalg import mat3x3, vec2, vec3, vec2i, vec3i
+from vmath import mat3x3, vec2, vec3, vec2i, vec3i
 import random
 import math
 

@@ -1,5 +1,5 @@
 from typing import Self, Literal
-from linalg import vec2, vec2i
+from vmath import vec2, vec2i
 
 class TValue[T]:
     def __new__(cls, value: T) -> Self: ...

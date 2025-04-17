@@ -1,5 +1,5 @@
 import array2d
-from linalg import vec2i
+from vmath import vec2i
 
 
 def on_builder(a:vec2i):

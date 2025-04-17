@@ -149,7 +149,7 @@ for t in LINALG_TYPES:
 _CONVERTERS['void'] = VoidConverter('void')
 _CONVERTERS['c11_array2d'] = StructConverter('c11_array2d', 'tp_array2d')
 
-def set_linalg_converter(T: str, py_T: str):
+def set_vmath_converter(T: str, py_T: str):
     assert py_T in LINALG_TYPES
     _CONVERTERS[T] = BuiltinVectorConverter(T, py_T)
 

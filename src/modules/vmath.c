@@ -1,4 +1,4 @@
-#include "pocketpy/linalg.h"
+#include "pocketpy/vmath.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/sstream.h"
@@ -1034,7 +1034,7 @@ static bool color32_ansi_bg(int argc, py_Ref argv) {
     return true;
 }
 
-static bool linalg_rgb(int argc, py_Ref argv) {
+static bool vmath_rgb(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -1048,7 +1048,7 @@ static bool linalg_rgb(int argc, py_Ref argv) {
     return true;
 }
 
-static bool linalg_rgba(int argc, py_Ref argv) {
+static bool vmath_rgba(int argc, py_Ref argv) {
     PY_CHECK_ARGC(4);
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -1077,8 +1077,8 @@ static bool color32_alpha_blend_STATIC(int argc, py_Ref argv) {
     return true;
 }
 
-void pk__add_module_linalg() {
-    py_Ref mod = py_newmodule("linalg");
+void pk__add_module_vmath() {
+    py_Ref mod = py_newmodule("vmath");
 
     py_Type vec2 = pk_newtype("vec2", tp_object, mod, NULL, false, true);
     py_Type vec3 = pk_newtype("vec3", tp_object, mod, NULL, false, true);
@@ -1263,8 +1263,8 @@ void pk__add_module_linalg() {
     py_bindmethod(color32, "to_vec3i", color32_to_vec3i);
     py_bindmethod(color32, "ansi_fg", color32_ansi_fg);
     py_bindmethod(color32, "ansi_bg", color32_ansi_bg);
-    py_bindfunc(mod, "rgb", linalg_rgb);
-    py_bindfunc(mod, "rgba", linalg_rgba);
+    py_bindfunc(mod, "rgb", vmath_rgb);
+    py_bindfunc(mod, "rgba", vmath_rgba);
     py_bindstaticmethod(color32, "alpha_blend", color32_alpha_blend_STATIC);
 }
 

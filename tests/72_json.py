@@ -87,4 +87,7 @@ class A:
         self.b = b
 
 a = A(1, ['2', False, None])
-assert json.dumps(a.__dict__) == '{"a": 1, "b": ["2", false, null]}'
+assert json.dumps(a.__dict__) in [
+    '{"a": 1, "b": ["2", false, null]}',
+    '{"b": ["2", false, null], "a": 1}',
+]

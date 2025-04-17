@@ -1,4 +1,4 @@
-from linalg import color32, rgb, rgba
+from vmath import color32, rgb, rgba
 
 a = color32(100, 200, 255, 120)
 assert a.r == 100

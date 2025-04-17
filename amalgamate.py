@@ -8,7 +8,7 @@ from typing import List, Dict
 assert os.system("python prebuild.py") == 0
 
 ROOT = 'include/pocketpy'
-PUBLIC_HEADERS = ['config.h', 'export.h', 'linalg.h', 'pocketpy.h']
+PUBLIC_HEADERS = ['config.h', 'export.h', 'vmath.h', 'pocketpy.h']
 
 COPYRIGHT = '''/*
  *  Copyright (c) 2025 blueloveTH

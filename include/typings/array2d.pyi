@@ -1,5 +1,5 @@
 from typing import Callable, Literal, overload, Iterator, Self
-from linalg import vec2i
+from vmath import vec2i
 
 Neighborhood = Literal['Moore', 'von Neumann']
 

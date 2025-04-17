@@ -1,5 +1,5 @@
 import colorcvt
-from linalg import vec3
+from vmath import vec3
 
 def oklch(expr: str) -> vec3:
     # oklch(82.33% 0.37 153)

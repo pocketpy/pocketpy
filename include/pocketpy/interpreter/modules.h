@@ -18,7 +18,7 @@ void pk__add_module_pickle();
 void pk__add_module_base64();
 void pk__add_module_importlib();
 
-void pk__add_module_linalg();
+void pk__add_module_vmath();
 void pk__add_module_array2d();
 void pk__add_module_colorcvt();
 
