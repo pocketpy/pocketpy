@@ -672,12 +672,14 @@ void py_newvec2(py_OutRef out, c11_vec2);
 void py_newvec3(py_OutRef out, c11_vec3);
 void py_newvec2i(py_OutRef out, c11_vec2i);
 void py_newvec3i(py_OutRef out, c11_vec3i);
+void py_newcolor32(py_OutRef out, c11_color32);
 c11_mat3x3* py_newmat3x3(py_OutRef out);
 c11_vec2 py_tovec2(py_Ref self);
 c11_vec3 py_tovec3(py_Ref self);
 c11_vec2i py_tovec2i(py_Ref self);
 c11_vec3i py_tovec3i(py_Ref self);
 c11_mat3x3* py_tomat3x3(py_Ref self);
+c11_color32 py_tocolor32(py_Ref self);
 
 /************* Others *************/
 
@@ -765,6 +767,7 @@ enum py_PredefinedType {
     tp_vec2i,
     tp_vec3i,
     tp_mat3x3,
+    tp_color32,
     /* array2d */
     tp_array2d_like,
     tp_array2d_like_iterator,

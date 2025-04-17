@@ -33,3 +33,13 @@ typedef union c11_mat3x3 {
     float m[3][3];
     float data[9];
 } c11_mat3x3;
+
+typedef union c11_color32 {
+    struct {
+        unsigned char r;
+        unsigned char g;
+        unsigned char b;
+        unsigned char a;
+    };
+    unsigned char data[4];
+} c11_color32;
