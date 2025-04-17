@@ -1015,22 +1015,28 @@ static bool color32__repr__(int argc, py_Ref argv) {
 }
 
 static bool color32_ansi_fg(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
+    PY_CHECK_ARGC(2);
     c11_color32 color = py_tocolor32(argv);
     c11_color32_premult(&color);
-    char buf[32];
-    int size = snprintf(buf, sizeof(buf), "\033[38;2;%d;%d;%dm", color.r, color.g, color.b);
-    py_newstrv(py_retval(), (c11_sv){buf, size});
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    c11_sv text = py_tosv(&argv[1]);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    pk_sprintf(&buf, "\x1b[38;2;%d;%d;%dm%v\x1b[0m", color.r, color.g, color.b, text);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 
 static bool color32_ansi_bg(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
+    PY_CHECK_ARGC(2);
     c11_color32 color = py_tocolor32(argv);
     c11_color32_premult(&color);
-    char buf[32];
-    int size = snprintf(buf, sizeof(buf), "\033[48;2;%d;%d;%dm", color.r, color.g, color.b);
-    py_newstrv(py_retval(), (c11_sv){buf, size});
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    c11_sv text = py_tosv(&argv[1]);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    pk_sprintf(&buf, "\x1b[48;2;%d;%d;%dm%v\x1b[0m", color.r, color.g, color.b, text);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 

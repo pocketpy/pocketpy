@@ -23,3 +23,7 @@ assert a != b
 assert repr(b) == 'color32(75, 150, 200, 200)'
 
 # assert color32.alpha_blend(a, b) == color32(86, 173, 225, 162)
+
+c = rgb(100, 200, 255)
+assert c.ansi_fg('xxx') == '\x1b[38;2;100;200;255mxxx\x1b[0m'
+assert c.ansi_bg('xxx') == '\x1b[48;2;100;200;255mxxx\x1b[0m'
