@@ -1,4 +1,4 @@
-from vmath import color32, rgb, rgba
+from vmath import color32, rgb, rgba, vec3i
 
 a = color32(100, 200, 255, 120)
 assert a.r == 100
@@ -21,6 +21,10 @@ assert a == a and b == b
 assert a != b
 
 assert repr(b) == 'color32(75, 150, 200, 200)'
+
+assert color32.from_vec3i(vec3i(100, 200, 255)) == rgb(100, 200, 255)
+alpha = a.a / 255
+assert a.to_vec3i() == vec3i(int(a.r * alpha), int(a.g * alpha), int(a.b * alpha))
 
 # assert color32.alpha_blend(a, b) == color32(86, 173, 225, 162)
 
