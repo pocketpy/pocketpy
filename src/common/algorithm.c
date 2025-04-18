@@ -15,7 +15,7 @@ static bool _stable_sort_merge(char* a,
         int res = f_lt(b, a, extra);
         // check error
         if(res == -1) return false;
-        if(res == 0) {  // !(b<a) -> (a>=b)
+        if(res == 0) {  // !(b<a) -> (b>=a) -> (a<=b)
             memcpy(r, a, elem_size);
             a += elem_size;
         } else {
