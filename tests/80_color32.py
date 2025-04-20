@@ -12,6 +12,7 @@ assert a.with_a(255).a == 255 and a.with_a(255).g == a.g
 
 assert a.to_hex() == '#64c8ff78'
 assert color32.from_hex('#64c8ff78') == a
+assert color32.from_hex('#64c8ff') == a.with_a(255)
 
 assert rgb(100, 200, 255) != a
 assert rgba(100, 200, 255, 120 / 255) == a

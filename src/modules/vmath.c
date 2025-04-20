@@ -896,7 +896,7 @@ static bool color32_from_hex_STATIC(int argc, py_Ref argv) {
     c11_color32 color;
     int res;
     if(hex.size == 7) {
-        res = scanf(hex.data, "#%2hhx%2hhx%2hhx", &color.r, &color.g, &color.b);
+        res = sscanf(hex.data, "#%2hhx%2hhx%2hhx", &color.r, &color.g, &color.b);
         if(res != 3) return ValueError("invalid hex color format");
         color.a = 255;
     } else {
