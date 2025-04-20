@@ -32,3 +32,5 @@ assert a.to_vec3i() == vec3i(int(a.r * alpha), int(a.g * alpha), int(a.b * alpha
 c = rgb(100, 200, 255)
 assert c.ansi_fg('xxx') == '\x1b[38;2;100;200;255mxxx\x1b[0m'
 assert c.ansi_bg('xxx') == '\x1b[48;2;100;200;255mxxx\x1b[0m'
+
+assert color32.alpha_blend(a, None) == a

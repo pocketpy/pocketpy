@@ -1071,6 +1071,12 @@ static bool vmath_rgba(int argc, py_Ref argv) {
 
 static bool color32_alpha_blend_STATIC(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
+    if(!py_checktype(&argv[0], tp_color32)) return false;
+    if(py_isnone(&argv[1])) {
+        py_assign(py_retval(), &argv[0]);
+        return true;
+    }
+    if(!py_checktype(&argv[1], tp_color32)) return false;
     c11_color32 src = py_tocolor32(&argv[0]);
     c11_color32 dst = py_tocolor32(&argv[1]);
     float alpha = src.a / 255.0f;
