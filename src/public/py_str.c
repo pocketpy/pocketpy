@@ -128,13 +128,9 @@ static bool str__add__(int argc, py_Ref argv) {
         py_newnotimplemented(py_retval());
     } else {
         c11_string* other = py_touserdata(&argv[1]);
-        int total_size = sizeof(c11_string) + self->size + other->size + 1;
-        c11_string* res = py_newobject(py_retval(), tp_str, 0, total_size);
-        res->size = self->size + other->size;
-        char* p = res->data;
+        char* p = py_newstrn(py_retval(), self->size + other->size);
         memcpy(p, self->data, self->size);
         memcpy(p + self->size, other->data, other->size);
-        p[res->size] = '\0';
     }
     return true;
 }
@@ -149,14 +145,10 @@ static bool str__mul__(int argc, py_Ref argv) {
         if(n <= 0) {
             py_newstr(py_retval(), "");
         } else {
-            int total_size = sizeof(c11_string) + self->size * n + 1;
-            c11_string* res = py_newobject(py_retval(), tp_str, 0, total_size);
-            res->size = self->size * n;
-            char* p = res->data;
+            char* p = py_newstrn(py_retval(), self->size * n);
             for(int i = 0; i < n; i++) {
                 memcpy(p + i * self->size, self->data, self->size);
             }
-            p[res->size] = '\0';
         }
     }
     return true;
@@ -249,30 +241,22 @@ DEF_STR_CMP_OP(__ge__, c11_sv__cmp, res >= 0)
 static bool str_lower(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_string* self = py_touserdata(&argv[0]);
-    int total_size = sizeof(c11_string) + self->size + 1;
-    c11_string* res = py_newobject(py_retval(), tp_str, 0, total_size);
-    res->size = self->size;
-    char* p = res->data;
+    char* p = py_newstrn(py_retval(), self->size);
     for(int i = 0; i < self->size; i++) {
         char c = self->data[i];
         p[i] = c >= 'A' && c <= 'Z' ? c + 32 : c;
     }
-    p[res->size] = '\0';
     return true;
 }
 
 static bool str_upper(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_string* self = py_touserdata(&argv[0]);
-    int total_size = sizeof(c11_string) + self->size + 1;
-    c11_string* res = py_newobject(py_retval(), tp_str, 0, total_size);
-    res->size = self->size;
-    char* p = res->data;
+    char* p = py_newstrn(py_retval(), self->size);
     for(int i = 0; i < self->size; i++) {
         char c = self->data[i];
         p[i] = c >= 'a' && c <= 'z' ? c - 32 : c;
     }
-    p[res->size] = '\0';
     return true;
 }
 
