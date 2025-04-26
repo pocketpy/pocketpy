@@ -34,14 +34,14 @@ typedef struct VM {
 
     py_Callbacks callbacks;
 
-    py_TValue ascii_literals[128+1];
+    py_TValue ascii_literals[128 + 1];
 
     py_TValue last_retval;
     py_TValue curr_exception;
 
     int recursion_depth;
     int max_recursion_depth;
-    
+
     bool is_curr_exc_handled;  // handled by try-except block but not cleared yet
 
     py_TValue reg[8];  // users' registers
@@ -64,10 +64,19 @@ void VM__dtor(VM* self);
 void VM__push_frame(VM* self, py_Frame* frame);
 void VM__pop_frame(VM* self);
 
-bool pk__parse_int_slice(py_Ref slice, int length, int* restrict start, int* restrict stop, int* restrict step);
+bool pk__parse_int_slice(py_Ref slice,
+                         int length,
+                         int* restrict start,
+                         int* restrict stop,
+                         int* restrict step);
 bool pk__normalize_index(int* index, int length);
 
-#define pk__mark_value(val) if((val)->is_ptr && !(val)->_obj->gc_marked) PyObject__mark((val)->_obj)
+#define pk__mark_value(val)                                                                        \
+    if((val)->is_ptr && !(val)->_obj->gc_marked) {                                                 \
+        PyObject* obj = (val)->_obj;                                                               \
+        obj->gc_marked = true;                                                                     \
+        c11_vector__push(PyObject*, p_stack, obj);                                                 \
+    }
 
 bool pk__object_new(int argc, py_Ref argv);
 py_TypeInfo* pk__type_info(py_Type type);

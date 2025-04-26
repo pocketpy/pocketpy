@@ -606,84 +606,30 @@ void PyObject__dtor(PyObject* self) {
     if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
 }
 
-void PyObject__mark(PyObject* obj) {
-    assert(!obj->gc_marked);
-
-    obj->gc_marked = true;
-
-    if(obj->slots > 0) {
-        py_TValue* p = PyObject__slots(obj);
-        for(int i = 0; i < obj->slots; i++)
-            pk__mark_value(p + i);
-    } else if(obj->slots == -1) {
-        NameDict* namedict = PyObject__dict(obj);
-        for(int i = 0; i < namedict->length; i++) {
-            NameDict_KV* kv = c11__at(NameDict_KV, namedict, i);
-            pk__mark_value(&kv->value);
-        }
-    }
-
-    void* ud = PyObject__userdata(obj);
-    switch(obj->type) {
-        case tp_list: {
-            List* self = ud;
-            for(int i = 0; i < self->length; i++) {
-                pk__mark_value(c11__at(py_TValue, self, i));
-            }
-            break;
-        }
-        case tp_dict: {
-            Dict* self = ud;
-            for(int i = 0; i < self->entries.length; i++) {
-                DictEntry* entry = c11__at(DictEntry, &self->entries, i);
-                if(py_isnil(&entry->key)) continue;
-                pk__mark_value(&entry->key);
-                pk__mark_value(&entry->val);
-            }
-            break;
-        }
-        case tp_generator: {
-            Generator* self = ud;
-            if(self->frame) Frame__gc_mark(self->frame);
-            break;
-        }
-        case tp_function: {
-            function__gc_mark(ud);
-            break;
-        }
-        case tp_code: {
-            CodeObject* self = ud;
-            CodeObject__gc_mark(self);
-            break;
-        }
-        case tp_chunked_array2d: {
-            c11_chunked_array2d__mark(ud);
-        }
-        default: return;
-    }
-}
-
-void FuncDecl__gc_mark(const FuncDecl* self) {
-    CodeObject__gc_mark(&self->code);
+void FuncDecl__gc_mark(const FuncDecl* self, c11_vector* p_stack) {
+    CodeObject__gc_mark(&self->code, p_stack);
     for(int j = 0; j < self->kwargs.length; j++) {
         FuncDeclKwArg* kw = c11__at(FuncDeclKwArg, &self->kwargs, j);
         pk__mark_value(&kw->value);
     }
 }
 
-void CodeObject__gc_mark(const CodeObject* self) {
+void CodeObject__gc_mark(const CodeObject* self, c11_vector* p_stack) {
     for(int i = 0; i < self->consts.length; i++) {
         py_TValue* p = c11__at(py_TValue, &self->consts, i);
         pk__mark_value(p);
     }
     for(int i = 0; i < self->func_decls.length; i++) {
         FuncDecl_ decl = c11__getitem(FuncDecl_, &self->func_decls, i);
-        FuncDecl__gc_mark(decl);
+        FuncDecl__gc_mark(decl, p_stack);
     }
 }
 
 void ManagedHeap__mark(ManagedHeap* self) {
     VM* vm = pk_current_vm;
+    c11_vector* p_stack = &self->gc_roots;
+    assert(p_stack->length == 0);
+
     // mark value stack
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
         pk__mark_value(p);
@@ -693,7 +639,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
         pk__mark_value(&vm->ascii_literals[i]);
     }
     // mark modules
-    ModuleDict__apply_mark(&vm->modules);
+    ModuleDict__apply_mark(&vm->modules, p_stack);
     // mark types
     int types_length = vm->types.length;
     // 0-th type is placeholder
@@ -720,7 +666,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
     }
     // mark frame
     for(py_Frame* frame = vm->top_frame; frame; frame = frame->f_back) {
-        Frame__gc_mark(frame);
+        Frame__gc_mark(frame, p_stack);
     }
     // mark vm's registers
     pk__mark_value(&vm->last_retval);
@@ -732,6 +678,66 @@ void ManagedHeap__mark(ManagedHeap* self) {
     for(int i = 0; i < vm->names.r_interned.length; i++) {
         RInternedEntry* entry = c11__at(RInternedEntry, &vm->names.r_interned, i);
         pk__mark_value(&entry->obj);
+    }
+
+    /*****************************/
+    while(p_stack->length > 0) {
+        PyObject* obj = c11_vector__back(PyObject*, p_stack);
+        c11_vector__pop(p_stack);
+
+        assert(obj->gc_marked);
+
+        if(obj->slots > 0) {
+            py_TValue* p = PyObject__slots(obj);
+            for(int i = 0; i < obj->slots; i++)
+                pk__mark_value(p + i);
+        } else if(obj->slots == -1) {
+            NameDict* namedict = PyObject__dict(obj);
+            for(int i = 0; i < namedict->length; i++) {
+                NameDict_KV* kv = c11__at(NameDict_KV, namedict, i);
+                pk__mark_value(&kv->value);
+            }
+        }
+
+        void* ud = PyObject__userdata(obj);
+        switch(obj->type) {
+            case tp_list: {
+                List* self = ud;
+                for(int i = 0; i < self->length; i++) {
+                    py_TValue* val = c11__at(py_TValue, self, i);
+                    pk__mark_value(val);
+                }
+                break;
+            }
+            case tp_dict: {
+                Dict* self = ud;
+                for(int i = 0; i < self->entries.length; i++) {
+                    DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+                    if(py_isnil(&entry->key)) continue;
+                    pk__mark_value(&entry->key);
+                    pk__mark_value(&entry->val);
+                }
+                break;
+            }
+            case tp_generator: {
+                Generator* self = ud;
+                if(self->frame) Frame__gc_mark(self->frame, p_stack);
+                break;
+            }
+            case tp_function: {
+                function__gc_mark(ud, p_stack);
+                break;
+            }
+            case tp_code: {
+                CodeObject* self = ud;
+                CodeObject__gc_mark(self, p_stack);
+                break;
+            }
+            case tp_chunked_array2d: {
+                c11_chunked_array2d__mark(ud, p_stack);
+                break;
+            }
+        }
     }
 }
 

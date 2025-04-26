@@ -7,6 +7,7 @@
 void ManagedHeap__ctor(ManagedHeap* self) {
     MultiPool__ctor(&self->small_objects);
     c11_vector__ctor(&self->large_objects, sizeof(PyObject*));
+    c11_vector__ctor(&self->gc_roots, sizeof(PyObject*));
 
     for(int i = 0; i < c11__count_array(self->freed_ma); i++) {
         self->freed_ma[i] = PK_GC_MIN_THRESHOLD;
@@ -26,6 +27,7 @@ void ManagedHeap__dtor(ManagedHeap* self) {
         PK_FREE(obj);
     }
     c11_vector__dtor(&self->large_objects);
+    c11_vector__dtor(&self->gc_roots);
 }
 
 void ManagedHeap__collect_if_needed(ManagedHeap* self) {

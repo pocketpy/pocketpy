@@ -89,7 +89,7 @@ typedef struct CodeObject {
 void CodeObject__ctor(CodeObject* self, SourceData_ src, c11_sv name);
 void CodeObject__dtor(CodeObject* self);
 int CodeObject__add_varname(CodeObject* self, py_Name name);
-void CodeObject__gc_mark(const CodeObject* self);
+void CodeObject__gc_mark(const CodeObject* self, c11_vector* p_stack);
 
 typedef struct FuncDeclKwArg {
     int index;        // index in co->varnames
@@ -122,7 +122,7 @@ void FuncDecl__add_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value);
 void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name);
-void FuncDecl__gc_mark(const FuncDecl* self);
+void FuncDecl__gc_mark(const FuncDecl* self, c11_vector* p_stack);
 
 // runtime function
 typedef struct Function {

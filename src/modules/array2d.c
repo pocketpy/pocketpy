@@ -1222,7 +1222,7 @@ void c11_chunked_array2d__dtor(c11_chunked_array2d* self) {
     c11_chunked_array2d_chunks__dtor(&self->chunks);
 }
 
-void c11_chunked_array2d__mark(void* ud) {
+void c11_chunked_array2d__mark(void* ud, c11_vector* p_stack) {
     c11_chunked_array2d* self = ud;
     pk__mark_value(&self->default_T);
     pk__mark_value(&self->context_builder);

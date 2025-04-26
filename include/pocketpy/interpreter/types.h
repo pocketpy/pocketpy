@@ -24,5 +24,5 @@ typedef struct {
 
 typedef c11_vector List;
 
-void c11_chunked_array2d__mark(void* ud);
-void function__gc_mark(void* ud);
+void c11_chunked_array2d__mark(void* ud, c11_vector* p_stack);
+void function__gc_mark(void* ud, c11_vector* p_stack);

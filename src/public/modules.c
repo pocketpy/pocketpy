@@ -759,7 +759,7 @@ py_TValue pk_builtins__register() {
     return *builtins;
 }
 
-void function__gc_mark(void* ud) {
+void function__gc_mark(void* ud, c11_vector* p_stack) {
     Function* func = ud;
     if(func->globals) pk__mark_value(func->globals);
     if(func->closure) {
@@ -769,7 +769,7 @@ void function__gc_mark(void* ud) {
             pk__mark_value(&kv->value);
         }
     }
-    FuncDecl__gc_mark(func->decl);
+    FuncDecl__gc_mark(func->decl, p_stack);
 }
 
 static bool function__doc__(int argc, py_Ref argv) {

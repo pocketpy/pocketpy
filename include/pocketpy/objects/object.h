@@ -24,4 +24,4 @@ void* PyObject__userdata(PyObject* self);
 #define PK_OBJ_SLOTS_SIZE(slots) ((slots) >= 0 ? sizeof(py_TValue) * (slots) : sizeof(NameDict))
 
 void PyObject__dtor(PyObject* self);
-void PyObject__mark(PyObject* self);
+

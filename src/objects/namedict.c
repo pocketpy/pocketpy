@@ -75,8 +75,12 @@ bool ModuleDict__contains(ModuleDict* self, const char* path) {
     return ModuleDict__try_get(self, path) != NULL;
 }
 
-void ModuleDict__apply_mark(ModuleDict *self) {
-    if(!self->module._obj->gc_marked) PyObject__mark(self->module._obj);
-    if(self->left) ModuleDict__apply_mark(self->left);
-    if(self->right) ModuleDict__apply_mark(self->right);
+void ModuleDict__apply_mark(ModuleDict* self, c11_vector* p_stack) {
+    PyObject* obj = self->module._obj;
+    if(!obj->gc_marked) {
+        obj->gc_marked = true;
+        c11_vector__push(PyObject*, p_stack, obj);
+    }
+    if(self->left) ModuleDict__apply_mark(self->left, p_stack);
+    if(self->right) ModuleDict__apply_mark(self->right, p_stack);
 }

@@ -68,5 +68,5 @@ int Frame__prepare_jump_exception_handler(py_Frame* self, ValueStack*);
 UnwindTarget* Frame__find_unwind_target(py_Frame* self, int iblock);
 void Frame__set_unwind_target(py_Frame* self, py_TValue* sp);
 
-void Frame__gc_mark(py_Frame* self);
+void Frame__gc_mark(py_Frame* self, c11_vector* p_stack);
 SourceLocation Frame__source_location(py_Frame* self);

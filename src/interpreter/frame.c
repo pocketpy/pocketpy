@@ -114,10 +114,10 @@ void Frame__set_unwind_target(py_Frame* self, py_TValue* sp) {
     }
 }
 
-void Frame__gc_mark(py_Frame* self) {
+void Frame__gc_mark(py_Frame* self, c11_vector* p_stack) {
     pk__mark_value(self->globals);
     if(self->is_locals_special) pk__mark_value(self->locals);
-    CodeObject__gc_mark(self->co);
+    CodeObject__gc_mark(self->co, p_stack);
 }
 
 int Frame__lineno(const py_Frame* self) {
