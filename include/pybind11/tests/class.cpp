@@ -45,6 +45,12 @@ public:
     std::string stringfy() const {
         return "(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ")";
     }
+
+    void set_pointer(Point* p) {
+        this->x = p->x;
+        this->y = p->y;
+        this->z = p->z;
+    }
 };
 
 struct Line {
@@ -60,7 +66,8 @@ TEST_F(PYBIND11_TEST, class) {
         .def_readwrite("x", &Point::x)
         .def_readwrite("y", &Point::y)
         .def_property("z", &Point::get_z, &Point::set_z)
-        .def("stringfy", &Point::stringfy);
+        .def("stringfy", &Point::stringfy)
+        .def("set_pointer", &Point::set_pointer);
 
     py::exec(R"(
 p = Point()
@@ -74,6 +81,8 @@ p.x = 10
 p.y = 20
 p.z = 30
 assert p.stringfy() == '(10, 20, 30)'
+p.set_pointer(Point(4,5,6))
+assert p.stringfy() == '(4, 5, 6)'
 )");
 
     py::class_<Line> line(m, "Line");
