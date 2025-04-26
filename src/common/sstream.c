@@ -11,7 +11,7 @@
 
 void c11_sbuf__ctor(c11_sbuf* self) {
     c11_vector__ctor(&self->data, sizeof(char));
-    c11_vector__reserve(&self->data, sizeof(c11_string) + 100);
+    c11_vector__reserve(&self->data, sizeof(c11_string) + 64);
     self->data.length = sizeof(c11_string);
 }
 

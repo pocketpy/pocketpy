@@ -9,6 +9,13 @@ bool py_isidentical(py_Ref lhs, py_Ref rhs) {
         case tp_int: return lhs->_i64 == rhs->_i64;
         case tp_float: return lhs->_f64 == rhs->_f64;
         case tp_bool: return lhs->_bool == rhs->_bool;
+        case tp_str: {
+            if(lhs->is_ptr && rhs->is_ptr) {
+                return lhs->_obj == rhs->_obj;
+            } else {
+                return strcmp(lhs->_chars, rhs->_chars) == 0;
+            }
+        }
         case tp_nativefunc: return lhs->_cfunc == rhs->_cfunc;
         case tp_NoneType: return true;
         case tp_NotImplementedType: return true;

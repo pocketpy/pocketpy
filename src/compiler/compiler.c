@@ -63,7 +63,6 @@ typedef struct Ctx {
     bool is_compiling_class;
     c11_vector /*T=Expr* */ s_expr;
     c11_smallmap_n2i global_names;
-    c11_smallmap_s2n co_consts_string_dedup_map;
 } Ctx;
 
 typedef struct Expr Expr;
@@ -1081,7 +1080,6 @@ static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
     self->is_compiling_class = false;
     c11_vector__ctor(&self->s_expr, sizeof(Expr*));
     c11_smallmap_n2i__ctor(&self->global_names);
-    c11_smallmap_s2n__ctor(&self->co_consts_string_dedup_map);
 }
 
 static void Ctx__dtor(Ctx* self) {
@@ -1091,7 +1089,6 @@ static void Ctx__dtor(Ctx* self) {
     }
     c11_vector__dtor(&self->s_expr);
     c11_smallmap_n2i__dtor(&self->global_names);
-    c11_smallmap_s2n__dtor(&self->co_consts_string_dedup_map);
 }
 
 static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break) {
@@ -1201,19 +1198,10 @@ static int Ctx__add_varname(Ctx* self, py_Name name) {
 }
 
 static int Ctx__add_const_string(Ctx* self, c11_sv key) {
-    uint16_t* val = c11_smallmap_s2n__try_get(&self->co_consts_string_dedup_map, key);
-    if(val) {
-        return *val;
-    } else {
-        py_TValue tmp;
-        py_newstrv(&tmp, key);
-        c11_vector__push(py_TValue, &self->co->consts, tmp);
-        int index = self->co->consts.length - 1;
-        c11_smallmap_s2n__set(&self->co_consts_string_dedup_map,
-                              c11_string__sv(PyObject__userdata(tmp._obj)),
-                              index);
-        return index;
-    }
+    py_Ref p = c11_vector__emplace(&self->co->consts);
+    py_newstrv(p, key);
+    int index = self->co->consts.length - 1;
+    return index;
 }
 
 static int Ctx__add_const(Ctx* self, py_Ref v) {

@@ -13,6 +13,8 @@ typedef struct c11_string {
     char data[];  // flexible array member
 } c11_string;
 
+c11_string* pk_tostr(py_Ref self);
+
 /* bytes */
 typedef struct c11_bytes {
     int size;

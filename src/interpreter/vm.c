@@ -59,7 +59,7 @@ void VM__ctor(VM* self) {
     self->top_frame = NULL;
     InternedNames__ctor(&self->names);
 
-    ModuleDict__ctor(&self->modules, NULL, *py_NIL());
+    ModuleDict__ctor(&self->modules, "", *py_NIL());
     TypeList__ctor(&self->types);
 
     self->builtins = *py_NIL();
@@ -88,12 +88,6 @@ void VM__ctor(VM* self) {
     ValueStack__ctor(&self->stack);
 
     /* Init Builtin Types */
-    for(int i = 0; i < 128; i++) {
-        char* p = py_newstrn(&self->ascii_literals[i], 1);
-        *p = i;
-    }
-    py_newstrn(&self->ascii_literals[128], 0);  // empty string
-
     // 0: unused
     void* placeholder = TypeList__emplace(&self->types);
     memset(placeholder, 0, sizeof(py_TypeInfo));
@@ -633,10 +627,6 @@ void ManagedHeap__mark(ManagedHeap* self) {
     // mark value stack
     for(py_TValue* p = vm->stack.begin; p != vm->stack.end; p++) {
         pk__mark_value(p);
-    }
-    // mark ascii literals
-    for(int i = 0; i < c11__count_array(vm->ascii_literals); i++) {
-        pk__mark_value(&vm->ascii_literals[i]);
     }
     // mark modules
     ModuleDict__apply_mark(&vm->modules, p_stack);

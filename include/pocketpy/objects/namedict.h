@@ -14,7 +14,7 @@
 
 /* A simple binary tree for storing modules. */
 typedef struct ModuleDict {
-    const char* path;
+    char path[PK_MAX_MODULE_PATH_LEN + 1];
     py_TValue module;
     struct ModuleDict* left;
     struct ModuleDict* right;

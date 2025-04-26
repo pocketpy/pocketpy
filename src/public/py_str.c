@@ -9,6 +9,13 @@
 void py_newstr(py_Ref out, const char* data) { py_newstrv(out, (c11_sv){data, strlen(data)}); }
 
 char* py_newstrn(py_Ref out, int size) {
+    if(size < 8) {
+        out->type = tp_str;
+        out->is_ptr = false;
+        c11_string* ud = (c11_string*)(&out->extra);
+        c11_string__ctor3(ud, size);
+        return ud->data;
+    }
     ManagedHeap* heap = &pk_current_vm->heap;
     int total_size = sizeof(c11_string) + size + 1;
     PyObject* obj = ManagedHeap__gcnew(heap, tp_str, 0, total_size);
@@ -21,17 +28,6 @@ char* py_newstrn(py_Ref out, int size) {
 }
 
 void py_newstrv(py_OutRef out, c11_sv sv) {
-    if(sv.size == 0) {
-        *out = pk_current_vm->ascii_literals[128];
-        return;
-    }
-    if(sv.size == 1) {
-        int c = sv.data[0];
-        if(c >= 0 && c < 128) {
-            *out = pk_current_vm->ascii_literals[c];
-            return;
-        }
-    }
     char* data = py_newstrn(out, sv.size);
     memcpy(data, sv.data, sv.size);
 }
@@ -58,22 +54,25 @@ unsigned char* py_newbytes(py_Ref out, int size) {
     return ud->data;
 }
 
-const char* py_tostr(py_Ref self) {
+c11_string* pk_tostr(py_Ref self) {
     assert(self->type == tp_str);
-    c11_string* ud = PyObject__userdata(self->_obj);
-    return ud->data;
+    if(!self->is_ptr) {
+        return (c11_string*)(&self->extra);
+    } else {
+        return PyObject__userdata(self->_obj);
+    }
 }
 
+const char* py_tostr(py_Ref self) { return pk_tostr(self)->data; }
+
 const char* py_tostrn(py_Ref self, int* size) {
-    assert(self->type == tp_str);
-    c11_string* ud = PyObject__userdata(self->_obj);
+    c11_string* ud = pk_tostr(self);
     *size = ud->size;
     return ud->data;
 }
 
 c11_sv py_tosv(py_Ref self) {
-    assert(self->type == tp_str);
-    c11_string* ud = PyObject__userdata(self->_obj);
+    c11_string* ud = pk_tostr(self);
     return c11_string__sv(ud);
 }
 
@@ -116,18 +115,18 @@ static bool str__hash__(int argc, py_Ref argv) {
 
 static bool str__len__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     py_newint(py_retval(), c11_sv__u8_length((c11_sv){self->data, self->size}));
     return true;
 }
 
 static bool str__add__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     if(py_arg(1)->type != tp_str) {
         py_newnotimplemented(py_retval());
     } else {
-        c11_string* other = py_touserdata(&argv[1]);
+        c11_string* other = pk_tostr(&argv[1]);
         char* p = py_newstrn(py_retval(), self->size + other->size);
         memcpy(p, self->data, self->size);
         memcpy(p + self->size, other->data, other->size);
@@ -137,7 +136,7 @@ static bool str__add__(int argc, py_Ref argv) {
 
 static bool str__mul__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     if(py_arg(1)->type != tp_int) {
         py_newnotimplemented(py_retval());
     } else {
@@ -158,11 +157,11 @@ static bool str__rmul__(int argc, py_Ref argv) { return str__mul__(argc, argv); 
 
 static bool str__contains__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     if(py_arg(1)->type != tp_str) {
         py_newnotimplemented(py_retval());
     } else {
-        c11_string* other = py_touserdata(&argv[1]);
+        c11_string* other = pk_tostr(&argv[1]);
         const char* p = strstr(self->data, other->data);
         py_newbool(py_retval(), p != NULL);
     }
@@ -194,7 +193,7 @@ static bool str__iter__(int argc, py_Ref argv) {
 
 static bool str__getitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    c11_sv self = c11_string__sv(pk_tostr(&argv[0]));
     py_Ref _1 = py_arg(1);
     if(_1->type == tp_int) {
         int index = py_toint(py_arg(1));
@@ -218,11 +217,11 @@ static bool str__getitem__(int argc, py_Ref argv) {
 #define DEF_STR_CMP_OP(op, __f, __cond)                                                            \
     static bool str##op(int argc, py_Ref argv) {                                                   \
         PY_CHECK_ARGC(2);                                                                          \
-        c11_string* self = py_touserdata(&argv[0]);                                                \
+        c11_string* self = pk_tostr(&argv[0]);                                                     \
         if(py_arg(1)->type != tp_str) {                                                            \
             py_newnotimplemented(py_retval());                                                     \
         } else {                                                                                   \
-            c11_string* other = py_touserdata(&argv[1]);                                           \
+            c11_string* other = pk_tostr(&argv[1]);                                                \
             int res = __f(c11_string__sv(self), c11_string__sv(other));                            \
             py_newbool(py_retval(), __cond);                                                       \
         }                                                                                          \
@@ -240,7 +239,7 @@ DEF_STR_CMP_OP(__ge__, c11_sv__cmp, res >= 0)
 
 static bool str_lower(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     char* p = py_newstrn(py_retval(), self->size);
     for(int i = 0; i < self->size; i++) {
         char c = self->data[i];
@@ -251,7 +250,7 @@ static bool str_lower(int argc, py_Ref argv) {
 
 static bool str_upper(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     char* p = py_newstrn(py_retval(), self->size);
     for(int i = 0; i < self->size; i++) {
         char c = self->data[i];
@@ -262,25 +261,25 @@ static bool str_upper(int argc, py_Ref argv) {
 
 static bool str_startswith(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
-    c11_string* other = py_touserdata(&argv[1]);
+    c11_string* other = pk_tostr(&argv[1]);
     py_newbool(py_retval(), c11_sv__startswith(c11_string__sv(self), c11_string__sv(other)));
     return true;
 }
 
 static bool str_endswith(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
-    c11_string* other = py_touserdata(&argv[1]);
+    c11_string* other = pk_tostr(&argv[1]);
     py_newbool(py_retval(), c11_sv__endswith(c11_string__sv(self), c11_string__sv(other)));
     return true;
 }
 
 static bool str_join(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_sv self = c11_string__sv(py_touserdata(argv));
+    c11_sv self = c11_string__sv(pk_tostr(argv));
 
     if(!py_iter(py_arg(1))) return false;
     py_push(py_retval());  // iter
@@ -302,7 +301,7 @@ static bool str_join(int argc, py_Ref argv) {
             c11_sbuf__dtor(&buf);
             return false;
         }
-        c11_string* item = py_touserdata(py_retval());
+        c11_string* item = pk_tostr(py_retval());
         c11_sbuf__write_cstrn(&buf, item->data, item->size);
         first = false;
     }
@@ -314,11 +313,11 @@ static bool str_join(int argc, py_Ref argv) {
 
 static bool str_replace(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
     PY_CHECK_ARG_TYPE(2, tp_str);
-    c11_string* old = py_touserdata(&argv[1]);
-    c11_string* new_ = py_touserdata(&argv[2]);
+    c11_string* old = pk_tostr(&argv[1]);
+    c11_string* new_ = pk_tostr(&argv[2]);
     c11_string* res =
         c11_sv__replace2(c11_string__sv(self), c11_string__sv(old), c11_string__sv(new_));
     py_newstrv(py_retval(), (c11_sv){res->data, res->size});
@@ -327,7 +326,7 @@ static bool str_replace(int argc, py_Ref argv) {
 }
 
 static bool str_split(int argc, py_Ref argv) {
-    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    c11_sv self = c11_string__sv(pk_tostr(&argv[0]));
     c11_vector res;
     bool discard_empty = false;
     if(argc > 2) return TypeError("split() takes at most 2 arguments");
@@ -339,7 +338,7 @@ static bool str_split(int argc, py_Ref argv) {
     if(argc == 2) {
         // sep = argv[1]
         if(!py_checkstr(&argv[1])) return false;
-        c11_sv sep = c11_string__sv(py_touserdata(&argv[1]));
+        c11_sv sep = c11_string__sv(pk_tostr(&argv[1]));
         if(sep.size == 0) return ValueError("empty separator");
         res = c11_sv__split2(self, sep);
     }
@@ -355,22 +354,22 @@ static bool str_split(int argc, py_Ref argv) {
 
 static bool str_count(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
-    c11_string* sub = py_touserdata(&argv[1]);
+    c11_string* sub = pk_tostr(&argv[1]);
     int res = c11_sv__count(c11_string__sv(self), c11_string__sv(sub));
     py_newint(py_retval(), res);
     return true;
 }
 
 static bool str__strip_impl(bool left, bool right, int argc, py_Ref argv) {
-    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    c11_sv self = c11_string__sv(pk_tostr(&argv[0]));
     c11_sv chars;
     if(argc == 1) {
         chars = (c11_sv){" \t\n\r", 4};
     } else if(argc == 2) {
         if(!py_checkstr(&argv[1])) return false;
-        chars = c11_string__sv(py_touserdata(&argv[1]));
+        chars = c11_string__sv(pk_tostr(&argv[1]));
     } else {
         return TypeError("strip() takes at most 2 arguments");
     }
@@ -387,7 +386,7 @@ static bool str_rstrip(int argc, py_Ref argv) { return str__strip_impl(false, tr
 
 static bool str_zfill(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    c11_sv self = c11_string__sv(pk_tostr(&argv[0]));
     PY_CHECK_ARG_TYPE(1, tp_int);
     int width = py_toint(py_arg(1));
     int delta = width - c11_sv__u8_length(self);
@@ -412,12 +411,12 @@ static bool str__widthjust_impl(bool left, int argc, py_Ref argv) {
         pad = ' ';
     } else {
         if(!py_checkstr(&argv[2])) return false;
-        c11_string* padstr = py_touserdata(&argv[2]);
+        c11_string* padstr = pk_tostr(&argv[2]);
         if(padstr->size != 1)
             return TypeError("The fill character must be exactly one character long");
         pad = padstr->data[0];
     }
-    c11_sv self = c11_string__sv(py_touserdata(&argv[0]));
+    c11_sv self = c11_string__sv(pk_tostr(&argv[0]));
     PY_CHECK_ARG_TYPE(1, tp_int);
     int width = py_toint(py_arg(1));
     if(width <= self.size) {
@@ -452,9 +451,9 @@ static bool str_find(int argc, py_Ref argv) {
         PY_CHECK_ARG_TYPE(2, tp_int);
         start = py_toint(py_arg(2));
     }
-    c11_string* self = py_touserdata(&argv[0]);
+    c11_string* self = pk_tostr(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
-    c11_string* sub = py_touserdata(&argv[1]);
+    c11_string* sub = pk_tostr(&argv[1]);
     int res = c11_sv__index2(c11_string__sv(self), c11_string__sv(sub), start);
     py_newint(py_retval(), res);
     return true;

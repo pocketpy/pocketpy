@@ -21,5 +21,6 @@ typedef struct py_TValue {
         c11_vec2i _vec2i;
         c11_color32 _color32;
         void* _ptr;
+        char _chars[8];
     };
 } py_TValue;
