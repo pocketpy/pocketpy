@@ -280,7 +280,7 @@ void invoke(Fn&& fn,
 
     if constexpr(is_member_function_pointer) {
         // helper function to unpack the arguments to call the member pointer
-        auto unpack = [&](class_type_t<underlying_type>& self, auto&... args) {
+        auto unpack = [&](class_type_t<underlying_type>& self, auto&&... args) {
             return (self.*fn)(args...);
         };
 
