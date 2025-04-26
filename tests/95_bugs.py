@@ -143,3 +143,9 @@ class A:
     x: list[int] = [i for i in range(1, 4)]
 
 assert A.x == [1, 2, 3]
+
+# stable sort
+a = [(0, 1), (1, 1), (1, 2)]
+b = sorted(a, key=lambda x: x[0])
+if b != [(0, 1), (1, 1), (1, 2)]:
+    assert False, b

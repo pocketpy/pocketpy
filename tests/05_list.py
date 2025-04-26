@@ -88,7 +88,7 @@ assert list(range(5, 1, -2)) == [5, 3]
 # test sort
 a = [8, 2, 4, 2, 9]
 assert a.sort() == None
-assert a == [2, 2, 4, 8, 9]
+assert (a == [2, 2, 4, 8, 9]), a
 
 a = []
 assert a.sort() == None

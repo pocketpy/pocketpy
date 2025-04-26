@@ -1,5 +1,5 @@
 from array2d import array2d
-from linalg import vec2i
+from vmath import vec2i
 
 def exit_on_error():
     raise KeyboardInterrupt

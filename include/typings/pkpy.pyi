@@ -1,5 +1,5 @@
 from typing import Self, Literal
-from linalg import vec2, vec2i
+from vmath import vec2, vec2i
 
 class TValue[T]:
     def __new__(cls, value: T) -> Self: ...
@@ -35,9 +35,17 @@ class ComputeThread:
     def last_error(self) -> str | None: ...
     def last_retval(self): ...
 
-    def exec(self, source: str) -> None: ...
-    def eval(self, source: str) -> None: ...
-    def call(self, eval_src: str, *args, **kwargs) -> None: ...
+    def submit_exec(self, source: str) -> None:
+        """Submit a job to execute some source code."""
 
-    def exec_blocked(self, source: str) -> None: ...
-    def eval_blocked(self, source: str): ...
+    def submit_eval(self, source: str) -> None:
+        """Submit a job to evaluate some source code."""
+
+    def submit_call(self, eval_src: str, *args, **kwargs) -> None:
+        """Submit a job to call a function with arguments."""
+
+    def exec(self, source: str) -> None:
+        """Directly execute some source code."""
+
+    def eval(self, source: str):
+        """Directly evaluate some source code."""

@@ -1,3 +1,4 @@
+#include "pocketpy/vmath.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/sstream.h"
@@ -836,26 +837,281 @@ static bool vec3__with_xy(int argc, py_Ref argv) {
     return true;
 }
 
-void pk__add_module_linalg() {
-    py_Ref mod = py_newmodule("linalg");
+/* Color32 */
+void py_newcolor32(py_OutRef out, c11_color32 color) {
+    out->type = tp_color32;
+    out->is_ptr = false;
+    out->_color32 = color;
+}
+
+c11_color32 py_tocolor32(py_Ref obj) {
+    assert(obj->type == tp_color32);
+    return obj->_color32;
+}
+
+static bool color32__new__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(5);
+    c11_color32 color;
+    for(int i = 1; i < 5; i++) {
+        PY_CHECK_ARG_TYPE(i, tp_int);
+        py_i64 val = py_toint(&argv[i]);
+        if(val < 0 || val > 255) return ValueError("color32 values must be between 0 and 255");
+        color.data[i - 1] = (unsigned char)val;
+    }
+    py_newcolor32(py_retval(), color);
+    return true;
+}
+
+#define DEFINE_COLOR32_FIELD(name)                                                                 \
+    static bool color32__##name(int argc, py_Ref argv) {                                           \
+        PY_CHECK_ARGC(1);                                                                          \
+        c11_color32 color = py_tocolor32(argv);                                                    \
+        py_newint(py_retval(), color.name);                                                        \
+        return true;                                                                               \
+    }                                                                                              \
+    static bool color32_with_##name(int argc, py_Ref argv) {                                       \
+        PY_CHECK_ARGC(2);                                                                          \
+        c11_color32 color = py_tocolor32(argv);                                                    \
+        PY_CHECK_ARG_TYPE(1, tp_int);                                                              \
+        py_i64 val = py_toint(&argv[1]);                                                           \
+        if(val < 0 || val > 255) {                                                                 \
+            return ValueError("color32 values must be between 0 and 255");                         \
+        }                                                                                          \
+        color.name = (unsigned char)val;                                                           \
+        py_newcolor32(py_retval(), color);                                                         \
+        return true;                                                                               \
+    }
+
+DEFINE_COLOR32_FIELD(r)
+DEFINE_COLOR32_FIELD(g)
+DEFINE_COLOR32_FIELD(b)
+DEFINE_COLOR32_FIELD(a)
+
+#undef DEFINE_COLOR32_FIELD
+
+static bool color32_from_hex_STATIC(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    c11_sv hex = py_tosv(argv);
+    c11_color32 color;
+    int res;
+    if(hex.size == 7) {
+        res = sscanf(hex.data, "#%2hhx%2hhx%2hhx", &color.r, &color.g, &color.b);
+        if(res != 3) return ValueError("invalid hex color format");
+        color.a = 255;
+    } else {
+        res = sscanf(hex.data, "#%2hhx%2hhx%2hhx%2hhx", &color.r, &color.g, &color.b, &color.a);
+        if(res != 4) return ValueError("invalid hex color format");
+    }
+    py_newcolor32(py_retval(), color);
+    return true;
+}
+
+static bool color32_from_vec3_STATIC(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_vec3);
+    c11_vec3 v = py_tovec3(argv);
+    c11_color32 color;
+    color.r = (unsigned char)(v.x * 255);
+    color.g = (unsigned char)(v.y * 255);
+    color.b = (unsigned char)(v.z * 255);
+    color.a = 255;
+    py_newcolor32(py_retval(), color);
+    return true;
+}
+
+static bool color32_from_vec3i_STATIC(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_vec3i);
+    c11_vec3i v = py_tovec3i(argv);
+    c11_color32 color;
+    color.r = (unsigned char)v.x;
+    color.g = (unsigned char)v.y;
+    color.b = (unsigned char)v.z;
+    color.a = 255;
+    py_newcolor32(py_retval(), color);
+    return true;
+}
+
+static bool color32_to_hex(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_color32 color = py_tocolor32(argv);
+    char buf[16];
+    int size;
+    if(color.a == 255) {
+        size = snprintf(buf, sizeof(buf), "#%02x%02x%02x", color.r, color.g, color.b);
+    } else {
+        size = snprintf(buf, sizeof(buf), "#%02x%02x%02x%02x", color.r, color.g, color.b, color.a);
+    }
+    py_newstrv(py_retval(), (c11_sv){buf, size});
+    return true;
+}
+
+static void c11_color32_premult(c11_color32* color) {
+    if(color->a == 255) return;
+    float alpha = color->a / 255.0f;
+    color->r = (unsigned char)(color->r * alpha);
+    color->g = (unsigned char)(color->g * alpha);
+    color->b = (unsigned char)(color->b * alpha);
+}
+
+static bool color32_to_vec3(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_color32 color = py_tocolor32(argv);
+    c11_color32_premult(&color);
+    c11_vec3 v;
+    v.x = (float)color.r / 255;
+    v.y = (float)color.g / 255;
+    v.z = (float)color.b / 255;
+    py_newvec3(py_retval(), v);
+    return true;
+}
+
+static bool color32_to_vec3i(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_color32 color = py_tocolor32(argv);
+    c11_color32_premult(&color);
+    c11_vec3i v;
+    v.x = (int)color.r;
+    v.y = (int)color.g;
+    v.z = (int)color.b;
+    py_newvec3i(py_retval(), v);
+    return true;
+}
+
+static bool color32__eq__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(argv[1].type != tp_color32) {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    c11_color32 lhs = py_tocolor32(&argv[0]);
+    c11_color32 rhs = py_tocolor32(&argv[1]);
+    bool eq = memcmp(&lhs, &rhs, sizeof(c11_color32)) == 0;
+    py_newbool(py_retval(), eq);
+    return true;
+}
+
+static bool color32__ne__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(argv[1].type != tp_color32) {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    c11_color32 lhs = py_tocolor32(&argv[0]);
+    c11_color32 rhs = py_tocolor32(&argv[1]);
+    bool eq = memcmp(&lhs, &rhs, sizeof(c11_color32)) != 0;
+    py_newbool(py_retval(), eq);
+    return true;
+}
+
+static bool color32__repr__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_color32 color = py_tocolor32(argv);
+    char buf[64];
+    int size = snprintf(buf, 64, "color32(%d, %d, %d, %d)", color.r, color.g, color.b, color.a);
+    py_newstrv(py_retval(), (c11_sv){buf, size});
+    return true;
+}
+
+static bool color32_ansi_fg(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_color32 color = py_tocolor32(argv);
+    c11_color32_premult(&color);
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    c11_sv text = py_tosv(&argv[1]);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    pk_sprintf(&buf, "\x1b[38;2;%d;%d;%dm%v\x1b[0m", color.r, color.g, color.b, text);
+    c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
+static bool color32_ansi_bg(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_color32 color = py_tocolor32(argv);
+    c11_color32_premult(&color);
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    c11_sv text = py_tosv(&argv[1]);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    pk_sprintf(&buf, "\x1b[48;2;%d;%d;%dm%v\x1b[0m", color.r, color.g, color.b, text);
+    c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
+static bool vmath_rgb(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    c11_color32 color;
+    color.r = (unsigned char)py_toint(&argv[0]);
+    color.g = (unsigned char)py_toint(&argv[1]);
+    color.b = (unsigned char)py_toint(&argv[2]);
+    color.a = 255;
+    py_newcolor32(py_retval(), color);
+    return true;
+}
+
+static bool vmath_rgba(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(4);
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    PY_CHECK_ARG_TYPE(3, tp_float);
+    c11_color32 color;
+    color.r = (unsigned char)py_toint(&argv[0]);
+    color.g = (unsigned char)py_toint(&argv[1]);
+    color.b = (unsigned char)py_toint(&argv[2]);
+    color.a = (unsigned char)(py_tofloat(&argv[3]) * 255);
+    py_newcolor32(py_retval(), color);
+    return true;
+}
+
+static bool color32_alpha_blend_STATIC(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(!py_checktype(&argv[0], tp_color32)) return false;
+    if(py_isnone(&argv[1])) {
+        py_assign(py_retval(), &argv[0]);
+        return true;
+    }
+    if(!py_checktype(&argv[1], tp_color32)) return false;
+    c11_color32 src = py_tocolor32(&argv[0]);
+    c11_color32 dst = py_tocolor32(&argv[1]);
+    float alpha = src.a / 255.0f;
+    c11_color32 res;
+    res.r = (unsigned char)(src.r * alpha + dst.r * (1 - alpha));
+    res.g = (unsigned char)(src.g * alpha + dst.g * (1 - alpha));
+    res.b = (unsigned char)(src.b * alpha + dst.b * (1 - alpha));
+    res.a = (unsigned char)(src.a * alpha + dst.a * (1 - alpha));
+    py_newcolor32(py_retval(), res);
+    return true;
+}
+
+void pk__add_module_vmath() {
+    py_Ref mod = py_newmodule("vmath");
 
     py_Type vec2 = pk_newtype("vec2", tp_object, mod, NULL, false, true);
     py_Type vec3 = pk_newtype("vec3", tp_object, mod, NULL, false, true);
     py_Type vec2i = pk_newtype("vec2i", tp_object, mod, NULL, false, true);
     py_Type vec3i = pk_newtype("vec3i", tp_object, mod, NULL, false, true);
     py_Type mat3x3 = pk_newtype("mat3x3", tp_object, mod, NULL, false, true);
+    py_Type color32 = pk_newtype("color32", tp_object, mod, NULL, false, true);
 
     py_setdict(mod, py_name("vec2"), py_tpobject(vec2));
     py_setdict(mod, py_name("vec3"), py_tpobject(vec3));
     py_setdict(mod, py_name("vec2i"), py_tpobject(vec2i));
     py_setdict(mod, py_name("vec3i"), py_tpobject(vec3i));
     py_setdict(mod, py_name("mat3x3"), py_tpobject(mat3x3));
+    py_setdict(mod, py_name("color32"), py_tpobject(color32));
 
     assert(vec2 == tp_vec2);
     assert(vec3 == tp_vec3);
     assert(vec2i == tp_vec2i);
     assert(vec3i == tp_vec3i);
     assert(mat3x3 == tp_mat3x3);
+    assert(color32 == tp_color32);
 
     /* vec2 */
     py_bindmagic(vec2, __new__, vec2__new__);
@@ -997,6 +1253,31 @@ void pk__add_module_linalg() {
                (c11_vec3){
                    {1, 1, 1}
     });
+
+    /* color32 */
+    py_bindmagic(color32, __new__, color32__new__);
+    py_bindmagic(color32, __repr__, color32__repr__);
+    py_bindmagic(color32, __eq__, color32__eq__);
+    py_bindmagic(color32, __ne__, color32__ne__);
+    py_bindproperty(color32, "r", color32__r, NULL);
+    py_bindproperty(color32, "g", color32__g, NULL);
+    py_bindproperty(color32, "b", color32__b, NULL);
+    py_bindproperty(color32, "a", color32__a, NULL);
+    py_bindmethod(color32, "with_r", color32_with_r);
+    py_bindmethod(color32, "with_g", color32_with_g);
+    py_bindmethod(color32, "with_b", color32_with_b);
+    py_bindmethod(color32, "with_a", color32_with_a);
+    py_bindstaticmethod(color32, "from_hex", color32_from_hex_STATIC);
+    py_bindstaticmethod(color32, "from_vec3", color32_from_vec3_STATIC);
+    py_bindstaticmethod(color32, "from_vec3i", color32_from_vec3i_STATIC);
+    py_bindmethod(color32, "to_hex", color32_to_hex);
+    py_bindmethod(color32, "to_vec3", color32_to_vec3);
+    py_bindmethod(color32, "to_vec3i", color32_to_vec3i);
+    py_bindmethod(color32, "ansi_fg", color32_ansi_fg);
+    py_bindmethod(color32, "ansi_bg", color32_ansi_bg);
+    py_bindfunc(mod, "rgb", vmath_rgb);
+    py_bindfunc(mod, "rgba", vmath_rgba);
+    py_bindstaticmethod(color32, "alpha_blend", color32_alpha_blend_STATIC);
 }
 
 #undef DEFINE_VEC_FIELD

@@ -22,7 +22,7 @@ test(False)                     # PKL_FALSE
 test("hello")                   # PKL_STRING
 test(b"hello")                  # PKL_BYTES
 
-from linalg import vec2, vec3, vec2i, vec3i
+from vmath import vec2, vec3, vec2i, vec3i
 
 test(vec2(2/3, 1.0))            # PKL_VEC2
 test(vec3(2/3, 1.0, 3.0))       # PKL_VEC3
@@ -186,7 +186,7 @@ class Foo:
 test(Foo(1, 2))
 test(Foo([1, True], 'c'))
 
-from linalg import vec2
+from vmath import vec2
 
 test(vec2(1, 2))
 

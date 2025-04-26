@@ -5,7 +5,7 @@ thread_1 = ComputeThread(1)
 thread_2 = ComputeThread(2)
 
 for t in [thread_1, thread_2]:
-    t.exec_blocked('''
+    t.exec('''
 def func(a):
     from pkpy import currentvm
     print("Hello from thread", currentvm(), "a =", a)
@@ -16,13 +16,13 @@ def func(a):
                    
 x = 123
 ''')
-assert thread_1.eval_blocked('x') == 123
+assert thread_1.eval('x') == 123
 
 # thread_1.wait_for_done()
 # thread_2.wait_for_done()
 
-thread_1.call('func', [1, 2, 3])
-thread_2.call('func', [4, 5, 6])
+thread_1.submit_call('func', [1, 2, 3])
+thread_2.submit_call('func', [4, 5, 6])
 
 while not thread_1.is_done or not thread_2.is_done:
     print("Waiting for threads to finish...")

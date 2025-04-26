@@ -1,6 +1,6 @@
 import pcpp
 import pycparser
-from c_bind import Library, set_linalg_converter, set_enum_converters
+from c_bind import Library, set_vmath_converter, set_enum_converters
 from c_bind.meta import Header
 import os
 
@@ -18,8 +18,8 @@ header.remove_functions({'b2CreateTimer', 'b2Hash', 'b2DefaultDebugDraw'})
 
 lib = Library.from_header('box2d', header)
 
-set_linalg_converter('b2Vec2', 'vec2')
-set_linalg_converter('b2Vec3', 'vec3')
+set_vmath_converter('b2Vec2', 'vec2')
+set_vmath_converter('b2Vec3', 'vec3')
 
 set_enum_converters([enum.name for enum in lib.enums])
 

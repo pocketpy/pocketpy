@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     ###################################################
-    - uses: actions/setup-node@v3.1.1
+    - uses: actions/setup-node@v4
     - name: Retype build
       run: |
         python scripts/gen_docs.py
@@ -24,10 +24,10 @@ jobs:
         retype build
     ###################################################
     - name: Setup emsdk
-      uses: mymindstorm/setup-emsdk@v12
+      uses: mymindstorm/setup-emsdk@v14
       with:
         version: latest
-        actions-cache-folder: 'emsdk-cache'
+        actions-cache-folder: 'emsdk-cache-v2'
     - name: Compile
       run: |
         bash build_web.sh

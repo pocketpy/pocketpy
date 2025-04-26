@@ -12,10 +12,10 @@ static bool _stable_sort_merge(char* a,
                   int (*f_lt)(const void* a, const void* b, void* extra),
                   void* extra) {
     while(a < a_end && b < b_end) {
-        int res = f_lt(a, b, extra);
+        int res = f_lt(b, a, extra);
         // check error
         if(res == -1) return false;
-        if(res) {
+        if(res == 0) {  // !(b<a) -> (b>=a) -> (a<=b)
             memcpy(r, a, elem_size);
             a += elem_size;
         } else {
