@@ -200,12 +200,12 @@ static bool builtins_input(int argc, py_Ref argv) {
         if(!py_checkstr(argv)) return false;
         prompt = py_tostr(argv);
     }
-    pk_current_vm->callbacks.print(prompt);
+    py_callbacks()->print(prompt);
 
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     while(true) {
-        int c = pk_current_vm->callbacks.getchar();
+        int c = py_callbacks()->getchar();
         if(c == '\n' || c == '\r') break;
         if(c == EOF) break;
         c11_sbuf__write_char(&buf, c);
@@ -323,11 +323,15 @@ static bool builtins_round(int argc, py_Ref argv) {
 }
 
 static bool builtins_print(int argc, py_Ref argv) {
-    // print(*args, sep=' ', end='\n')
+    // print(*args, sep=' ', end='\n', flush=False)
     py_TValue* args = py_tuple_data(argv);
     int length = py_tuple_len(argv);
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    PY_CHECK_ARG_TYPE(2, tp_str);
+    PY_CHECK_ARG_TYPE(3, tp_bool);
     c11_sv sep = py_tosv(py_arg(1));
     c11_sv end = py_tosv(py_arg(2));
+    bool flush = py_tobool(py_arg(3));
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     for(int i = 0; i < length; i++) {
@@ -340,7 +344,8 @@ static bool builtins_print(int argc, py_Ref argv) {
     }
     c11_sbuf__write_sv(&buf, end);
     c11_string* res = c11_sbuf__submit(&buf);
-    pk_current_vm->callbacks.print(res->data);
+    py_callbacks()->print(res->data);
+    if(flush) py_callbacks()->flush();
     c11_string__delete(res);
     py_newnone(py_retval());
     return true;
@@ -722,7 +727,7 @@ py_TValue pk_builtins__register() {
     py_bindfunc(builtins, "divmod", builtins_divmod);
     py_bindfunc(builtins, "round", builtins_round);
 
-    py_bind(builtins, "print(*args, sep=' ', end='\\n')", builtins_print);
+    py_bind(builtins, "print(*args, sep=' ', end='\\n', flush=False)", builtins_print);
 
     py_bindfunc(builtins, "isinstance", builtins_isinstance);
     py_bindfunc(builtins, "issubclass", builtins_issubclass);

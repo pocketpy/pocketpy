@@ -29,6 +29,8 @@ static char* pk_default_importfile(const char* path) {
 
 static void pk_default_print(const char* data) { printf("%s", data); }
 
+static void pk_default_flush() { fflush(stdout); }
+
 static void py_TypeInfo__ctor(py_TypeInfo* self,
                               py_Name name,
                               py_Type index,
@@ -67,6 +69,7 @@ void VM__ctor(VM* self) {
 
     self->callbacks.importfile = pk_default_importfile;
     self->callbacks.print = pk_default_print;
+    self->callbacks.flush = pk_default_flush;
     self->callbacks.getchar = getchar;
 
     self->last_retval = *py_NIL();

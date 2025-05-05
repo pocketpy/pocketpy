@@ -68,6 +68,8 @@ typedef struct py_Callbacks {
     char* (*importfile)(const char*);
     /// Used by `print` to output a string.
     void (*print)(const char*);
+    /// Flush the output buffer of `print`.
+    void (*flush)();
     /// Used by `input` to get a character.
     int (*getchar)();
 } py_Callbacks;
