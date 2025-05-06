@@ -67,7 +67,7 @@ static bool pkpy_is_user_defined_type(int argc, py_Ref argv) {
 
 static bool pkpy_enable_full_buffering_mode(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
-    static char buf[1024 * 1024 * 1];
+    static char buf[1024 * 128];
     setvbuf(stdout, buf, _IOFBF, sizeof(buf));
     py_newnone(py_retval());
     return true;
