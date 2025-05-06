@@ -735,7 +735,7 @@ enum py_PredefinedType {
     tp_locals,
     tp_code,
     tp_dict,
-    tp_dict_items,    // 1 slot
+    tp_dict_iterator, // 1 slot
     tp_property,      // 2 slots (getter + setter)
     tp_star_wrapper,  // 1 slot + int level
     tp_staticmethod,  // 1 slot

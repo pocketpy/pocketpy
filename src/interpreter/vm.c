@@ -132,7 +132,7 @@ void VM__ctor(VM* self) {
     validate(tp_code, pk_code__register());
 
     validate(tp_dict, pk_dict__register());
-    validate(tp_dict_items, pk_dict_items__register());
+    validate(tp_dict_iterator, pk_dict_items__register());
 
     validate(tp_property, pk_property__register());
     validate(tp_star_wrapper, pk_newtype("star_wrapper", tp_object, NULL, NULL, false, true));

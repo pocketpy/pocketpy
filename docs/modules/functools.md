@@ -7,6 +7,10 @@ label: functools
 
 A decorator that caches a function's return value each time it is called. If called later with the same arguments, the cached value is returned, and not re-evaluated.
 
+### `functools.lru_cache(maxsize=128)`
+
+A decorator that wraps a function with a memoizing callable that saves up to the maxsize most recent calls.
+
 ### `functools.reduce(function, sequence, initial=...)`
 
 Apply a function of two arguments cumulatively to the items of a sequence, from left to right, so as to reduce the sequence to a single value. For example, `functools.reduce(lambda x, y: x+y, [1, 2, 3, 4, 5])` calculates `((((1+2)+3)+4)+5)`. The left argument, `x`, is the accumulated value and the right argument, `y`, is the update value from the sequence. If the optional `initial` is present, it is placed before the items of the sequence in the calculation, and serves as a default when the sequence is empty.

@@ -56,6 +56,7 @@ static uint32_t Dict__next_cap(uint32_t cap) {
 typedef struct {
     DictEntry* curr;
     DictEntry* end;
+    int mode;  // 0: keys, 1: values, 2: items
 } DictIterator;
 
 static void Dict__ctor(Dict* self, uint32_t capacity, int entries_capacity) {
@@ -241,9 +242,10 @@ static int Dict__pop(Dict* self, py_Ref key) {
     return 0;
 }
 
-static void DictIterator__ctor(DictIterator* self, Dict* dict) {
+static void DictIterator__ctor(DictIterator* self, Dict* dict, int mode) {
     self->curr = dict->entries.data;
     self->end = self->curr + dict->entries.length;
+    self->mode = mode;
 }
 
 static DictEntry* DictIterator__next(DictIterator* self) {
@@ -377,7 +379,7 @@ static bool dict__eq__(int argc, py_Ref argv) {
         return true;
     }
     DictIterator iter;
-    DictIterator__ctor(&iter, self);
+    DictIterator__ctor(&iter, self, 2);
     // for each self key
     while(1) {
         DictEntry* entry = DictIterator__next(&iter);
@@ -463,48 +465,34 @@ static bool dict_pop(int argc, py_Ref argv) {
     py_Ref default_val = argc == 3 ? py_arg(2) : py_None();
     int res = Dict__pop(self, py_arg(1));
     if(res == -1) return false;
-    if(res == 0) { py_assign(py_retval(), default_val); }
-    return true;
-}
-
-static bool dict_items(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    Dict* self = py_touserdata(argv);
-    DictIterator* ud = py_newobject(py_retval(), tp_dict_items, 1, sizeof(DictIterator));
-    DictIterator__ctor(ud, self);
-    py_setslot(py_retval(), 0, argv);  // keep a reference to the dict
+    if(res == 0) py_assign(py_retval(), default_val);
     return true;
 }
 
 static bool dict_keys(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
-    py_Ref p = py_newtuple(py_retval(), self->length);
-    DictIterator iter;
-    DictIterator__ctor(&iter, self);
-    int i = 0;
-    while(1) {
-        DictEntry* entry = DictIterator__next(&iter);
-        if(!entry) break;
-        p[i++] = entry->key;
-    }
-    assert(i == self->length);
+    DictIterator* ud = py_newobject(py_retval(), tp_dict_iterator, 1, sizeof(DictIterator));
+    DictIterator__ctor(ud, self, 0);
+    py_setslot(py_retval(), 0, argv);  // keep a reference to the dict
     return true;
 }
 
 static bool dict_values(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
-    py_Ref p = py_newtuple(py_retval(), self->length);
-    DictIterator iter;
-    DictIterator__ctor(&iter, self);
-    int i = 0;
-    while(1) {
-        DictEntry* entry = DictIterator__next(&iter);
-        if(!entry) break;
-        p[i++] = entry->val;
-    }
-    assert(i == self->length);
+    DictIterator* ud = py_newobject(py_retval(), tp_dict_iterator, 1, sizeof(DictIterator));
+    DictIterator__ctor(ud, self, 1);
+    py_setslot(py_retval(), 0, argv);  // keep a reference to the dict
+    return true;
+}
+
+static bool dict_items(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Dict* self = py_touserdata(argv);
+    DictIterator* ud = py_newobject(py_retval(), tp_dict_iterator, 1, sizeof(DictIterator));
+    DictIterator__ctor(ud, self, 2);
+    py_setslot(py_retval(), 0, argv);  // keep a reference to the dict
     return true;
 }
 
@@ -521,15 +509,16 @@ py_Type pk_dict__register() {
     py_bindmagic(type, __repr__, dict__repr__);
     py_bindmagic(type, __eq__, dict__eq__);
     py_bindmagic(type, __ne__, dict__ne__);
+    py_bindmagic(type, __iter__, dict_keys);
 
     py_bindmethod(type, "clear", dict_clear);
     py_bindmethod(type, "copy", dict_copy);
     py_bindmethod(type, "update", dict_update);
     py_bindmethod(type, "get", dict_get);
     py_bindmethod(type, "pop", dict_pop);
-    py_bindmethod(type, "items", dict_items);
     py_bindmethod(type, "keys", dict_keys);
     py_bindmethod(type, "values", dict_values);
+    py_bindmethod(type, "items", dict_items);
 
     py_setdict(py_tpobject(type), __hash__, py_None());
     return type;
@@ -541,16 +530,28 @@ static bool dict_items__next__(int argc, py_Ref argv) {
     DictIterator* iter = py_touserdata(py_arg(0));
     DictEntry* entry = (DictIterator__next(iter));
     if(entry) {
-        py_Ref p = py_newtuple(py_retval(), 2);
-        p[0] = entry->key;
-        p[1] = entry->val;
-        return true;
+        switch(iter->mode) {
+            case 0:  // keys
+                py_assign(py_retval(), &entry->key);
+                return true;
+            case 1:  // values
+                py_assign(py_retval(), &entry->val);
+                return true;
+            case 2:  // items
+            {
+                py_Ref p = py_newtuple(py_retval(), 2);
+                p[0] = entry->key;
+                p[1] = entry->val;
+                return true;
+            }
+            default: c11__unreachable();
+        }
     }
     return StopIteration();
 }
 
 py_Type pk_dict_items__register() {
-    py_Type type = pk_newtype("dict_items", tp_object, NULL, NULL, false, true);
+    py_Type type = pk_newtype("dict_iterator", tp_object, NULL, NULL, false, true);
     py_bindmagic(type, __iter__, pk_wrapper__self);
     py_bindmagic(type, __next__, dict_items__next__);
     return type;

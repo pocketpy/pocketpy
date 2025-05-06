@@ -32,8 +32,8 @@ assert tinydict == updated_dict
 
 dishes = {'eggs': 2, 'sausage': 1, 'bacon': 1, 'spam': 500}
 # dict is now ordered
-assert dishes.keys() == ('eggs', 'sausage', 'bacon', 'spam')
-assert dishes.values() == (2, 1, 1, 500)
+assert list(dishes.keys()) == ['eggs', 'sausage', 'bacon', 'spam']
+assert list(dishes.values()) == [2, 1, 1, 500]
 
 d={1:"a",2:"b",3:"c"}
 result=[]
@@ -44,8 +44,8 @@ assert len(result) == 6
 
 del d[2]
 assert len(d) == 2
-assert d.keys() == (1, 3)
-assert d.values() == ('a', 'c')
+assert list(d.keys()) == [1, 3]
+assert list(d.values()) == ['a', 'c']
 del d[1]
 del d[3]
 assert len(d) == 0
@@ -77,11 +77,11 @@ a = {'g': 0}
 
 a['ball_3'] = 0
 a['ball_4'] = 0
-assert a.keys() == ('g', 'ball_3', 'ball_4')
+assert list(a.keys()) == ['g', 'ball_3', 'ball_4']
 del a['ball_3']
-assert a.keys() == ('g', 'ball_4')
+assert list(a.keys()) == ['g', 'ball_4']
 del a['ball_4']
-assert a.keys() == ('g',)
+assert list(a.keys()) == ['g',]
 del a['g']
 assert len(a) == 0
 
@@ -148,3 +148,10 @@ e = {}
 for i in range(-10000, 10000, 3):
     e[i] = i
     assert e[i] == i
+
+# test iter
+d = {'1': 1, 222: 2, '333': 3}
+assert list(d) == ['1', 222, '333']
+assert list(d.keys()) == ['1', 222, '333']
+assert list(d.values()) == [1, 2, 3]
+assert list(d.items()) == [('1', 1), (222, 2), ('333', 3)]
