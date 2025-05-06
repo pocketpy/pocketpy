@@ -21,6 +21,12 @@ typedef struct c11_bytes {
     unsigned char data[];  // flexible array member
 } c11_bytes;
 
+typedef struct {
+    int start;
+    int end;
+    char data[4];
+} c11_u32_range;
+
 bool c11_bytes__eq(c11_bytes* self, c11_bytes* other);
 
 int c11_sv__cmp(c11_sv self, c11_sv other);
@@ -66,6 +72,7 @@ int c11__unicode_index_to_byte(const char* data, int i);
 int c11__byte_index_to_unicode(const char* data, int n);
 
 bool c11__is_unicode_Lo_char(int c);
+const char* c11__search_u32_ranges(int c, const c11_u32_range* p, int n_ranges);
 int c11__u8_header(unsigned char c, bool suppress);
 int c11__u8_value(int u8bytes, const char* data);
 int c11__u32_to_u8(uint32_t utf32_char, char utf8_output[4]);

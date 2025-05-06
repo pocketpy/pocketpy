@@ -472,7 +472,7 @@ static bool builtins_ord(int argc, py_Ref argv) {
                          c11_sv__u8_length(sv));
     }
     int u8bytes = c11__u8_header(sv.data[0], true);
-    if(u8bytes == 0) { return ValueError("invalid char: %c", sv.data[0]); }
+    if(u8bytes == 0) return ValueError("invalid utf-8 char: %c", sv.data[0]);
     int value = c11__u8_value(u8bytes, sv.data);
     py_newint(py_retval(), value);
     return true;
