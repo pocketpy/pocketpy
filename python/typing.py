@@ -15,6 +15,7 @@ class _Placeholder:
 
 _PLACEHOLDER = _Placeholder()
 
+Sequence = _PLACEHOLDER
 List = _PLACEHOLDER
 Dict = _PLACEHOLDER
 Tuple = _PLACEHOLDER
