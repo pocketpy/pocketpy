@@ -12,7 +12,7 @@ except ValueError:
     pass
 
 # test callable constructor
-a = array2d[int](2, 4, lambda pos: (pos.x, pos.y))
+a = array2d[tuple[int, int]](2, 4, lambda pos: (pos.x, pos.y))
 
 assert a.width == a.n_cols == 2
 assert a.height == a.n_rows == 4
@@ -42,6 +42,10 @@ assert a.get(0, 0, -1) == (0, 0)
 assert a.get(1, 3) == (1, 3)
 assert a.get(2, 0) is None
 assert a.get(0, 4, 'S') == 'S'
+
+# test index
+assert a.index((0, 0)) == vec2i(0, 0)
+assert a.index((1, 3)) == vec2i(1, 3)
 
 # test __getitem__
 assert a[0, 0] == (0, 0)

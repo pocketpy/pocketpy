@@ -28,6 +28,12 @@ class array2d_like[T]:
         If the position is out of bounds, returns the default value.
         """
 
+    def index(self, value: T) -> vec2i:
+        """Get the position of the first occurrence of the given value.
+        
+        Raises `ValueError` if the value is not found.
+        """
+
     def render(self) -> str: ...
 
     def all(self: array2d_like[bool]) -> bool: ...

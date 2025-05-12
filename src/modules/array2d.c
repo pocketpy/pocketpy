@@ -102,6 +102,24 @@ static bool array2d_like_get(int argc, py_Ref argv) {
     return true;
 }
 
+static bool array2d_like_index(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_array2d_like* self = py_touserdata(argv);
+    py_Ref value = py_arg(1);
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            py_Ref item = self->f_get(self, i, j);
+            int code = py_equal(item, value);
+            if(code == -1) return false;
+            if(code == 1) {
+                py_newvec2i(py_retval(), (c11_vec2i){{i, j}});
+                return true;
+            }
+        }
+    }
+    return ValueError("value not found");
+}
+
 static bool array2d_like_render(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_sbuf buf;
@@ -730,6 +748,7 @@ static void register_array2d_like(py_Ref mod) {
 
     py_bindmethod(type, "is_valid", array2d_like_is_valid);
     py_bindmethod(type, "get", array2d_like_get);
+    py_bindmethod(type, "index", array2d_like_index);
 
     py_bindmethod(type, "render", array2d_like_render);
 
