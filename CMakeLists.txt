@@ -96,6 +96,8 @@ if(UNIX AND NOT APPLE)
     if(PK_ENABLE_OS)
         target_link_libraries(${PROJECT_NAME} dl)
     endif()
+elseif(WIN32)
+    target_link_libraries(${PROJECT_NAME} ws2_32)
 endif()
 
 if(PK_BUILD_WITH_UNITY)
