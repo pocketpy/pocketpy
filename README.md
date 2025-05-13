@@ -228,7 +228,7 @@ Your sponsorship will help us develop pkpy continuously.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=blueloveth/pocketpy&type=Date)](https://star-history.com/#blueloveth/pocketpy&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=pocketpy/pocketpy&type=Date)](https://www.star-history.com/#pocketpy/pocketpy&Date)
 
 
 ## License
