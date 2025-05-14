@@ -20,7 +20,7 @@ assert config in ['Debug', 'Release', 'RelWithDebInfo']
 
 os.chdir("build")
 
-code = os.system(f"cmake .. -DPK_ENABLE_OS=ON -DPK_BUILD_MODULE_LZ4=OFF -DUSE_MUSL_LIBC_MATH=ON -DCMAKE_BUILD_TYPE={config} {extra_flags}")
+code = os.system(f"cmake .. -DPK_ENABLE_OS=ON -DPK_BUILD_MODULE_LZ4=ON -DUSE_MUSL_LIBC_MATH=ON -DCMAKE_BUILD_TYPE={config} {extra_flags}")
 assert code == 0
 code = os.system(f"cmake --build . --config {config} -j 4")
 assert code == 0
