@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
+#include "pocketpy/common/math.h"
 
 void c11_sbuf__ctor(c11_sbuf* self) {
     c11_vector__ctor(&self->data, sizeof(char));

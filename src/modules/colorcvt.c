@@ -4,7 +4,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
-#include <math.h>
+#include "pocketpy/common/math.h"
 
 // https://bottosson.github.io/posts/gamutclipping/#oklab-to-linear-srgb-conversion
 
@@ -15,9 +15,9 @@ static c11_vec3 linear_srgb_to_oklab(c11_vec3 c)
 	float m = 0.2119034982f * c.x + 0.6806995451f * c.y + 0.1073969566f * c.z;
 	float s = 0.0883024619f * c.x + 0.2817188376f * c.y + 0.6299787005f * c.z;
 
-	float l_ = cbrtf(l);
-	float m_ = cbrtf(m);
-	float s_ = cbrtf(s);
+	float l_ = cbrt(l);
+	float m_ = cbrt(m);
+	float s_ = cbrt(s);
 
 	return (c11_vec3){{
 		0.2104542553f * l_ + 0.7936177850f * m_ - 0.0040720468f * s_,
@@ -46,11 +46,11 @@ static c11_vec3 oklab_to_linear_srgb(c11_vec3 c)
 // clang-format on
 
 static float _gamma_correct_inv(float x) {
-    return (x <= 0.04045f) ? (x / 12.92f) : powf((x + 0.055f) / 1.055f, 2.4f);
+    return (x <= 0.04045f) ? (x / 12.92f) : pow((x + 0.055f) / 1.055f, 2.4f);
 }
 
 static float _gamma_correct(float x) {
-    return (x <= 0.0031308f) ? (12.92f * x) : (1.055f * powf(x, 1.0f / 2.4f) - 0.055f);
+    return (x <= 0.0031308f) ? (12.92f * x) : (1.055f * pow(x, 1.0f / 2.4f) - 0.055f);
 }
 
 static c11_vec3 srgb_to_linear_srgb(c11_vec3 c) {
@@ -70,8 +70,8 @@ static c11_vec3 linear_srgb_to_srgb(c11_vec3 c) {
 static c11_vec3 _oklab_to_oklch(c11_vec3 c) {
     c11_vec3 res;
     res.x = c.x;
-    res.y = sqrtf(c.y * c.y + c.z * c.z);
-    res.z = fmodf(atan2f(c.z, c.y), 2 * (float)PK_M_PI);
+    res.y = sqrt(c.y * c.y + c.z * c.z);
+    res.z = fmod(atan2(c.z, c.y), 2 * (float)PK_M_PI);
     res.z = res.z * PK_M_RAD2DEG;
     return res;
 }
@@ -79,8 +79,8 @@ static c11_vec3 _oklab_to_oklch(c11_vec3 c) {
 static c11_vec3 _oklch_to_oklab(c11_vec3 c) {
     c11_vec3 res;
     res.x = c.x;
-    res.y = c.y * cosf(c.z * PK_M_DEG2RAD);
-    res.z = c.y * sinf(c.z * PK_M_DEG2RAD);
+    res.y = c.y * cos(c.z * PK_M_DEG2RAD);
+    res.z = c.y * sin(c.z * PK_M_DEG2RAD);
     return res;
 }
 
@@ -105,9 +105,9 @@ static c11_vec3 oklch_to_linear_srgb(c11_vec3 c) {
     // fall back to RGB clamping
     candidate = oklab_to_linear_srgb(_oklch_to_oklab(clamped));
     if(!_is_valid_srgb(candidate)) {
-        candidate.x = fmaxf(0.0f, fminf(1.0f, candidate.x));
-        candidate.y = fmaxf(0.0f, fminf(1.0f, candidate.y));
-        candidate.z = fmaxf(0.0f, fminf(1.0f, candidate.z));
+        candidate.x = fmax(0.0f, fmin(1.0f, candidate.x));
+        candidate.y = fmax(0.0f, fmin(1.0f, candidate.y));
+        candidate.z = fmax(0.0f, fmin(1.0f, candidate.z));
         return candidate;
     }
 
@@ -116,7 +116,7 @@ static c11_vec3 oklch_to_linear_srgb(c11_vec3 c) {
     float start = 0.0f;
     float end = c.y;
     float range[2] = {0.0f, 0.4f};
-    float resolution = (range[1] - range[0]) / powf(2, 13);
+    float resolution = (range[1] - range[0]) / pow(2, 13);
     float _last_good_c = clamped.y;
 
     while(end - start > resolution) {
@@ -142,8 +142,8 @@ static c11_vec3 srgb_to_hsv(c11_vec3 c) {
     float g = c.y;
     float b = c.z;
 
-    float maxc = fmaxf(r, fmaxf(g, b));
-    float minc = fminf(r, fminf(g, b));
+    float maxc = fmax(r, fmax(g, b));
+    float minc = fmin(r, fmin(g, b));
     float v = maxc;
     if(minc == maxc) {
         return (c11_vec3){
@@ -163,7 +163,7 @@ static c11_vec3 srgb_to_hsv(c11_vec3 c) {
     } else {
         h = 4.0f + gc - rc;
     }
-    h = fmodf(h / 6.0f, 1.0f);
+    h = fmod(h / 6.0f, 1.0f);
     return (c11_vec3){
         {h, s, v}
     };

@@ -2,7 +2,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/pocketpy.h"
 
-#include <math.h>
+#include "pocketpy/common/math.h"
 
 static bool try_castfloat(py_Ref self, double* out) {
     switch(self->type) {

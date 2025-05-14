@@ -45,6 +45,13 @@ if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
 endif()
 
+option(USE_MUSL_LIBC_MATH "" OFF)
+if(USE_MUSL_LIBC_MATH)
+    add_subdirectory(3rd/math)
+    include_directories(3rd/math)
+    add_definitions(-DUSE_MUSL_LIBC_MATH)
+endif()
+
 option(PK_BUILD_MODULE_LZ4 "" OFF)
 if(PK_BUILD_MODULE_LZ4)
     add_subdirectory(3rd/lz4)
@@ -113,4 +120,8 @@ endif()
 
 if(PK_BUILD_MODULE_LIBHV)
     target_link_libraries(${PROJECT_NAME} libhv_bindings)
+endif()
+
+if(USE_MUSL_LIBC_MATH)
+    target_link_libraries(${PROJECT_NAME} musl_math)
 endif()
