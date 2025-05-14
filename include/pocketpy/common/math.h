@@ -1,6 +1,6 @@
 #pragma once
 
-#ifndef USE_MUSL_LIBC_MATH
+#ifndef PK_ENABLE_DETERMINISTIC_FLOAT
 #include <math.h>
 #else
 #include "include/math.h"
