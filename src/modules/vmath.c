@@ -5,7 +5,7 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/objects/object.h"
-#include <math.h>
+#include "pocketpy/common/math.h"
 
 static bool isclose(float a, float b) { return fabs(a - b) < 1e-4; }
 

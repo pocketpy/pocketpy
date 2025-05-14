@@ -1,7 +1,7 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/vm.h"
 
-#include <math.h>
+#include "pocketpy/common/math.h"
 
 // https://easings.net/
 
