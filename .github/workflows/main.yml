@@ -82,33 +82,30 @@ jobs:
         path: output
     - name: Benchmark
       run: python scripts/run_tests.py benchmark
-  build_linux_x86:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Setup Alpine Linux for aarch64
-        uses: jirutka/setup-alpine@v1
-        with:
-          arch: x86
-          packages: gcc g++ make cmake libc-dev linux-headers python3 gdb
-      - name: Build and Test
-        run: |
-          uname -m
-          python -c "import struct; print(8 * struct.calcsize('P'))"
-
-          # python cmake_build.py Debug
-          # # gdb_commands.txt
-          # echo "run" > gdb_commands.txt
-          # echo "backtrace" >> gdb_commands.txt
-          # echo "quit" >> gdb_commands.txt
-          # gdb -batch -x gdb_commands.txt --args ./main tests/77_builtin_func_1.py
-
-          python cmake_build.py
-          python scripts/run_tests.py
-          python scripts/run_tests.py benchmark
-        shell: alpine.sh --root {0}
+  build_linux_multiarch:
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          arch: [x86, aarch64, armv7]
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            submodules: true
+        - name: Setup Alpine Linux for ${{ matrix.arch }}
+          uses: jirutka/setup-alpine@v1
+          with:
+            arch: ${{ matrix.arch }}
+            packages: gcc g++ make cmake libc-dev linux-headers python3
+        - name: Build and Test
+          run: |
+            echo "Building for architecture: ${{ matrix.arch }}"
+            uname -m
+            python -c "import struct; print(8 * struct.calcsize('P'))"
+  
+            python cmake_build.py
+            python scripts/run_tests.py
+            python scripts/run_tests.py benchmark
+          shell: alpine.sh --root {0}
   build_darwin:
       runs-on: macos-latest
       steps:
