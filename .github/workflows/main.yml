@@ -36,7 +36,7 @@ jobs:
       shell: bash
       run: |
         mkdir -p output/x86_64
-        python cmake_build.py
+        python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON
         cp main.exe output/x86_64
         cp pocketpy.dll output/x86_64
     - uses: actions/upload-artifact@v4
@@ -70,7 +70,7 @@ jobs:
       run: |
         python scripts/check_pragma_once.py include
         mkdir -p output/x86_64
-        python cmake_build.py
+        python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON
         python scripts/run_tests.py
         cp main output/x86_64
         cp libpocketpy.so output/x86_64
@@ -82,33 +82,6 @@ jobs:
         path: output
     - name: Benchmark
       run: python scripts/run_tests.py benchmark
-  build_linux_x86:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Setup Alpine Linux for aarch64
-        uses: jirutka/setup-alpine@v1
-        with:
-          arch: x86
-          packages: gcc g++ make cmake libc-dev linux-headers python3 gdb
-      - name: Build and Test
-        run: |
-          uname -m
-          python -c "import struct; print(8 * struct.calcsize('P'))"
-
-          # python cmake_build.py Debug
-          # # gdb_commands.txt
-          # echo "run" > gdb_commands.txt
-          # echo "backtrace" >> gdb_commands.txt
-          # echo "quit" >> gdb_commands.txt
-          # gdb -batch -x gdb_commands.txt --args ./main tests/77_builtin_func_1.py
-
-          python cmake_build.py
-          python scripts/run_tests.py
-          python scripts/run_tests.py benchmark
-        shell: alpine.sh --root {0}
   build_darwin:
       runs-on: macos-latest
       steps:
@@ -117,7 +90,7 @@ jobs:
           submodules: true
       - name: Compile and Test
         run: |
-          python cmake_build.py
+          python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON
           python scripts/run_tests.py
       - name: Benchmark
         run: python scripts/run_tests.py benchmark
@@ -170,6 +143,29 @@ jobs:
         with:
           name: ios
           path: output
+  build_linux_multiarch:
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          arch: [x86, aarch64, armv7]
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            submodules: true
+        - name: Setup Alpine Linux for ${{ matrix.arch }}
+          uses: jirutka/setup-alpine@v1
+          with:
+            arch: ${{ matrix.arch }}
+            packages: gcc g++ make cmake libc-dev linux-headers python3
+        - name: Build and Test
+          run: |
+            echo "Building for architecture: ${{ matrix.arch }}"
+            uname -m
+            python -c "import struct; print(8 * struct.calcsize('P'))"
+  
+            python cmake_build.py
+            python scripts/run_tests.py
+          shell: alpine.sh --root {0}
 
   merge:
       runs-on: ubuntu-latest
