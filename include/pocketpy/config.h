@@ -41,7 +41,7 @@
 #define PK_MAX_MODULE_PATH_LEN      63
 
 // This is some math constants
-#define PK_M_PI                     3.1415926535897932384
+#define PK_M_PI                     3.14159265358979323846
 #define PK_M_E                      2.7182818284590452354
 #define PK_M_DEG2RAD                0.017453292519943295
 #define PK_M_RAD2DEG                57.29577951308232

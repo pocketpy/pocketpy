@@ -196,7 +196,7 @@ static py_Ref _const(py_Type type, const char* name) {
         float sum = 0;                                                                             \
         for(int i = 0; i < D; i++)                                                                 \
             sum += v.data[i] * v.data[i];                                                          \
-        py_newfloat(py_retval(), sqrtf(sum));                                                      \
+        py_newfloat(py_retval(), sqrt(sum));                                                      \
         return true;                                                                               \
     }                                                                                              \
     static bool vec##D##_length_squared(int argc, py_Ref argv) {                                   \
@@ -226,7 +226,7 @@ static py_Ref _const(py_Type type, const char* name) {
         for(int i = 0; i < D; i++)                                                                 \
             len += self.data[i] * self.data[i];                                                    \
         if(isclose(len, 0)) return ZeroDivisionError("cannot normalize zero vector");              \
-        len = sqrtf(len);                                                                          \
+        len = sqrt(len);                                                                          \
         c11_vec##D res;                                                                            \
         for(int i = 0; i < D; i++)                                                                 \
             res.data[i] = self.data[i] / len;                                                      \
@@ -347,8 +347,8 @@ static bool vec2_rotate(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_f64 radians;
     if(!py_castfloat(&argv[1], &radians)) return false;
-    float cr = cosf(radians);
-    float sr = sinf(radians);
+    float cr = cos(radians);
+    float sr = sin(radians);
     c11_vec2 res;
     res.x = argv[0]._vec2.x * cr - argv[0]._vec2.y * sr;
     res.y = argv[0]._vec2.x * sr + argv[0]._vec2.y * cr;
@@ -360,7 +360,7 @@ static bool vec2_angle_STATIC(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(0, tp_vec2);
     PY_CHECK_ARG_TYPE(1, tp_vec2);
-    float val = atan2f(argv[1]._vec2.y, argv[1]._vec2.x) - atan2f(argv[0]._vec2.y, argv[0]._vec2.x);
+    float val = atan2(argv[1]._vec2.y, argv[1]._vec2.x) - atan2(argv[0]._vec2.y, argv[0]._vec2.x);
     if(val > PK_M_PI) val -= 2 * (float)PK_M_PI;
     if(val < -PK_M_PI) val += 2 * (float)PK_M_PI;
     py_newfloat(py_retval(), val);
@@ -401,7 +401,7 @@ static bool vec2_smoothdamp_STATIC(int argc, py_Ref argv) {
     float maxChangeSq = maxChange * maxChange;
     float sqDist = change_x * change_x + change_y * change_y;
     if(sqDist > maxChangeSq) {
-        float mag = sqrtf(sqDist);
+        float mag = sqrt(sqDist);
         change_x = change_x / mag * maxChange;
         change_y = change_y / mag * maxChange;
     }
@@ -579,8 +579,8 @@ static bool inverse(const c11_mat3x3* m, c11_mat3x3* out) {
 }
 
 static void trs(c11_vec2 t, float r, c11_vec2 s, c11_mat3x3* out) {
-    float cr = cosf(r);
-    float sr = sinf(r);
+    float cr = cos(r);
+    float sr = sin(r);
     // clang-format off
     *out = (c11_mat3x3){
         ._11 = s.x * cr, ._12 = -s.y * sr, ._13 = t.x,
@@ -736,7 +736,7 @@ static bool mat3x3_t(int argc, py_Ref argv) {
 static bool mat3x3_r(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_mat3x3* ud = py_tomat3x3(argv);
-    float r = atan2f(ud->_21, ud->_11);
+    float r = atan2(ud->_21, ud->_11);
     py_newfloat(py_retval(), r);
     return true;
 }
@@ -745,8 +745,8 @@ static bool mat3x3_s(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_mat3x3* ud = py_tomat3x3(argv);
     c11_vec2 res;
-    res.x = sqrtf(ud->_11 * ud->_11 + ud->_21 * ud->_21);
-    res.y = sqrtf(ud->_12 * ud->_12 + ud->_22 * ud->_22);
+    res.x = sqrt(ud->_11 * ud->_11 + ud->_21 * ud->_21);
+    res.y = sqrt(ud->_12 * ud->_12 + ud->_22 * ud->_22);
     py_newvec2(py_retval(), res);
     return true;
 }
