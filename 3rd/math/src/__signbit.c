@@ -5,7 +5,7 @@ int __signbit(double x)
 {
 	union {
 		double d;
-		uint64_t i;
+		unsigned long long i;
 	} y = { x };
 	return y.i>>63;
 }

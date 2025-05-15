@@ -62,8 +62,8 @@ static const double aT[] = {
 
 double atan(double x)
 {
-	double_t w,s1,s2,z;
-	uint32_t ix,sign;
+	double w,s1,s2,z;
+	unsigned int ix,sign;
 	int id;
 
 	GET_HIGH_WORD(ix, x);

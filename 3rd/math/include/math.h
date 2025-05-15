@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-#define __NEED_float_t
-#define __NEED_double_t
 
 #ifndef _HUGE_ENUF
     #define _HUGE_ENUF  1e+300  // _HUGE_ENUF*_HUGE_ENUF must overflow
@@ -62,17 +60,6 @@ extern "C" {
 #define predict_true(x) (x)
 #define predict_false(x) (x)
 
-typedef signed char        int8_t;
-typedef short              int16_t;
-typedef int                int32_t;
-typedef long long          int64_t;
-typedef unsigned char      uint8_t;
-typedef unsigned short     uint16_t;
-typedef unsigned int       uint32_t;
-typedef unsigned long long uint64_t;
-typedef float  float_t;
-typedef double double_t;
-
 int __fpclassify(double);
 int __fpclassifyf(float);
 int __fpclassifyl(long double);
@@ -107,7 +94,7 @@ static __inline unsigned long long __DOUBLE_BITS(double __f)
 
 #define isnormal(x) ( \
 	sizeof(x) == sizeof(float) ? ((__FLOAT_BITS(x)+0x00800000) & 0x7fffffff) >= 0x01000000 : \
-	sizeof(x) == sizeof(double) ? ((__DOUBLE_BITS(x)+(1ULL<<52)) & -1ULL>>1) >= 1ULL<<53 : \
+	sizeof(x) == sizeof(double) ? ((__DOUBLE_BITS(x)+(1ULL<<52)) & ULLONG_SHIFT1) >= 1ULL<<53 : \
 	__fpclassifyl(x) == FP_NORMAL)
 
 #define isfinite(x) ( \
@@ -130,20 +117,20 @@ int __signbitl(long double);
 static __inline int __is##rel(type __x, type __y) \
 { return !isunordered(__x,__y) && __x op __y; }
 
-__ISREL_DEF(lessf, <, float_t)
-__ISREL_DEF(less, <, double_t)
+__ISREL_DEF(lessf, <, float)
+__ISREL_DEF(less, <, double)
 __ISREL_DEF(lessl, <, long double)
-__ISREL_DEF(lessequalf, <=, float_t)
-__ISREL_DEF(lessequal, <=, double_t)
+__ISREL_DEF(lessequalf, <=, float)
+__ISREL_DEF(lessequal, <=, double)
 __ISREL_DEF(lessequall, <=, long double)
-__ISREL_DEF(lessgreaterf, !=, float_t)
-__ISREL_DEF(lessgreater, !=, double_t)
+__ISREL_DEF(lessgreaterf, !=, float)
+__ISREL_DEF(lessgreater, !=, double)
 __ISREL_DEF(lessgreaterl, !=, long double)
-__ISREL_DEF(greaterf, >, float_t)
-__ISREL_DEF(greater, >, double_t)
+__ISREL_DEF(greaterf, >, float)
+__ISREL_DEF(greater, >, double)
 __ISREL_DEF(greaterl, >, long double)
-__ISREL_DEF(greaterequalf, >=, float_t)
-__ISREL_DEF(greaterequal, >=, double_t)
+__ISREL_DEF(greaterequalf, >=, float)
+__ISREL_DEF(greaterequal, >=, double)
 __ISREL_DEF(greaterequall, >=, long double)
 
 #define __tg_pred_2(x, y, p) ( \
@@ -248,10 +235,10 @@ static inline void fp_force_evall(long double x)
 	}                                         \
 } while(0)
 
-typedef union {float _f; uint32_t _i;}asuint_union;
-typedef union {uint32_t _i; float _f;}asfloat_union;
-typedef union {double _f; uint64_t _i;}asuint64_union;
-typedef union {uint64_t _i; double _f;}asdouble_union;
+typedef union {float _f; unsigned int _i;}asuint_union;
+typedef union {unsigned int _i; float _f;}asfloat_union;
+typedef union {double _f; unsigned long long _i;}asuint64_union;
+typedef union {unsigned long long _i; double _f;}asdouble_union;
 #define asuint(f) ((asuint_union){f})._i
 #define asfloat(i) ((asfloat_union){i})._f
 #define asuint64(f) ((asuint64_union){f})._i
@@ -259,9 +246,9 @@ typedef union {uint64_t _i; double _f;}asdouble_union;
 
 #define EXTRACT_WORDS(hi,lo,d)                    \
 do {                                              \
-	uint64_t __u = asuint64(d);                     \
+	unsigned long long __u = asuint64(d);                     \
 	(hi) = __u >> 32;                               \
-	(lo) = (uint32_t)__u;                           \
+	(lo) = (unsigned int)__u;                           \
 } while (0)
 
 #define GET_HIGH_WORD(hi,d)                       \
@@ -271,16 +258,16 @@ do {                                              \
 
 #define GET_LOW_WORD(lo,d)                        \
 do {                                              \
-	(lo) = (uint32_t)asuint64(d);                   \
+	(lo) = (unsigned int)asuint64(d);                   \
 } while (0)
 
 #define INSERT_WORDS(d,hi,lo)                     \
 do {                                              \
-	(d) = asdouble(((uint64_t)(hi)<<32) | (uint32_t)(lo)); \
+	(d) = asdouble(((unsigned long long)(hi)<<32) | (unsigned int)(lo)); \
 } while (0)
 
 #define SET_HIGH_WORD(d,hi)                       \
-	INSERT_WORDS(d, hi, (uint32_t)asuint64(d))
+	INSERT_WORDS(d, hi, (unsigned int)asuint64(d))
 
 #define SET_LOW_WORD(d,lo)                        \
 	INSERT_WORDS(d, asuint64(d)>>32, lo)
@@ -302,15 +289,15 @@ double __cos(double, double);
 double __tan(double, double, int);
 
 /* error handling functions */
-float __math_xflowf(uint32_t, float);
-float __math_uflowf(uint32_t);
-float __math_oflowf(uint32_t);
-float __math_divzerof(uint32_t);
+float __math_xflowf(unsigned int, float);
+float __math_uflowf(unsigned int);
+float __math_oflowf(unsigned int);
+float __math_divzerof(unsigned int);
 float __math_invalidf(float);
-double __math_xflow(uint32_t, double);
-double __math_uflow(uint32_t);
-double __math_oflow(uint32_t);
-double __math_divzero(uint32_t);
+double __math_xflow(unsigned int, double);
+double __math_uflow(unsigned int);
+double __math_oflow(unsigned int);
+double __math_divzero(unsigned int);
 double __math_invalid(double);
 #if LDBL_MANT_DIG != DBL_MANT_DIG
 long double __math_invalidl(long double);

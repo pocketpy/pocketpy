@@ -51,7 +51,7 @@ S6  =  1.58969099521155010221e-10; /* 0x3DE5D93A, 0x5ACFD57C */
 
 double __sin(double x, double y, int iy)
 {
-	double_t z,r,v,w;
+	double z,r,v,w;
 
 	z = x*x;
 	w = z*z;

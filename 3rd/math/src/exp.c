@@ -23,12 +23,12 @@
    is scale*(1+TMP) without intermediate rounding.  The bit representation of
    scale is in SBITS, however it has a computed exponent that may have
    overflown into the sign bit so that needs to be adjusted before using it as
-   a double.  (int32_t)KI is the k used in the argument reduction and exponent
+   a double.  (int)KI is the k used in the argument reduction and exponent
    adjustment of scale, positive k here means the result may overflow and
    negative k means the result may underflow.  */
-static inline double specialcase(double_t tmp, uint64_t sbits, uint64_t ki)
+static inline double specialcase(double tmp, unsigned long long sbits, unsigned long long ki)
 {
-	double_t scale, y;
+	double scale, y;
 
 	if ((ki & 0x80000000) == 0) {
 		/* k > 0, the exponent of scale might have overflowed by <= 460.  */
@@ -46,7 +46,7 @@ static inline double specialcase(double_t tmp, uint64_t sbits, uint64_t ki)
 		 range to avoid double rounding that can cause 0.5+E/2 ulp error where
 		 E is the worst-case ulp error outside the subnormal range.  So this
 		 is only useful if the goal is better than 1 ulp worst-case error.  */
-		double_t hi, lo;
+		double hi, lo;
 		lo = scale - y + scale * tmp;
 		hi = 1.0 + y;
 		lo = 1.0 - hi + y + lo;
@@ -62,16 +62,16 @@ static inline double specialcase(double_t tmp, uint64_t sbits, uint64_t ki)
 }
 
 /* Top 12 bits of a double (sign and exponent bits).  */
-static inline uint32_t top12(double x)
+static inline unsigned int top12(double x)
 {
 	return asuint64(x) >> 52;
 }
 
 double exp(double x)
 {
-	uint32_t abstop;
-	uint64_t ki, idx, top, sbits;
-	double_t kd, z, r, r2, scale, tail, tmp;
+	unsigned int abstop;
+	unsigned long long ki, idx, top, sbits;
+	double kd, z, r, r2, scale, tail, tmp;
 
 	abstop = top12(x) & 0x7ff;
 	if (predict_false(abstop - top12(0x1p-54) >= top12(512.0) - top12(0x1p-54))) {
@@ -103,7 +103,7 @@ double exp(double x)
 	/* z - kd is in [-0.5-2^-16, 0.5] in all rounding modes.  */
 	kd = eval_as_double(z + Shift);
 	ki = asuint64(kd) >> 16;
-	kd = (double_t)(int32_t)ki;
+	kd = (double)(int)ki;
 #else
 	/* z - kd is in [-1, 1] in non-nearest rounding modes.  */
 	kd = eval_as_double(z + Shift);

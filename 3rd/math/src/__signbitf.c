@@ -5,7 +5,7 @@ int __signbitf(float x)
 {
 	union {
 		float f;
-		uint32_t i;
+		unsigned int i;
 	} y = { x };
 	return y.i>>31;
 }

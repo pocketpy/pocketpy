@@ -65,9 +65,9 @@ pio4lo =     3.06161699786838301793e-17; /* 3C81A626, 33145C07 */
 
 double __tan(double x, double y, int odd)
 {
-	double_t z, r, v, w, s, a;
+	double z, r, v, w, s, a;
 	double w0, a0;
-	uint32_t hx;
+	unsigned int hx;
 	int big, sign;
 
 	GET_HIGH_WORD(hx,x);

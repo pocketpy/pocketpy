@@ -18,16 +18,16 @@
 #define OFF 0x3fe6000000000000
 
 /* Top 16 bits of a double.  */
-static inline uint32_t top16(double x)
+static inline unsigned int top16(double x)
 {
 	return asuint64(x) >> 48;
 }
 
 double log(double x)
 {
-	double_t w, z, r, r2, r3, y, invc, logc, kd, hi, lo;
-	uint64_t ix, iz, tmp;
-	uint32_t top;
+	double w, z, r, r2, r3, y, invc, logc, kd, hi, lo;
+	unsigned long long ix, iz, tmp;
+	unsigned int top;
 	int k, i;
 
 	ix = asuint64(x);
@@ -48,8 +48,8 @@ double log(double x)
 			   r3 * (B[7] + r * B[8] + r2 * B[9] + r3 * B[10])));
 		/* Worst-case error is around 0.507 ULP.  */
 		w = r * 0x1p27;
-		double_t rhi = r + w - w;
-		double_t rlo = r - rhi;
+		double rhi = r + w - w;
+		double rlo = r - rhi;
 		w = rhi * rhi * B[0]; /* B[0] == -0.5.  */
 		hi = r + w;
 		lo = r - hi + w;
@@ -76,7 +76,7 @@ double log(double x)
 	   The ith subinterval contains z and c is near its center.  */
 	tmp = ix - OFF;
 	i = (tmp >> (52 - LOG_TABLE_BITS)) % N;
-	k = (int64_t)tmp >> 52; /* arithmetic shift */
+	k = (long long)tmp >> 52; /* arithmetic shift */
 	iz = ix - (tmp & 0xfffULL << 52);
 	invc = T[i].invc;
 	logc = T[i].logc;
@@ -91,7 +91,7 @@ double log(double x)
 	/* rounding error: 0x1p-55/N + 0x1p-66.  */
 	r = (z - T2[i].chi - T2[i].clo) * invc;
 #endif
-	kd = (double_t)k;
+	kd = (double)k;
 
 	/* hi + lo = r + log(c) + k*Ln2.  */
 	w = kd * Ln2hi + logc;

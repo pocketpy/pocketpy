@@ -45,7 +45,7 @@
 double sin(double x)
 {
 	double y[2];
-	uint32_t ix;
+	unsigned int ix;
 	unsigned n;
 
 	/* High word of x. */

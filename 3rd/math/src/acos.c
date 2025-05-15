@@ -51,7 +51,7 @@ qS4 =  7.70381505559019352791e-02; /* 0x3FB3B8C5, 0xB12E9282 */
 
 static double R(double z)
 {
-	double_t p, q;
+	double p, q;
 	p = z*(pS0+z*(pS1+z*(pS2+z*(pS3+z*(pS4+z*pS5)))));
 	q = 1.0+z*(qS1+z*(qS2+z*(qS3+z*qS4)));
 	return p/q;
@@ -60,13 +60,13 @@ static double R(double z)
 double acos(double x)
 {
 	double z,w,s,c,df;
-	uint32_t hx,ix;
+	unsigned int hx,ix;
 
 	GET_HIGH_WORD(hx, x);
 	ix = hx & 0x7fffffff;
 	/* |x| >= 1 or nan */
 	if (ix >= 0x3ff00000) {
-		uint32_t lx;
+		unsigned int lx;
 
 		GET_LOW_WORD(lx,x);
 		if ((ix-0x3ff00000 | lx) == 0) {

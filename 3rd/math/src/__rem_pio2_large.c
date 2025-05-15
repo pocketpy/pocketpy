@@ -138,7 +138,7 @@ static const int init_jk[] = {3,4,4,6}; /* initial value for jk */
  * NB: This table must have at least (e0-3)/24 + jk terms.
  *     For quad precision (e0 <= 16360, jk = 6), this is 686.
  */
-static const int32_t ipio2[] = {
+static const int ipio2[] = {
 0xA2F983, 0x6E4E44, 0x1529FC, 0x2757D1, 0xF534DD, 0xC0DB62,
 0x95993C, 0x439041, 0xFE5163, 0xABDEBB, 0xC561B7, 0x246E3A,
 0x424DD2, 0xE00649, 0x2EEA09, 0xD1921C, 0xFE1DEB, 0x1CB129,
@@ -272,7 +272,7 @@ static const double PIo2[] = {
 
 int __rem_pio2_large(double *x, double *y, int e0, int nx, int prec)
 {
-	int32_t jz,jx,jv,jp,jk,carry,n,iq[20],i,j,k,m,q0,ih;
+	int jz,jx,jv,jp,jk,carry,n,iq[20],i,j,k,m,q0,ih;
 	double z,fw,f[20],fq[20],q[20];
 
 	/* initialize jk*/
@@ -300,15 +300,15 @@ int __rem_pio2_large(double *x, double *y, int e0, int nx, int prec)
 recompute:
 	/* distill q[] into iq[] reversingly */
 	for (i=0,j=jz,z=q[jz]; j>0; i++,j--) {
-		fw    = (double)(int32_t)(0x1p-24*z);
-		iq[i] = (int32_t)(z - 0x1p24*fw);
+		fw    = (double)(int)(0x1p-24*z);
+		iq[i] = (int)(z - 0x1p24*fw);
 		z     = q[j-1]+fw;
 	}
 
 	/* compute n */
 	z  = scalbn(z,q0);       /* actual value of z */
 	z -= 8.0*floor(z*0.125); /* trim off integer >= 8 */
-	n  = (int32_t)z;
+	n  = (int)z;
 	z -= (double)n;
 	ih = 0;
 	if (q0 > 0) {  /* need iq[jz-1] to determine n */
@@ -375,13 +375,13 @@ recompute:
 	} else { /* break z into 24-bit if necessary */
 		z = scalbn(z,-q0);
 		if (z >= 0x1p24) {
-			fw = (double)(int32_t)(0x1p-24*z);
-			iq[jz] = (int32_t)(z - 0x1p24*fw);
+			fw = (double)(int)(0x1p-24*z);
+			iq[jz] = (int)(z - 0x1p24*fw);
 			jz += 1;
 			q0 += 24;
-			iq[jz] = (int32_t)fw;
+			iq[jz] = (int)fw;
 		} else
-			iq[jz] = (int32_t)z;
+			iq[jz] = (int)z;
 	}
 
 	/* convert integer "bit" chunk to floating-point value */
@@ -411,7 +411,7 @@ recompute:
 		fw = 0.0;
 		for (i=jz; i>=0; i--)
 			fw += fq[i];
-		// TODO: drop excess precision here once double_t is used
+		// TODO: drop excess precision here once double is used
 		fw = (double)fw;
 		y[0] = ih==0 ? fw : -fw;
 		fw = fq[0]-fw;

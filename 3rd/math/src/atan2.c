@@ -46,7 +46,7 @@ pi_lo  = 1.2246467991473531772E-16; /* 0x3CA1A626, 0x33145C07 */
 double atan2(double y, double x)
 {
 	double z;
-	uint32_t m,lx,ly,ix,iy;
+	unsigned int m,lx,ly,ix,iy;
 
 	if (isnan(x) || isnan(y))
 		return x+y;

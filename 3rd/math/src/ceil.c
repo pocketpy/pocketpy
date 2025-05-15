@@ -5,13 +5,13 @@
 #elif FLT_EVAL_METHOD==2
 #define EPS LDBL_EPSILON
 #endif
-static const double_t toint = 1/EPS;
+static const double toint = 1/EPS;
 
 double ceil(double x)
 {
-	union {double f; uint64_t i;} u = {x};
+	union {double f; unsigned long long i;} u = {x};
 	int e = u.i >> 52 & 0x7ff;
-	double_t y;
+	double y;
 
 	if (e >= 0x3ff+52 || x == 0)
 		return x;

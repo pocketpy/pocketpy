@@ -2,8 +2,8 @@
 
 double modf(double x, double *iptr)
 {
-	union {double f; uint64_t i;} u = {x};
-	uint64_t mask;
+	union {double f; unsigned long long i;} u = {x};
+	unsigned long long mask;
 	int e = (int)(u.i>>52 & 0x7ff) - 0x3ff;
 
 	/* no fractional part */

@@ -4,24 +4,24 @@
 #define FENV_SUPPORT 1
 
 /* returns a*b*2^-32 - e, with error 0 <= e < 1.  */
-static inline uint32_t mul32(uint32_t a, uint32_t b)
+static inline unsigned int mul32(unsigned int a, unsigned int b)
 {
-	return (uint64_t)a*b >> 32;
+	return (unsigned long long)a*b >> 32;
 }
 
 /* returns a*b*2^-64 - e, with error 0 <= e < 3.  */
-static inline uint64_t mul64(uint64_t a, uint64_t b)
+static inline unsigned long long mul64(unsigned long long a, unsigned long long b)
 {
-	uint64_t ahi = a>>32;
-	uint64_t alo = a&0xffffffff;
-	uint64_t bhi = b>>32;
-	uint64_t blo = b&0xffffffff;
+	unsigned long long ahi = a>>32;
+	unsigned long long alo = a&0xffffffff;
+	unsigned long long bhi = b>>32;
+	unsigned long long blo = b&0xffffffff;
 	return ahi*bhi + (ahi*blo >> 32) + (alo*bhi >> 32);
 }
 
 double sqrt(double x)
 {
-	uint64_t ix, top, m;
+	unsigned long long ix, top, m;
 
 	/* special case handling.  */
 	ix = asuint64(x);
@@ -103,11 +103,11 @@ double sqrt(double x)
 	   and after switching to 64 bit
 	     m: 2.62 r: 0.64, s: 2.62, d: 2.62, u: 2.62, three: 2.62  */
 
-	static const uint64_t three = 0xc0000000;
-	uint64_t r, s, d, u, i;
+	static const unsigned long long three = 0xc0000000;
+	unsigned long long r, s, d, u, i;
 
 	i = (ix >> 46) % 128;
-	r = (uint32_t)__rsqrt_tab[i] << 16;
+	r = (unsigned int)__rsqrt_tab[i] << 16;
 	/* |r sqrt(m) - 1| < 0x1.fdp-9 */
 	s = mul32(m>>32, r);
 	/* |s/sqrt(m) - 1| < 0x1.fdp-9 */
@@ -134,7 +134,7 @@ double sqrt(double x)
 	   compute nearest rounded result:
 	   the nearest result to 52 bits is either s or s+0x1p-52,
 	   we can decide by comparing (2^52 s + 0.5)^2 to 2^104 m.  */
-	uint64_t d0, d1, d2;
+	unsigned long long d0, d1, d2;
 	double y, t;
 	d0 = (m << 42) - s*s;
 	d1 = s - d0;
@@ -147,7 +147,7 @@ double sqrt(double x)
 		/* handle rounding modes and inexact exception:
 		   only (s+1)^2 == 2^42 m case is exact otherwise
 		   add a tiny value to cause the fenv effects.  */
-		uint64_t tiny = predict_false(d2==0) ? 0 : 0x0010000000000000;
+		unsigned long long tiny = predict_false(d2==0) ? 0 : 0x0010000000000000;
 		tiny |= (d1^d2) & 0x8000000000000000;
 		t = asdouble(tiny);
 		y = eval_as_double(y + t);

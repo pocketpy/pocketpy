@@ -19,7 +19,7 @@ extern const struct exp_data {
 	double poly[4]; /* Last four coefficients.  */
 	double exp2_shift;
 	double exp2_poly[EXP2_POLY_ORDER];
-	uint64_t tab[2*(1 << EXP_TABLE_BITS)];
+	unsigned long long tab[2*(1 << EXP_TABLE_BITS)];
 } __exp_data;
 
 #endif

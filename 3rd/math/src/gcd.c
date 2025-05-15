@@ -6,7 +6,7 @@ int gcd(int a, int b)
 	if (b < 0) b = -b;
 	while (b != 0)
 	{
-		int32_t t = b;
+		int t = b;
 		b = a % b;
 		a = t;
 	}

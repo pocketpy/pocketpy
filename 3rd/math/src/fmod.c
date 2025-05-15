@@ -2,15 +2,15 @@
 
 double fmod(double x, double y)
 {
-	union {double f; uint64_t i;} ux = {x}, uy = {y};
+	union {double f; unsigned long long i;} ux = {x}, uy = {y};
 	int ex = ux.i>>52 & 0x7ff;
 	int ey = uy.i>>52 & 0x7ff;
 	int sx = ux.i>>63;
-	uint64_t i;
+	unsigned long long i;
 
 	/* in the followings uxi should be ux.i, but then gcc wrongly adds */
 	/* float load/store to inner loops ruining performance and code size */
-	uint64_t uxi = ux.i;
+	unsigned long long uxi = ux.i;
 
 	if (uy.i<<1 == 0 || isnan(y) || ex == 0x7ff)
 		return (x*y)/(x*y);
@@ -57,11 +57,11 @@ double fmod(double x, double y)
 	/* scale result */
 	if (ex > 0) {
 		uxi -= 1ULL << 52;
-		uxi |= (uint64_t)ex << 52;
+		uxi |= (unsigned long long)ex << 52;
 	} else {
 		uxi >>= -ex + 1;
 	}
-	uxi |= (uint64_t)sx << 63;
+	uxi |= (unsigned long long)sx << 63;
 	ux.i = uxi;
 	return ux.f;
 }
