@@ -36,7 +36,7 @@ jobs:
       shell: bash
       run: |
         mkdir -p output/x86_64
-        python cmake_build.py
+        python cmake_build.py -DPK_BUILD_MODULE_LZ4=ON
         cp main.exe output/x86_64
         cp pocketpy.dll output/x86_64
     - uses: actions/upload-artifact@v4
@@ -70,7 +70,7 @@ jobs:
       run: |
         python scripts/check_pragma_once.py include
         mkdir -p output/x86_64
-        python cmake_build.py
+        python cmake_build.py -DPK_BUILD_MODULE_LZ4=ON
         python scripts/run_tests.py
         cp main output/x86_64
         cp libpocketpy.so output/x86_64
@@ -114,7 +114,7 @@ jobs:
           submodules: true
       - name: Compile and Test
         run: |
-          python cmake_build.py
+          python cmake_build.py -DPK_BUILD_MODULE_LZ4=ON
           python scripts/run_tests.py
       - name: Benchmark
         run: python scripts/run_tests.py benchmark
