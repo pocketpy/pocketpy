@@ -10,7 +10,7 @@ double fsum(double* aptr, int n)
 		Y = aptr[i] - C;
 		T = sum + Y;
 		C = T - sum - Y;
-		sum = Y;
+		sum = T;
 	}
 	return sum;
 }
