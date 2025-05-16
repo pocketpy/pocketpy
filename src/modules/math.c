@@ -5,7 +5,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 
-#include <math.h>
+#include "pocketpy/common/math.h"
 
 #define ONE_ARG_FUNC(name, func)                                                                   \
     static bool math_##name(int argc, py_Ref argv) {                                               \

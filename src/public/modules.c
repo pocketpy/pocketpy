@@ -9,7 +9,7 @@
 #include "pocketpy/common/_generated.h"
 
 #include <ctype.h>
-#include <math.h>
+#include "pocketpy/common/math.h"
 
 py_Ref py_getmodule(const char* path) {
     VM* vm = pk_current_vm;

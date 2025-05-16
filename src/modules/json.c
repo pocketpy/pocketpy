@@ -4,7 +4,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
-#include <math.h>
+#include "pocketpy/common/math.h"
 
 static bool json_loads(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
