@@ -128,5 +128,3 @@ class datetime(date):
     
     def __ge__(self, other) -> bool:
         return self.__cmp(other, operator.ge)
-
-
