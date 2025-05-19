@@ -2061,13 +2061,13 @@ static Error* compile_match_case(Compiler* self, c11_vector* patches) {
                 int break_patch = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, prev()->line);
                 c11_vector__push(int, patches, break_patch);
             }
+        } else {
+            return SyntaxError(self, "expected 'case', got '%s'", TokenSymbols[curr()->type]);
         }
 
         match_newlines();
     }
     consume(TK_DEDENT);
-
-    if(patches->length == 0) return SyntaxError(self, "invalid syntax");
 
     for(int i = 0; i < patches->length; i++) {
         int patch = c11__getitem(int, patches, i);
