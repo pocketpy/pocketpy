@@ -619,6 +619,13 @@ FrameResult VM__run_top_frame(VM* self) {
             }
                 /*****************************************/
             case OP_JUMP_FORWARD: DISPATCH_JUMP((int16_t)byte.arg);
+            case OP_POP_JUMP_IF_NOT_MATCH: {
+                int res = py_equal(SECOND(), TOP());
+                if(res < 0) goto __ERROR;
+                STACK_SHRINK(2);
+                if(!res) DISPATCH_JUMP((int16_t)byte.arg);
+                DISPATCH();
+            }
             case OP_POP_JUMP_IF_FALSE: {
                 int res = py_bool(TOP());
                 if(res < 0) goto __ERROR;

@@ -1,10 +1,10 @@
 #pragma once
 // clang-format off
 
-#define PK_VERSION				"2.0.9"
+#define PK_VERSION				"2.1.0"
 #define PK_VERSION_MAJOR            2
-#define PK_VERSION_MINOR            0
-#define PK_VERSION_PATCH            9
+#define PK_VERSION_MINOR            1
+#define PK_VERSION_PATCH            0
 
 /*************** feature settings ***************/
 // Whether to compile os-related modules or not

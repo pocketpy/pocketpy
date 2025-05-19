@@ -124,11 +124,51 @@ else:
     x = 3
 assert x == 2
 
-# t = 0
-# for i in range(5):
-#     try:
-#         break
-#     except:
-#         pass
-#     t = 1
-# assert t == 0
+# match case
+
+case, _ = 1, 2
+assert case == 1 and _ == 2
+
+match (404 * 1):
+    case 200:
+        assert False
+    case 404:
+        assert True
+    case _: assert False
+
+match (555 * 1):
+    case 200:
+        assert False
+    case 404: assert False
+    case _:
+        assert True
+
+match (555 * 1):
+    case 200:
+        assert False
+    case 404:
+        assert False
+    # no default case
+
+
+def f(case):
+    match case:
+        case 200:
+            return True
+        case 404:
+            return False
+        case _:
+            return False
+
+assert f(200) == True
+
+# extras
+
+t = 0
+for i in range(5):
+    try:
+        break
+    except:
+        pass
+    t = 1
+assert t == 0
