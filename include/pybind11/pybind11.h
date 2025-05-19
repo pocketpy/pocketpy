@@ -20,15 +20,19 @@ inline void initialize(int object_pool_size = 1024) {
 /// finalize the vm.
 inline void finalize(bool test = false) {
     if(!initialized) { return; }
+    
     object_pool::finalize();
     type::m_type_map.clear();
     capsule::tp_capsule.reset();
     cpp_function::tp_function_record.reset();
+    
     if(test) {
         py_resetvm();
     } else {
         py_finalize();
     }
+
+    initialized = false;
 }
 
 /// a RAII class to initialize and finalize python interpreter
