@@ -90,7 +90,8 @@ enum py_CompileMode { EXEC_MODE, EVAL_MODE, SINGLE_MODE };
 
 /// Initialize pocketpy and the default VM.
 PK_API void py_initialize();
-/// Finalize pocketpy and free all VMs.
+/// Finalize pocketpy and free all VMs. This opearation is irreversible.
+/// After this call, you cannot use any function from this header anymore.
 PK_API void py_finalize();
 /// Get the current VM index.
 PK_API int py_currentvm();
