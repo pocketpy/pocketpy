@@ -2058,8 +2058,6 @@ static Error* compile_match_case(Compiler* self, c11_vector* patches) {
                 Ctx__patch_jump(ctx(), patch);
             } else {
                 check(compile_block_body(self));
-                int break_patch = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, prev()->line);
-                c11_vector__push(int, patches, break_patch);
             }
         } else {
             return SyntaxError(self, "expected 'case', got '%s'", TokenSymbols[curr()->type]);
