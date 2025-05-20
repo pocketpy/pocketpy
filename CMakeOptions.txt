@@ -8,6 +8,7 @@ endif()
 # system features
 option(PK_ENABLE_OS "" OFF)
 option(PK_ENABLE_DETERMINISM "" FALSE)
+option(PK_ENABLE_WATCHDOG "" OFF)
 
 # modules
 option(PK_BUILD_MODULE_LZ4 "" OFF)

@@ -111,6 +111,16 @@ PK_API void py_sys_settrace(py_TraceFunc func);
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
 
+/// Begin the watchdog with a timeout in milliseconds.
+/// `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
+/// You need to call `py_watchdog_reset()` periodically to keep the watchdog alive.
+/// If the timeout is reached, `TimeoutError` will be raised.
+PK_API void py_watchdog_begin(py_i64 timeout);
+/// Reset the watchdog.
+PK_API void py_watchdog_reset();
+/// End the watchdog.
+PK_API void py_watchdog_end();
+
 /// Get the current source location of the frame.
 PK_API const char* py_Frame_sourceloc(py_Frame* frame, int* lineno);
 /// Python equivalent to `globals()` with respect to the given frame.
@@ -553,6 +563,7 @@ PK_API void py_clearexc(py_StackRef p0);
 #define NameError(n) py_exception(tp_NameError, "name '%n' is not defined", (n))
 #define TypeError(...) py_exception(tp_TypeError, __VA_ARGS__)
 #define RuntimeError(...) py_exception(tp_RuntimeError, __VA_ARGS__)
+#define TimeoutError(...) py_exception(tp_TimeoutError, __VA_ARGS__)
 #define OSError(...) py_exception(tp_OSError, __VA_ARGS__)
 #define ValueError(...) py_exception(tp_ValueError, __VA_ARGS__)
 #define IndexError(...) py_exception(tp_IndexError, __VA_ARGS__)
@@ -757,6 +768,7 @@ enum py_PredefinedType {
     tp_IndexError,
     tp_ValueError,
     tp_RuntimeError,
+    tp_TimeoutError,
     tp_ZeroDivisionError,
     tp_NameError,
     tp_UnboundLocalError,

@@ -7,6 +7,7 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/objects/error.h"
 #include <stdbool.h>
+#include <time.h>
 
 static bool stack_format_object(VM* self, c11_sv spec);
 
@@ -106,6 +107,18 @@ FrameResult VM__run_top_frame(VM* self) {
                 self->trace_info.func(frame, TRACE_EVENT_LINE);
             }
         }
+
+#if PK_ENABLE_WATCHDOG
+        if(self->watchdog_info.timeout > 0){
+            py_i64 now = clock() / (CLOCKS_PER_SEC / 1000);
+            py_i64 delta = now - self->watchdog_info.last_reset_time;
+            if(delta > self->watchdog_info.timeout) {
+                self->watchdog_info.last_reset_time = now;
+                TimeoutError("watchdog timeout");
+                goto __ERROR;
+            }
+        }
+#endif
 
 #ifndef NDEBUG
         pk_print_stack(self, frame, byte);

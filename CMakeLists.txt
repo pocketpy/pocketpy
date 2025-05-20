@@ -48,6 +48,10 @@ if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
 endif()
 
+if(PK_ENABLE_WATCHDOG)
+    add_definitions(-DPK_ENABLE_WATCHDOG=1)
+endif()
+
 if(PK_BUILD_MODULE_LZ4)
     add_subdirectory(3rd/lz4)
     include_directories(3rd/lz4)

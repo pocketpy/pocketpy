@@ -170,6 +170,7 @@ void VM__ctor(VM* self) {
     INJECT_BUILTIN_EXC(IndexError, tp_Exception);
     INJECT_BUILTIN_EXC(ValueError, tp_Exception);
     INJECT_BUILTIN_EXC(RuntimeError, tp_Exception);
+    INJECT_BUILTIN_EXC(TimeoutError, tp_Exception);
     INJECT_BUILTIN_EXC(ZeroDivisionError, tp_Exception);
     INJECT_BUILTIN_EXC(NameError, tp_Exception);
     INJECT_BUILTIN_EXC(UnboundLocalError, tp_Exception);

@@ -12,6 +12,10 @@
 #define PK_ENABLE_OS                1
 #endif
 
+#ifndef PK_ENABLE_WATCHDOG          // can be overridden by cmake
+#define PK_ENABLE_WATCHDOG          0                
+#endif
+
 // GC min threshold
 #ifndef PK_GC_MIN_THRESHOLD         // can be overridden by cmake
     #define PK_GC_MIN_THRESHOLD     32768
