@@ -1,0 +1,29 @@
+# use UNITY_BUILD if CMake version >= 3.16
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.16")
+    option(PK_BUILD_WITH_UNITY "" TRUE)
+else()
+    option(PK_BUILD_WITH_UNITY "" FALSE)
+endif()
+
+# system features
+option(PK_ENABLE_OS "" OFF)
+option(PK_ENABLE_DETERMINISM "" FALSE)
+
+# modules
+option(PK_BUILD_MODULE_LZ4 "" OFF)
+option(PK_BUILD_MODULE_LIBHV "" OFF)
+
+
+# PK_IS_MAIN determines whether the project is being used from root
+# or if it is added as a dependency (through add_subdirectory for example).
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+    set(PK_IS_MAIN TRUE)
+    option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
+    option(PK_BUILD_STATIC_LIB "Build static library" OFF)
+else()
+    set(PK_IS_MAIN FALSE)
+    option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
+    option(PK_BUILD_STATIC_LIB "Build static library" ON)
+endif()
+
+option(PK_BUILD_STATIC_MAIN "Build static main" OFF)
