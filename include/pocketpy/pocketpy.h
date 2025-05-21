@@ -47,7 +47,7 @@ typedef py_TValue* py_GlobalRef;
 typedef py_TValue* py_StackRef;
 /// An item reference to a container object. It invalidates when the container is modified.
 typedef py_TValue* py_ItemRef;
-/// An output reference for returning a value.
+/// An output reference for returning a value. Only use this for function arguments.
 typedef py_TValue* py_OutRef;
 
 typedef struct py_Frame py_Frame;
@@ -90,7 +90,8 @@ enum py_CompileMode { EXEC_MODE, EVAL_MODE, SINGLE_MODE };
 
 /// Initialize pocketpy and the default VM.
 PK_API void py_initialize();
-/// Finalize pocketpy and free all VMs.
+/// Finalize pocketpy and free all VMs. This opearation is irreversible.
+/// After this call, you cannot use any function from this header anymore.
 PK_API void py_finalize();
 /// Get the current VM index.
 PK_API int py_currentvm();
@@ -109,6 +110,16 @@ PK_API void py_sys_setargv(int argc, char** argv);
 PK_API void py_sys_settrace(py_TraceFunc func);
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
+
+/// Begin the watchdog with a timeout in milliseconds.
+/// `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
+/// You need to call `py_watchdog_reset()` periodically to keep the watchdog alive.
+/// If the timeout is reached, `TimeoutError` will be raised.
+PK_API void py_watchdog_begin(py_i64 timeout);
+/// Reset the watchdog.
+PK_API void py_watchdog_reset();
+/// End the watchdog.
+PK_API void py_watchdog_end();
 
 /// Get the current source location of the frame.
 PK_API const char* py_Frame_sourceloc(py_Frame* frame, int* lineno);
@@ -552,6 +563,7 @@ PK_API void py_clearexc(py_StackRef p0);
 #define NameError(n) py_exception(tp_NameError, "name '%n' is not defined", (n))
 #define TypeError(...) py_exception(tp_TypeError, __VA_ARGS__)
 #define RuntimeError(...) py_exception(tp_RuntimeError, __VA_ARGS__)
+#define TimeoutError(...) py_exception(tp_TimeoutError, __VA_ARGS__)
 #define OSError(...) py_exception(tp_OSError, __VA_ARGS__)
 #define ValueError(...) py_exception(tp_ValueError, __VA_ARGS__)
 #define IndexError(...) py_exception(tp_IndexError, __VA_ARGS__)
@@ -756,6 +768,7 @@ enum py_PredefinedType {
     tp_IndexError,
     tp_ValueError,
     tp_RuntimeError,
+    tp_TimeoutError,
     tp_ZeroDivisionError,
     tp_NameError,
     tp_UnboundLocalError,

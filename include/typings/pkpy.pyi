@@ -25,6 +25,19 @@ def currentvm() -> int:
     """Return the current VM index."""
 
 
+def watchdog_begin(timeout: int):
+    """
+    Begin the watchdog with a timeout in milliseconds.
+    `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
+    You need to call `watchdog_reset()` periodically to keep the watchdog alive.
+    If the timeout is reached, `TimeoutError` will be raised.
+    """
+def watchdog_reset():
+    """Reset the watchdog."""
+def watchdog_end():
+    """End the watchdog."""
+
+
 class ComputeThread:
     def __init__(self, vm_index: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]): ...
 

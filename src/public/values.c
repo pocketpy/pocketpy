@@ -7,42 +7,42 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/compiler/compiler.h"
 
-void py_newint(py_Ref out, int64_t val) {
+void py_newint(py_OutRef out, py_i64 val) {
     out->type = tp_int;
     out->is_ptr = false;
     out->_i64 = val;
 }
 
-void py_newfloat(py_Ref out, double val) {
+void py_newfloat(py_OutRef out, py_f64 val) {
     out->type = tp_float;
     out->is_ptr = false;
     out->_f64 = val;
 }
 
-void py_newbool(py_Ref out, bool val) {
+void py_newbool(py_OutRef out, bool val) {
     out->type = tp_bool;
     out->is_ptr = false;
     out->_bool = val;
 }
 
-void py_newnone(py_Ref out) {
+void py_newnone(py_OutRef out) {
     out->type = tp_NoneType;
     out->is_ptr = false;
 }
 
-void py_newnotimplemented(py_Ref out) {
+void py_newnotimplemented(py_OutRef out) {
     out->type = tp_NotImplementedType;
     out->is_ptr = false;
 }
 
-void py_newellipsis(py_Ref out) {
+void py_newellipsis(py_OutRef out) {
     out->type = tp_ellipsis;
     out->is_ptr = false;
 }
 
-void py_newnil(py_Ref out) { out->type = 0; }
+void py_newnil(py_OutRef out) { out->type = 0; }
 
-void py_newnativefunc(py_Ref out, py_CFunction f) {
+void py_newnativefunc(py_OutRef out, py_CFunction f) {
     out->type = tp_nativefunc;
     out->is_ptr = false;
     out->_cfunc = f;
@@ -90,7 +90,7 @@ void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
 }
 
 py_Name
-    py_newfunction(py_Ref out, const char* sig, py_CFunction f, const char* docstring, int slots) {
+    py_newfunction(py_OutRef out, const char* sig, py_CFunction f, const char* docstring, int slots) {
     char buffer[256];
     snprintf(buffer, sizeof(buffer), "def %s: pass", sig);
     // fn(a, b, *c, d=1) -> None
@@ -118,13 +118,13 @@ py_Name
     return decl_name;
 }
 
-void py_newboundmethod(py_Ref out, py_Ref self, py_Ref func) {
+void py_newboundmethod(py_OutRef out, py_Ref self, py_Ref func) {
     py_newobject(out, tp_boundmethod, 2, 0);
     py_setslot(out, 0, self);
     py_setslot(out, 1, func);
 }
 
-void* py_newobject(py_Ref out, py_Type type, int slots, int udsize) {
+void* py_newobject(py_OutRef out, py_Type type, int slots, int udsize) {
     ManagedHeap* heap = &pk_current_vm->heap;
     PyObject* obj = ManagedHeap__gcnew(heap, type, slots, udsize);
     out->type = type;

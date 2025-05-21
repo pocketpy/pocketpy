@@ -164,6 +164,7 @@ __ERROR:
 | Type Annotation | `def f(a:int, b:float=1)`       | ✅       |
 | Generator       | `yield i`                       | ✅       |
 | Decorator       | `@cache`                        | ✅       |
+| Match Case      | `match code: case 200:`         | ✅       |
 
 ## Performance
 

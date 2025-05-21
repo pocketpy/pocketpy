@@ -580,7 +580,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
             }
             case PKL_BUILD_LIST: {
                 int length = pkl__read_int(&p);
-                py_OutRef val = py_retval();
+                py_Ref val = py_retval();
                 py_newlistn(val, length);
                 for(int i = length - 1; i >= 0; i--) {
                     py_StackRef item = py_peek(-1);
@@ -592,7 +592,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
             }
             case PKL_BUILD_TUPLE: {
                 int length = pkl__read_int(&p);
-                py_OutRef val = py_retval();
+                py_Ref val = py_retval();
                 py_Ref p = py_newtuple(val, length);
                 for(int i = length - 1; i >= 0; i--) {
                     p[i] = *py_peek(-1);
@@ -603,7 +603,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
             }
             case PKL_BUILD_DICT: {
                 int length = pkl__read_int(&p);
-                py_OutRef val = py_pushtmp();
+                py_Ref val = py_pushtmp();
                 py_newdict(val);
                 py_StackRef begin = py_peek(-1) - 2 * length;
                 py_StackRef end = py_peek(-1);

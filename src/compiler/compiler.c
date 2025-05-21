@@ -1,9 +1,9 @@
 #include "pocketpy/compiler/compiler.h"
+#include "pocketpy/common/vector.h"
 #include "pocketpy/compiler/lexer.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/sourcedata.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include <assert.h>
 #include <stdbool.h>
@@ -479,13 +479,7 @@ bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
     }
 
     if(starred_i == -1) {
-        Bytecode* prev = c11__at(Bytecode, &ctx->co->codes, ctx->co->codes.length - 1);
-        if(prev->op == OP_BUILD_TUPLE && prev->arg == self->itemCount) {
-            // build tuple and unpack it is meaningless
-            Ctx__revert_last_emit_(ctx);
-        } else {
-            Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->itemCount, self->line);
-        }
+        Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->itemCount, self->line);
     } else {
         // starred assignment target must be in a tuple
         if(self->itemCount == 1) return false;
@@ -1377,6 +1371,15 @@ static bool is_expression(Compiler* self, bool allow_slice) {
 
 #define match(expected) (curr()->type == expected ? (++self->i) : 0)
 
+static bool match_id_by_str(Compiler* self, const char* name) {
+    if(curr()->type == TK_ID) {
+        bool ok = c11__sveq2(Token__sv(curr()), name);
+        if(ok) advance();
+        return ok;
+    }
+    return false;
+}
+
 static bool match_newlines_impl(Compiler* self) {
     bool consumed = false;
     if(curr()->type == TK_EOL) {
@@ -1969,10 +1972,10 @@ static Error* consume_type_hints_sv(Compiler* self, c11_sv* out) {
 
 static Error* compile_stmt(Compiler* self);
 
-static Error* compile_block_body(Compiler* self, PrattCallback callback) {
+static Error* compile_block_body(Compiler* self) {
     Error* err;
-    assert(callback != NULL);
     consume(TK_COLON);
+
     if(curr()->type != TK_EOL && curr()->type != TK_EOF) {
         while(true) {
             check(compile_stmt(self));
@@ -1988,7 +1991,7 @@ static Error* compile_block_body(Compiler* self, PrattCallback callback) {
     consume(TK_INDENT);
     while(curr()->type != TK_DEDENT) {
         match_newlines();
-        check(callback(self));
+        check(compile_stmt(self));
         match_newlines();
     }
     consume(TK_DEDENT);
@@ -2000,7 +2003,7 @@ static Error* compile_if_stmt(Compiler* self) {
     check(EXPR(self));  // condition
     Ctx__s_emit_top(ctx());
     int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, prev()->line);
-    err = compile_block_body(self, compile_stmt);
+    err = compile_block_body(self);
     if(err) return err;
     if(match(TK_ELIF)) {
         int exit_patch = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, prev()->line);
@@ -2010,11 +2013,59 @@ static Error* compile_if_stmt(Compiler* self) {
     } else if(match(TK_ELSE)) {
         int exit_patch = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, prev()->line);
         Ctx__patch_jump(ctx(), patch);
-        check(compile_block_body(self, compile_stmt));
+        check(compile_block_body(self));
         Ctx__patch_jump(ctx(), exit_patch);
     } else {
         Ctx__patch_jump(ctx(), patch);
     }
+    return NULL;
+}
+
+static Error* compile_match_case(Compiler* self, c11_vector* patches) {
+    Error* err;
+    bool is_case_default = false;
+
+    check(EXPR(self));  // condition
+    Ctx__s_emit_top(ctx());
+
+    consume(TK_COLON);
+
+    bool consumed = match_newlines();
+    if(!consumed) return SyntaxError(self, "expected a new line after ':'");
+
+    consume(TK_INDENT);
+    while(curr()->type != TK_DEDENT) {
+        match_newlines();
+
+        if(match_id_by_str(self, "case")) {
+            if(is_case_default) return SyntaxError(self, "case _: must be the last one");
+            is_case_default = match_id_by_str(self, "_");
+
+            if(!is_case_default) {
+                Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, prev()->line);
+                check(EXPR(self));  // expr
+                Ctx__s_emit_top(ctx());
+                int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_NOT_MATCH, BC_NOARG, prev()->line);
+                check(compile_block_body(self));
+                int break_patch = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, prev()->line);
+                c11_vector__push(int, patches, break_patch);
+                Ctx__patch_jump(ctx(), patch);
+            } else {
+                check(compile_block_body(self));
+            }
+        } else {
+            return SyntaxError(self, "expected 'case', got '%s'", TokenSymbols[curr()->type]);
+        }
+
+        match_newlines();
+    }
+    consume(TK_DEDENT);
+
+    for(int i = 0; i < patches->length; i++) {
+        int patch = c11__getitem(int, patches, i);
+        Ctx__patch_jump(ctx(), patch);
+    }
+    Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, prev()->line);
     return NULL;
 }
 
@@ -2025,13 +2076,13 @@ static Error* compile_while_loop(Compiler* self) {
     check(EXPR(self));  // condition
     Ctx__s_emit_top(ctx());
     int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, prev()->line);
-    check(compile_block_body(self, compile_stmt));
+    check(compile_block_body(self));
     Ctx__emit_jump(ctx(), block_start, BC_KEEPLINE);
     Ctx__patch_jump(ctx(), patch);
     Ctx__exit_block(ctx());
     // optional else clause
     if(match(TK_ELSE)) {
-        check(compile_block_body(self, compile_stmt));
+        check(compile_block_body(self));
         CodeBlock* p_block = c11__at(CodeBlock, &ctx()->co->blocks, block);
         p_block->end2 = ctx()->co->codes.length;
     }
@@ -2054,12 +2105,12 @@ static Error* compile_for_loop(Compiler* self) {
         // this error occurs in `vars` instead of this line, but...nevermind
         return SyntaxError(self, "invalid syntax");
     }
-    check(compile_block_body(self, compile_stmt));
+    check(compile_block_body(self));
     Ctx__emit_jump(ctx(), block_start, BC_KEEPLINE);
     Ctx__exit_block(ctx());
     // optional else clause
     if(match(TK_ELSE)) {
-        check(compile_block_body(self, compile_stmt));
+        check(compile_block_body(self));
         CodeBlock* p_block = c11__at(CodeBlock, &ctx()->co->blocks, block);
         p_block->end2 = ctx()->co->codes.length;
     }
@@ -2120,7 +2171,7 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
         }
         case TK_ASSIGN: {
             consume(TK_ASSIGN);
-            int n = 0;
+            int n = 0;  // assignment count
 
             if(match(TK_YIELD_FROM)) {
                 check(compile_yield_from(self, prev()->line));
@@ -2289,7 +2340,7 @@ static Error* compile_function(Compiler* self, int decorators) {
         consume(TK_RPAREN);
     }
     if(match(TK_ARROW)) check(consume_type_hints(self));
-    check(compile_block_body(self, compile_stmt));
+    check(compile_block_body(self));
     check(pop_context(self));
 
     if(decl->code.codes.length >= 2) {
@@ -2354,7 +2405,7 @@ static Error* compile_class(Compiler* self, int decorators) {
         if(it->is_compiling_class) return SyntaxError(self, "nested class is not allowed");
     }
     ctx()->is_compiling_class = true;
-    check(compile_block_body(self, compile_stmt));
+    check(compile_block_body(self));
     ctx()->is_compiling_class = false;
 
     Ctx__s_emit_decorators(ctx(), decorators);
@@ -2489,7 +2540,7 @@ static Error* compile_try_except(Compiler* self) {
 
     Ctx__enter_block(ctx(), CodeBlockType_TRY);
     Ctx__emit_(ctx(), OP_TRY_ENTER, BC_NOARG, prev()->line);
-    check(compile_block_body(self, compile_stmt));
+    check(compile_block_body(self));
 
     // https://docs.python.org/3/reference/compound_stmts.html#finally-clause
     /* If finally is present, it specifies a ‘cleanup’ handler. The try clause is executed,
@@ -2515,7 +2566,7 @@ static Error* compile_try_except(Compiler* self) {
         Ctx__emit_(ctx(), OP_BEGIN_FINALLY, BC_NOARG, prev()->line);
         // finally only, no except block
         Ctx__enter_block(ctx(), CodeBlockType_FINALLY);
-        check(compile_block_body(self, compile_stmt));
+        check(compile_block_body(self));
         Ctx__exit_block(ctx());
         Ctx__emit_(ctx(), OP_END_FINALLY, BC_NOARG, BC_KEEPLINE);
         // re-raise if needed
@@ -2551,7 +2602,7 @@ static Error* compile_try_except(Compiler* self) {
             Ctx__emit_store_name(ctx(), name_scope(self), as_name, BC_KEEPLINE);
         }
         Ctx__enter_block(ctx(), CodeBlockType_EXCEPT);
-        check(compile_block_body(self, compile_stmt));
+        check(compile_block_body(self));
         Ctx__exit_block(ctx());
         Ctx__emit_(ctx(), OP_END_EXC_HANDLING, BC_NOARG, BC_KEEPLINE);
         patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
@@ -2568,7 +2619,7 @@ static Error* compile_try_except(Compiler* self) {
     if(match(TK_FINALLY)) {
         Ctx__emit_(ctx(), OP_BEGIN_FINALLY, BC_NOARG, prev()->line);
         Ctx__enter_block(ctx(), CodeBlockType_FINALLY);
-        check(compile_block_body(self, compile_stmt));
+        check(compile_block_body(self));
         Ctx__exit_block(ctx());
         Ctx__emit_(ctx(), OP_END_FINALLY, BC_NOARG, BC_KEEPLINE);
     }
@@ -2629,6 +2680,13 @@ static Error* compile_stmt(Compiler* self) {
             break;
         /*************************************************/
         case TK_IF: check(compile_if_stmt(self)); break;
+        case TK_MATCH: {
+            c11_vector patches;
+            c11_vector__ctor(&patches, sizeof(int));
+            check(compile_match_case(self, &patches));
+            c11_vector__dtor(&patches);
+            break;
+        }
         case TK_WHILE: check(compile_while_loop(self)); break;
         case TK_FOR: check(compile_for_loop(self)); break;
         case TK_IMPORT: check(compile_normal_import(self)); break;
@@ -2701,7 +2759,7 @@ static Error* compile_stmt(Compiler* self) {
                 // discard `__enter__()`'s return value
                 Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
             }
-            check(compile_block_body(self, compile_stmt));
+            check(compile_block_body(self));
             Ctx__emit_(ctx(), OP_WITH_EXIT, BC_NOARG, prev()->line);
             Ctx__exit_block(ctx());
         } break;

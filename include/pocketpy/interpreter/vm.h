@@ -23,6 +23,11 @@ typedef struct TraceInfo {
     py_TraceFunc func;
 } TraceInfo;
 
+typedef struct WatchdogInfo {
+    py_i64 timeout;
+    py_i64 last_reset_time;
+} WatchdogInfo;
+
 typedef struct VM {
     py_Frame* top_frame;
 
@@ -48,6 +53,7 @@ typedef struct VM {
     py_StackRef curr_class;
     py_StackRef curr_decl_based_function;
     TraceInfo trace_info;
+    WatchdogInfo watchdog_info;
     py_TValue vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
     InternedNames names;

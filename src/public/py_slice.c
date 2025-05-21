@@ -1,11 +1,10 @@
 #include "pocketpy/pocketpy.h"
 
-#include "pocketpy/common/utils.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
-void py_newslice(py_Ref out) {
+void py_newslice(py_OutRef out) {
     VM* vm = pk_current_vm;
     PyObject* obj = ManagedHeap__gcnew(&vm->heap, tp_slice, 3, 0);
     out->type = tp_slice;

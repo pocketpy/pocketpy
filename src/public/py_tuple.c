@@ -5,7 +5,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
-py_ObjectRef py_newtuple(py_Ref out, int n) {
+py_ObjectRef py_newtuple(py_OutRef out, int n) {
     VM* vm = pk_current_vm;
     PyObject* obj = ManagedHeap__gcnew(&vm->heap, tp_tuple, n, 0);
     out->type = tp_tuple;

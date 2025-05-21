@@ -1,4 +1,3 @@
-#include "pocketpy/common/smallmap.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/vector.h"
 #include "pocketpy/compiler/lexer.h"
@@ -280,20 +279,20 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
                 case 'x': {
                     char hex[3] = {eatchar(self), eatchar(self), '\0'};
                     int code;
-                    if (sscanf(hex, "%x", &code) != 1 || code > 0xFF) {
+                    if(sscanf(hex, "%x", &code) != 1 || code > 0xFF) {
                         return LexerError(self, "invalid hex escape");
                     }
-                    if (type == NORMAL_BYTES) {
+                    if(type == NORMAL_BYTES) {
                         // Bytes literals: write raw byte
                         c11_sbuf__write_char(buff, (char)code);
                     } else {
                         // Regular strings: encode as UTF-8
-                        if (code <= 0x7F) {
+                        if(code <= 0x7F) {
                             c11_sbuf__write_char(buff, (char)code);
                         } else {
                             // Encode as 2-byte UTF-8 for code points 0x80-0xFF
-                            c11_sbuf__write_char(buff, 0xC0 | (code >> 6));        // Leading byte
-                            c11_sbuf__write_char(buff, 0x80 | (code & 0x3F));      // Continuation byte
+                            c11_sbuf__write_char(buff, 0xC0 | (code >> 6));    // Leading byte
+                            c11_sbuf__write_char(buff, 0x80 | (code & 0x3F));  // Continuation byte
                         }
                     }
                 } break;
@@ -712,6 +711,7 @@ const char* TokenSymbols[] = {
     "in",
     "is",
     "lambda",
+    "match",
     "not",
     "or",
     "pass",
