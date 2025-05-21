@@ -6,9 +6,9 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 
-void py_newstr(py_Ref out, const char* data) { py_newstrv(out, (c11_sv){data, strlen(data)}); }
+void py_newstr(py_OutRef out, const char* data) { py_newstrv(out, (c11_sv){data, strlen(data)}); }
 
-char* py_newstrn(py_Ref out, int size) {
+char* py_newstrn(py_OutRef out, int size) {
     if(size < 8) {
         out->type = tp_str;
         out->is_ptr = false;
@@ -42,7 +42,7 @@ void py_newfstr(py_OutRef out, const char* fmt, ...) {
     c11_sbuf__py_submit(&buf, out);
 }
 
-unsigned char* py_newbytes(py_Ref out, int size) {
+unsigned char* py_newbytes(py_OutRef out, int size) {
     ManagedHeap* heap = &pk_current_vm->heap;
     // 4 bytes size + data
     PyObject* obj = ManagedHeap__gcnew(heap, tp_bytes, 0, sizeof(c11_bytes) + size);

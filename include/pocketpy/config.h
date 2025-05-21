@@ -55,3 +55,9 @@
 #else
     #define PK_PLATFORM_SEP '/'
 #endif
+
+#ifdef __cplusplus
+    #ifndef restrict
+        #define restrict
+    #endif
+#endif

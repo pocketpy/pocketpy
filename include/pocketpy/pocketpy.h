@@ -47,7 +47,7 @@ typedef py_TValue* py_GlobalRef;
 typedef py_TValue* py_StackRef;
 /// An item reference to a container object. It invalidates when the container is modified.
 typedef py_TValue* py_ItemRef;
-/// An output reference for returning a value.
+/// An output reference for returning a value. Only use this for function arguments.
 typedef py_TValue* py_OutRef;
 
 typedef struct py_Frame py_Frame;

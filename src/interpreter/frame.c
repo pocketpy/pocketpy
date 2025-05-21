@@ -192,7 +192,7 @@ const char* py_Frame_sourceloc(py_Frame* self, int* lineno) {
     return loc.src->filename->data;
 }
 
-void py_Frame_newglobals(py_Frame* frame, py_Ref out) {
+void py_Frame_newglobals(py_Frame* frame, py_OutRef out) {
     if(!frame) {
         pk_mappingproxy__namedict(out, &pk_current_vm->main);
         return;
@@ -204,7 +204,7 @@ void py_Frame_newglobals(py_Frame* frame, py_Ref out) {
     }
 }
 
-void py_Frame_newlocals(py_Frame* frame, py_Ref out) {
+void py_Frame_newlocals(py_Frame* frame, py_OutRef out) {
     if(!frame) {
         py_newdict(out);
         return;

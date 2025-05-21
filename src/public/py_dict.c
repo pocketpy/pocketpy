@@ -266,7 +266,7 @@ static bool dict__new__(int argc, py_Ref argv) {
     return true;
 }
 
-void py_newdict(py_Ref out) {
+void py_newdict(py_OutRef out) {
     Dict* ud = py_newobject(out, tp_dict, 0, sizeof(Dict));
     Dict__ctor(ud, 7, 8);
 }

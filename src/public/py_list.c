@@ -1,16 +1,15 @@
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 
-void py_newlist(py_Ref out) {
+void py_newlist(py_OutRef out) {
     List* ud = py_newobject(out, tp_list, 0, sizeof(List));
     c11_vector__ctor(ud, sizeof(py_TValue));
 }
 
-void py_newlistn(py_Ref out, int n) {
+void py_newlistn(py_OutRef out, int n) {
     py_newlist(out);
     List* ud = py_touserdata(out);
     c11_vector__reserve(ud, n);

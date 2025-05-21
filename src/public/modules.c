@@ -500,12 +500,12 @@ static bool builtins_locals(int argc, py_Ref argv) {
     return true;
 }
 
-void py_newglobals(py_Ref out) {
+void py_newglobals(py_OutRef out) {
     py_Frame* frame = pk_current_vm->top_frame;
     py_Frame_newglobals(frame, out);
 }
 
-void py_newlocals(py_Ref out) {
+void py_newlocals(py_OutRef out) {
     py_Frame* frame = pk_current_vm->top_frame;
     py_Frame_newlocals(frame, out);
 }

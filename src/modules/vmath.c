@@ -4,7 +4,6 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/vm.h"
-#include "pocketpy/objects/object.h"
 #include <math.h>
 
 static bool isclose(float a, float b) { return fabs(a - b) < 1e-4; }
@@ -544,7 +543,7 @@ static bool mat3x3__eq__(int argc, py_Ref argv) {
 
 DEFINE_BOOL_NE(mat3x3, mat3x3__eq__)
 
-static void matmul(const c11_mat3x3* lhs, const c11_mat3x3* rhs, c11_mat3x3* out) {
+static void matmul(const c11_mat3x3* lhs, const c11_mat3x3* rhs, c11_mat3x3* restrict out) {
     out->_11 = lhs->_11 * rhs->_11 + lhs->_12 * rhs->_21 + lhs->_13 * rhs->_31;
     out->_12 = lhs->_11 * rhs->_12 + lhs->_12 * rhs->_22 + lhs->_13 * rhs->_32;
     out->_13 = lhs->_11 * rhs->_13 + lhs->_12 * rhs->_23 + lhs->_13 * rhs->_33;
@@ -562,7 +561,7 @@ static float determinant(const c11_mat3x3* m) {
            m->_13 * (m->_21 * m->_32 - m->_22 * m->_31);
 }
 
-static bool inverse(const c11_mat3x3* m, c11_mat3x3* out) {
+static bool inverse(const c11_mat3x3* m, c11_mat3x3* restrict out) {
     float det = determinant(m);
     if(isclose(det, 0)) return false;
     float invdet = 1.0f / det;
@@ -578,7 +577,7 @@ static bool inverse(const c11_mat3x3* m, c11_mat3x3* out) {
     return true;
 }
 
-static void trs(c11_vec2 t, float r, c11_vec2 s, c11_mat3x3* out) {
+static void trs(c11_vec2 t, float r, c11_vec2 s, c11_mat3x3* restrict out) {
     float cr = cosf(r);
     float sr = sinf(r);
     // clang-format off
