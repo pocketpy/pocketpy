@@ -579,8 +579,8 @@ static bool inverse(const c11_mat3x3* m, c11_mat3x3* restrict out) {
 }
 
 static void trs(c11_vec2 t, float r, c11_vec2 s, c11_mat3x3* restrict out) {
-    float cr = cosf(r);
-    float sr = sinf(r);
+    float cr = cos(r);
+    float sr = sin(r);
     // clang-format off
     *out = (c11_mat3x3){
         ._11 = s.x * cr, ._12 = -s.y * sr, ._13 = t.x,

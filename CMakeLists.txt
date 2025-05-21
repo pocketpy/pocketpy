@@ -113,9 +113,6 @@ if(PK_BUILD_WITH_UNITY)
 endif()
 
 ############################################
-if(NOT MSVC)
-    target_link_libraries(${PROJECT_NAME} pthread)
-endif()
 
 if(PK_BUILD_MODULE_LZ4)
     target_link_libraries(${PROJECT_NAME} lz4)
