@@ -479,13 +479,7 @@ bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
     }
 
     if(starred_i == -1) {
-        Bytecode* prev = c11__at(Bytecode, &ctx->co->codes, ctx->co->codes.length - 1);
-        if(prev->op == OP_BUILD_TUPLE && prev->arg == self->itemCount) {
-            // build tuple and unpack it is meaningless
-            Ctx__revert_last_emit_(ctx);
-        } else {
-            Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->itemCount, self->line);
-        }
+        Ctx__emit_(ctx, OP_UNPACK_SEQUENCE, self->itemCount, self->line);
     } else {
         // starred assignment target must be in a tuple
         if(self->itemCount == 1) return false;
@@ -2177,7 +2171,7 @@ Error* try_compile_assignment(Compiler* self, bool* is_assign) {
         }
         case TK_ASSIGN: {
             consume(TK_ASSIGN);
-            int n = 0;
+            int n = 0;  // assignment count
 
             if(match(TK_YIELD_FROM)) {
                 check(compile_yield_from(self, prev()->line));

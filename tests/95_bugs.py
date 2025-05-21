@@ -149,3 +149,12 @@ a = [(0, 1), (1, 1), (1, 2)]
 b = sorted(a, key=lambda x: x[0])
 if b != [(0, 1), (1, 1), (1, 2)]:
     assert False, b
+
+# https://github.com/pocketpy/pocketpy/issues/367
+a = 10 if False else 5
+assert a == 5
+
+a, b, c = (1, 2, 3) if True else (4, 5, 6)
+assert a == 1
+assert b == 2
+assert c == 3
