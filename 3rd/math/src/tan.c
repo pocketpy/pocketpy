@@ -39,12 +39,12 @@
  *      TRIG(x) returns trig(x) nearly rounded
  */
 
-#include "math.h"
+#include "libm.h"
 
 double tan(double x)
 {
 	double y[2];
-	unsigned int ix;
+	uint32_t ix;
 	unsigned n;
 
 	GET_HIGH_WORD(ix, x);

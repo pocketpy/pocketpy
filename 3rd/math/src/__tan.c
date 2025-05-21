@@ -43,7 +43,7 @@
  *                     = 1 - 2*(tan(y) - (tan(y)^2)/(1+tan(y)))
  */
 
-#include "math.h"
+#include "libm.h"
 
 static const double T[] = {
              3.33333333333334091986e-01, /* 3FD55555, 55555563 */
@@ -65,9 +65,9 @@ pio4lo =     3.06161699786838301793e-17; /* 3C81A626, 33145C07 */
 
 double __tan(double x, double y, int odd)
 {
-	double z, r, v, w, s, a;
+	double_t z, r, v, w, s, a;
 	double w0, a0;
-	unsigned int hx;
+	uint32_t hx;
 	int big, sign;
 
 	GET_HIGH_WORD(hx,x);

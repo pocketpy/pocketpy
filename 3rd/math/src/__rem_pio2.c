@@ -17,7 +17,7 @@
  * use __rem_pio2_large() for large x
  */
 
-#include "math.h"
+#include "libm.h"
 
 #if FLT_EVAL_METHOD==0 || FLT_EVAL_METHOD==1
 #define EPS DBL_EPSILON
@@ -48,10 +48,10 @@ pio2_3t = 8.47842766036889956997e-32; /* 0x397B839A, 0x252049C1 */
 /* caller must handle the case when reduction is not needed: |x| ~<= pi/4 */
 int __rem_pio2(double x, double *y)
 {
-	union {double f; unsigned long long i;} u = {x};
-	double z,w,t,r,fn;
+	union {double f; uint64_t i;} u = {x};
+	double_t z,w,t,r,fn;
 	double tx[3],ty[2];
-	unsigned int ix;
+	uint32_t ix;
 	int sign, n, ex, ey, i;
 
 	sign = u.i>>63;
@@ -119,8 +119,8 @@ int __rem_pio2(double x, double *y)
 	if (ix < 0x413921fb) {  /* |x| ~< 2^20*(pi/2), medium size */
 medium:
 		/* rint(x/(pi/2)) */
-		fn = (double)x*invpio2 + toint - toint;
-		n = (int)fn;
+		fn = (double_t)x*invpio2 + toint - toint;
+		n = (int32_t)fn;
 		r = x - fn*pio2_1;
 		w = fn*pio2_1t;  /* 1st round, good to 85 bits */
 		/* Matters with directed rounding. */
@@ -167,11 +167,11 @@ medium:
 	}
 	/* set z = scalbn(|x|,-ilogb(x)+23) */
 	u.f = x;
-	u.i &= (unsigned long long)-1>>12;
-	u.i |= (unsigned long long)(0x3ff + 23)<<52;
+	u.i &= (uint64_t)-1>>12;
+	u.i |= (uint64_t)(0x3ff + 23)<<52;
 	z = u.f;
 	for (i=0; i < 2; i++) {
-		tx[i] = (double)(int)z;
+		tx[i] = (double)(int32_t)z;
 		z     = (z-tx[i])*0x1p24;
 	}
 	tx[i] = z;

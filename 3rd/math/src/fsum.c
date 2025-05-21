@@ -1,4 +1,4 @@
-#include <math.h>
+#include "libm.h"
 
 double fsum(double* aptr, int n)
 {

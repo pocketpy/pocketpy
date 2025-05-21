@@ -5,10 +5,11 @@
 #ifndef _POW_DATA_H
 #define _POW_DATA_H
 
+#include "features/features.h"
 
 #define POW_LOG_TABLE_BITS 7
 #define POW_LOG_POLY_ORDER 8
-extern const struct pow_log_data {
+extern hidden const struct pow_log_data {
 	double ln2hi;
 	double ln2lo;
 	double poly[POW_LOG_POLY_ORDER - 1]; /* First coefficient is 1.  */

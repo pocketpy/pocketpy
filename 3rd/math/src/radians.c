@@ -1,4 +1,4 @@
-#include <math.h>
+#include "libm.h"
 
 double radians(double x)
 {

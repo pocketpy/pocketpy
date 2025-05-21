@@ -1,10 +1,10 @@
-#include "math.h"
+#include "libm.h"
 
 double trunc(double x)
 {
-	union {double f; unsigned long long i;} u = {x};
+	union {double f; uint64_t i;} u = {x};
 	int e = (int)(u.i >> 52 & 0x7ff) - 0x3ff + 12;
-	unsigned long long m;
+	uint64_t m;
 
 	if (e >= 52 + 12)
 		return x;

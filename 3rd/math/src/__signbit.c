@@ -1,11 +1,11 @@
-#include "math.h"
+#include "libm.h"
 
 // FIXME: macro in math.h
 int __signbit(double x)
 {
 	union {
 		double d;
-		unsigned long long i;
+		uint64_t i;
 	} y = { x };
 	return y.i>>63;
 }

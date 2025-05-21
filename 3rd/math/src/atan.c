@@ -30,7 +30,7 @@
  */
 
 
-#include "math.h"
+#include "libm.h"
 
 static const double atanhi[] = {
   4.63647609000806093515e-01, /* atan(0.5)hi 0x3FDDAC67, 0x0561BB4F */
@@ -62,8 +62,8 @@ static const double aT[] = {
 
 double atan(double x)
 {
-	double w,s1,s2,z;
-	unsigned int ix,sign;
+	double_t w,s1,s2,z;
+	uint32_t ix,sign;
 	int id;
 
 	GET_HIGH_WORD(ix, x);

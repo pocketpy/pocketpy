@@ -39,7 +39,7 @@
  *              sin(x) = x + (S1*x + (x *(r-y/2)+y))
  */
 
-#include "math.h"
+#include "libm.h"
 
 static const double
 S1  = -1.66666666666666324348e-01, /* 0xBFC55555, 0x55555549 */
@@ -51,7 +51,7 @@ S6  =  1.58969099521155010221e-10; /* 0x3DE5D93A, 0x5ACFD57C */
 
 double __sin(double x, double y, int iy)
 {
-	double z,r,v,w;
+	double_t z,r,v,w;
 
 	z = x*x;
 	w = z*z;

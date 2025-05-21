@@ -5,7 +5,9 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <math.h>
+#include "math.h"
+#include <stdint.h>
+#include "libm.h"
 #include "exp_data.h"
 #include "pow_data.h"
 
@@ -23,7 +25,7 @@ ulperr_exp: 0.509 ULP (ULP error of exp, 0.511 ULP without fma)
 #define OFF 0x3fe6955500000000
 
 /* Top 12 bits of a double (sign and exponent bits).  */
-static inline unsigned int top12(double x)
+static inline uint32_t top12(double x)
 {
 	return asuint64(x) >> 52;
 }
@@ -31,11 +33,11 @@ static inline unsigned int top12(double x)
 /* Compute y+TAIL = log(x) where the rounded result is y and TAIL has about
    additional 15 bits precision.  IX is the bit representation of x, but
    normalized in the subnormal range using the sign bit for the exponent.  */
-static inline double log_inline(unsigned long long ix, double *tail)
+static inline double_t log_inline(uint64_t ix, double_t *tail)
 {
-	/* double for better performance on targets with FLT_EVAL_METHOD==2.  */
-	double z, r, y, invc, logc, logctail, kd, hi, t1, t2, lo, lo1, lo2, p;
-	unsigned long long iz, tmp;
+	/* double_t for better performance on targets with FLT_EVAL_METHOD==2.  */
+	double_t z, r, y, invc, logc, logctail, kd, hi, t1, t2, lo, lo1, lo2, p;
+	uint64_t iz, tmp;
 	int k, i;
 
 	/* x = 2^k z; where z is in range [OFF,2*OFF) and exact.
@@ -43,10 +45,10 @@ static inline double log_inline(unsigned long long ix, double *tail)
 	   The ith subinterval contains z and c is near its center.  */
 	tmp = ix - OFF;
 	i = (tmp >> (52 - POW_LOG_TABLE_BITS)) % N;
-	k = (long long)tmp >> 52; /* arithmetic shift */
+	k = (int64_t)tmp >> 52; /* arithmetic shift */
 	iz = ix - (tmp & 0xfffULL << 52);
 	z = asdouble(iz);
-	kd = (double)k;
+	kd = (double_t)k;
 
 	/* log(x) = k*Ln2 + log(c) + log1p(z/c-1).  */
 	invc = T[i].invc;
@@ -59,10 +61,10 @@ static inline double log_inline(unsigned long long ix, double *tail)
 	r = __builtin_fma(z, invc, -1.0);
 #else
 	/* Split z such that rhi, rlo and rhi*rhi are exact and |rlo| <= |r|.  */
-	double zhi = asdouble((iz + (1ULL << 31)) & (ULLONG_NSHIFT << 32));
-	double zlo = z - zhi;
-	double rhi = zhi * invc - 1.0;
-	double rlo = zlo * invc;
+	double_t zhi = asdouble((iz + (1ULL << 31)) & (ULLONG_NSHIFT << 32));
+	double_t zlo = z - zhi;
+	double_t rhi = zhi * invc - 1.0;
+	double_t rlo = zlo * invc;
 	r = rhi + rlo;
 #endif
 
@@ -73,7 +75,7 @@ static inline double log_inline(unsigned long long ix, double *tail)
 	lo2 = t1 - t2 + r;
 
 	/* Evaluation is optimized assuming superscalar pipelined execution.  */
-	double ar, ar2, ar3, lo3, lo4;
+	double_t ar, ar2, ar3, lo3, lo4;
 	ar = A[0] * r; /* A[0] = -0.5.  */
 	ar2 = r * ar;
 	ar3 = r * ar2;
@@ -83,8 +85,8 @@ static inline double log_inline(unsigned long long ix, double *tail)
 	lo3 = __builtin_fma(ar, r, -ar2);
 	lo4 = t2 - hi + ar2;
 #else
-	double arhi = A[0] * rhi;
-	double arhi2 = rhi * arhi;
+	double_t arhi = A[0] * rhi;
+	double_t arhi2 = rhi * arhi;
 	hi = t2 + arhi2;
 	lo3 = rlo * (ar + arhi);
 	lo4 = t2 - hi + arhi2;
@@ -116,12 +118,12 @@ static inline double log_inline(unsigned long long ix, double *tail)
    is scale*(1+TMP) without intermediate rounding.  The bit representation of
    scale is in SBITS, however it has a computed exponent that may have
    overflown into the sign bit so that needs to be adjusted before using it as
-   a double.  (int)KI is the k used in the argument reduction and exponent
+   a double.  (int32_t)KI is the k used in the argument reduction and exponent
    adjustment of scale, positive k here means the result may overflow and
    negative k means the result may underflow.  */
-static inline double specialcase(double tmp, unsigned long long sbits, unsigned long long ki)
+static inline double specialcase(double_t tmp, uint64_t sbits, uint64_t ki)
 {
-	double scale, y;
+	double_t scale, y;
 
 	if ((ki & 0x80000000) == 0) {
 		/* k > 0, the exponent of scale might have overflowed by <= 460.  */
@@ -140,7 +142,7 @@ static inline double specialcase(double tmp, unsigned long long sbits, unsigned 
 		   range to avoid double rounding that can cause 0.5+E/2 ulp error where
 		   E is the worst-case ulp error outside the subnormal range.  So this
 		   is only useful if the goal is better than 1 ulp worst-case error.  */
-		double hi, lo, one = 1.0;
+		double_t hi, lo, one = 1.0;
 		if (y < 0.0)
 			one = -1.0;
 		lo = scale - y + scale * tmp;
@@ -161,12 +163,12 @@ static inline double specialcase(double tmp, unsigned long long sbits, unsigned 
 
 /* Computes sign*exp(x+xtail) where |xtail| < 2^-8/N and |xtail| <= |x|.
    The sign_bias argument is SIGN_BIAS or 0 and sets the sign to -1 or 1.  */
-static inline double exp_inline(double x, double xtail, unsigned int sign_bias)
+static inline double exp_inline(double_t x, double_t xtail, uint32_t sign_bias)
 {
-	unsigned int abstop;
-	unsigned long long ki, idx, top, sbits;
-	/* double for better performance on targets with FLT_EVAL_METHOD==2.  */
-	double kd, z, r, r2, scale, tail, tmp;
+	uint32_t abstop;
+	uint64_t ki, idx, top, sbits;
+	/* double_t for better performance on targets with FLT_EVAL_METHOD==2.  */
+	double_t kd, z, r, r2, scale, tail, tmp;
 
 	abstop = top12(x) & 0x7ff;
 	if (predict_false(abstop - top12(0x1p-54) >=
@@ -174,7 +176,7 @@ static inline double exp_inline(double x, double xtail, unsigned int sign_bias)
 		if (abstop - top12(0x1p-54) >= 0x80000000) {
 			/* Avoid spurious underflow for tiny x.  */
 			/* Note: 0 is common input.  */
-			double one = WANT_ROUNDING ? 1.0 + x : 1.0;
+			double_t one = WANT_ROUNDING ? 1.0 + x : 1.0;
 			return sign_bias ? -one : one;
 		}
 		if (abstop >= top12(1024.0)) {
@@ -198,7 +200,7 @@ static inline double exp_inline(double x, double xtail, unsigned int sign_bias)
 	/* z - kd is in [-0.5-2^-16, 0.5] in all rounding modes.  */
 	kd = eval_as_double(z + Shift);
 	ki = asuint64(kd) >> 16;
-	kd = (double)(int)ki;
+	kd = (double_t)(int32_t)ki;
 #else
 	/* z - kd is in [-1, 1] in non-nearest rounding modes.  */
 	kd = eval_as_double(z + Shift);
@@ -230,7 +232,7 @@ static inline double exp_inline(double x, double xtail, unsigned int sign_bias)
 
 /* Returns 0 if not int, 1 if odd int, 2 if even int.  The argument is
    the bit representation of a non-zero finite floating-point value.  */
-static inline int checkint(unsigned long long iy)
+static inline int checkint(uint64_t iy)
 {
 	int e = iy >> 52 & 0x7ff;
 	if (e < 0x3ff)
@@ -245,16 +247,16 @@ static inline int checkint(unsigned long long iy)
 }
 
 /* Returns 1 if input is the bit representation of 0, infinity or nan.  */
-static inline int zeroinfnan(unsigned long long i)
+static inline int zeroinfnan(uint64_t i)
 {
 	return 2 * i - 1 >= 2 * asuint64(INFINITY) - 1;
 }
 
 double pow(double x, double y)
 {
-	unsigned int sign_bias = 0;
-	unsigned long long ix, iy;
-	unsigned int topx, topy;
+	uint32_t sign_bias = 0;
+	uint64_t ix, iy;
+	uint32_t topx, topy;
 
 	ix = asuint64(x);
 	iy = asuint64(y);
@@ -281,7 +283,7 @@ double pow(double x, double y)
 			return y * y;
 		}
 		if (predict_false(zeroinfnan(ix))) {
-			double x2 = x * x;
+			double_t x2 = x * x;
 			if (ix >> 63 && checkint(iy) == 1)
 				x2 = -x2;
 			/* Without the barrier some versions of clang hoist the 1/x2 and
@@ -323,17 +325,17 @@ double pow(double x, double y)
 		}
 	}
 
-	double lo;
-	double hi = log_inline(ix, &lo);
-	double ehi, elo;
+	double_t lo;
+	double_t hi = log_inline(ix, &lo);
+	double_t ehi, elo;
 #if __FP_FAST_FMA
 	ehi = y * hi;
 	elo = y * lo + __builtin_fma(y, hi, -ehi);
 #else
-	double yhi = asdouble(iy & ULLONG_NSHIFT << 27);
-	double ylo = y - yhi;
-	double lhi = asdouble(asuint64(hi) & ULLONG_NSHIFT << 27);
-	double llo = hi - lhi + lo;
+	double_t yhi = asdouble(iy & ULLONG_NSHIFT << 27);
+	double_t ylo = y - yhi;
+	double_t lhi = asdouble(asuint64(hi) & ULLONG_NSHIFT << 27);
+	double_t llo = hi - lhi + lo;
 	ehi = yhi * lhi;
 	elo = ylo * lhi + y * llo; /* |elo| < |ehi| * 2^-25.  */
 #endif

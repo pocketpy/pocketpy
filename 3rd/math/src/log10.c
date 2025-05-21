@@ -17,7 +17,8 @@
  *    log10(x) = (f - f*f/2 + r)/log(10) + k*log10(2)
  */
 
-#include <math.h>
+#include "math.h"
+#include <stdint.h>
 
 static const double
 ivln10hi  = 4.34294481878168880939e-01, /* 0x3fdbcb7b, 0x15200000 */
@@ -34,9 +35,9 @@ Lg7 = 1.479819860511658591e-01;  /* 3FC2F112 DF3E5244 */
 
 double log10(double x)
 {
-	union {double f; unsigned long long i;} u = {x};
-	double hfsq,f,s,z,R,w,t1,t2,dk,y,hi,lo,val_hi,val_lo;
-	unsigned int hx;
+	union {double f; uint64_t i;} u = {x};
+	double_t hfsq,f,s,z,R,w,t1,t2,dk,y,hi,lo,val_hi,val_lo;
+	uint32_t hx;
 	int k;
 
 	hx = u.i>>32;
@@ -60,7 +61,7 @@ double log10(double x)
 	hx += 0x3ff00000 - 0x3fe6a09e;
 	k += (int)(hx>>20) - 0x3ff;
 	hx = (hx&0x000fffff) + 0x3fe6a09e;
-	u.i = (unsigned long long)hx<<32 | (u.i&0xffffffff);
+	u.i = (uint64_t)hx<<32 | (u.i&0xffffffff);
 	x = u.f;
 
 	f = x - 1.0;
@@ -76,7 +77,7 @@ double log10(double x)
 	/* hi+lo = f - hfsq + s*(hfsq+R) ~ log(1+f) */
 	hi = f - hfsq;
 	u.f = hi;
-	u.i &= (unsigned long long)-1<<32;
+	u.i &= (uint64_t)-1<<32;
 	hi = u.f;
 	lo = f - hi - hfsq + s*(hfsq+R);
 

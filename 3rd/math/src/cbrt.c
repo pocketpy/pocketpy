@@ -15,9 +15,10 @@
  * Return cube root of x
  */
 
-#include <math.h>
+#include "math.h"
+#include <stdint.h>
 
-static const unsigned int
+static const uint32_t
 B1 = 715094163, /* B1 = (1023-1023/3-0.03306235651)*2**20 */
 B2 = 696219795; /* B2 = (1023-1023/3-54/3-0.03306235651)*2**20 */
 
@@ -31,9 +32,9 @@ P4 =  0.145996192886612446982; /* 0x3fc2b000, 0xd4e4edd7 */
 
 double cbrt(double x)
 {
-	union {double f; unsigned long long i;} u = {x};
-	double r,s,t,w;
-	unsigned int hx = u.i>>32 & 0x7fffffff;
+	union {double f; uint64_t i;} u = {x};
+	double_t r,s,t,w;
+	uint32_t hx = u.i>>32 & 0x7fffffff;
 
 	if (hx >= 0x7ff00000)  /* cbrt(NaN,INF) is itself */
 		return x+x;
@@ -62,7 +63,7 @@ double cbrt(double x)
 	} else
 		hx = hx/3 + B1;
 	u.i &= 1ULL<<63;
-	u.i |= (unsigned long long)hx << 32;
+	u.i |= (uint64_t)hx << 32;
 	t = u.f;
 
 	/*

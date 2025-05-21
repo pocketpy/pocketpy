@@ -5,7 +5,9 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <math.h>
+#include "math.h"
+#include <stdint.h>
+#include "libm.h"
 #include "log2_data.h"
 
 #define T __log2_data.tab
@@ -18,16 +20,16 @@
 #define OFF 0x3fe6000000000000
 
 /* Top 16 bits of a double.  */
-static inline unsigned int top16(double x)
+static inline uint32_t top16(double x)
 {
 	return asuint64(x) >> 48;
 }
 
 double log2(double x)
 {
-	double z, r, r2, r4, y, invc, logc, kd, hi, lo, t1, t2, t3, p;
-	unsigned long long ix, iz, tmp;
-	unsigned int top;
+	double_t z, r, r2, r4, y, invc, logc, kd, hi, lo, t1, t2, t3, p;
+	uint64_t ix, iz, tmp;
+	uint32_t top;
 	int k, i;
 
 	ix = asuint64(x);
@@ -44,7 +46,7 @@ double log2(double x)
 		hi = r * InvLn2hi;
 		lo = r * InvLn2lo + __builtin_fma(r, InvLn2hi, -hi);
 #else
-		double rhi, rlo;
+		double_t rhi, rlo;
 		rhi = asdouble(asuint64(r) & ULLONG_NSHIFT << 32);
 		rlo = r - rhi;
 		hi = rhi * InvLn2hi;
@@ -79,12 +81,12 @@ double log2(double x)
 	   The ith subinterval contains z and c is near its center.  */
 	tmp = ix - OFF;
 	i = (tmp >> (52 - LOG2_TABLE_BITS)) % N;
-	k = (long long)tmp >> 52; /* arithmetic shift */
+	k = (int64_t)tmp >> 52; /* arithmetic shift */
 	iz = ix - (tmp & 0xfffULL << 52);
 	invc = T[i].invc;
 	logc = T[i].logc;
 	z = asdouble(iz);
-	kd = (double)k;
+	kd = (double_t)k;
 
 	/* log2(x) = log2(z/c) + log2(c) + k.  */
 	/* r ~= z/c - 1, |r| < 1/(2*N).  */
@@ -94,7 +96,7 @@ double log2(double x)
 	t1 = r * InvLn2hi;
 	t2 = r * InvLn2lo + __builtin_fma(r, InvLn2hi, -t1);
 #else
-	double rhi, rlo;
+	double_t rhi, rlo;
 	/* rounding error: 0x1p-55/N + 0x1p-65.  */
 	r = (z - T2[i].chi - T2[i].clo) * invc;
 	rhi = asdouble(asuint64(r) & ULLONG_NSHIFT << 32);

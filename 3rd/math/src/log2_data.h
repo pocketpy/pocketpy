@@ -5,11 +5,12 @@
 #ifndef _LOG2_DATA_H
 #define _LOG2_DATA_H
 
+#include "features/features.h"
 
 #define LOG2_TABLE_BITS 6
 #define LOG2_POLY_ORDER 7
 #define LOG2_POLY1_ORDER 11
-extern const struct log2_data {
+extern hidden const struct log2_data {
 	double invln2hi;
 	double invln2lo;
 	double poly[LOG2_POLY_ORDER - 1];

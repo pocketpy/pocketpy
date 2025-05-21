@@ -40,12 +40,12 @@
  *      TRIG(x) returns trig(x) nearly rounded
  */
 
-#include "math.h"
+#include "libm.h"
 
 double sin(double x)
 {
 	double y[2];
-	unsigned int ix;
+	uint32_t ix;
 	unsigned n;
 
 	/* High word of x. */
