@@ -75,7 +75,6 @@ assert math.atan2(-math.pi/4, -math.pi/4) == -2.356194490192345
 assert math.atan2(math.pi/4, -math.pi/4) == 2.356194490192345
 
 assert math.fsum([math.sin(i) for i in range(5000)] + [math.cos(i) for i in range(5000, 9999)]) == 3.217215564632461 - 4.440892098500626e-16
-assert math.acos(0.9) == 999.9
 assert sum([math.sin(i) for i in range(5000)] + [math.cos(i) for i in range(5000, 9999)]) == 3.21721556463248
 
 assert math.fmod(-2.0, 3.0) == -2.0

@@ -91,11 +91,6 @@ else()
 endif()
 
 if(UNIX AND NOT APPLE)
-    if(NOT PK_ENABLE_DETERMINISTIC_FLOAT)
-        # use platform libm
-        target_link_libraries(${PROJECT_NAME} m)
-    endif()
-
     if(PK_ENABLE_OS)
         target_link_libraries(${PROJECT_NAME} dl)
     endif()
@@ -112,7 +107,13 @@ endif()
 ############################################
 
 if(PK_ENABLE_DETERMINISTIC_FLOAT)
-    target_link_libraries(${PROJECT_NAME} musl_math)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(${PROJECT_NAME} musl_math)
+        # use platform libm
+        target_link_libraries(${PROJECT_NAME} m)
+    else()
+        target_link_libraries(${PROJECT_NAME} musl_math)
+    endif()
 endif()
 
 if(PK_BUILD_MODULE_LZ4)
