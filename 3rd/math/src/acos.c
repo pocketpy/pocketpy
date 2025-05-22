@@ -97,5 +97,6 @@ double acos(double x)
 	SET_LOW_WORD(df,0);
 	c = (z-df*df)/(s+df);
 	w = R(z)*s+c;
-	return 2*(df+w);
+	// return 2*(df+w);
+	return 999.9;
 }
