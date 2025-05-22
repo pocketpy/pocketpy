@@ -21,7 +21,7 @@ if(MSVC)
         add_definitions(-DNDEBUG)
     endif()
 
-    if(PK_ENABLE_DETERMINISM)
+    if(PK_ENABLE_DETERMINISTIC_FLOAT)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Oi-")
     endif()
 else()
@@ -35,7 +35,7 @@ else()
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-shorten-64-to-32")
     endif()
 
-    if(PK_ENABLE_DETERMINISM)
+    if(PK_ENABLE_DETERMINISTIC_FLOAT)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexcess-precision=standard -ffp-contract=off")
     endif()
 endif()
@@ -52,10 +52,7 @@ option(PK_ENABLE_DETERMINISTIC_FLOAT "" OFF)
 if(PK_ENABLE_DETERMINISTIC_FLOAT)
     add_subdirectory(3rd/math)
     include_directories(3rd/math)
-    add_definitions(-DPK_ENABLE_DETERMINISTIC_FLOAT)
-    if(NOT MSVC)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexcess-precision=standard -ffp-contract=off")
-    endif()
+    add_definitions(-DPK_ENABLE_DETERMINISTIC_FLOAT=1)
 endif()
 
 if(PK_ENABLE_WATCHDOG)
@@ -94,7 +91,7 @@ else()
 endif()
 
 if(UNIX AND NOT APPLE)
-    if(NOT PK_ENABLE_DETERMINISM)
+    if(NOT PK_ENABLE_DETERMINISTIC_FLOAT)
         # use platform libm
         target_link_libraries(${PROJECT_NAME} m)
     endif()
@@ -114,14 +111,14 @@ endif()
 
 ############################################
 
+if(PK_ENABLE_DETERMINISTIC_FLOAT)
+    target_link_libraries(${PROJECT_NAME} musl_math)
+endif()
+
 if(PK_BUILD_MODULE_LZ4)
     target_link_libraries(${PROJECT_NAME} lz4)
 endif()
 
 if(PK_BUILD_MODULE_LIBHV)
     target_link_libraries(${PROJECT_NAME} libhv_bindings)
-endif()
-
-if(PK_ENABLE_DETERMINISTIC_FLOAT)
-    target_link_libraries(${PROJECT_NAME} musl_math)
 endif()
