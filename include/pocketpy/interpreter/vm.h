@@ -5,10 +5,9 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/heap.h"
 #include "pocketpy/interpreter/frame.h"
-#include "pocketpy/interpreter/modules.h"
 #include "pocketpy/interpreter/typeinfo.h"
 #include "pocketpy/interpreter/name.h"
-#include "pocketpy/interpreter/types.h"
+#include <time.h>
 
 // TODO:
 // 1. __eq__ and __ne__ fallbacks
@@ -24,8 +23,7 @@ typedef struct TraceInfo {
 } TraceInfo;
 
 typedef struct WatchdogInfo {
-    py_i64 timeout;
-    py_i64 last_reset_time;
+    clock_t max_reset_time;
 } WatchdogInfo;
 
 typedef struct VM {

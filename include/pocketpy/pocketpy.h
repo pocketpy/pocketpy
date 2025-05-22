@@ -111,14 +111,12 @@ PK_API void py_sys_settrace(py_TraceFunc func);
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
 
-/// Begin the watchdog with a timeout in milliseconds.
+/// Begin the watchdog with `timeout` in milliseconds.
 /// `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
-/// You need to call `py_watchdog_reset()` periodically to keep the watchdog alive.
-/// If the timeout is reached, `TimeoutError` will be raised.
+/// You need to call `py_watchdog_end()` later.
+/// If `timeout` is reached, `TimeoutError` will be raised.
 PK_API void py_watchdog_begin(py_i64 timeout);
 /// Reset the watchdog.
-PK_API void py_watchdog_reset();
-/// End the watchdog.
 PK_API void py_watchdog_end();
 
 /// Get the current source location of the frame.

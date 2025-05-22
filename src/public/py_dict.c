@@ -2,7 +2,7 @@
 
 #include "pocketpy/common/utils.h"
 #include "pocketpy/common/sstream.h"
-#include "pocketpy/objects/object.h"
+#include "pocketpy/interpreter/types.h"
 #include "pocketpy/interpreter/vm.h"
 
 static uint32_t Dict__next_cap(uint32_t cap) {

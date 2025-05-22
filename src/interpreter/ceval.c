@@ -109,11 +109,10 @@ FrameResult VM__run_top_frame(VM* self) {
         }
 
 #if PK_ENABLE_WATCHDOG
-        if(self->watchdog_info.timeout > 0){
-            py_i64 now = clock() / (CLOCKS_PER_SEC / 1000);
-            py_i64 delta = now - self->watchdog_info.last_reset_time;
-            if(delta > self->watchdog_info.timeout) {
-                self->watchdog_info.last_reset_time = now;
+        if(self->watchdog_info.max_reset_time > 0){
+            clock_t now = clock();
+            if(now > self->watchdog_info.max_reset_time) {
+                self->watchdog_info.max_reset_time = 0;
                 TimeoutError("watchdog timeout");
                 goto __ERROR;
             }

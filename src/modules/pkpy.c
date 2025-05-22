@@ -7,6 +7,7 @@
 #include "pocketpy/interpreter/vm.h"
 
 #include "pocketpy/common/threads.h"
+#include <time.h>
 
 #define DEF_TVALUE_METHODS(T, Field)                                                               \
     static bool TValue_##T##__new__(int argc, py_Ref argv) {                                       \
@@ -81,31 +82,18 @@ static bool pkpy_currentvm(int argc, py_Ref argv) {
 #if PK_ENABLE_WATCHDOG
 void py_watchdog_begin(py_i64 timeout) {
     WatchdogInfo* info = &pk_current_vm->watchdog_info;
-    info->timeout = timeout;
-    py_watchdog_reset();
-}
-
-void py_watchdog_reset() {
-    WatchdogInfo* info = &pk_current_vm->watchdog_info;
-    info->last_reset_time = clock() / (CLOCKS_PER_SEC / 1000);
+    info->max_reset_time = clock() + (timeout * (CLOCKS_PER_SEC / 1000));
 }
 
 void py_watchdog_end() {
     WatchdogInfo* info = &pk_current_vm->watchdog_info;
-    info->timeout = 0;
+    info->max_reset_time = 0;
 }
 
 static bool pkpy_watchdog_begin(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_int);
     py_watchdog_begin(py_toint(argv));
-    py_newnone(py_retval());
-    return true;
-}
-
-static bool pkpy_watchdog_reset(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(0);
-    py_watchdog_reset();
     py_newnone(py_retval());
     return true;
 }
@@ -508,7 +496,6 @@ void pk__add_module_pkpy() {
 
 #if PK_ENABLE_WATCHDOG
     py_bindfunc(mod, "watchdog_begin", pkpy_watchdog_begin);
-    py_bindfunc(mod, "watchdog_reset", pkpy_watchdog_reset);
     py_bindfunc(mod, "watchdog_end", pkpy_watchdog_end);
 #endif
 

@@ -6,6 +6,7 @@
 #include "pocketpy/interpreter/modules.h"
 #include "pocketpy/interpreter/typeinfo.h"
 #include "pocketpy/objects/base.h"
+#include "pocketpy/interpreter/types.h"
 #include "pocketpy/common/_generated.h"
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>

@@ -2,6 +2,7 @@
 
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/interpreter/types.h"
 #include "pocketpy/common/sstream.h"
 
 void py_newlist(py_OutRef out) {
