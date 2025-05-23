@@ -454,6 +454,13 @@ static void pk_ComputeThread__register(py_Ref mod) {
     py_bindmethod(type, "eval", ComputeThread_eval);
 }
 
+static void pkpy_configmacros_add(py_Ref dict, const char* key, int val){
+    assert(dict->type == tp_dict);
+    py_TValue tmp;
+    py_newint(&tmp, val);
+    py_dict_setitem_by_str(dict, key, &tmp);
+}
+
 void pk__add_module_pkpy() {
     py_Ref mod = py_newmodule("pkpy");
 
@@ -500,6 +507,14 @@ void pk__add_module_pkpy() {
 #endif
 
     pk_ComputeThread__register(mod);
+
+    py_Ref configmacros = py_emplacedict(mod, py_name("configmacros"));
+    py_newdict(configmacros);
+    pkpy_configmacros_add(configmacros, "PK_ENABLE_OS", PK_ENABLE_OS);
+    pkpy_configmacros_add(configmacros, "PK_ENABLE_DETERMINISM", PK_ENABLE_DETERMINISM);
+    pkpy_configmacros_add(configmacros, "PK_ENABLE_WATCHDOG", PK_ENABLE_WATCHDOG);
+    pkpy_configmacros_add(configmacros, "PK_GC_MIN_THRESHOLD", PK_GC_MIN_THRESHOLD);
+    pkpy_configmacros_add(configmacros, "PK_VM_STACK_SIZE", PK_VM_STACK_SIZE);
 }
 
 #undef DEF_TVALUE_METHODS

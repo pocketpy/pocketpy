@@ -12,6 +12,10 @@
 #define PK_ENABLE_OS                1
 #endif
 
+#ifndef PK_ENABLE_DETERMINISM       // must be enabled from cmake
+#define PK_ENABLE_DETERMINISM       0
+#endif
+
 #ifndef PK_ENABLE_WATCHDOG          // can be overridden by cmake
 #define PK_ENABLE_WATCHDOG          0                
 #endif
