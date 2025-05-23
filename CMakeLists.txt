@@ -36,7 +36,7 @@ else()
     endif()
 
     if(PK_ENABLE_DETERMINISM)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexcess-precision=standard -ffp-contract=off")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffp-contract=off")
     endif()
 endif()
 
@@ -80,6 +80,13 @@ else()
     endif()
     add_executable(main src2/main.c)
     target_link_libraries(main ${PROJECT_NAME})
+endif()
+
+
+if(PK_ENABLE_DETERMINISM)
+    add_subdirectory(3rd/dmath/dmath)
+    target_link_libraries(${PROJECT_NAME} dmath)
+    add_definitions(-DPK_ENABLE_DETERMINISM=1)
 endif()
 
 if(UNIX AND NOT APPLE)

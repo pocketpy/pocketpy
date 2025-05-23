@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: recursive
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Compile
       shell: powershell
@@ -30,7 +30,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: recursive
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Compile
       shell: bash
@@ -52,7 +52,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: recursive
     - name: Setup Clang
       uses: egor-tensin/setup-clang@v1
       with:
@@ -87,7 +87,7 @@ jobs:
       steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
       - name: Compile and Test
         run: |
           python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON
@@ -101,7 +101,7 @@ jobs:
       steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
@@ -132,7 +132,7 @@ jobs:
       steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
       - name: Compile Frameworks
         run: |
           git clone https://github.com/leetal/ios-cmake --depth 1 ~/ios-cmake
@@ -151,7 +151,7 @@ jobs:
       steps:
         - uses: actions/checkout@v4
           with:
-            submodules: true
+            submodules: recursive
         - name: Setup Alpine Linux for ${{ matrix.arch }}
           uses: jirutka/setup-alpine@v1
           with:

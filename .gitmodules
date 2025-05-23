@@ -4,3 +4,6 @@
 [submodule "3rd/lz4/lz4"]
 	path = 3rd/lz4/lz4
 	url = https://github.com/lz4/lz4
+[submodule "3rd/dmath/dmath"]
+	path = 3rd/dmath/dmath
+	url = https://github.com/pocketpy/dmath
