@@ -44,6 +44,11 @@ if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
 endif()
 
+if(PK_ENABLE_DETERMINISM)
+    add_subdirectory(3rd/dmath/dmath)
+    add_definitions(-DPK_ENABLE_DETERMINISM=1)
+endif()
+
 if(PK_ENABLE_WATCHDOG)
     add_definitions(-DPK_ENABLE_WATCHDOG=1)
 endif()
@@ -80,10 +85,7 @@ endif()
 
 
 if(PK_ENABLE_DETERMINISM)
-    add_subdirectory(3rd/dmath/dmath)
     target_link_libraries(${PROJECT_NAME} dmath)
-    add_definitions(-DPK_ENABLE_DETERMINISM=1)
-
     if(MSVC)
         target_link_options(${PROJECT_NAME} PRIVATE /FORCE:MULTIPLE)
     endif()
