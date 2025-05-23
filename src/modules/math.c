@@ -7,6 +7,12 @@
 
 #include <math.h>
 
+#if PK_ENABLE_DETERMINISM
+    #ifndef _DMATH_H
+        #error "_DMATH_H not defined"
+    #endif
+#endif
+
 #define ONE_ARG_FUNC(name, func)                                                                   \
     static bool math_##name(int argc, py_Ref argv) {                                               \
         PY_CHECK_ARGC(1);                                                                          \
