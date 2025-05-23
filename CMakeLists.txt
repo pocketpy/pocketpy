@@ -46,7 +46,7 @@ endif()
 
 if(PK_ENABLE_DETERMINISM)
     add_subdirectory(3rd/dmath/dmath)
-    include_directories(3rd/dmath/dmath/include/public)
+    include_directories(BEFORE 3rd/dmath/dmath/include/public)
     add_definitions(-DPK_ENABLE_DETERMINISM=1)
 endif()
 
