@@ -3,14 +3,14 @@ from math import log, log10, log2, sin, cos, tan, e, pi, isnan, isinf, fabs, flo
 def isclose(a, b):
     return abs(a-b) < 0.000001
 
-assert isclose(e, 2.718281828459045)
-assert isclose(pi, 3.141592653589793)
-assert isclose(log(10), 2.302585092994046)
-assert isclose(log10(10), 1.0)
-assert isclose(log2(10), 3.321928094887362)
-assert isclose(sin(0), 0.0)
-assert isclose(cos(0), 1.0)
-assert isclose(tan(0), 0.0)
+assert isclose(e, 2.718281828459045), e
+assert isclose(pi, 3.141592653589793), pi
+assert isclose(log(10), 2.302585092994046), log(10)
+assert isclose(log10(10), 1.0), log10(10)
+assert isclose(log2(10), 3.321928094887362), log2(10)
+assert isclose(sin(0), 0.0), sin(0)
+assert isclose(cos(0), 1.0), cos(0)
+assert isclose(tan(0), 0.0), tan(0)
 
 a = -0.1
 a = a**a
