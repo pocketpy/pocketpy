@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     py_initialize();
     py_sys_setargv(argc, argv);
 
-    if(trace) py_sys_settrace(tracefunc);
+    if(trace) py_sys_settrace(tracefunc, true);
 
     if(filename == NULL) {
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");

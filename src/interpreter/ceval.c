@@ -1454,9 +1454,10 @@ static bool stack_format_object(VM* self, c11_sv spec) {
 #undef INSERT_THIRD
 #undef vectorcall_opcall
 
-void py_sys_settrace(py_TraceFunc func) {
+void py_sys_settrace(py_TraceFunc func, bool reset) {
     TraceInfo* info = &pk_current_vm->trace_info;
     info->func = func;
+    if(!reset) return;
     if(info->prev_loc.src) {
         PK_DECREF(info->prev_loc.src);
         info->prev_loc.src = NULL;

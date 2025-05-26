@@ -107,7 +107,7 @@ PK_API void py_setvmctx(void* ctx);
 /// Set `sys.argv`. Used for storing command-line arguments.
 PK_API void py_sys_setargv(int argc, char** argv);
 /// Set the trace function for the current VM.
-PK_API void py_sys_settrace(py_TraceFunc func);
+PK_API void py_sys_settrace(py_TraceFunc func, bool reset);
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
 
