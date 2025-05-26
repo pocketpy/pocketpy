@@ -255,6 +255,8 @@ void VM__ctor(VM* self) {
 }
 
 void VM__dtor(VM* self) {
+    // reset traceinfo
+    py_sys_settrace(NULL, true);
     // destroy all objects
     ManagedHeap__dtor(&self->heap);
     // clear frames
