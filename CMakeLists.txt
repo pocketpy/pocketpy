@@ -46,7 +46,6 @@ endif()
 
 if(PK_ENABLE_DETERMINISM)
     add_subdirectory(3rd/dmath/dmath)
-    include_directories(BEFORE 3rd/dmath/dmath/include/public)
     add_definitions(-DPK_ENABLE_DETERMINISM=1)
 endif()
 
@@ -56,13 +55,11 @@ endif()
 
 if(PK_BUILD_MODULE_LZ4)
     add_subdirectory(3rd/lz4)
-    include_directories(3rd/lz4)
     add_definitions(-DPK_BUILD_MODULE_LZ4)
 endif()
 
 if(PK_BUILD_MODULE_LIBHV)
     add_subdirectory(3rd/libhv)
-    include_directories(3rd/libhv/include)
     add_definitions(-DPK_BUILD_MODULE_LIBHV)
 endif()
 
