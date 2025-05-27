@@ -105,11 +105,14 @@ FrameResult VM__run_top_frame(VM* self) {
                 PK_INCREF(loc.src);
                 self->trace_info.prev_loc = loc;
                 self->trace_info.func(frame, TRACE_EVENT_LINE);
+                if(self->line_profiler) {
+                    LineProfiler__tracefunc_line(self->line_profiler, frame);
+                }
             }
         }
 
 #if PK_ENABLE_WATCHDOG
-        if(self->watchdog_info.max_reset_time > 0){
+        if(self->watchdog_info.max_reset_time > 0) {
             clock_t now = clock();
             if(now > self->watchdog_info.max_reset_time) {
                 self->watchdog_info.max_reset_time = 0;

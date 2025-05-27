@@ -85,6 +85,8 @@ void VM__ctor(VM* self) {
     self->curr_class = NULL;
     self->curr_decl_based_function = NULL;
     memset(&self->trace_info, 0, sizeof(TraceInfo));
+    memset(&self->watchdog_info, 0, sizeof(WatchdogInfo));
+    self->line_profiler = NULL;
 
     FixedMemoryPool__ctor(&self->pool_frame, sizeof(py_Frame), 32);
 
@@ -268,6 +270,8 @@ void VM__dtor(VM* self) {
     ValueStack__dtor(&self->stack);
     InternedNames__dtor(&self->names);
 }
+
+void VM__set_line_profiler(VM* self, LineProfiler* profiler) { self->line_profiler = profiler; }
 
 void VM__push_frame(VM* self, py_Frame* frame) {
     frame->f_back = self->top_frame;

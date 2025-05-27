@@ -7,6 +7,7 @@
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/typeinfo.h"
 #include "pocketpy/interpreter/name.h"
+#include "pocketpy/interpreter/line_profiler.h"
 #include <time.h>
 
 // TODO:
@@ -52,6 +53,7 @@ typedef struct VM {
     py_StackRef curr_decl_based_function;
     TraceInfo trace_info;
     WatchdogInfo watchdog_info;
+    LineProfiler* line_profiler;
     py_TValue vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
     InternedNames names;

@@ -24,7 +24,7 @@
 
 #define SMALLMAP_T__HEADER
 #define K void*
-#define V int
+#define V py_i64
 #define NAME c11_smallmap_p2i
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__HEADER
