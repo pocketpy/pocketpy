@@ -6,6 +6,11 @@
 
 #include "pocketpy.h"
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 static char* read_file(const char* path) {
     FILE* file = fopen(path, "rb");
     if(file == NULL) {
