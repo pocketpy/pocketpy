@@ -4,6 +4,7 @@ void LineProfiler__ctor(LineProfiler* self) {
     c11_smallmap_p2i__ctor(&self->records);
     self->prev_loc.src = NULL;
     self->prev_time = 0;
+    self->enabled = false;
 }
 
 void LineProfiler__dtor(LineProfiler* self) {
@@ -25,17 +26,15 @@ LineRecord* LineProfiler__get_record(LineProfiler* self, SourceLocation loc) {
     return &lines[loc.lineno];
 }
 
-void LineProfiler__begin(LineProfiler* self, bool reset) {
-    if(self->records.length > 0 && reset) {
-        LineProfiler__dtor(self);
-        LineProfiler__ctor(self);
-    }
+void LineProfiler__begin(LineProfiler* self) {
+    assert(!self->enabled);
     self->prev_loc.src = NULL;
     self->prev_time = 0;
-    VM__set_line_profiler(pk_current_vm, self);
+    self->enabled = true;
 }
 
 void LineProfiler__tracefunc_line(LineProfiler* self, py_Frame* frame) {
+    assert(self->enabled);
     clock_t now = clock();
     if(self->prev_loc.src != NULL) {
         LineRecord* line = LineProfiler__get_record(self, self->prev_loc);
@@ -47,10 +46,16 @@ void LineProfiler__tracefunc_line(LineProfiler* self, py_Frame* frame) {
 }
 
 void LineProfiler__end(LineProfiler* self) {
+    assert(self->enabled);
     if(self->prev_loc.src != NULL) {
         LineRecord* line = LineProfiler__get_record(self, self->prev_loc);
         line->hits++;
         line->time += clock() - self->prev_time;
     }
-    VM__set_line_profiler(pk_current_vm, NULL);
+    self->enabled = false;
+}
+
+void LineProfiler__reset(LineProfiler* self) {
+    LineProfiler__dtor(self);
+    LineProfiler__ctor(self);
 }

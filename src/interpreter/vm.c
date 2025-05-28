@@ -86,7 +86,7 @@ void VM__ctor(VM* self) {
     self->curr_decl_based_function = NULL;
     memset(&self->trace_info, 0, sizeof(TraceInfo));
     memset(&self->watchdog_info, 0, sizeof(WatchdogInfo));
-    self->line_profiler = NULL;
+    LineProfiler__ctor(&self->line_profiler);
 
     FixedMemoryPool__ctor(&self->pool_frame, sizeof(py_Frame), 32);
 
@@ -259,6 +259,7 @@ void VM__ctor(VM* self) {
 void VM__dtor(VM* self) {
     // reset traceinfo
     py_sys_settrace(NULL, true);
+    LineProfiler__dtor(&self->line_profiler);
     // destroy all objects
     ManagedHeap__dtor(&self->heap);
     // clear frames
@@ -270,8 +271,6 @@ void VM__dtor(VM* self) {
     ValueStack__dtor(&self->stack);
     InternedNames__dtor(&self->names);
 }
-
-void VM__set_line_profiler(VM* self, LineProfiler* profiler) { self->line_profiler = profiler; }
 
 void VM__push_frame(VM* self, py_Frame* frame) {
     frame->f_back = self->top_frame;
