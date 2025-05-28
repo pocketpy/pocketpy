@@ -24,3 +24,5 @@ void LineProfiler__begin(LineProfiler* self);
 void LineProfiler__tracefunc_line(LineProfiler* self, py_Frame* frame);
 void LineProfiler__end(LineProfiler* self);
 void LineProfiler__reset(LineProfiler* self);
+
+void LineProfiler__tracefunc(py_Frame* frame, enum py_TraceEvent event);

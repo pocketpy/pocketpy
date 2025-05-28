@@ -32,6 +32,11 @@ static void pk_default_print(const char* data) { printf("%s", data); }
 
 static void pk_default_flush() { fflush(stdout); }
 
+void LineProfiler__tracefunc(py_Frame* frame, enum py_TraceEvent event) {
+    LineProfiler* self = &pk_current_vm->line_profiler;
+    if(self->enabled && event == TRACE_EVENT_LINE) { LineProfiler__tracefunc_line(self, frame); }
+}
+
 static void py_TypeInfo__ctor(py_TypeInfo* self,
                               py_Name name,
                               py_Type index,

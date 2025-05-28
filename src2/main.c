@@ -6,30 +6,6 @@
 
 #include "pocketpy.h"
 
-#define py_interrupt()
-
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-static BOOL WINAPI sigint_handler(DWORD dwCtrlType) {
-    if(dwCtrlType == CTRL_C_EVENT) {
-        py_interrupt();
-        return TRUE;
-    }
-    return FALSE;
-}
-
-#else
-
-// set ctrl+c handler
-#include <signal.h>
-#include <unistd.h>
-
-static void sigint_handler(int sig) { py_interrupt(); }
-
-#endif
-
 static char* read_file(const char* path) {
     FILE* file = fopen(path, "rb");
     if(file == NULL) {
@@ -45,57 +21,34 @@ static char* read_file(const char* path) {
     return buffer;
 }
 
-static void tracefunc(py_Frame* frame, enum py_TraceEvent event) {
-    int line;
-    const char* filename = py_Frame_sourceloc(frame, &line);
-    const char* event_str;
-    switch(event) {
-        case TRACE_EVENT_LINE:
-            event_str = "line";
-            break;
-        case TRACE_EVENT_EXCEPTION:
-            event_str = "exception";
-            break;
-        case TRACE_EVENT_PUSH:
-            event_str = "push";
-            break;
-        case TRACE_EVENT_POP:
-            event_str = "pop";
-            break;
-    }
-    printf("\x1b[30m%s:%d, event=%s\x1b[0m\n", filename, line, event_str);
-}
-
+void LineProfiler__tracefunc(py_Frame* frame, enum py_TraceEvent event);
 static char buf[2048];
 
 int main(int argc, char** argv) {
 #if _WIN32
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
-    // SetConsoleCtrlHandler((PHANDLER_ROUTINE)sigint_handler, TRUE);
-#else
-    // signal(SIGINT, sigint_handler);
 #endif
 
-    bool trace = false;
+    bool profile = false;
     const char* filename = NULL;
 
     for(int i = 1; i < argc; i++) {
-        if(strcmp(argv[i], "--trace") == 0) {
-            trace = true;
+        if(strcmp(argv[i], "--profile") == 0) {
+            profile = true;
             continue;
         }
         if(filename == NULL) {
             filename = argv[i];
             continue;
         }
-        printf("Usage: pocketpy [--trace] filename\n");
+        printf("Usage: pocketpy [--profile] filename\n");
     }
 
     py_initialize();
     py_sys_setargv(argc, argv);
 
-    if(trace) py_sys_settrace(tracefunc, true);
+    if(profile) py_sys_settrace(LineProfiler__tracefunc, true);
 
     if(filename == NULL) {
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");

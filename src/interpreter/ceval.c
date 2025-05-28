@@ -105,9 +105,6 @@ FrameResult VM__run_top_frame(VM* self) {
                 PK_INCREF(loc.src);
                 self->trace_info.prev_loc = loc;
                 self->trace_info.func(frame, TRACE_EVENT_LINE);
-                if(self->line_profiler.enabled) {
-                    LineProfiler__tracefunc_line(&self->line_profiler, frame);
-                }
             }
         }
 
