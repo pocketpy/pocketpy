@@ -8,6 +8,8 @@ def test(data: bytes):
     compressed = lz4.compress(data)
     decompressed = lz4.decompress(compressed)
     assert data == decompressed
+    if len(data) == 0:
+        return 0
     return len(compressed) / len(data)
 
 test(b'')
