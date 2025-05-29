@@ -70,6 +70,7 @@ static bool int__truediv__(int argc, py_Ref argv) {
     py_i64 lhs = py_toint(&argv[0]);
     py_f64 rhs;
     if(try_castfloat(&argv[1], &rhs)) {
+        if(rhs == 0.0) return ZeroDivisionError("float division by zero");
         py_newfloat(py_retval(), lhs / rhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -82,6 +83,7 @@ static bool float__truediv__(int argc, py_Ref argv) {
     py_f64 lhs = py_tofloat(&argv[0]);
     py_f64 rhs;
     if(try_castfloat(&argv[1], &rhs)) {
+        if(rhs == 0.0) return ZeroDivisionError("float division by zero");
         py_newfloat(py_retval(), lhs / rhs);
     } else {
         py_newnotimplemented(py_retval());
