@@ -24,7 +24,7 @@ class Library:
 
         w, pyi_w = Writer(), Writer()
 
-        pyi_w.write('from vmath import vec2, vec3, vec2i, vec3i, mat3x3')
+        pyi_w.write('from vmath import vec2, vec3, vec2i, vec3i, mat3x3, color32')
         pyi_w.write('from typing import overload')
         pyi_w.write('intptr = int')
         pyi_w.write('')
