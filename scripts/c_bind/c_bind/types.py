@@ -24,7 +24,7 @@ C_STRING_TYPES = [
     'const char *',
 ]
 
-LINALG_TYPES = [
+VMATH_TYPES = [
     'vec2', 'vec3', 'vec2i', 'vec3i',
-    'mat3x3'
+    'mat3x3', 'color32'
 ]

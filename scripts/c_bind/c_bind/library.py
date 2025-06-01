@@ -3,6 +3,7 @@ from .writer import Writer
 from .enum import gen_enum
 from .struct import gen_struct
 from .function import gen_function
+from .converters import is_vmath_type
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -18,10 +19,7 @@ class Library:
         self.functions = [] # type: list[Function]
         self.callbacks = set() # type: set[str]
 
-    def set_includes(self, includes: list[str]):
-        self.user_includes.extend(includes)
-
-    def build(self, *, glue_dir='.', stub_dir='.', includes: list[str] = None):
+    def build(self, *, glue_dir='.', stub_dir='.', includes: list[str] | None = None):
         self.remove_unsupported()
 
         w, pyi_w = Writer(), Writer()
@@ -113,6 +111,10 @@ class Library:
     def from_raylib(data: dict):
         self = Library('raylib')
         for struct in data['structs']:
+            name = struct['name']
+            if is_vmath_type(name):
+                print(f'[INFO] {name} is a vmath type, skipping')
+                continue
             self.structs.append(Struct(
                 name=struct['name'],
                 desc=struct['description'],
@@ -162,12 +164,14 @@ class Library:
                 if type.is_opaque():
                     continue
                 else:
+                    fields = type.fields
+                    assert fields is not None
                     self.structs.append(Struct(
                         name=type.name,
                         fields=[StructField(
                             type=field_type,
                             name=field_name
-                        ) for field_name, field_type in type.fields.items()]
+                        ) for field_name, field_type in fields.items()]
                     ))
             elif isinstance(type, schema.Enum):
                 self.enums.append(Enum(

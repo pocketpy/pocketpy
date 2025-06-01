@@ -1,5 +1,5 @@
 from .writer import Writer
-from .types import C_INT_TYPES, C_FLOAT_TYPES, C_BOOL_TYPES, C_STRING_TYPES, LINALG_TYPES
+from .types import C_INT_TYPES, C_FLOAT_TYPES, C_BOOL_TYPES, C_STRING_TYPES, VMATH_TYPES
 
 class Converter:
     def __init__(self, T: str):
@@ -110,7 +110,7 @@ class VoidConverter(Converter):
     def py_T(self) -> str:
         return 'None'
     
-class BuiltinVectorConverter(Converter):
+class BuiltinVMathConverter(Converter):
     def __init__(self, T: str, py_builtin_T: str):
         super().__init__(T)
         self.py_builtin_T = py_builtin_T
@@ -143,15 +143,21 @@ for t in C_BOOL_TYPES:
     _CONVERTERS[t] = BoolConverter(t)
 for t in C_STRING_TYPES:
     _CONVERTERS[t] = StringConverter(t)
-for t in LINALG_TYPES:
-    _CONVERTERS[t] = BuiltinVectorConverter(f'c11_{t}', t)
+for t in VMATH_TYPES:
+    _CONVERTERS[t] = BuiltinVMathConverter(f'c11_{t}', t)
 
 _CONVERTERS['void'] = VoidConverter('void')
 _CONVERTERS['c11_array2d'] = StructConverter('c11_array2d', 'tp_array2d')
 
+def is_vmath_type(T: str) -> bool:
+    cvt = _CONVERTERS.get(T)
+    if cvt is None:
+        return False
+    return isinstance(cvt, BuiltinVMathConverter)
+
 def set_vmath_converter(T: str, py_T: str):
-    assert py_T in LINALG_TYPES
-    _CONVERTERS[T] = BuiltinVectorConverter(T, py_T)
+    assert py_T in VMATH_TYPES
+    _CONVERTERS[T] = BuiltinVMathConverter(T, py_T)
 
 def set_enum_converters(enums: list[str]):
     for T in enums:
@@ -167,3 +173,4 @@ def get_converter(T: str) -> Converter:
     cvt = _CONVERTERS.get(T)
     if cvt is None:
         return StructConverter(T, None)
+    return cvt
