@@ -27,9 +27,15 @@
 
 // Memory allocation functions
 #ifndef PK_MALLOC
-#define PK_MALLOC(size)             malloc(size)
-#define PK_REALLOC(ptr, size)       realloc(ptr, size)
-#define PK_FREE(ptr)                free(ptr)
+    #ifndef __cplusplus
+        #define PK_MALLOC(size)             malloc(size)
+        #define PK_REALLOC(ptr, size)       realloc(ptr, size)
+        #define PK_FREE(ptr)                free(ptr)
+    #else
+        #define PK_MALLOC(size)             std::malloc(size)
+        #define PK_REALLOC(ptr, size)       std::realloc(ptr, size)
+        #define PK_FREE(ptr)                std::free(ptr)
+    #endif
 #endif
 
 // This is the maximum size of the value stack in py_TValue units
