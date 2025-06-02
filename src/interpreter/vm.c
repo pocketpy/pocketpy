@@ -442,7 +442,7 @@ static bool
     if(decl->starred_kwarg != -1) py_newdict(&buffer[decl->starred_kwarg]);
 
     for(int j = 0; j < kwargc; j++) {
-        py_Name key = py_toint(&p1[2 * j]);
+        py_Name key = (py_Name)py_toint(&p1[2 * j]);
         int index = c11_smallmap_n2i__get(&decl->kw_to_index, key, -1);
         // if key is an explicit key, set as local variable
         if(index >= 0) {
@@ -681,8 +681,9 @@ void ManagedHeap__mark(ManagedHeap* self) {
         pk__mark_value(&vm->reg[i]);
     }
     // mark interned names
-    for(int i = 0; i < vm->names.r_interned.length; i++) {
-        RInternedEntry* entry = c11__at(RInternedEntry, &vm->names.r_interned, i);
+    for(int i = 0; i < vm->names.interned.length; i++) {
+        c11_smallmap_s2n_KV* kv = c11__at(c11_smallmap_s2n_KV, &vm->names.interned, i);
+        InternedEntry* entry = (InternedEntry*)kv->value;
         pk__mark_value(&entry->obj);
     }
 

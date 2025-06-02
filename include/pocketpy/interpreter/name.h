@@ -4,15 +4,18 @@
 #include "pocketpy/common/smallmap.h"
 
 typedef struct {
-    char* data;     // null-terminated data
     int size;       // size of the data excluding the null-terminator
     py_TValue obj;  // cached `str` object (lazy initialized)
-} RInternedEntry;
+    char data[];    // null-terminated data
+} InternedEntry;
 
 typedef struct {
     c11_smallmap_s2n interned;
-    c11_vector /* T=RInternedEntry */ r_interned;
 } InternedNames;
 
 void InternedNames__ctor(InternedNames* self);
 void InternedNames__dtor(InternedNames* self);
+
+#define MAGIC_METHOD(x) extern py_Name x;
+#include "pocketpy/xmacros/magics.h"
+#undef MAGIC_METHOD

@@ -211,13 +211,13 @@ FrameResult VM__run_top_frame(VM* self) {
                     PUSH(val);
                     DISPATCH();
                 }
-                py_Name name = c11__getitem(uint16_t, &frame->co->varnames, byte.arg);
+                py_Name name = c11__getitem(py_Name, &frame->co->varnames, byte.arg);
                 UnboundLocalError(name);
                 goto __ERROR;
             }
             case OP_LOAD_NAME: {
                 assert(frame->is_locals_special);
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 // locals
                 switch(frame->locals->type) {
                     case tp_locals: {
@@ -261,7 +261,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_LOAD_NONLOCAL: {
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 py_Ref tmp = Frame__getclosure(frame, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
@@ -283,7 +283,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_LOAD_GLOBAL: {
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 int res = Frame__getglobal(frame, name);
                 if(res == 1) {
                     PUSH(&self->last_retval);
@@ -308,7 +308,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_LOAD_CLASS_GLOBAL: {
                 assert(self->curr_class);
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 py_Ref tmp = py_getdict(self->curr_class, name);
                 if(tmp) {
                     PUSH(tmp);
@@ -368,7 +368,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_STORE_NAME: {
                 assert(frame->is_locals_special);
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 switch(frame->locals->type) {
                     case tp_locals: {
                         py_Frame* noproxy = frame->locals->_ptr;
@@ -435,7 +435,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_DELETE_NAME: {
                 assert(frame->is_locals_special);
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 switch(frame->locals->type) {
                     case tp_locals: {
                         py_Frame* noproxy = frame->locals->_ptr;
@@ -464,7 +464,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
             }
             case OP_DELETE_GLOBAL: {
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 int res = Frame__delglobal(frame, name);
                 if(res == 1) DISPATCH();
                 if(res == -1) goto __ERROR;
@@ -473,7 +473,8 @@ FrameResult VM__run_top_frame(VM* self) {
             }
 
             case OP_DELETE_ATTR: {
-                if(!py_delattr(TOP(), byte.arg)) goto __ERROR;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
+                if(!py_delattr(TOP(), name)) goto __ERROR;
                 DISPATCH();
             }
 
@@ -999,7 +1000,7 @@ FrameResult VM__run_top_frame(VM* self) {
             ///////////
             case OP_BEGIN_CLASS: {
                 // [base]
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 py_Type base;
                 if(py_isnone(TOP())) {
                     base = tp_object;
@@ -1027,7 +1028,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_END_CLASS: {
                 // [cls or decorated]
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 if(!Frame__setglobal(frame, name, TOP())) goto __ERROR;
 
                 if(py_istype(TOP(), tp_type)) {
@@ -1052,7 +1053,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_STORE_CLASS_ATTR: {
                 assert(self->curr_class);
-                py_Name name = byte.arg;
+                py_Name name = c11__getitem(py_Name, &frame->co->names, byte.arg);
                 // TOP() can be a function, classmethod or custom decorator
                 py_Ref actual_func = TOP();
                 if(actual_func->type == tp_classmethod) {

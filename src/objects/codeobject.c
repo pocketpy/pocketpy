@@ -123,10 +123,12 @@ void CodeObject__ctor(CodeObject* self, SourceData_ src, c11_sv name) {
     c11_vector__ctor(&self->codes_ex, sizeof(BytecodeEx));
 
     c11_vector__ctor(&self->consts, sizeof(py_TValue));
-    c11_vector__ctor(&self->varnames, sizeof(uint16_t));
+    c11_vector__ctor(&self->varnames, sizeof(py_Name));
+    c11_vector__ctor(&self->names, sizeof(py_Name));
     self->nlocals = 0;
 
     c11_smallmap_n2i__ctor(&self->varnames_inv);
+    c11_smallmap_n2i__ctor(&self->names_inv);
 
     c11_vector__ctor(&self->blocks, sizeof(CodeBlock));
     c11_vector__ctor(&self->func_decls, sizeof(FuncDecl_));
@@ -147,8 +149,10 @@ void CodeObject__dtor(CodeObject* self) {
 
     c11_vector__dtor(&self->consts);
     c11_vector__dtor(&self->varnames);
+    c11_vector__dtor(&self->names);
 
     c11_smallmap_n2i__dtor(&self->varnames_inv);
+    c11_smallmap_n2i__dtor(&self->names_inv);
 
     c11_vector__dtor(&self->blocks);
 
@@ -172,10 +176,19 @@ void Function__ctor(Function* self, FuncDecl_ decl, py_GlobalRef module, py_Ref 
 int CodeObject__add_varname(CodeObject* self, py_Name name) {
     int index = c11_smallmap_n2i__get(&self->varnames_inv, name, -1);
     if(index >= 0) return index;
-    c11_vector__push(uint16_t, &self->varnames, name);
+    c11_vector__push(py_Name, &self->varnames, name);
     self->nlocals++;
     index = self->varnames.length - 1;
     c11_smallmap_n2i__set(&self->varnames_inv, name, index);
+    return index;
+}
+
+int CodeObject__add_name(CodeObject* self, py_Name name) {
+    int index = c11_smallmap_n2i__get(&self->names_inv, name, -1);
+    if(index >= 0) return index;
+    c11_vector__push(py_Name, &self->names, name);
+    index = self->names.length - 1;
+    c11_smallmap_n2i__set(&self->names_inv, name, index);
     return index;
 }
 

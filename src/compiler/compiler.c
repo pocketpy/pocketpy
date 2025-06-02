@@ -61,9 +61,9 @@ typedef struct Ctx {
     int level;
     int curr_iblock;
     bool is_compiling_class;
-    c11_vector /*T=Expr* */ s_expr;
+    c11_vector /*T=Expr_p*/ s_expr;
     c11_smallmap_n2i global_names;
-    c11_smallmap_s2n co_consts_string_dedup_map;
+    c11_smallmap_s2n co_consts_string_dedup_map;    // this stores 0-based index instead of pointer
 } Ctx;
 
 typedef struct Expr Expr;
@@ -75,11 +75,12 @@ static int Ctx__enter_block(Ctx* self, CodeBlockType type);
 static void Ctx__exit_block(Ctx* self);
 static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
 static int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool virtual);
-static void Ctx__revert_last_emit_(Ctx* self);
+// static void Ctx__revert_last_emit_(Ctx* self);
 static int Ctx__emit_int(Ctx* self, int64_t value, int line);
 static void Ctx__patch_jump(Ctx* self, int index);
 static void Ctx__emit_jump(Ctx* self, int target, int line);
 static int Ctx__add_varname(Ctx* self, py_Name name);
+static int Ctx__add_name(Ctx* self, py_Name name);
 static int Ctx__add_const(Ctx* self, py_Ref);
 static int Ctx__add_const_string(Ctx* self, c11_sv);
 static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line);
@@ -117,7 +118,7 @@ void NameExpr__emit_(Expr* self_, Ctx* ctx) {
                 }
             }
         }
-        Ctx__emit_(ctx, op, self->name, self->line);
+        Ctx__emit_(ctx, op, Ctx__add_name(ctx, self->name), self->line);
     }
 }
 
@@ -129,7 +130,7 @@ bool NameExpr__emit_del(Expr* self_, Ctx* ctx) {
             break;
         case NAME_GLOBAL: {
             Opcode op = ctx->co->src->is_dynamic ? OP_DELETE_NAME : OP_DELETE_GLOBAL;
-            Ctx__emit_(ctx, op, self->name, self->line);
+            Ctx__emit_(ctx, op, Ctx__add_name(ctx, self->name), self->line);
             break;
         }
         default: c11__unreachable();
@@ -140,7 +141,7 @@ bool NameExpr__emit_del(Expr* self_, Ctx* ctx) {
 bool NameExpr__emit_store(Expr* self_, Ctx* ctx) {
     NameExpr* self = (NameExpr*)self_;
     if(ctx->is_compiling_class) {
-        Ctx__emit_(ctx, OP_STORE_CLASS_ATTR, self->name, self->line);
+        Ctx__emit_(ctx, OP_STORE_CLASS_ATTR, Ctx__add_name(ctx, self->name), self->line);
         return true;
     }
     Ctx__emit_store_name(ctx, self->scope, self->name, self->line);
@@ -710,7 +711,7 @@ static void BinaryExpr__dtor(Expr* self_) {
     vtdelete(self->rhs);
 }
 
-static py_Name cmp_token2name(TokenIndex token) {
+static uint16_t cmp_token2name(TokenIndex token) {
     switch(token) {
         case TK_LT: return __lt__;
         case TK_LE: return __le__;
@@ -945,20 +946,20 @@ void AttribExpr__dtor(Expr* self_) {
 void AttribExpr__emit_(Expr* self_, Ctx* ctx) {
     AttribExpr* self = (AttribExpr*)self_;
     vtemit_(self->child, ctx);
-    Ctx__emit_(ctx, OP_LOAD_ATTR, self->name, self->line);
+    Ctx__emit_(ctx, OP_LOAD_ATTR, Ctx__add_name(ctx, self->name), self->line);
 }
 
 bool AttribExpr__emit_del(Expr* self_, Ctx* ctx) {
     AttribExpr* self = (AttribExpr*)self_;
     vtemit_(self->child, ctx);
-    Ctx__emit_(ctx, OP_DELETE_ATTR, self->name, self->line);
+    Ctx__emit_(ctx, OP_DELETE_ATTR, Ctx__add_name(ctx, self->name), self->line);
     return true;
 }
 
 bool AttribExpr__emit_store(Expr* self_, Ctx* ctx) {
     AttribExpr* self = (AttribExpr*)self_;
     vtemit_(self->child, ctx);
-    Ctx__emit_(ctx, OP_STORE_ATTR, self->name, self->line);
+    Ctx__emit_(ctx, OP_STORE_ATTR, Ctx__add_name(ctx, self->name), self->line);
     return true;
 }
 
@@ -966,14 +967,14 @@ void AttribExpr__emit_inplace(Expr* self_, Ctx* ctx) {
     AttribExpr* self = (AttribExpr*)self_;
     vtemit_(self->child, ctx);
     Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, self->line);
-    Ctx__emit_(ctx, OP_LOAD_ATTR, self->name, self->line);
+    Ctx__emit_(ctx, OP_LOAD_ATTR, Ctx__add_name(ctx, self->name), self->line);
 }
 
 bool AttribExpr__emit_istore(Expr* self_, Ctx* ctx) {
     // [a, val] -> [val, a]
     AttribExpr* self = (AttribExpr*)self_;
     Ctx__emit_(ctx, OP_ROT_TWO, BC_NOARG, self->line);
-    Ctx__emit_(ctx, OP_STORE_ATTR, self->name, self->line);
+    Ctx__emit_(ctx, OP_STORE_ATTR, Ctx__add_name(ctx, self->name), self->line);
     return true;
 }
 
@@ -1031,7 +1032,7 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
     if(self->callable->vt->is_attrib) {
         AttribExpr* p = (AttribExpr*)self->callable;
         vtemit_(p->child, ctx);
-        Ctx__emit_(ctx, OP_LOAD_METHOD, p->name, p->line);
+        Ctx__emit_(ctx, OP_LOAD_METHOD, Ctx__add_name(ctx, p->name), p->line);
     } else {
         vtemit_(self->callable, ctx);
         Ctx__emit_(ctx, OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
@@ -1046,7 +1047,7 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
 
     c11__foreach(Expr*, &self->args, e) { vtemit_(*e, ctx); }
     c11__foreach(CallExprKwArg, &self->kwargs, e) {
-        Ctx__emit_int(ctx, e->key, self->line);
+        Ctx__emit_int(ctx, (uintptr_t)e->key, self->line);
         vtemit_(e->val, ctx);
     }
     int KWARGC = self->kwargs.length;
@@ -1166,10 +1167,10 @@ static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line) {
     return Ctx__emit_virtual(self, opcode, arg, line, false);
 }
 
-static void Ctx__revert_last_emit_(Ctx* self) {
-    c11_vector__pop(&self->co->codes);
-    c11_vector__pop(&self->co->codes_ex);
-}
+// static void Ctx__revert_last_emit_(Ctx* self) {
+//     c11_vector__pop(&self->co->codes);
+//     c11_vector__pop(&self->co->codes_ex);
+// }
 
 static int Ctx__emit_int(Ctx* self, int64_t value, int line) {
     if(INT16_MIN <= value && value <= INT16_MAX) {
@@ -1199,6 +1200,10 @@ static int Ctx__add_varname(Ctx* self, py_Name name) {
     return CodeObject__add_varname(self->co, name);
 }
 
+static int Ctx__add_name(Ctx* self, py_Name name) {
+    return CodeObject__add_name(self->co, name);
+}
+
 static int Ctx__add_const_string(Ctx* self, c11_sv key) {
     if(key.size > 100) {
         py_Ref tmp = c11_vector__emplace(&self->co->consts);
@@ -1206,7 +1211,7 @@ static int Ctx__add_const_string(Ctx* self, c11_sv key) {
         int index = self->co->consts.length - 1;
         return index;
     }
-    uint16_t* val = c11_smallmap_s2n__try_get(&self->co_consts_string_dedup_map, key);
+    uintptr_t* val = c11_smallmap_s2n__try_get(&self->co_consts_string_dedup_map, key);
     if(val) {
         return *val;
     } else {
@@ -1235,7 +1240,7 @@ static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int l
         case NAME_LOCAL: Ctx__emit_(self, OP_STORE_FAST, Ctx__add_varname(self, name), line); break;
         case NAME_GLOBAL: {
             Opcode op = self->co->src->is_dynamic ? OP_STORE_NAME : OP_STORE_GLOBAL;
-            Ctx__emit_(self, op, name, line);
+            Ctx__emit_(self, op, Ctx__add_name(self, name), line);
         } break;
         default: c11__unreachable();
     }
@@ -2409,7 +2414,7 @@ static Error* compile_class(Compiler* self, int decorators) {
     ctx()->is_compiling_class = false;
 
     Ctx__s_emit_decorators(ctx(), decorators);
-    Ctx__emit_(ctx(), OP_END_CLASS, name, BC_KEEPLINE);
+    Ctx__emit_(ctx(), OP_END_CLASS, Ctx__add_name(ctx(), name), BC_KEEPLINE);
     return NULL;
 }
 
@@ -2517,7 +2522,7 @@ __EAT_DOTS_END:
         Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
         consume(TK_ID);
         c11_sv name = Token__sv(prev());
-        Ctx__emit_(ctx(), OP_LOAD_ATTR, py_namev(name), prev()->line);
+        Ctx__emit_(ctx(), OP_LOAD_ATTR, Ctx__add_name(ctx(), py_namev(name)), prev()->line);
         if(match(TK_AS)) {
             consume(TK_ID);
             name = Token__sv(prev());
@@ -2783,7 +2788,7 @@ static Error* compile_stmt(Compiler* self) {
                         NameExpr* ne = (NameExpr*)Ctx__s_top(ctx());
                         int index = Ctx__add_const_string(ctx(), type_hint);
                         Ctx__emit_(ctx(), OP_LOAD_CONST, index, BC_KEEPLINE);
-                        Ctx__emit_(ctx(), OP_ADD_CLASS_ANNOTATION, ne->name, BC_KEEPLINE);
+                        Ctx__emit_(ctx(), OP_ADD_CLASS_ANNOTATION, Ctx__add_name(ctx(), ne->name), BC_KEEPLINE);
                     }
                 }
             }

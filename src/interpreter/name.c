@@ -1,23 +1,25 @@
 #include "pocketpy/interpreter/name.h"
 #include "pocketpy/interpreter/vm.h"
 
+#define MAGIC_METHOD(x) py_Name x;
+#include "pocketpy/xmacros/magics.h"
+#undef MAGIC_METHOD
+
 void InternedNames__ctor(InternedNames* self) {
     c11_smallmap_s2n__ctor(&self->interned);
-    c11_vector__ctor(&self->r_interned, sizeof(RInternedEntry));
 
     // initialize all magic names
-#define MAGIC_METHOD(x)                                                                            \
-    if(x != py_name(#x)) abort();
+#define MAGIC_METHOD(x) x = py_name(#x);
 #include "pocketpy/xmacros/magics.h"
 #undef MAGIC_METHOD
 }
 
 void InternedNames__dtor(InternedNames* self) {
-    for(int i = 0; i < self->r_interned.length; i++) {
-        PK_FREE(c11__getitem(RInternedEntry, &self->r_interned, i).data);
+    for(int i = 0; i < self->interned.length; i++) {
+        c11_smallmap_s2n_KV* kv = c11__at(c11_smallmap_s2n_KV, &self->interned, i);
+        PK_FREE((void*)kv->value);
     }
     c11_smallmap_s2n__dtor(&self->interned);
-    c11_vector__dtor(&self->r_interned);
 }
 
 py_Name py_name(const char* name) {
@@ -29,47 +31,37 @@ py_Name py_name(const char* name) {
 
 py_Name py_namev(c11_sv name) {
     InternedNames* self = &pk_current_vm->names;
-    uint16_t index = c11_smallmap_s2n__get(&self->interned, name, 0);
+    py_Name index = c11_smallmap_s2n__get(&self->interned, name, 0);
     if(index != 0) return index;
     // generate new index
-    if(self->interned.length > 65530) c11__abort("py_Name index overflow");
-    // NOTE: we must allocate the string in the heap so iterators are not invalidated
-    char* p = PK_MALLOC(name.size + 1);
-    memcpy(p, name.data, name.size);
-    p[name.size] = '\0';
-    RInternedEntry* entry = c11_vector__emplace(&self->r_interned);
-    entry->data = p;
-    entry->size = name.size;
-    memset(&entry->obj, 0, sizeof(py_TValue));
-    index = self->r_interned.length;  // 1-based
+    InternedEntry* p = PK_MALLOC(sizeof(InternedEntry) + name.size + 1);
+    p->size = name.size;
+    memcpy(p->data, name.data, name.size);
+    p->data[name.size] = '\0';
+    memset(&p->obj, 0, sizeof(py_TValue));
+    index = (py_Name)p;
     // save to _interned
-    c11_smallmap_s2n__set(&self->interned, (c11_sv){p, name.size}, index);
-    assert(self->interned.length == self->r_interned.length);
+    c11_smallmap_s2n__set(&self->interned, (c11_sv){p->data, name.size}, index);
     return index;
 }
 
 const char* py_name2str(py_Name index) {
-    InternedNames* self = &pk_current_vm->names;
-    assert(index > 0 && index <= self->interned.length);
-    return c11__getitem(RInternedEntry, &self->r_interned, index - 1).data;
+    InternedEntry* p = (InternedEntry*)index;
+    return p->data;
 }
 
 c11_sv py_name2sv(py_Name index) {
-    InternedNames* self = &pk_current_vm->names;
-    assert(index > 0 && index <= self->interned.length);
-    RInternedEntry entry = c11__getitem(RInternedEntry, &self->r_interned, index - 1);
-    return (c11_sv){entry.data, entry.size};
+    InternedEntry* p = (InternedEntry*)index;
+    return (c11_sv){p->data, p->size};
 }
 
 py_GlobalRef py_name2ref(py_Name index) {
-    InternedNames* self = &pk_current_vm->names;
-    assert(index > 0 && index <= self->interned.length);
-    RInternedEntry* entry = c11__at(RInternedEntry, &self->r_interned, index - 1);
-    if(entry->obj.type == tp_nil) {
+    InternedEntry* p = (InternedEntry*)index;
+    if(p->obj.type == tp_nil) {
         c11_sv sv;
-        sv.data = entry->data;
-        sv.size = entry->size;
-        py_newstrv(&entry->obj, sv);
+        sv.data = p->data;
+        sv.size = p->size;
+        py_newstrv(&p->obj, sv);
     }
-    return &entry->obj;
+    return &p->obj;
 }

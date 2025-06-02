@@ -13,12 +13,12 @@ extern "C" {
 #endif
 
 /************* Public Types *************/
-
+/// A helper struct for `py_Name`.
+typedef struct py_OpaqueName py_OpaqueName;
+/// A pointer that represents a python identifier. For fast name resolution.
+typedef py_OpaqueName* py_Name;
 /// A opaque type that represents a python object. You cannot access its members directly.
 typedef struct py_TValue py_TValue;
-/// An integer that represents a python identifier. This is to achieve string pooling and fast name
-/// resolution.
-typedef uint16_t py_Name;
 /// An integer that represents a python type. `0` is invalid.
 typedef int16_t py_Type;
 /// A 64-bit integer type. Corresponds to `int` in python.
@@ -709,14 +709,6 @@ PK_API int py_replinput(char* buf, int max_size);
 /// %p: void*
 /// %t: py_Type
 /// %n: py_Name
-
-enum py_MagicName {
-    py_MagicName__NULL,  // 0 is reserved
-
-#define MAGIC_METHOD(x) x,
-#include "pocketpy/xmacros/magics.h"
-#undef MAGIC_METHOD
-};
 
 enum py_PredefinedType {
     tp_nil = 0,
