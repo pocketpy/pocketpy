@@ -55,3 +55,9 @@
 #else
     #define PK_IS_DESKTOP_PLATFORM 0
 #endif
+
+#if defined(__GNUC__) || defined(__clang__)
+    #define PK_DEPRECATED [[deprecated]]
+#else
+    #define PK_DEPRECATED
+#endif

@@ -36,7 +36,4 @@ void TypeList__dtor(TypeList* self);
 py_TypeInfo* TypeList__get(TypeList* self, py_Type index);
 py_TypeInfo* TypeList__emplace(TypeList* self);
 void TypeList__apply(TypeList* self, void (*f)(py_TypeInfo*, void*), void* ctx);
-py_TValue* TypeList__magic(py_TypeInfo* self, unsigned index);
-py_TValue* TypeList__magic_readonly(py_TypeInfo* self, unsigned index);
 
-#define TypeList__magic_common(ti, index) ((ti)->magic_0 + ((index)-PK_MAGIC_SLOTS_UNCOMMON_LENGTH))

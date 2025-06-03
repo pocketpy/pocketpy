@@ -83,14 +83,22 @@ void py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFu
     py_setdict(py_tpobject(type), py_name(name), &tmp);
 }
 
+void py_bindmagic(py_Type type, py_Name name, py_CFunction f) {
+    py_Ref tmp = py_emplacedict(py_tpobject(type), name);
+    py_newnativefunc(tmp, f);
+}
+
 void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
     py_TValue tmp;
     py_Name name = py_newfunction(&tmp, sig, f, NULL, 0);
     py_setdict(obj, name, &tmp);
 }
 
-py_Name
-    py_newfunction(py_OutRef out, const char* sig, py_CFunction f, const char* docstring, int slots) {
+py_Name py_newfunction(py_OutRef out,
+                       const char* sig,
+                       py_CFunction f,
+                       const char* docstring,
+                       int slots) {
     char buffer[256];
     snprintf(buffer, sizeof(buffer), "def %s: pass", sig);
     // fn(a, b, *c, d=1) -> None

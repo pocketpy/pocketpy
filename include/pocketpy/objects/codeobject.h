@@ -96,7 +96,7 @@ void CodeObject__gc_mark(const CodeObject* self, c11_vector* p_stack);
 
 typedef struct FuncDeclKwArg {
     int index;        // index in co->varnames
-    uint16_t key;     // name of this argument
+    py_Name key;      // name of this argument
     py_TValue value;  // default value
 } FuncDeclKwArg;
 

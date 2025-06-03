@@ -229,14 +229,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
 
 py_Ref py_tpfindmagic(py_Type t, py_Name name) {
     assert(py_ismagicname(name));
-    py_TypeInfo* ti = pk__type_info(t);
-    do {
-        py_Ref f = TypeList__magic_readonly(ti, name);
-        assert(f != NULL);
-        if(!py_isnil(f)) return f;
-        ti = ti->base_ti;
-    } while(ti);
-    return NULL;
+    return py_tpfindname(t, name);
 }
 
 py_Ref py_tpfindname(py_Type t, py_Name name) {
@@ -249,10 +242,11 @@ py_Ref py_tpfindname(py_Type t, py_Name name) {
     return NULL;
 }
 
-py_Ref py_tpgetmagic(py_Type type, py_Name name) {
+PK_DEPRECATED py_Ref py_tpgetmagic(py_Type type, py_Name name) {
     assert(py_ismagicname(name));
     py_TypeInfo* ti = pk__type_info(type);
-    return TypeList__magic(ti, name);
+    py_Ref retval = py_getdict(&ti->self, name);
+    return retval != NULL ? retval : py_NIL();
 }
 
 py_Ref py_tpobject(py_Type type) {

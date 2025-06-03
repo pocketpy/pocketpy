@@ -242,8 +242,8 @@ PK_API py_GlobalRef py_name2ref(py_Name);
 PK_API py_Name py_namev(c11_sv);
 /// Convert a name to a `c11_sv`.
 PK_API c11_sv py_name2sv(py_Name);
-
-#define py_ismagicname(name) (name <= __missing__)
+/// Check if the name matches the two underscores pattern. e.g. `__init__`, `__str__`, etc.
+PK_API bool py_ismagicname(py_Name);
 
 /************* Meta Operations *************/
 
@@ -318,7 +318,7 @@ PK_API bool py_issubclass(py_Type derived, py_Type base);
 
 /// Get the magic method from the given type only.
 /// The returned reference is always valid. However, its value may be `nil`.
-PK_API py_GlobalRef py_tpgetmagic(py_Type type, py_Name name);
+PK_API PK_DEPRECATED py_GlobalRef py_tpgetmagic(py_Type type, py_Name name);
 /// Search the magic method from the given type to the base type.
 /// Return `NULL` if not found.
 PK_API py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
@@ -438,8 +438,8 @@ PK_API void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
 /// @param setter setter function. Use `NULL` if not needed.
 PK_API void
     py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFunction setter);
-
-#define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpgetmagic((type), __magic__), (f))
+/// Bind a magic method to type.
+PK_API void py_bindmagic(py_Type type, py_Name name, py_CFunction f);
 
 #define PY_CHECK_ARGC(n)                                                                           \
     if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
@@ -737,11 +737,11 @@ enum py_PredefinedType {
     tp_locals,
     tp_code,
     tp_dict,
-    tp_dict_iterator, // 1 slot
-    tp_property,      // 2 slots (getter + setter)
-    tp_star_wrapper,  // 1 slot + int level
-    tp_staticmethod,  // 1 slot
-    tp_classmethod,   // 1 slot
+    tp_dict_iterator,  // 1 slot
+    tp_property,       // 2 slots (getter + setter)
+    tp_star_wrapper,   // 1 slot + int level
+    tp_staticmethod,   // 1 slot
+    tp_classmethod,    // 1 slot
     tp_NoneType,
     tp_NotImplementedType,
     tp_ellipsis,

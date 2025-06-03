@@ -132,6 +132,11 @@ NameDict* NameDict__new(float load_factor) {
     return p;
 }
 
+void NameDict__delete(NameDict* self) {
+    NameDict__dtor(self);
+    PK_FREE(self);
+}
+
 void NameDict__ctor(NameDict* self, float load_factor) {
     assert(load_factor > 0.0f && load_factor < 1.0f);
     self->length = 0;

@@ -37,6 +37,7 @@ typedef struct NameDict {
 } NameDict;
 
 NameDict* NameDict__new(float load_factor);
+void NameDict__delete(NameDict* self);
 void NameDict__ctor(NameDict* self, float load_factor);
 void NameDict__dtor(NameDict* self);
 py_TValue* NameDict__try_get(NameDict* self, py_Name key);
