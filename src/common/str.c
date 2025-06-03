@@ -181,6 +181,15 @@ bool c11_sv__endswith(c11_sv self, c11_sv suffix) {
     return memcmp(self.data + self.size - suffix.size, suffix.data, suffix.size) == 0;
 }
 
+uint64_t c11_sv__hash(c11_sv self) {
+    uint64_t hash = 5381;
+    for(int i = 0; i < self.size; i++) {
+        // hash * 33 + c
+        hash = ((hash << 5) + hash) + (unsigned char)self.data[i];
+    }
+    return hash;
+}
+
 c11_vector /* T=c11_sv */ c11_sv__split(c11_sv self, char sep) {
     c11_vector retval;
     c11_vector__ctor(&retval, sizeof(c11_sv));

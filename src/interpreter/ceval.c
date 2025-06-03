@@ -601,14 +601,33 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             /*****************************/
-            case OP_BINARY_OP: {
-                py_Name op = byte.arg & 0xFF;
-                py_Name rop = byte.arg >> 8;
-                if(!pk_stack_binaryop(self, op, rop)) goto __ERROR;
-                POP();
-                *TOP() = self->last_retval;
-                DISPATCH();
+#define CASE_BINARY_OP(label, op, rop)\
+            case label: {\
+                if(!pk_stack_binaryop(self, op, rop)) goto __ERROR;\
+                POP();\
+                *TOP() = self->last_retval;\
+                DISPATCH();\
             }
+            CASE_BINARY_OP(OP_BINARY_ADD, __add__, __radd__)
+            CASE_BINARY_OP(OP_BINARY_SUB, __sub__, __rsub__)
+            CASE_BINARY_OP(OP_BINARY_MUL, __mul__, __rmul__)
+            CASE_BINARY_OP(OP_BINARY_TRUEDIV, __truediv__, __rtruediv__)
+            CASE_BINARY_OP(OP_BINARY_FLOORDIV, __floordiv__, __rfloordiv__)
+            CASE_BINARY_OP(OP_BINARY_MOD, __mod__, __rmod__)
+            CASE_BINARY_OP(OP_BINARY_POW, __pow__, __rpow__)
+            CASE_BINARY_OP(OP_BINARY_LSHIFT, __lshift__, 0)
+            CASE_BINARY_OP(OP_BINARY_RSHIFT, __rshift__, 0)
+            CASE_BINARY_OP(OP_BINARY_AND, __and__, 0)
+            CASE_BINARY_OP(OP_BINARY_OR, __or__, 0)
+            CASE_BINARY_OP(OP_BINARY_XOR, __xor__, 0)
+            CASE_BINARY_OP(OP_BINARY_MATMUL, __matmul__, 0)
+            CASE_BINARY_OP(OP_COMPARE_LT, __lt__, __gt__)
+            CASE_BINARY_OP(OP_COMPARE_LE, __le__, __ge__)
+            CASE_BINARY_OP(OP_COMPARE_EQ, __eq__, __eq__)
+            CASE_BINARY_OP(OP_COMPARE_NE, __ne__, __ne__)
+            CASE_BINARY_OP(OP_COMPARE_GT, __gt__, __lt__)
+            CASE_BINARY_OP(OP_COMPARE_GE, __ge__, __le__)
+#undef CASE_BINARY_OP
             case OP_IS_OP: {
                 bool res = py_isidentical(SECOND(), TOP());
                 POP();

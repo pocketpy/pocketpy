@@ -711,19 +711,19 @@ static void BinaryExpr__dtor(Expr* self_) {
     vtdelete(self->rhs);
 }
 
-static py_Name cmp_token2name(TokenIndex token) {
+static Opcode cmp_token2op(TokenIndex token) {
     switch(token) {
-        case TK_LT: return __lt__;
-        case TK_LE: return __le__;
-        case TK_EQ: return __eq__;
-        case TK_NE: return __ne__;
-        case TK_GT: return __gt__;
-        case TK_GE: return __ge__;
+        case TK_LT: return OP_COMPARE_LT;
+        case TK_LE: return OP_COMPARE_LE;
+        case TK_EQ: return OP_COMPARE_EQ;
+        case TK_NE: return OP_COMPARE_NE;
+        case TK_GT: return OP_COMPARE_GT;
+        case TK_GE: return OP_COMPARE_GE;
         default: return 0;
     }
 }
 
-#define is_compare_expr(e) ((e)->vt->is_binary && cmp_token2name(((BinaryExpr*)(e))->op))
+#define is_compare_expr(e) ((e)->vt->is_binary && cmp_token2op(((BinaryExpr*)(e))->op))
 
 static void _emit_compare(BinaryExpr* self, Ctx* ctx, c11_vector* jmps) {
     if(is_compare_expr(self->lhs)) {
@@ -734,7 +734,7 @@ static void _emit_compare(BinaryExpr* self, Ctx* ctx, c11_vector* jmps) {
     vtemit_(self->rhs, ctx);                              // [a, b]
     Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, self->line);    // [a, b, b]
     Ctx__emit_(ctx, OP_ROT_THREE, BC_NOARG, self->line);  // [b, a, b]
-    Ctx__emit_(ctx, OP_BINARY_OP, cmp_token2name(self->op), self->line);
+    Ctx__emit_(ctx, cmp_token2op(self->op), BC_NOARG, self->line);
     // [b, RES]
     int index = Ctx__emit_(ctx, OP_SHORTCUT_IF_FALSE_OR_POP, BC_NOARG, self->line);
     c11_vector__push(int, jmps, index);
@@ -744,7 +744,7 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
     BinaryExpr* self = (BinaryExpr*)self_;
     c11_vector /*T=int*/ jmps;
     c11_vector__ctor(&jmps, sizeof(int));
-    if(cmp_token2name(self->op) && is_compare_expr(self->lhs)) {
+    if(cmp_token2op(self->op) && is_compare_expr(self->lhs)) {
         // (a < b) < c
         BinaryExpr* e = (BinaryExpr*)self->lhs;
         _emit_compare(e, ctx, &jmps);
@@ -760,24 +760,24 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
 
     vtemit_(self->rhs, ctx);
 
-    Opcode opcode = OP_BINARY_OP;
+    Opcode opcode;
     uint16_t arg = BC_NOARG;
 
     switch(self->op) {
-        case TK_ADD: arg = __add__ | (__radd__ << 8); break;
-        case TK_SUB: arg = __sub__ | (__rsub__ << 8); break;
-        case TK_MUL: arg = __mul__ | (__rmul__ << 8); break;
-        case TK_DIV: arg = __truediv__ | (__rtruediv__ << 8); break;
-        case TK_FLOORDIV: arg = __floordiv__ | (__rfloordiv__ << 8); break;
-        case TK_MOD: arg = __mod__ | (__rmod__ << 8); break;
-        case TK_POW: arg = __pow__ | (__rpow__ << 8); break;
+        case TK_ADD: opcode = OP_BINARY_ADD; break;
+        case TK_SUB: opcode = OP_BINARY_SUB; break;
+        case TK_MUL: opcode = OP_BINARY_MUL; break;
+        case TK_DIV: opcode = OP_BINARY_TRUEDIV; break;
+        case TK_FLOORDIV: opcode = OP_BINARY_FLOORDIV; break;
+        case TK_MOD: opcode = OP_BINARY_MOD; break;
+        case TK_POW: opcode = OP_BINARY_POW; break;
 
-        case TK_LT: arg = __lt__ | (__gt__ << 8); break;
-        case TK_LE: arg = __le__ | (__ge__ << 8); break;
-        case TK_EQ: arg = __eq__ | (__eq__ << 8); break;
-        case TK_NE: arg = __ne__ | (__ne__ << 8); break;
-        case TK_GT: arg = __gt__ | (__lt__ << 8); break;
-        case TK_GE: arg = __ge__ | (__le__ << 8); break;
+        case TK_LT: opcode = OP_COMPARE_LT; break;
+        case TK_LE: opcode = OP_COMPARE_LE; break;
+        case TK_EQ: opcode = OP_COMPARE_EQ; break;
+        case TK_NE: opcode = OP_COMPARE_NE; break;
+        case TK_GT: opcode = OP_COMPARE_GT; break;
+        case TK_GE: opcode = OP_COMPARE_GE; break;
 
         case TK_IN:
             opcode = OP_CONTAINS_OP;
@@ -796,13 +796,13 @@ static void BinaryExpr__emit_(Expr* self_, Ctx* ctx) {
             arg = 1;
             break;
 
-        case TK_LSHIFT: arg = __lshift__; break;
-        case TK_RSHIFT: arg = __rshift__; break;
-        case TK_AND: arg = __and__; break;
-        case TK_OR: arg = __or__; break;
-        case TK_XOR: arg = __xor__; break;
-        case TK_DECORATOR: arg = __matmul__; break;
-        default: assert(false);
+        case TK_LSHIFT: opcode = OP_BINARY_LSHIFT; break;
+        case TK_RSHIFT: opcode = OP_BINARY_RSHIFT; break;
+        case TK_AND: opcode = OP_BINARY_AND; break;
+        case TK_OR: opcode = OP_BINARY_OR; break;
+        case TK_XOR: opcode = OP_BINARY_XOR; break;
+        case TK_DECORATOR: opcode = OP_BINARY_MATMUL; break;
+        default: c11__unreachable();
     }
 
     Ctx__emit_(ctx, opcode, arg, self->line);

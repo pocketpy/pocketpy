@@ -57,7 +57,7 @@
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
-    #define PK_DEPRECATED [[deprecated]]
+    #define PK_DEPRECATED __attribute__((deprecated))
 #else
     #define PK_DEPRECATED
 #endif
