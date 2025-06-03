@@ -16,7 +16,7 @@ void ValueStack__dtor(ValueStack* self) { self->sp = self->begin; }
 void FastLocals__to_dict(py_TValue* locals, const CodeObject* co) {
     py_StackRef dict = py_pushtmp();
     py_newdict(dict);
-    c11__foreach(c11_smallmap_n2i_KV, &co->varnames_inv, entry) {
+    c11__foreach(c11_smallmap_n2d_KV, &co->varnames_inv, entry) {
         py_TValue* value = &locals[entry->value];
         if(!py_isnil(value)) {
             bool ok = py_dict_setitem(dict, py_name2ref(entry->key), value);
@@ -30,7 +30,7 @@ void FastLocals__to_dict(py_TValue* locals, const CodeObject* co) {
 
 NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co) {
     NameDict* dict = NameDict__new(PK_INST_ATTR_LOAD_FACTOR);
-    c11__foreach(c11_smallmap_n2i_KV, &co->varnames_inv, entry) {
+    c11__foreach(c11_smallmap_n2d_KV, &co->varnames_inv, entry) {
         py_Ref val = &locals[entry->value];
         if(!py_isnil(val)) NameDict__set(dict, entry->key, val);
     }
@@ -166,7 +166,7 @@ int Frame__delglobal(py_Frame* self, py_Name name) {
 
 py_StackRef Frame__getlocal_noproxy(py_Frame* self, py_Name name) {
     assert(!self->is_locals_special);
-    int index = c11_smallmap_n2i__get(&self->co->varnames_inv, name, -1);
+    int index = c11_smallmap_n2d__get(&self->co->varnames_inv, name, -1);
     if(index == -1) return NULL;
     return &self->locals[index];
 }

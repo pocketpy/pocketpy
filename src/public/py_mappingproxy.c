@@ -79,7 +79,7 @@ py_Type pk_namedict__register() {
     py_bindmagic(type, __setitem__, namedict__setitem__);
     py_bindmagic(type, __delitem__, namedict__delitem__);
     py_bindmagic(type, __contains__, namedict__contains__);
-    py_newnone(py_tpgetmagic(type, __hash__));
+    py_setdict(py_tpobject(type), __hash__, py_None());
     py_bindmethod(type, "items", namedict_items);
     py_bindmethod(type, "clear", namedict_clear);
     return type;

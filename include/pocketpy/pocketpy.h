@@ -469,21 +469,32 @@ PK_API bool py_delitem(py_Ref self, py_Ref key) PY_RAISE;
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 PK_API bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) PY_RAISE PY_RETURN;
-
-#define py_binaryadd(lhs, rhs) py_binaryop(lhs, rhs, __add__, __radd__)
-#define py_binarysub(lhs, rhs) py_binaryop(lhs, rhs, __sub__, __rsub__)
-#define py_binarymul(lhs, rhs) py_binaryop(lhs, rhs, __mul__, __rmul__)
-#define py_binarytruediv(lhs, rhs) py_binaryop(lhs, rhs, __truediv__, __rtruediv__)
-#define py_binaryfloordiv(lhs, rhs) py_binaryop(lhs, rhs, __floordiv__, __rfloordiv__)
-#define py_binarymod(lhs, rhs) py_binaryop(lhs, rhs, __mod__, __rmod__)
-#define py_binarypow(lhs, rhs) py_binaryop(lhs, rhs, __pow__, __rpow__)
-
-#define py_binarylshift(lhs, rhs) py_binaryop(lhs, rhs, __lshift__, 0)
-#define py_binaryrshift(lhs, rhs) py_binaryop(lhs, rhs, __rshift__, 0)
-#define py_binaryand(lhs, rhs) py_binaryop(lhs, rhs, __and__, 0)
-#define py_binaryor(lhs, rhs) py_binaryop(lhs, rhs, __or__, 0)
-#define py_binaryxor(lhs, rhs) py_binaryop(lhs, rhs, __xor__, 0)
-#define py_binarymatmul(lhs, rhs) py_binaryop(lhs, rhs, __matmul__, 0)
+/// lhs + rhs
+PK_API bool py_binaryadd(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs - rhs
+PK_API bool py_binarysub(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs * rhs
+PK_API bool py_binarymul(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs / rhs
+PK_API bool py_binarytruediv(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs // rhs
+PK_API bool py_binaryfloordiv(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs % rhs
+PK_API bool py_binarymod(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs ** rhs
+PK_API bool py_binarypow(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs << rhs
+PK_API bool py_binarylshift(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs >> rhs
+PK_API bool py_binaryrshift(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs & rhs
+PK_API bool py_binaryand(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs | rhs
+PK_API bool py_binaryor(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs ^ rhs
+PK_API bool py_binaryxor(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs @ rhs
+PK_API bool py_binarymatmul(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
 
 /************* Stack Operations *************/
 

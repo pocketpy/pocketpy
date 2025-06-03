@@ -1295,6 +1295,58 @@ bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
     return ok;
 }
 
+bool py_binaryadd(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __add__, __radd__);
+}
+
+bool py_binarysub(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __sub__, __rsub__);
+}
+
+bool py_binarymul(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __mul__, __rmul__);
+}
+
+bool py_binarytruediv(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __truediv__, __rtruediv__);
+}
+
+bool py_binaryfloordiv(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __floordiv__, __rfloordiv__);
+}
+
+bool py_binarymod(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __mod__, __rmod__);
+}
+
+bool py_binarypow(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __pow__, __rpow__);
+}
+
+bool py_binarylshift(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __lshift__, 0);
+}
+
+bool py_binaryrshift(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __rshift__, 0);
+}
+
+bool py_binaryand(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __and__, 0);
+}
+
+bool py_binaryor(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __or__, 0);
+}
+
+bool py_binaryxor(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __xor__, 0);
+}
+
+bool py_binarymatmul(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __matmul__, 0);
+}
+
 static bool stack_format_object(VM* self, c11_sv spec) {
     // format TOS via `spec` inplace
     // spec: '!r:.2f', '.2f'

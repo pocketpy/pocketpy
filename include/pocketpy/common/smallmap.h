@@ -7,15 +7,21 @@
 #define SMALLMAP_T__HEADER
 #define K py_Name
 #define V int
-#define NAME c11_smallmap_n2i
+#define NAME c11_smallmap_n2d
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__HEADER
 
+#define SMALLMAP_T__HEADER
+#define K int
+#define V int
+#define NAME c11_smallmap_d2d
+#include "pocketpy/xmacros/smallmap.h"
+#undef SMALLMAP_T__HEADER
 
 #define SMALLMAP_T__HEADER
 #define K c11_sv
 #define V py_Name
-#define NAME c11_smallmap_s2n
+#define NAME c11_smallmap_v2n
 #define less(a, b)      (c11_sv__cmp((a), (b)) <  0)
 #define equal(a, b)     (c11_sv__cmp((a), (b)) == 0)
 #include "pocketpy/xmacros/smallmap.h"

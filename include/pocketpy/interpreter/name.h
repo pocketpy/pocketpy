@@ -10,7 +10,7 @@ typedef struct {
 } InternedEntry;
 
 typedef struct {
-    c11_smallmap_s2n interned;
+    c11_smallmap_v2n interned;
 } InternedNames;
 
 void InternedNames__ctor(InternedNames* self);

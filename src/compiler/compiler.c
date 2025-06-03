@@ -62,8 +62,8 @@ typedef struct Ctx {
     int curr_iblock;
     bool is_compiling_class;
     c11_vector /*T=Expr_p*/ s_expr;
-    c11_smallmap_n2i global_names;
-    c11_smallmap_s2n co_consts_string_dedup_map;    // this stores 0-based index instead of pointer
+    c11_smallmap_n2d global_names;
+    c11_smallmap_v2n co_consts_string_dedup_map;    // this stores 0-based index instead of pointer
 } Ctx;
 
 typedef struct Expr Expr;
@@ -101,7 +101,7 @@ typedef struct NameExpr {
 
 void NameExpr__emit_(Expr* self_, Ctx* ctx) {
     NameExpr* self = (NameExpr*)self_;
-    int index = c11_smallmap_n2i__get(&ctx->co->varnames_inv, self->name, -1);
+    int index = c11_smallmap_n2d__get(&ctx->co->varnames_inv, self->name, -1);
     if(self->scope == NAME_LOCAL && index >= 0) {
         // we know this is a local variable
         Ctx__emit_(ctx, OP_LOAD_FAST, index, self->line);
@@ -711,7 +711,7 @@ static void BinaryExpr__dtor(Expr* self_) {
     vtdelete(self->rhs);
 }
 
-static uint16_t cmp_token2name(TokenIndex token) {
+static py_Name cmp_token2name(TokenIndex token) {
     switch(token) {
         case TK_LT: return __lt__;
         case TK_LE: return __le__;
@@ -1075,8 +1075,8 @@ static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
     self->curr_iblock = 0;
     self->is_compiling_class = false;
     c11_vector__ctor(&self->s_expr, sizeof(Expr*));
-    c11_smallmap_n2i__ctor(&self->global_names);
-    c11_smallmap_s2n__ctor(&self->co_consts_string_dedup_map);
+    c11_smallmap_n2d__ctor(&self->global_names);
+    c11_smallmap_v2n__ctor(&self->co_consts_string_dedup_map);
 }
 
 static void Ctx__dtor(Ctx* self) {
@@ -1085,13 +1085,13 @@ static void Ctx__dtor(Ctx* self) {
         vtdelete(c11__getitem(Expr*, &self->s_expr, i));
     }
     c11_vector__dtor(&self->s_expr);
-    c11_smallmap_n2i__dtor(&self->global_names);
+    c11_smallmap_n2d__dtor(&self->global_names);
     // free the dedup map
-    c11__foreach(c11_smallmap_s2n_KV, &self->co_consts_string_dedup_map, p_kv) {
+    c11__foreach(c11_smallmap_v2n_KV, &self->co_consts_string_dedup_map, p_kv) {
         const char* p = p_kv->key.data;
         PK_FREE((void*)p);
     }
-    c11_smallmap_s2n__dtor(&self->co_consts_string_dedup_map);
+    c11_smallmap_v2n__dtor(&self->co_consts_string_dedup_map);
 }
 
 static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break) {
@@ -1211,7 +1211,7 @@ static int Ctx__add_const_string(Ctx* self, c11_sv key) {
         int index = self->co->consts.length - 1;
         return index;
     }
-    uintptr_t* val = c11_smallmap_s2n__try_get(&self->co_consts_string_dedup_map, key);
+    uintptr_t* val = c11_smallmap_v2n__try_get(&self->co_consts_string_dedup_map, key);
     if(val) {
         return *val;
     } else {
@@ -1222,7 +1222,7 @@ static int Ctx__add_const_string(Ctx* self, c11_sv key) {
         char* new_buf = PK_MALLOC(key.size + 1);
         memcpy(new_buf, key.data, key.size);
         new_buf[key.size] = 0;
-        c11_smallmap_s2n__set(&self->co_consts_string_dedup_map,
+        c11_smallmap_v2n__set(&self->co_consts_string_dedup_map,
                               (c11_sv){new_buf, key.size},
                               index);
         return index;
@@ -1747,7 +1747,7 @@ static Error* exprName(Compiler* self) {
     py_Name name = py_namev(Token__sv(prev()));
     NameScope scope = name_scope(self);
     // promote this name to global scope if needed
-    if(c11_smallmap_n2i__contains(&ctx()->global_names, name)) {
+    if(c11_smallmap_n2d__contains(&ctx()->global_names, name)) {
         if(self->src->is_dynamic) return SyntaxError(self, "cannot use global keyword here");
         scope = NAME_GLOBAL;
     }
@@ -2727,7 +2727,7 @@ static Error* compile_stmt(Compiler* self) {
             do {
                 consume(TK_ID);
                 py_Name name = py_namev(Token__sv(prev()));
-                c11_smallmap_n2i__set(&ctx()->global_names, name, 0);
+                c11_smallmap_n2d__set(&ctx()->global_names, name, 0);
             } while(match(TK_COMMA));
             consume_end_stmt();
             break;

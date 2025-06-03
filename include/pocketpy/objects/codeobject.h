@@ -78,8 +78,8 @@ typedef struct CodeObject {
     c11_vector /*T=py_Name*/ names;
     int nlocals;
 
-    c11_smallmap_n2i varnames_inv;
-    c11_smallmap_n2i names_inv;
+    c11_smallmap_n2d varnames_inv;
+    c11_smallmap_n2d names_inv;
 
     c11_vector /*T=CodeBlock*/ blocks;
     c11_vector /*T=FuncDecl_*/ func_decls;
@@ -114,7 +114,7 @@ typedef struct FuncDecl {
     const char* docstring;  // docstring of this function (weak ref)
 
     FuncType type;
-    c11_smallmap_n2i kw_to_index;
+    c11_smallmap_n2d kw_to_index;
 } FuncDecl;
 
 typedef FuncDecl* FuncDecl_;

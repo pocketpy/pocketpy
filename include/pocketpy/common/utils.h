@@ -24,7 +24,7 @@
     } while(0)
 
 #define c11__rtassert(cond)                                                                        \
-    if(!(cond)) c11__abort("Runtime assertion failed: %s", #cond)
+    if(!(cond)) c11__abort("assertion failed: %s", #cond)
 
 #define c11__min(a, b) ((a) < (b) ? (a) : (b))
 #define c11__max(a, b) ((a) > (b) ? (a) : (b))

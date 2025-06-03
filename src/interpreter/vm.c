@@ -443,7 +443,7 @@ static bool
 
     for(int j = 0; j < kwargc; j++) {
         py_Name key = (py_Name)py_toint(&p1[2 * j]);
-        int index = c11_smallmap_n2i__get(&decl->kw_to_index, key, -1);
+        int index = c11_smallmap_n2d__get(&decl->kw_to_index, key, -1);
         // if key is an explicit key, set as local variable
         if(index >= 0) {
             buffer[index] = p1[2 * j + 1];
@@ -668,7 +668,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
     }
     // mark interned names
     for(int i = 0; i < vm->names.interned.length; i++) {
-        c11_smallmap_s2n_KV* kv = c11__at(c11_smallmap_s2n_KV, &vm->names.interned, i);
+        c11_smallmap_v2n_KV* kv = c11__at(c11_smallmap_v2n_KV, &vm->names.interned, i);
         InternedEntry* entry = (InternedEntry*)kv->value;
         pk__mark_value(&entry->obj);
     }

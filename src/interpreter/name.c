@@ -6,7 +6,7 @@
 #undef MAGIC_METHOD
 
 void InternedNames__ctor(InternedNames* self) {
-    c11_smallmap_s2n__ctor(&self->interned);
+    c11_smallmap_v2n__ctor(&self->interned);
 
     // initialize all magic names
 #define MAGIC_METHOD(x) x = py_name(#x);
@@ -16,10 +16,10 @@ void InternedNames__ctor(InternedNames* self) {
 
 void InternedNames__dtor(InternedNames* self) {
     for(int i = 0; i < self->interned.length; i++) {
-        c11_smallmap_s2n_KV* kv = c11__at(c11_smallmap_s2n_KV, &self->interned, i);
+        c11_smallmap_v2n_KV* kv = c11__at(c11_smallmap_v2n_KV, &self->interned, i);
         PK_FREE((void*)kv->value);
     }
-    c11_smallmap_s2n__dtor(&self->interned);
+    c11_smallmap_v2n__dtor(&self->interned);
 }
 
 py_Name py_name(const char* name) {
@@ -31,7 +31,7 @@ py_Name py_name(const char* name) {
 
 py_Name py_namev(c11_sv name) {
     InternedNames* self = &pk_current_vm->names;
-    py_Name index = c11_smallmap_s2n__get(&self->interned, name, 0);
+    py_Name index = c11_smallmap_v2n__get(&self->interned, name, 0);
     if(index != 0) return index;
     // generate new index
     InternedEntry* p = PK_MALLOC(sizeof(InternedEntry) + name.size + 1);
@@ -41,7 +41,7 @@ py_Name py_namev(c11_sv name) {
     memset(&p->obj, 0, sizeof(py_TValue));
     index = (py_Name)p;
     // save to _interned
-    c11_smallmap_s2n__set(&self->interned, (c11_sv){p->data, name.size}, index);
+    c11_smallmap_v2n__set(&self->interned, (c11_sv){p->data, name.size}, index);
     return index;
 }
 
