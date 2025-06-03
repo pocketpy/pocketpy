@@ -10,23 +10,12 @@ void py_setreg(int i, py_Ref val) { pk_current_vm->reg[i] = *val; }
 
 py_Ref py_getdict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
-    if(!py_ismagicname(name) || self->type != tp_type) {
-        return NameDict__try_get(PyObject__dict(self->_obj), name);
-    } else {
-        py_Type* ud = py_touserdata(self);
-        py_Ref slot = py_tpgetmagic(*ud, name);
-        return py_isnil(slot) ? NULL : slot;
-    }
+    return NameDict__try_get(PyObject__dict(self->_obj), name);
 }
 
 void py_setdict(py_Ref self, py_Name name, py_Ref val) {
     assert(self && self->is_ptr);
-    if(!py_ismagicname(name) || self->type != tp_type) {
-        NameDict__set(PyObject__dict(self->_obj), name, *val);
-    } else {
-        py_Type* ud = py_touserdata(self);
-        *py_tpgetmagic(*ud, name) = *val;
-    }
+    NameDict__set(PyObject__dict(self->_obj), name, val);
 }
 
 py_ItemRef py_emplacedict(py_Ref self, py_Name name) {
@@ -38,7 +27,8 @@ bool py_applydict(py_Ref self, bool (*f)(py_Name, py_Ref, void*), void* ctx) {
     assert(self && self->is_ptr);
     NameDict* dict = PyObject__dict(self->_obj);
     for(int i = 0; i < dict->length; i++) {
-        NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
+        NameDict_KV* kv = &dict->items[i];
+        if(kv->key == NULL) continue;
         bool ok = f(kv->key, &kv->value, ctx);
         if(!ok) return false;
     }
@@ -47,13 +37,7 @@ bool py_applydict(py_Ref self, bool (*f)(py_Name, py_Ref, void*), void* ctx) {
 
 bool py_deldict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
-    if(!py_ismagicname(name) || self->type != tp_type) {
-        return NameDict__del(PyObject__dict(self->_obj), name);
-    } else {
-        py_Type* ud = py_touserdata(self);
-        py_newnil(py_tpgetmagic(*ud, name));
-        return true;
-    }
+    return NameDict__del(PyObject__dict(self->_obj), name);
 }
 
 py_Ref py_getslot(py_Ref self, int i) {
@@ -119,7 +103,7 @@ void py_pushnone() {
 
 void py_pushname(py_Name name) {
     VM* vm = pk_current_vm;
-    py_newint(vm->stack.sp++, name);
+    py_newint(vm->stack.sp++, (uintptr_t)name);
 }
 
 py_Ref py_pushtmp() {

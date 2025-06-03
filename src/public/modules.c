@@ -617,7 +617,7 @@ static bool
     int max_index = -1;
     c11__foreach(Bytecode, &co->codes, bc) {
         if(bc->op == OP_LOAD_NAME) {
-            c11_sv name = py_name2sv(bc->arg);
+            c11_sv name = py_name2sv(c11__getitem(py_Name, &co->names, bc->arg));
             if(name.data[0] != '_') continue;
             int index;
             if(name.size == 1) {
@@ -766,7 +766,8 @@ void function__gc_mark(void* ud, c11_vector* p_stack) {
     if(func->closure) {
         NameDict* namedict = func->closure;
         for(int i = 0; i < namedict->length; i++) {
-            NameDict_KV* kv = c11__at(NameDict_KV, namedict, i);
+            NameDict_KV* kv = &namedict->items[i];
+            if(kv->key == NULL) continue;
             pk__mark_value(&kv->value);
         }
     }

@@ -29,10 +29,10 @@ void FastLocals__to_dict(py_TValue* locals, const CodeObject* co) {
 }
 
 NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co) {
-    NameDict* dict = NameDict__new();
+    NameDict* dict = NameDict__new(PK_INST_ATTR_LOAD_FACTOR);
     c11__foreach(c11_smallmap_n2i_KV, &co->varnames_inv, entry) {
-        py_TValue value = locals[entry->value];
-        if(!py_isnil(&value)) NameDict__set(dict, entry->key, value);
+        py_Ref val = &locals[entry->value];
+        if(!py_isnil(val)) NameDict__set(dict, entry->key, val);
     }
     return dict;
 }

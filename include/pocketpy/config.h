@@ -60,6 +60,12 @@
 #define PK_M_DEG2RAD                0.017453292519943295
 #define PK_M_RAD2DEG                57.29577951308232
 
+// Hash table load factor (smaller ones mean less collision but more memory)
+// For class instance
+#define PK_INST_ATTR_LOAD_FACTOR    0.67
+// For class itself
+#define PK_TYPE_ATTR_LOAD_FACTOR    0.5
+
 #ifdef _WIN32
     #define PK_PLATFORM_SEP '\\'
 #else

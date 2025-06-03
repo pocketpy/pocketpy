@@ -3,8 +3,6 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/objects/object.h"
 
-#define PK_MAGIC_SLOTS_COMMON_LENGTH (__missing__ - __xor__)
-#define PK_MAGIC_SLOTS_UNCOMMON_LENGTH (__xor__ + 1)
 #define PK_MAX_CHUNK_LENGTH 256
 
 typedef struct py_TypeInfo {
@@ -25,8 +23,7 @@ typedef struct py_TypeInfo {
     void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
 
     /* Magic Slots */
-    py_TValue magic_0[PK_MAGIC_SLOTS_COMMON_LENGTH];  // common magic slots
-    py_TValue* magic_1;                               // uncommon magic slots
+    // (deleted)
 } py_TypeInfo;
 
 typedef struct TypeList {

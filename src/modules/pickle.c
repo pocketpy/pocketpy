@@ -375,7 +375,8 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
             if(ti->is_python) {
                 NameDict* dict = PyObject__dict(obj->_obj);
                 for(int i = dict->length - 1; i >= 0; i--) {
-                    NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
+                    NameDict_KV* kv = &dict->items[i];
+                    if(kv->key == NULL) continue;
                     if(!pkl__write_object(buf, &kv->value)) return false;
                 }
                 pkl__emit_op(buf, PKL_OBJECT);
@@ -383,7 +384,8 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
                 buf->used_types[obj->type] = true;
                 pkl__emit_int(buf, dict->length);
                 for(int i = 0; i < dict->length; i++) {
-                    NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
+                    NameDict_KV* kv = &dict->items[i];
+                    if(kv->key == NULL) continue;
                     c11_sv field = py_name2sv(kv->key);
                     // include '\0'
                     PickleObject__write_bytes(buf, field.data, field.size + 1);
@@ -685,7 +687,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 for(int i = 0; i < dict_length; i++) {
                     py_StackRef value = py_peek(-1);
                     c11_sv field = {(const char*)p, strlen((const char*)p)};
-                    NameDict__set(dict, py_namev(field), *value);
+                    NameDict__set(dict, py_namev(field), value);
                     py_pop();
                     p += field.size + 1;
                 }

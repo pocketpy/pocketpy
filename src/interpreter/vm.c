@@ -653,20 +653,6 @@ void ManagedHeap__mark(ManagedHeap* self) {
         py_TypeInfo* ti = TypeList__get(&vm->types, i);
         // mark type object
         pk__mark_value(&ti->self);
-        // mark common magic slots
-        for(int j = 0; j < PK_MAGIC_SLOTS_COMMON_LENGTH; j++) {
-            py_TValue* slot = ti->magic_0 + j;
-            if(py_isnil(slot)) continue;
-            pk__mark_value(slot);
-        }
-        // mark uncommon magic slots
-        if(ti->magic_1) {
-            for(int j = 0; j < PK_MAGIC_SLOTS_UNCOMMON_LENGTH; j++) {
-                py_TValue* slot = ti->magic_1 + j;
-                if(py_isnil(slot)) continue;
-                pk__mark_value(slot);
-            }
-        }
         // mark type annotations
         pk__mark_value(&ti->annotations);
     }
@@ -701,7 +687,8 @@ void ManagedHeap__mark(ManagedHeap* self) {
         } else if(obj->slots == -1) {
             NameDict* namedict = PyObject__dict(obj);
             for(int i = 0; i < namedict->length; i++) {
-                NameDict_KV* kv = c11__at(NameDict_KV, namedict, i);
+                NameDict_KV* kv = &namedict->items[i];
+                if(kv->key == NULL) continue;
                 pk__mark_value(&kv->value);
             }
         }
