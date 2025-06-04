@@ -1,12 +1,12 @@
 #pragma once
 
 #include "pocketpy/common/memorypool.h"
+#include "pocketpy/common/name.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/heap.h"
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/interpreter/typeinfo.h"
-#include "pocketpy/interpreter/name.h"
 #include "pocketpy/interpreter/line_profiler.h"
 #include <time.h>
 
@@ -49,6 +49,8 @@ typedef struct VM {
     py_TValue reg[8];  // users' registers
     void* ctx;         // user-defined context
 
+    NameDict cached_names;
+
     py_StackRef curr_class;
     py_StackRef curr_decl_based_function;
     TraceInfo trace_info;
@@ -56,7 +58,6 @@ typedef struct VM {
     LineProfiler line_profiler;
     py_TValue vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
-    InternedNames names;
     FixedMemoryPool pool_frame;
     ManagedHeap heap;
     ValueStack stack;  // put `stack` at the end for better cache locality

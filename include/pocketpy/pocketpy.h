@@ -237,13 +237,13 @@ PK_API py_Name py_name(const char*);
 /// Convert a name to a null-terminated string.
 PK_API const char* py_name2str(py_Name);
 /// Convert a name to a python `str` object with cache.
-PK_API py_GlobalRef py_name2ref(py_Name);
+PK_API py_ItemRef py_name2ref(py_Name);
 /// Convert a `c11_sv` to a name.
 PK_API py_Name py_namev(c11_sv);
 /// Convert a name to a `c11_sv`.
 PK_API c11_sv py_name2sv(py_Name);
-/// Check if the name matches the two underscores pattern. e.g. `__init__`, `__str__`, etc.
-PK_API bool py_ismagicname(py_Name);
+
+#define py_ismagicname(name) (true)
 
 /************* Meta Operations *************/
 

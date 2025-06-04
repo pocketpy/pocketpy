@@ -3,6 +3,7 @@
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
+#include "pocketpy/common/name.h"
 #include "pocketpy/interpreter/vm.h"
 
 _Thread_local VM* pk_current_vm;
@@ -17,6 +18,8 @@ void py_initialize() {
         // c11__abort("py_initialize() can only be called once!");
         return;
     }
+
+    pk_names_initialize();
 
     // check endianness
     int x = 1;
@@ -62,6 +65,8 @@ void py_finalize() {
     pk_current_vm = &pk_default_vm;
     VM__dtor(&pk_default_vm);
     pk_current_vm = NULL;
+
+    pk_names_finalize();
 }
 
 void py_switchvm(int index) {

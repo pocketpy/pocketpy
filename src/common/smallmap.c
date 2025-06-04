@@ -16,8 +16,8 @@
 
 #define SMALLMAP_T__SOURCE
 #define K c11_sv
-#define V py_Name
-#define NAME c11_smallmap_v2n
+#define V int
+#define NAME c11_smallmap_v2d
 #define less(a, b)      (c11_sv__cmp((a), (b)) <  0)
 #define equal(a, b)     (c11_sv__cmp((a), (b)) == 0)
 #include "pocketpy/xmacros/smallmap.h"

@@ -1,5 +1,6 @@
 #include "pocketpy/compiler/compiler.h"
 #include "pocketpy/common/vector.h"
+#include "pocketpy/common/name.h"
 #include "pocketpy/compiler/lexer.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/objects/codeobject.h"
@@ -63,7 +64,7 @@ typedef struct Ctx {
     bool is_compiling_class;
     c11_vector /*T=Expr_p*/ s_expr;
     c11_smallmap_n2d global_names;
-    c11_smallmap_v2n co_consts_string_dedup_map;    // this stores 0-based index instead of pointer
+    c11_smallmap_v2d co_consts_string_dedup_map;  // this stores 0-based index instead of pointer
 } Ctx;
 
 typedef struct Expr Expr;
@@ -1076,7 +1077,7 @@ static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
     self->is_compiling_class = false;
     c11_vector__ctor(&self->s_expr, sizeof(Expr*));
     c11_smallmap_n2d__ctor(&self->global_names);
-    c11_smallmap_v2n__ctor(&self->co_consts_string_dedup_map);
+    c11_smallmap_v2d__ctor(&self->co_consts_string_dedup_map);
 }
 
 static void Ctx__dtor(Ctx* self) {
@@ -1087,11 +1088,11 @@ static void Ctx__dtor(Ctx* self) {
     c11_vector__dtor(&self->s_expr);
     c11_smallmap_n2d__dtor(&self->global_names);
     // free the dedup map
-    c11__foreach(c11_smallmap_v2n_KV, &self->co_consts_string_dedup_map, p_kv) {
+    c11__foreach(c11_smallmap_v2d_KV, &self->co_consts_string_dedup_map, p_kv) {
         const char* p = p_kv->key.data;
         PK_FREE((void*)p);
     }
-    c11_smallmap_v2n__dtor(&self->co_consts_string_dedup_map);
+    c11_smallmap_v2d__dtor(&self->co_consts_string_dedup_map);
 }
 
 static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break) {
@@ -1200,9 +1201,7 @@ static int Ctx__add_varname(Ctx* self, py_Name name) {
     return CodeObject__add_varname(self->co, name);
 }
 
-static int Ctx__add_name(Ctx* self, py_Name name) {
-    return CodeObject__add_name(self->co, name);
-}
+static int Ctx__add_name(Ctx* self, py_Name name) { return CodeObject__add_name(self->co, name); }
 
 static int Ctx__add_const_string(Ctx* self, c11_sv key) {
     if(key.size > 100) {
@@ -1211,7 +1210,7 @@ static int Ctx__add_const_string(Ctx* self, c11_sv key) {
         int index = self->co->consts.length - 1;
         return index;
     }
-    uintptr_t* val = c11_smallmap_v2n__try_get(&self->co_consts_string_dedup_map, key);
+    int* val = c11_smallmap_v2d__try_get(&self->co_consts_string_dedup_map, key);
     if(val) {
         return *val;
     } else {
@@ -1222,7 +1221,7 @@ static int Ctx__add_const_string(Ctx* self, c11_sv key) {
         char* new_buf = PK_MALLOC(key.size + 1);
         memcpy(new_buf, key.data, key.size);
         new_buf[key.size] = 0;
-        c11_smallmap_v2n__set(&self->co_consts_string_dedup_map,
+        c11_smallmap_v2d__set(&self->co_consts_string_dedup_map,
                               (c11_sv){new_buf, key.size},
                               index);
         return index;
@@ -2376,7 +2375,7 @@ static Error* compile_function(Compiler* self, int decorators) {
             }
         }
 
-        Ctx__emit_(ctx(), OP_STORE_CLASS_ATTR, decl_name, prev()->line);
+        Ctx__emit_(ctx(), OP_STORE_CLASS_ATTR, Ctx__add_name(ctx(), decl_name), prev()->line);
     } else {
         NameExpr* e = NameExpr__new(prev()->line, decl_name, name_scope(self));
         vtemit_store((Expr*)e, ctx());
@@ -2404,7 +2403,7 @@ static Error* compile_class(Compiler* self, int decorators) {
     } else {
         Ctx__s_emit_top(ctx());  // []
     }
-    Ctx__emit_(ctx(), OP_BEGIN_CLASS, name, BC_KEEPLINE);
+    Ctx__emit_(ctx(), OP_BEGIN_CLASS, Ctx__add_name(ctx(), name), BC_KEEPLINE);
 
     c11__foreach(Ctx, &self->contexts, it) {
         if(it->is_compiling_class) return SyntaxError(self, "nested class is not allowed");
@@ -2788,7 +2787,10 @@ static Error* compile_stmt(Compiler* self) {
                         NameExpr* ne = (NameExpr*)Ctx__s_top(ctx());
                         int index = Ctx__add_const_string(ctx(), type_hint);
                         Ctx__emit_(ctx(), OP_LOAD_CONST, index, BC_KEEPLINE);
-                        Ctx__emit_(ctx(), OP_ADD_CLASS_ANNOTATION, Ctx__add_name(ctx(), ne->name), BC_KEEPLINE);
+                        Ctx__emit_(ctx(),
+                                   OP_ADD_CLASS_ANNOTATION,
+                                   Ctx__add_name(ctx(), ne->name),
+                                   BC_KEEPLINE);
                     }
                 }
             }

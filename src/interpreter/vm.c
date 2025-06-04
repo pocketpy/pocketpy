@@ -65,7 +65,6 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
 
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
-    InternedNames__ctor(&self->names);
 
     ModuleDict__ctor(&self->modules, "", *py_NIL());
     TypeList__ctor(&self->types);
@@ -97,6 +96,7 @@ void VM__ctor(VM* self) {
 
     ManagedHeap__ctor(&self->heap);
     ValueStack__ctor(&self->stack);
+    NameDict__ctor(&self->cached_names, PK_INST_ATTR_LOAD_FACTOR);
 
     /* Init Builtin Types */
     // 0: unused
@@ -274,7 +274,7 @@ void VM__dtor(VM* self) {
     TypeList__dtor(&self->types);
     FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__dtor(&self->stack);
-    InternedNames__dtor(&self->names);
+    NameDict__dtor(&self->cached_names);
 }
 
 void VM__push_frame(VM* self, py_Frame* frame) {
@@ -666,13 +666,6 @@ void ManagedHeap__mark(ManagedHeap* self) {
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
         pk__mark_value(&vm->reg[i]);
     }
-    // mark interned names
-    for(int i = 0; i < vm->names.interned.length; i++) {
-        c11_smallmap_v2n_KV* kv = c11__at(c11_smallmap_v2n_KV, &vm->names.interned, i);
-        InternedEntry* entry = (InternedEntry*)kv->value;
-        pk__mark_value(&entry->obj);
-    }
-
     /*****************************/
     while(p_stack->length > 0) {
         PyObject* obj = c11_vector__back(PyObject*, p_stack);
@@ -842,4 +835,16 @@ int py_replinput(char* buf, int max_size) {
 
     buf[size] = '\0';
     return size;
+}
+
+py_Ref py_name2ref(py_Name name) {
+    assert(name != NULL);
+    NameDict* d = &pk_current_vm->cached_names;
+    py_Ref res = NameDict__try_get(d, name);
+    if(res != NULL) return res;
+    // not found, create a new one
+    py_TValue tmp;
+    py_newstrv(&tmp, py_name2sv(name));
+    NameDict__set(d, name, &tmp);
+    return NameDict__try_get(d, name);
 }
