@@ -76,7 +76,7 @@ void VM__ctor(VM* self) {
     self->callbacks.importfile = pk_default_importfile;
     self->callbacks.print = pk_default_print;
     self->callbacks.flush = pk_default_flush;
-    self->callbacks.getchar = getchar;
+    self->callbacks.getch = getchar;
 
     self->last_retval = *py_NIL();
     self->curr_exception = *py_NIL();
@@ -822,7 +822,7 @@ int py_replinput(char* buf, int max_size) {
     printf(">>> ");
 
     while(true) {
-        int c = pk_current_vm->callbacks.getchar();
+        int c = pk_current_vm->callbacks.getch();
         if(c == EOF) return -1;
 
         if(c == '\n') {

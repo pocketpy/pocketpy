@@ -205,7 +205,7 @@ static bool builtins_input(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     while(true) {
-        int c = py_callbacks()->getchar();
+        int c = py_callbacks()->getch();
         if(c == '\n' || c == '\r') break;
         if(c == EOF) break;
         c11_sbuf__write_char(&buf, c);

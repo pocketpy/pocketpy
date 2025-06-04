@@ -71,7 +71,7 @@ typedef struct py_Callbacks {
     /// Flush the output buffer of `print`.
     void (*flush)();
     /// Used by `input` to get a character.
-    int (*getchar)();
+    int (*getch)();
 } py_Callbacks;
 
 /// Native function signature.
