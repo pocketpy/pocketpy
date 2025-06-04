@@ -46,7 +46,7 @@ FuncDecl_ FuncDecl__rcnew(SourceData_ src, c11_sv name) {
 bool FuncDecl__is_duplicated_arg(const FuncDecl* decl, py_Name name) {
     py_Name tmp_name;
     c11__foreach(int, &decl->args, j) {
-        tmp_name = c11__getitem(py_Name, &decl->args, *j);
+        tmp_name = c11__getitem(py_Name, &decl->code.varnames, *j);
         if(tmp_name == name) return true;
     }
     c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
