@@ -55,9 +55,10 @@ bool py_hash(py_Ref val, int64_t* out) {
     py_TypeInfo* ti = pk__type_info(val->type);
     do {
         py_Ref slot_hash = py_getdict(&ti->self, __hash__);
-        if(!slot_hash || py_isnone(slot_hash)) break;
+        if(slot_hash && py_isnone(slot_hash)) break;
         py_Ref slot_eq = py_getdict(&ti->self, __eq__);
         if(slot_eq) {
+            if(!slot_hash) break;
             if(!py_call(slot_hash, 1, val)) return false;
             if(!py_checkint(py_retval())) return false;
             *out = py_toint(py_retval());

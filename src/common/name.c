@@ -62,20 +62,20 @@ py_Name py_namev(c11_sv name) {
     }
 
     // generate new index
-    NameBucket* entry = PK_MALLOC(sizeof(NameBucket) + name.size + 1);
-    entry->next = NULL;
-    entry->hash = hash;
-    entry->size = name.size;
-    memcpy(entry->data, name.data, name.size);
-    entry->data[name.size] = '\0';
+    NameBucket* bucket = PK_MALLOC(sizeof(NameBucket) + name.size + 1);
+    bucket->next = NULL;
+    bucket->hash = hash;
+    bucket->size = name.size;
+    memcpy(bucket->data, name.data, name.size);
+    bucket->data[name.size] = '\0';
     if(p == NULL) {
-        pk_string_table.table[index] = entry;
+        pk_string_table.table[index] = bucket;
     } else {
         assert(p->next == NULL);
-        p->next = entry;
+        p->next = bucket;
     }
     atomic_store(&pk_string_table.lock, false);
-    return (py_Name)entry;
+    return (py_Name)bucket;
 }
 
 c11_sv py_name2sv(py_Name index) {
