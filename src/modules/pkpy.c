@@ -217,7 +217,8 @@ static bool ComputeThread__init__(int argc, py_Ref argv) {
 static bool ComputeThread_is_done(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_ComputeThread* self = py_touserdata(argv);
-    py_newbool(py_retval(), atomic_load(&self->is_done));
+    bool value = atomic_load(&self->is_done);
+    py_newbool(py_retval(), value);
     return true;
 }
 
