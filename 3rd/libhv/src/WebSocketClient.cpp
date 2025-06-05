@@ -3,9 +3,6 @@
 #include "pocketpy/pocketpy.h"
 #include "http/client/WebSocketClient.h"
 
-extern py_Name __new__;
-extern py_Name __init__;
-
 struct libhv_WebSocketClient {
     hv::WebSocketClient ws;
 

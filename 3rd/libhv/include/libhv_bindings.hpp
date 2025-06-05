@@ -4,6 +4,8 @@
 #include "http/HttpMessage.h"
 #include "base/hplatform.h"
 
+#include "pocketpy/common/name.h"
+
 extern "C" void pk__add_module_libhv();
 
 void libhv_HttpRequest_create(py_OutRef out, HttpRequestPtr ptr);

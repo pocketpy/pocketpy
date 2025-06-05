@@ -14,7 +14,7 @@ typedef struct NameBucket {
 
 static struct {
     NameBucket* table[0x10000];
-    atomic_bool lock;
+    atomic_flag lock;
 } pk_string_table;
 
 #define MAGIC_METHOD(x) py_Name x;
@@ -40,7 +40,7 @@ void pk_names_finalize() {
 }
 
 py_Name py_namev(c11_sv name) {
-    while(atomic_exchange(&pk_string_table.lock, true)) {
+    while(atomic_flag_test_and_set(&pk_string_table.lock)) {
         // busy-wait until the lock is released
     }
     uint64_t hash = c11_sv__hash(name);
@@ -58,7 +58,7 @@ py_Name py_namev(c11_sv name) {
         p = p->next;
     }
     if(found) {
-        atomic_store(&pk_string_table.lock, false);
+        atomic_flag_clear(&pk_string_table.lock);
         return (py_Name)p;
     }
 
@@ -75,7 +75,7 @@ py_Name py_namev(c11_sv name) {
         assert(prev->next == NULL);
         prev->next = bucket;
     }
-    atomic_store(&pk_string_table.lock, false);
+    atomic_flag_clear(&pk_string_table.lock);
     return (py_Name)bucket;
 }
 
