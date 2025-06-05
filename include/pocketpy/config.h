@@ -20,6 +20,10 @@
 #define PK_ENABLE_WATCHDOG          0                
 #endif
 
+#ifndef PK_ENABLE_CUSTOM_SNAME      // can be overridden by cmake
+#define PK_ENABLE_CUSTOM_SNAME      0                
+#endif
+
 // GC min threshold
 #ifndef PK_GC_MIN_THRESHOLD         // can be overridden by cmake
     #define PK_GC_MIN_THRESHOLD     32768
@@ -59,6 +63,12 @@
 #define PK_M_E                      2.7182818284590452354
 #define PK_M_DEG2RAD                0.017453292519943295
 #define PK_M_RAD2DEG                57.29577951308232
+
+// Hash table load factor (smaller ones mean less collision but more memory)
+// For class instance
+#define PK_INST_ATTR_LOAD_FACTOR    0.67f
+// For class itself
+#define PK_TYPE_ATTR_LOAD_FACTOR    0.5f
 
 #ifdef _WIN32
     #define PK_PLATFORM_SEP '\\'

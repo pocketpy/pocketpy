@@ -75,9 +75,11 @@ typedef struct CodeObject {
 
     c11_vector /*T=py_TValue*/ consts;  // constants
     c11_vector /*T=py_Name*/ varnames;  // local variables
-    int nlocals;                        // cached varnames.size()
+    c11_vector /*T=py_Name*/ names;
+    int nlocals;
 
-    c11_smallmap_n2i varnames_inv;
+    c11_smallmap_n2d varnames_inv;
+    c11_smallmap_n2d names_inv;
 
     c11_vector /*T=CodeBlock*/ blocks;
     c11_vector /*T=FuncDecl_*/ func_decls;
@@ -89,11 +91,12 @@ typedef struct CodeObject {
 void CodeObject__ctor(CodeObject* self, SourceData_ src, c11_sv name);
 void CodeObject__dtor(CodeObject* self);
 int CodeObject__add_varname(CodeObject* self, py_Name name);
+int CodeObject__add_name(CodeObject* self, py_Name name);
 void CodeObject__gc_mark(const CodeObject* self, c11_vector* p_stack);
 
 typedef struct FuncDeclKwArg {
     int index;        // index in co->varnames
-    uint16_t key;     // name of this argument
+    py_Name key;      // name of this argument
     py_TValue value;  // default value
 } FuncDeclKwArg;
 
@@ -111,7 +114,7 @@ typedef struct FuncDecl {
     const char* docstring;  // docstring of this function (weak ref)
 
     FuncType type;
-    c11_smallmap_n2i kw_to_index;
+    c11_smallmap_n2d kw_to_index;
 } FuncDecl;
 
 typedef FuncDecl* FuncDecl_;

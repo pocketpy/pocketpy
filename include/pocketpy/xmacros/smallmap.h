@@ -6,7 +6,7 @@
 /* Input */
 #define K int
 #define V float
-#define NAME c11_smallmap_i2f
+#define NAME c11_smallmap_d2f
 #endif
 
 /* Optional Input */

@@ -160,7 +160,7 @@ static void
 static bool _pk_compute_thread_flags[16];
 
 static void c11_ComputeThread__dtor(c11_ComputeThread* self) {
-    if(!self->is_done) {
+    if(!atomic_load(&self->is_done)) {
         c11__abort("ComputeThread(%d) is not done yet!! But the object was deleted.",
                    self->vm_index);
     }
@@ -187,7 +187,7 @@ static bool ComputeThread__new__(int argc, py_Ref argv) {
     c11_ComputeThread* self =
         py_newobject(py_retval(), py_totype(argv), 0, sizeof(c11_ComputeThread));
     self->vm_index = 0;
-    self->is_done = true;
+    atomic_store(&self->is_done, true);
     self->last_retval_data = NULL;
     self->last_retval_size = 0;
     self->last_error = NULL;
@@ -217,15 +217,17 @@ static bool ComputeThread__init__(int argc, py_Ref argv) {
 static bool ComputeThread_is_done(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_ComputeThread* self = py_touserdata(argv);
-    py_newbool(py_retval(), self->is_done);
+    bool value = atomic_load(&self->is_done);
+    py_newbool(py_retval(), value);
     return true;
 }
 
 static bool ComputeThread_wait_for_done(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_ComputeThread* self = py_touserdata(argv);
-    while(!self->is_done)
+    while(!atomic_load(&self->is_done)) {
         c11_thrd_yield();
+    }
     py_newnone(py_retval());
     return true;
 }
@@ -233,7 +235,7 @@ static bool ComputeThread_wait_for_done(int argc, py_Ref argv) {
 static bool ComputeThread_last_error(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_ComputeThread* self = py_touserdata(argv);
-    if(!self->is_done) return OSError("thread is not done yet");
+    if(!atomic_load(&self->is_done)) return OSError("thread is not done yet");
     if(self->last_error) {
         py_newstr(py_retval(), self->last_error);
     } else {
@@ -245,7 +247,7 @@ static bool ComputeThread_last_error(int argc, py_Ref argv) {
 static bool ComputeThread_last_retval(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_ComputeThread* self = py_touserdata(argv);
-    if(!self->is_done) return OSError("thread is not done yet");
+    if(!atomic_load(&self->is_done)) return OSError("thread is not done yet");
     if(self->last_retval_data == NULL) return ValueError("no retval available");
     return py_pickle_loads(self->last_retval_data, self->last_retval_size);
 }
@@ -273,12 +275,12 @@ static c11_thrd_retval_t ComputeThreadJob_call(void* arg) {
     unsigned char* retval_data = py_tobytes(py_retval(), &retval_size);
     self->last_retval_data = c11_memdup(retval_data, retval_size);
     self->last_retval_size = retval_size;
-    self->is_done = true;
+    atomic_store(&self->is_done, true);
     return (c11_thrd_retval_t)0;
 
 __ERROR:
     self->last_error = py_formatexc();
-    self->is_done = true;
+    atomic_store(&self->is_done, true);
     py_clearexc(p0);
     py_newnone(py_retval());
     return (c11_thrd_retval_t)0;
@@ -296,12 +298,12 @@ static c11_thrd_retval_t ComputeThreadJob_exec(void* arg) {
     unsigned char* retval_data = py_tobytes(py_retval(), &retval_size);
     self->last_retval_data = c11_memdup(retval_data, retval_size);
     self->last_retval_size = retval_size;
-    self->is_done = true;
+    atomic_store(&self->is_done, true);
     return (c11_thrd_retval_t)0;
 
 __ERROR:
     self->last_error = py_formatexc();
-    self->is_done = true;
+    atomic_store(&self->is_done, true);
     py_clearexc(p0);
     return (c11_thrd_retval_t)0;
 }
@@ -309,7 +311,7 @@ __ERROR:
 static bool ComputeThread_submit_exec(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_ComputeThread* self = py_touserdata(py_arg(0));
-    if(!self->is_done) return OSError("thread is not done yet");
+    if(!atomic_load(&self->is_done)) return OSError("thread is not done yet");
     PY_CHECK_ARG_TYPE(1, tp_str);
     const char* source = py_tostr(py_arg(1));
     /**************************/
@@ -319,10 +321,10 @@ static bool ComputeThread_submit_exec(int argc, py_Ref argv) {
     job->mode = EXEC_MODE;
     c11_ComputeThread__reset_job(self, job, ComputeThreadJobExec__dtor);
     /**************************/
-    self->is_done = false;
+    atomic_store(&self->is_done, false);
     bool ok = c11_thrd_create(&self->thread, ComputeThreadJob_exec, job);
     if(!ok) {
-        self->is_done = true;
+        atomic_store(&self->is_done, true);
         return OSError("thrd_create() failed");
     }
     py_newnone(py_retval());
@@ -332,7 +334,7 @@ static bool ComputeThread_submit_exec(int argc, py_Ref argv) {
 static bool ComputeThread_submit_eval(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_ComputeThread* self = py_touserdata(py_arg(0));
-    if(!self->is_done) return OSError("thread is not done yet");
+    if(!atomic_load(&self->is_done)) return OSError("thread is not done yet");
     PY_CHECK_ARG_TYPE(1, tp_str);
     const char* source = py_tostr(py_arg(1));
     /**************************/
@@ -342,10 +344,10 @@ static bool ComputeThread_submit_eval(int argc, py_Ref argv) {
     job->mode = EVAL_MODE;
     c11_ComputeThread__reset_job(self, job, ComputeThreadJobExec__dtor);
     /**************************/
-    self->is_done = false;
+    atomic_store(&self->is_done, false);
     bool ok = c11_thrd_create(&self->thread, ComputeThreadJob_exec, job);
     if(!ok) {
-        self->is_done = true;
+        atomic_store(&self->is_done, true);
         return OSError("thrd_create() failed");
     }
     py_newnone(py_retval());
@@ -355,7 +357,7 @@ static bool ComputeThread_submit_eval(int argc, py_Ref argv) {
 static bool ComputeThread_submit_call(int argc, py_Ref argv) {
     PY_CHECK_ARGC(4);
     c11_ComputeThread* self = py_touserdata(py_arg(0));
-    if(!self->is_done) return OSError("thread is not done yet");
+    if(!atomic_load(&self->is_done)) return OSError("thread is not done yet");
     PY_CHECK_ARG_TYPE(1, tp_str);
     PY_CHECK_ARG_TYPE(2, tp_tuple);
     PY_CHECK_ARG_TYPE(3, tp_dict);
@@ -379,10 +381,10 @@ static bool ComputeThread_submit_call(int argc, py_Ref argv) {
     job->kwargs_size = kwargs_size;
     c11_ComputeThread__reset_job(self, job, ComputeThreadJobCall__dtor);
     /**************************/
-    self->is_done = false;
+    atomic_store(&self->is_done, false);
     bool ok = c11_thrd_create(&self->thread, ComputeThreadJob_call, job);
     if(!ok) {
-        self->is_done = true;
+        atomic_store(&self->is_done, true);
         return OSError("thrd_create() failed");
     }
     py_newnone(py_retval());
@@ -392,8 +394,8 @@ static bool ComputeThread_submit_call(int argc, py_Ref argv) {
 static bool c11_ComputeThread__exec_blocked(c11_ComputeThread* self,
                                             const char* source,
                                             enum py_CompileMode mode) {
-    if(!self->is_done) return OSError("thread is not done yet");
-    self->is_done = false;
+    if(!atomic_load(&self->is_done)) return OSError("thread is not done yet");
+    atomic_store(&self->is_done, false);
     char* err = NULL;
     int old_vm_index = py_currentvm();
     py_switchvm(self->vm_index);
@@ -405,14 +407,14 @@ static bool c11_ComputeThread__exec_blocked(c11_ComputeThread* self,
     unsigned char* retval_data = py_tobytes(py_retval(), &retval_size);
     py_switchvm(old_vm_index);
     bool ok = py_pickle_loads(retval_data, retval_size);
-    self->is_done = true;
+    atomic_store(&self->is_done, true);
     return ok;
 
 __ERROR:
     err = py_formatexc();
     py_clearexc(p0);
     py_switchvm(old_vm_index);
-    self->is_done = true;
+    atomic_store(&self->is_done, true);
     RuntimeError("c11_ComputeThread__exec_blocked() failed:\n%s", err);
     PK_FREE(err);
     return false;
@@ -454,7 +456,7 @@ static void pk_ComputeThread__register(py_Ref mod) {
     py_bindmethod(type, "eval", ComputeThread_eval);
 }
 
-static void pkpy_configmacros_add(py_Ref dict, const char* key, int val){
+static void pkpy_configmacros_add(py_Ref dict, const char* key, int val) {
     assert(dict->type == tp_dict);
     py_TValue tmp;
     py_newint(&tmp, val);

@@ -224,7 +224,7 @@ void pk_vsprintf(c11_sbuf* ss, const char* fmt, va_list args) {
                 break;
             }
             case 'n': {
-                py_Name n = va_arg(args, int);
+                py_Name n = va_arg(args, void*);
                 c11_sbuf__write_cstr(ss, py_name2str(n));
                 break;
             }

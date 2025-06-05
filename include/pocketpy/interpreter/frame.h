@@ -1,9 +1,7 @@
 #pragma once
 
-#include "pocketpy/common/memorypool.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/namedict.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/pocketpy.h"
 
 void FastLocals__to_dict(py_TValue* locals, const CodeObject* co) PY_RETURN;

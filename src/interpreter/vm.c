@@ -65,7 +65,6 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
 
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
-    InternedNames__ctor(&self->names);
 
     ModuleDict__ctor(&self->modules, "", *py_NIL());
     TypeList__ctor(&self->types);
@@ -97,6 +96,7 @@ void VM__ctor(VM* self) {
 
     ManagedHeap__ctor(&self->heap);
     ValueStack__ctor(&self->stack);
+    NameDict__ctor(&self->cached_names, PK_INST_ATTR_LOAD_FACTOR);
 
     /* Init Builtin Types */
     // 0: unused
@@ -274,7 +274,7 @@ void VM__dtor(VM* self) {
     TypeList__dtor(&self->types);
     FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__dtor(&self->stack);
-    InternedNames__dtor(&self->names);
+    NameDict__dtor(&self->cached_names);
 }
 
 void VM__push_frame(VM* self, py_Frame* frame) {
@@ -442,8 +442,8 @@ static bool
     if(decl->starred_kwarg != -1) py_newdict(&buffer[decl->starred_kwarg]);
 
     for(int j = 0; j < kwargc; j++) {
-        py_Name key = py_toint(&p1[2 * j]);
-        int index = c11_smallmap_n2i__get(&decl->kw_to_index, key, -1);
+        py_Name key = (py_Name)py_toint(&p1[2 * j]);
+        int index = c11_smallmap_n2d__get(&decl->kw_to_index, key, -1);
         // if key is an explicit key, set as local variable
         if(index >= 0) {
             buffer[index] = p1[2 * j + 1];
@@ -653,20 +653,6 @@ void ManagedHeap__mark(ManagedHeap* self) {
         py_TypeInfo* ti = TypeList__get(&vm->types, i);
         // mark type object
         pk__mark_value(&ti->self);
-        // mark common magic slots
-        for(int j = 0; j < PK_MAGIC_SLOTS_COMMON_LENGTH; j++) {
-            py_TValue* slot = ti->magic_0 + j;
-            if(py_isnil(slot)) continue;
-            pk__mark_value(slot);
-        }
-        // mark uncommon magic slots
-        if(ti->magic_1) {
-            for(int j = 0; j < PK_MAGIC_SLOTS_UNCOMMON_LENGTH; j++) {
-                py_TValue* slot = ti->magic_1 + j;
-                if(py_isnil(slot)) continue;
-                pk__mark_value(slot);
-            }
-        }
         // mark type annotations
         pk__mark_value(&ti->annotations);
     }
@@ -680,12 +666,6 @@ void ManagedHeap__mark(ManagedHeap* self) {
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
         pk__mark_value(&vm->reg[i]);
     }
-    // mark interned names
-    for(int i = 0; i < vm->names.r_interned.length; i++) {
-        RInternedEntry* entry = c11__at(RInternedEntry, &vm->names.r_interned, i);
-        pk__mark_value(&entry->obj);
-    }
-
     /*****************************/
     while(p_stack->length > 0) {
         PyObject* obj = c11_vector__back(PyObject*, p_stack);
@@ -698,9 +678,10 @@ void ManagedHeap__mark(ManagedHeap* self) {
             for(int i = 0; i < obj->slots; i++)
                 pk__mark_value(p + i);
         } else if(obj->slots == -1) {
-            NameDict* namedict = PyObject__dict(obj);
-            for(int i = 0; i < namedict->length; i++) {
-                NameDict_KV* kv = c11__at(NameDict_KV, namedict, i);
+            NameDict* dict = PyObject__dict(obj);
+            for(int i = 0; i < dict->capacity; i++) {
+                NameDict_KV* kv = &dict->items[i];
+                if(kv->key == NULL) continue;
                 pk__mark_value(&kv->value);
             }
         }
@@ -854,4 +835,16 @@ int py_replinput(char* buf, int max_size) {
 
     buf[size] = '\0';
     return size;
+}
+
+py_Ref py_name2ref(py_Name name) {
+    assert(name != NULL);
+    NameDict* d = &pk_current_vm->cached_names;
+    py_Ref res = NameDict__try_get(d, name);
+    if(res != NULL) return res;
+    // not found, create a new one
+    py_TValue tmp;
+    py_newstrv(&tmp, py_name2sv(name));
+    NameDict__set(d, name, &tmp);
+    return NameDict__try_get(d, name);
 }

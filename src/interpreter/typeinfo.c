@@ -12,7 +12,7 @@ void TypeList__ctor(TypeList* self) {
 void TypeList__dtor(TypeList* self) {
     for(py_Type t = 0; t < self->length; t++) {
         py_TypeInfo* info = TypeList__get(self, t);
-        if(info->magic_1) PK_FREE(info->magic_1);
+        (void)info;
     }
     for(int i = 0; i < PK_MAX_CHUNK_LENGTH; i++) {
         if(self->chunks[i]) PK_FREE(self->chunks[i]);
@@ -45,29 +45,6 @@ void TypeList__apply(TypeList* self, void (*f)(py_TypeInfo*, void*), void* ctx) 
         py_TypeInfo* info = TypeList__get(self, i);
         f(info, ctx);
     }
-}
-
-py_TValue* TypeList__magic(py_TypeInfo* self, unsigned index) {
-    if(index > __xor__) {
-        // common magic slots
-        return TypeList__magic_common(self, index);
-    }
-    // uncommon magic slots
-    if(self->magic_1 == NULL) {
-        self->magic_1 = PK_MALLOC(sizeof(py_TValue) * PK_MAGIC_SLOTS_UNCOMMON_LENGTH);
-        memset(self->magic_1, 0, sizeof(py_TValue) * PK_MAGIC_SLOTS_UNCOMMON_LENGTH);
-    }
-    return self->magic_1 + index;
-}
-
-py_TValue* TypeList__magic_readonly(py_TypeInfo* self, unsigned index) {
-    if(index > __xor__) {
-        // common magic slots
-        return TypeList__magic_common(self, index);
-    }
-    // uncommon magic slots
-    if(self->magic_1 == NULL) return py_NIL();
-    return self->magic_1 + index;
 }
 
 #undef CHUNK_SIZE

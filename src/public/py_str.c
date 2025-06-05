@@ -103,13 +103,8 @@ static bool str__new__(int argc, py_Ref argv) {
 
 static bool str__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    int size;
-    const char* data = py_tostrn(&argv[0], &size);
-    uint64_t res = 0;
-    for(int i = 0; i < size; i++) {
-        res = res * 31 + data[i];
-    }
-    py_newint(py_retval(), res);
+    uint64_t res = c11_sv__hash(py_tosv(argv));
+    py_newint(py_retval(), (py_i64)res);
     return true;
 }
 

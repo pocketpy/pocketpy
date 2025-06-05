@@ -23,6 +23,9 @@
         abort();                                                                                   \
     } while(0)
 
+#define c11__rtassert(cond)                                                                        \
+    if(!(cond)) c11__abort("assertion failed: %s", #cond)
+
 #define c11__min(a, b) ((a) < (b) ? (a) : (b))
 #define c11__max(a, b) ((a) > (b) ? (a) : (b))
 
@@ -42,4 +45,3 @@ typedef struct RefCounted {
             PK_FREE(obj);                                                                          \
         }                                                                                          \
     } while(0)
-

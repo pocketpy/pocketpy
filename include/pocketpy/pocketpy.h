@@ -13,12 +13,12 @@ extern "C" {
 #endif
 
 /************* Public Types *************/
-
+/// A helper struct for `py_Name`.
+typedef struct py_OpaqueName py_OpaqueName;
+/// A pointer that represents a python identifier. For fast name resolution.
+typedef py_OpaqueName* py_Name;
 /// A opaque type that represents a python object. You cannot access its members directly.
 typedef struct py_TValue py_TValue;
-/// An integer that represents a python identifier. This is to achieve string pooling and fast name
-/// resolution.
-typedef uint16_t py_Name;
 /// An integer that represents a python type. `0` is invalid.
 typedef int16_t py_Type;
 /// A 64-bit integer type. Corresponds to `int` in python.
@@ -237,13 +237,13 @@ PK_API py_Name py_name(const char*);
 /// Convert a name to a null-terminated string.
 PK_API const char* py_name2str(py_Name);
 /// Convert a name to a python `str` object with cache.
-PK_API py_GlobalRef py_name2ref(py_Name);
+PK_API py_ItemRef py_name2ref(py_Name);
 /// Convert a `c11_sv` to a name.
 PK_API py_Name py_namev(c11_sv);
 /// Convert a name to a `c11_sv`.
 PK_API c11_sv py_name2sv(py_Name);
 
-#define py_ismagicname(name) (name <= __missing__)
+#define py_ismagicname(name) (true)
 
 /************* Meta Operations *************/
 
@@ -318,7 +318,7 @@ PK_API bool py_issubclass(py_Type derived, py_Type base);
 
 /// Get the magic method from the given type only.
 /// The returned reference is always valid. However, its value may be `nil`.
-PK_API py_GlobalRef py_tpgetmagic(py_Type type, py_Name name);
+PK_API PK_DEPRECATED py_GlobalRef py_tpgetmagic(py_Type type, py_Name name);
 /// Search the magic method from the given type to the base type.
 /// Return `NULL` if not found.
 PK_API py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
@@ -438,8 +438,8 @@ PK_API void py_bindfunc(py_Ref obj, const char* name, py_CFunction f);
 /// @param setter setter function. Use `NULL` if not needed.
 PK_API void
     py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFunction setter);
-
-#define py_bindmagic(type, __magic__, f) py_newnativefunc(py_tpgetmagic((type), __magic__), (f))
+/// Bind a magic method to type.
+PK_API void py_bindmagic(py_Type type, py_Name name, py_CFunction f);
 
 #define PY_CHECK_ARGC(n)                                                                           \
     if(argc != n) return TypeError("expected %d arguments, got %d", n, argc)
@@ -469,21 +469,32 @@ PK_API bool py_delitem(py_Ref self, py_Ref key) PY_RAISE;
 /// The result will be set to `py_retval()`.
 /// The stack remains unchanged after the operation.
 PK_API bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) PY_RAISE PY_RETURN;
-
-#define py_binaryadd(lhs, rhs) py_binaryop(lhs, rhs, __add__, __radd__)
-#define py_binarysub(lhs, rhs) py_binaryop(lhs, rhs, __sub__, __rsub__)
-#define py_binarymul(lhs, rhs) py_binaryop(lhs, rhs, __mul__, __rmul__)
-#define py_binarytruediv(lhs, rhs) py_binaryop(lhs, rhs, __truediv__, __rtruediv__)
-#define py_binaryfloordiv(lhs, rhs) py_binaryop(lhs, rhs, __floordiv__, __rfloordiv__)
-#define py_binarymod(lhs, rhs) py_binaryop(lhs, rhs, __mod__, __rmod__)
-#define py_binarypow(lhs, rhs) py_binaryop(lhs, rhs, __pow__, __rpow__)
-
-#define py_binarylshift(lhs, rhs) py_binaryop(lhs, rhs, __lshift__, 0)
-#define py_binaryrshift(lhs, rhs) py_binaryop(lhs, rhs, __rshift__, 0)
-#define py_binaryand(lhs, rhs) py_binaryop(lhs, rhs, __and__, 0)
-#define py_binaryor(lhs, rhs) py_binaryop(lhs, rhs, __or__, 0)
-#define py_binaryxor(lhs, rhs) py_binaryop(lhs, rhs, __xor__, 0)
-#define py_binarymatmul(lhs, rhs) py_binaryop(lhs, rhs, __matmul__, 0)
+/// lhs + rhs
+PK_API bool py_binaryadd(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs - rhs
+PK_API bool py_binarysub(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs * rhs
+PK_API bool py_binarymul(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs / rhs
+PK_API bool py_binarytruediv(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs // rhs
+PK_API bool py_binaryfloordiv(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs % rhs
+PK_API bool py_binarymod(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs ** rhs
+PK_API bool py_binarypow(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs << rhs
+PK_API bool py_binarylshift(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs >> rhs
+PK_API bool py_binaryrshift(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs & rhs
+PK_API bool py_binaryand(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs | rhs
+PK_API bool py_binaryor(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs ^ rhs
+PK_API bool py_binaryxor(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs @ rhs
+PK_API bool py_binarymatmul(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
 
 /************* Stack Operations *************/
 
@@ -710,14 +721,6 @@ PK_API int py_replinput(char* buf, int max_size);
 /// %t: py_Type
 /// %n: py_Name
 
-enum py_MagicName {
-    py_MagicName__NULL,  // 0 is reserved
-
-#define MAGIC_METHOD(x) x,
-#include "pocketpy/xmacros/magics.h"
-#undef MAGIC_METHOD
-};
-
 enum py_PredefinedType {
     tp_nil = 0,
     tp_object = 1,
@@ -745,11 +748,11 @@ enum py_PredefinedType {
     tp_locals,
     tp_code,
     tp_dict,
-    tp_dict_iterator, // 1 slot
-    tp_property,      // 2 slots (getter + setter)
-    tp_star_wrapper,  // 1 slot + int level
-    tp_staticmethod,  // 1 slot
-    tp_classmethod,   // 1 slot
+    tp_dict_iterator,  // 1 slot
+    tp_property,       // 2 slots (getter + setter)
+    tp_star_wrapper,   // 1 slot + int level
+    tp_staticmethod,   // 1 slot
+    tp_classmethod,    // 1 slot
     tp_NoneType,
     tp_NotImplementedType,
     tp_ellipsis,

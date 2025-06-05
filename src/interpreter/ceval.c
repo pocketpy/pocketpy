@@ -70,7 +70,7 @@ static bool unpack_dict_to_buffer(py_Ref key, py_Ref val, void* ctx) {
     py_TValue** p = ctx;
     if(py_isstr(key)) {
         py_Name name = py_namev(py_tosv(key));
-        py_newint(*p, name);
+        py_newint(*p, (uintptr_t)name);
         py_assign(*p + 1, val);
         (*p) += 2;
         return true;
@@ -80,7 +80,8 @@ static bool unpack_dict_to_buffer(py_Ref key, py_Ref val, void* ctx) {
 
 FrameResult VM__run_top_frame(VM* self) {
     py_Frame* frame = self->top_frame;
-    Bytecode* codes;
+    Bytecode* co_codes;
+    py_Name* co_names;
 
     const py_Frame* base_frame = frame;
 
@@ -91,11 +92,13 @@ FrameResult VM__run_top_frame(VM* self) {
             py_exception(tp_RecursionError, "maximum recursion depth exceeded");
             goto __ERROR;
         }
-        codes = frame->co->codes.data;
+        // NOTE: remember to change another occurrence after __ERROR_RE_RAISE:
+        co_codes = frame->co->codes.data;
+        co_names = frame->co->names.data;
         frame->ip++;
 
     __NEXT_STEP:
-        byte = codes[frame->ip];
+        byte = co_codes[frame->ip];
 
         if(self->trace_info.func) {
             SourceLocation loc = Frame__source_location(frame);
@@ -195,7 +198,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     ud->closure = FastLocals__to_namedict(frame->locals, frame->co);
                     py_Name name = py_name(decl->code.name->data);
                     // capture itself to allow recursion
-                    NameDict__set(ud->closure, name, *SP());
+                    NameDict__set(ud->closure, name, SP());
                 }
                 SP()++;
                 DISPATCH();
@@ -211,13 +214,13 @@ FrameResult VM__run_top_frame(VM* self) {
                     PUSH(val);
                     DISPATCH();
                 }
-                py_Name name = c11__getitem(uint16_t, &frame->co->varnames, byte.arg);
+                py_Name name = c11__getitem(py_Name, &frame->co->varnames, byte.arg);
                 UnboundLocalError(name);
                 goto __ERROR;
             }
             case OP_LOAD_NAME: {
                 assert(frame->is_locals_special);
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 // locals
                 switch(frame->locals->type) {
                     case tp_locals: {
@@ -261,7 +264,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_LOAD_NONLOCAL: {
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 py_Ref tmp = Frame__getclosure(frame, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
@@ -283,7 +286,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_LOAD_GLOBAL: {
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 int res = Frame__getglobal(frame, name);
                 if(res == 1) {
                     PUSH(&self->last_retval);
@@ -299,7 +302,8 @@ FrameResult VM__run_top_frame(VM* self) {
                 goto __ERROR;
             }
             case OP_LOAD_ATTR: {
-                if(py_getattr(TOP(), byte.arg)) {
+                py_Name name = co_names[byte.arg];
+                if(py_getattr(TOP(), name)) {
                     py_assign(TOP(), py_retval());
                 } else {
                     goto __ERROR;
@@ -308,7 +312,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_LOAD_CLASS_GLOBAL: {
                 assert(self->curr_class);
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 py_Ref tmp = py_getdict(self->curr_class, name);
                 if(tmp) {
                     PUSH(tmp);
@@ -331,10 +335,11 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_LOAD_METHOD: {
                 // [self] -> [unbound, self]
-                bool ok = py_pushmethod(byte.arg);
+                py_Name name = co_names[byte.arg];
+                bool ok = py_pushmethod(name);
                 if(!ok) {
                     // fallback to getattr
-                    if(py_getattr(TOP(), byte.arg)) {
+                    if(py_getattr(TOP(), name)) {
                         py_assign(TOP(), py_retval());
                         py_newnil(SP()++);
                     } else {
@@ -368,7 +373,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_STORE_NAME: {
                 assert(frame->is_locals_special);
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 switch(frame->locals->type) {
                     case tp_locals: {
                         py_Frame* noproxy = frame->locals->_ptr;
@@ -395,13 +400,15 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
             }
             case OP_STORE_GLOBAL: {
-                if(!Frame__setglobal(frame, byte.arg, TOP())) goto __ERROR;
+                py_Name name = co_names[byte.arg];
+                if(!Frame__setglobal(frame, name, TOP())) goto __ERROR;
                 POP();
                 DISPATCH();
             }
             case OP_STORE_ATTR: {
                 // [val, a] -> a.b = val
-                if(!py_setattr(TOP(), byte.arg, SECOND())) goto __ERROR;
+                py_Name name = co_names[byte.arg];
+                if(!py_setattr(TOP(), name, SECOND())) goto __ERROR;
                 STACK_SHRINK(2);
                 DISPATCH();
             }
@@ -435,7 +442,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_DELETE_NAME: {
                 assert(frame->is_locals_special);
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 switch(frame->locals->type) {
                     case tp_locals: {
                         py_Frame* noproxy = frame->locals->_ptr;
@@ -464,7 +471,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
             }
             case OP_DELETE_GLOBAL: {
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 int res = Frame__delglobal(frame, name);
                 if(res == 1) DISPATCH();
                 if(res == -1) goto __ERROR;
@@ -473,7 +480,8 @@ FrameResult VM__run_top_frame(VM* self) {
             }
 
             case OP_DELETE_ATTR: {
-                if(!py_delattr(TOP(), byte.arg)) goto __ERROR;
+                py_Name name = co_names[byte.arg];
+                if(!py_delattr(TOP(), name)) goto __ERROR;
                 DISPATCH();
             }
 
@@ -594,14 +602,33 @@ FrameResult VM__run_top_frame(VM* self) {
                 DISPATCH();
             }
             /*****************************/
-            case OP_BINARY_OP: {
-                py_Name op = byte.arg & 0xFF;
-                py_Name rop = byte.arg >> 8;
-                if(!pk_stack_binaryop(self, op, rop)) goto __ERROR;
-                POP();
-                *TOP() = self->last_retval;
-                DISPATCH();
+#define CASE_BINARY_OP(label, op, rop)\
+            case label: {\
+                if(!pk_stack_binaryop(self, op, rop)) goto __ERROR;\
+                POP();\
+                *TOP() = self->last_retval;\
+                DISPATCH();\
             }
+            CASE_BINARY_OP(OP_BINARY_ADD, __add__, __radd__)
+            CASE_BINARY_OP(OP_BINARY_SUB, __sub__, __rsub__)
+            CASE_BINARY_OP(OP_BINARY_MUL, __mul__, __rmul__)
+            CASE_BINARY_OP(OP_BINARY_TRUEDIV, __truediv__, __rtruediv__)
+            CASE_BINARY_OP(OP_BINARY_FLOORDIV, __floordiv__, __rfloordiv__)
+            CASE_BINARY_OP(OP_BINARY_MOD, __mod__, __rmod__)
+            CASE_BINARY_OP(OP_BINARY_POW, __pow__, __rpow__)
+            CASE_BINARY_OP(OP_BINARY_LSHIFT, __lshift__, 0)
+            CASE_BINARY_OP(OP_BINARY_RSHIFT, __rshift__, 0)
+            CASE_BINARY_OP(OP_BINARY_AND, __and__, 0)
+            CASE_BINARY_OP(OP_BINARY_OR, __or__, 0)
+            CASE_BINARY_OP(OP_BINARY_XOR, __xor__, 0)
+            CASE_BINARY_OP(OP_BINARY_MATMUL, __matmul__, 0)
+            CASE_BINARY_OP(OP_COMPARE_LT, __lt__, __gt__)
+            CASE_BINARY_OP(OP_COMPARE_LE, __le__, __ge__)
+            CASE_BINARY_OP(OP_COMPARE_EQ, __eq__, __eq__)
+            CASE_BINARY_OP(OP_COMPARE_NE, __ne__, __ne__)
+            CASE_BINARY_OP(OP_COMPARE_GT, __gt__, __lt__)
+            CASE_BINARY_OP(OP_COMPARE_GE, __ge__, __le__)
+#undef CASE_BINARY_OP
             case OP_IS_OP: {
                 bool res = py_isidentical(SECOND(), TOP());
                 POP();
@@ -875,7 +902,7 @@ FrameResult VM__run_top_frame(VM* self) {
             case OP_POP_IMPORT_STAR: {
                 // [module]
                 NameDict* dict = PyObject__dict(TOP()->_obj);
-                py_Ref all = NameDict__try_get(dict, __all__);
+                py_ItemRef all = NameDict__try_get(dict, __all__);
                 if(all) {
                     py_TValue* p;
                     int length = pk_arrayview(all, &p);
@@ -885,7 +912,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     }
                     for(int i = 0; i < length; i++) {
                         py_Name name = py_namev(py_tosv(p + i));
-                        py_Ref value = NameDict__try_get(dict, name);
+                        py_ItemRef value = NameDict__try_get(dict, name);
                         if(value == NULL) {
                             ImportError("cannot import name '%n'", name);
                             goto __ERROR;
@@ -894,9 +921,9 @@ FrameResult VM__run_top_frame(VM* self) {
                         }
                     }
                 } else {
-                    for(int i = 0; i < dict->length; i++) {
-                        NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
-                        if(!kv->key) continue;
+                    for(int i = 0; i < dict->capacity; i++) {
+                        NameDict_KV* kv = &dict->items[i];
+                        if(kv->key == NULL) continue;
                         c11_sv name = py_name2sv(kv->key);
                         if(name.size == 0 || name.data[0] == '_') continue;
                         if(!Frame__setglobal(frame, kv->key, &kv->value)) goto __ERROR;
@@ -999,7 +1026,7 @@ FrameResult VM__run_top_frame(VM* self) {
             ///////////
             case OP_BEGIN_CLASS: {
                 // [base]
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 py_Type base;
                 if(py_isnone(TOP())) {
                     base = tp_object;
@@ -1027,7 +1054,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_END_CLASS: {
                 // [cls or decorated]
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 if(!Frame__setglobal(frame, name, TOP())) goto __ERROR;
 
                 if(py_istype(TOP(), tp_type)) {
@@ -1037,9 +1064,9 @@ FrameResult VM__run_top_frame(VM* self) {
                         py_TypeInfo* base_ti = ti->base_ti;
                         if(base_ti->on_end_subclass) base_ti->on_end_subclass(ti);
                     }
-                    py_TValue* slot_eq = TypeList__magic_common(ti, __eq__);
-                    py_TValue* slot_ne = TypeList__magic_common(ti, __ne__);
-                    if(!py_isnil(slot_eq) && py_isnil(slot_ne)) {
+                    py_TValue* slot_eq = py_getdict(&ti->self, __eq__);
+                    py_TValue* slot_ne = py_getdict(&ti->self, __ne__);
+                    if(slot_eq && !slot_ne) {
                         TypeError("'%n' implements '__eq__' but not '__ne__'", ti->name);
                         goto __ERROR;
                     }
@@ -1052,7 +1079,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_STORE_CLASS_ATTR: {
                 assert(self->curr_class);
-                py_Name name = byte.arg;
+                py_Name name = co_names[byte.arg];
                 // TOP() can be a function, classmethod or custom decorator
                 py_Ref actual_func = TOP();
                 if(actual_func->type == tp_classmethod) {
@@ -1072,7 +1099,8 @@ FrameResult VM__run_top_frame(VM* self) {
                 py_Type type = py_totype(self->curr_class);
                 py_TypeInfo* ti = TypeList__get(&self->types, type);
                 if(py_isnil(&ti->annotations)) py_newdict(&ti->annotations);
-                bool ok = py_dict_setitem_by_str(&ti->annotations, py_name2str(byte.arg), TOP());
+                py_Name name = co_names[byte.arg];
+                bool ok = py_dict_setitem_by_str(&ti->annotations, py_name2str(name), TOP());
                 if(!ok) goto __ERROR;
                 POP();
                 DISPATCH();
@@ -1211,7 +1239,8 @@ FrameResult VM__run_top_frame(VM* self) {
                 return RES_ERROR;
             }
             frame = self->top_frame;
-            codes = frame->co->codes.data;
+            co_codes = frame->co->codes.data;
+            co_names = frame->co->names.data;
             goto __ERROR;
         }
     }
@@ -1220,30 +1249,28 @@ FrameResult VM__run_top_frame(VM* self) {
 }
 
 const char* pk_op2str(py_Name op) {
-    switch(op) {
-        case __eq__: return "==";
-        case __ne__: return "!=";
-        case __lt__: return "<";
-        case __le__: return "<=";
-        case __gt__: return ">";
-        case __ge__: return ">=";
-        case __add__: return "+";
-        case __sub__: return "-";
-        case __mul__: return "*";
-        case __truediv__: return "/";
-        case __floordiv__: return "//";
-        case __mod__: return "%";
-        case __pow__: return "**";
-        case __lshift__: return "<<";
-        case __rshift__: return ">>";
-        case __and__: return "&";
-        case __or__: return "|";
-        case __xor__: return "^";
-        case __neg__: return "-";
-        case __invert__: return "~";
-        case __matmul__: return "@";
-        default: return py_name2str(op);
-    }
+    if(__eq__ == op) return "==";
+    if(__ne__ == op) return "!=";
+    if(__lt__ == op) return "<";
+    if(__le__ == op) return "<=";
+    if(__gt__ == op) return ">";
+    if(__ge__ == op) return ">=";
+    if(__add__ == op) return "+";
+    if(__sub__ == op) return "-";
+    if(__mul__ == op) return "*";
+    if(__truediv__ == op) return "/";
+    if(__floordiv__ == op) return "//";
+    if(__mod__ == op) return "%";
+    if(__pow__ == op) return "**";
+    if(__lshift__ == op) return "<<";
+    if(__rshift__ == op) return ">>";
+    if(__and__ == op) return "&";
+    if(__or__ == op) return "|";
+    if(__xor__ == op) return "^";
+    if(__neg__ == op) return "-";
+    if(__invert__ == op) return "~";
+    if(__matmul__ == op) return "@";
+    return py_name2str(op);
 }
 
 bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
@@ -1287,6 +1314,58 @@ bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
     bool ok = pk_stack_binaryop(self, op, rop);
     STACK_SHRINK(2);
     return ok;
+}
+
+bool py_binaryadd(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __add__, __radd__);
+}
+
+bool py_binarysub(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __sub__, __rsub__);
+}
+
+bool py_binarymul(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __mul__, __rmul__);
+}
+
+bool py_binarytruediv(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __truediv__, __rtruediv__);
+}
+
+bool py_binaryfloordiv(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __floordiv__, __rfloordiv__);
+}
+
+bool py_binarymod(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __mod__, __rmod__);
+}
+
+bool py_binarypow(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __pow__, __rpow__);
+}
+
+bool py_binarylshift(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __lshift__, 0);
+}
+
+bool py_binaryrshift(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __rshift__, 0);
+}
+
+bool py_binaryand(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __and__, 0);
+}
+
+bool py_binaryor(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __or__, 0);
+}
+
+bool py_binaryxor(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __xor__, 0);
+}
+
+bool py_binarymatmul(py_Ref lhs, py_Ref rhs) {
+    return py_binaryop(lhs, rhs, __matmul__, 0);
 }
 
 static bool stack_format_object(VM* self, c11_sv spec) {

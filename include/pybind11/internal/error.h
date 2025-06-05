@@ -101,25 +101,25 @@ inline object::operator bool () const { return raise_call<py_bool>(m_ptr); }
         return object::from_ret();                                                                 \
     }
 
-PKBIND_BINARY_OPERATOR(==, __eq__, __eq__)
-PKBIND_BINARY_OPERATOR(!=, __ne__, __ne__)
-PKBIND_BINARY_OPERATOR(<, __lt__, __gt__)
-PKBIND_BINARY_OPERATOR(<=, __le__, __ge__)
-PKBIND_BINARY_OPERATOR(>, __gt__, __lt__)
-PKBIND_BINARY_OPERATOR(>=, __ge__, __le__)
+PKBIND_BINARY_OPERATOR(==, py_name("__eq__"), py_name("__eq__"))
+PKBIND_BINARY_OPERATOR(!=, py_name("__ne__"), py_name("__ne__"))
+PKBIND_BINARY_OPERATOR(<, py_name("__lt__"), py_name("__gt__"))
+PKBIND_BINARY_OPERATOR(<=, py_name("__le__"), py_name("__ge__"))
+PKBIND_BINARY_OPERATOR(>, py_name("__gt__"), py_name("__lt__"))
+PKBIND_BINARY_OPERATOR(>=, py_name("__ge__"), py_name("__le__"))
 
-PKBIND_BINARY_OPERATOR(+, __add__, __radd__)
-PKBIND_BINARY_OPERATOR(-, __sub__, __rsub__)
-PKBIND_BINARY_OPERATOR(*, __mul__, __rmul__)
-PKBIND_BINARY_OPERATOR(/, __truediv__, __rtruediv__)
-PKBIND_BINARY_OPERATOR(%, __mod__, __rmod__)
+PKBIND_BINARY_OPERATOR(+, py_name("__add__"), py_name("__radd__"))
+PKBIND_BINARY_OPERATOR(-, py_name("__sub__"), py_name("__rsub__"))
+PKBIND_BINARY_OPERATOR(*, py_name("__mul__"), py_name("__rmul__"))
+PKBIND_BINARY_OPERATOR(/, py_name("__truediv__"), py_name("__rtruediv__"))
+PKBIND_BINARY_OPERATOR(%, py_name("__mod__"), py_name("__rmod__"))
 
 // FIXME: support __rand__ ...
-PKBIND_BINARY_OPERATOR(&, __and__, 0)
-PKBIND_BINARY_OPERATOR(|, __or__, 0)
-PKBIND_BINARY_OPERATOR(^, __xor__, 0)
-PKBIND_BINARY_OPERATOR(<<, __lshift__, 0)
-PKBIND_BINARY_OPERATOR(>>, __rshift__, 0)
+PKBIND_BINARY_OPERATOR(&, py_name("__and__"), nullptr)
+PKBIND_BINARY_OPERATOR(|, py_name("__or__"), nullptr)
+PKBIND_BINARY_OPERATOR(^, py_name("__xor__"), nullptr)
+PKBIND_BINARY_OPERATOR(<<, py_name("__lshift__"), nullptr)
+PKBIND_BINARY_OPERATOR(>>, py_name("__rshift__"), nullptr)
 
 #undef PKBIND_BINARY_OPERATOR
 

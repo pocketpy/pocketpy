@@ -44,7 +44,8 @@ void ManagedHeap__collect_if_needed(ManagedHeap* self) {
     const int lower = PK_GC_MIN_THRESHOLD / 2;
     float free_ratio = (float)avg_freed / self->gc_threshold;
     int new_threshold = self->gc_threshold * (1 / free_ratio);
-    // printf("gc_threshold=%d, avg_freed=%d, new_threshold=%d\n", self->gc_threshold, avg_freed, new_threshold);
+    // printf("gc_threshold=%d, avg_freed=%d, new_threshold=%d\n", self->gc_threshold, avg_freed,
+    // new_threshold);
     self->gc_threshold = c11__min(c11__max(new_threshold, lower), upper);
 }
 
@@ -98,7 +99,9 @@ PyObject* ManagedHeap__gcnew(ManagedHeap* self, py_Type type, int slots, int uds
     if(slots >= 0) {
         memset(obj->flex, 0, slots * sizeof(py_TValue));
     } else {
-        NameDict__ctor((void*)obj->flex);
+        float load_factor = (type == tp_type || type == tp_module) ? PK_TYPE_ATTR_LOAD_FACTOR
+                                                                   : PK_INST_ATTR_LOAD_FACTOR;
+        NameDict__ctor((void*)obj->flex, load_factor);
     }
 
     self->gc_counter++;

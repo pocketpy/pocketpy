@@ -60,6 +60,7 @@ int c11_sv__index2(c11_sv self, c11_sv sub, int start);
 int c11_sv__count(c11_sv self, c11_sv sub);
 bool c11_sv__startswith(c11_sv self, c11_sv prefix);
 bool c11_sv__endswith(c11_sv self, c11_sv suffix);
+uint64_t c11_sv__hash(c11_sv self);
 
 c11_string* c11_sv__replace(c11_sv self, char old, char new_);
 c11_string* c11_sv__replace2(c11_sv self, c11_sv old, c11_sv new_);

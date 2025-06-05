@@ -617,7 +617,7 @@ static bool
     int max_index = -1;
     c11__foreach(Bytecode, &co->codes, bc) {
         if(bc->op == OP_LOAD_NAME) {
-            c11_sv name = py_name2sv(bc->arg);
+            c11_sv name = py_name2sv(c11__getitem(py_Name, &co->names, bc->arg));
             if(name.data[0] != '_') continue;
             int index;
             if(name.size == 1) {
@@ -752,11 +752,11 @@ py_TValue pk_builtins__register() {
 
     // some patches
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);
-    *py_tpgetmagic(tp_NoneType, __hash__) = *py_None();
+    py_setdict(py_tpobject(tp_NoneType), __hash__, py_None());
     py_bindmagic(tp_ellipsis, __repr__, ellipsis__repr__);
-    *py_tpgetmagic(tp_ellipsis, __hash__) = *py_None();
+    py_setdict(py_tpobject(tp_ellipsis), __hash__, py_None());
     py_bindmagic(tp_NotImplementedType, __repr__, NotImplementedType__repr__);
-    *py_tpgetmagic(tp_NotImplementedType, __hash__) = *py_None();
+    py_setdict(py_tpobject(tp_NotImplementedType), __hash__, py_None());
     return *builtins;
 }
 
@@ -764,9 +764,10 @@ void function__gc_mark(void* ud, c11_vector* p_stack) {
     Function* func = ud;
     if(func->globals) pk__mark_value(func->globals);
     if(func->closure) {
-        NameDict* namedict = func->closure;
-        for(int i = 0; i < namedict->length; i++) {
-            NameDict_KV* kv = c11__at(NameDict_KV, namedict, i);
+        NameDict* dict = func->closure;
+        for(int i = 0; i < dict->capacity; i++) {
+            NameDict_KV* kv = &dict->items[i];
+            if(kv->key == NULL) continue;
             pk__mark_value(&kv->value);
         }
     }

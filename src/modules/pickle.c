@@ -374,16 +374,18 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
             }
             if(ti->is_python) {
                 NameDict* dict = PyObject__dict(obj->_obj);
-                for(int i = dict->length - 1; i >= 0; i--) {
-                    NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
+                for(int i = dict->capacity - 1; i >= 0; i--) {
+                    NameDict_KV* kv = &dict->items[i];
+                    if(kv->key == NULL) continue;
                     if(!pkl__write_object(buf, &kv->value)) return false;
                 }
                 pkl__emit_op(buf, PKL_OBJECT);
                 pkl__emit_int(buf, obj->type);
                 buf->used_types[obj->type] = true;
                 pkl__emit_int(buf, dict->length);
-                for(int i = 0; i < dict->length; i++) {
-                    NameDict_KV* kv = c11__at(NameDict_KV, dict, i);
+                for(int i = 0; i < dict->capacity; i++) {
+                    NameDict_KV* kv = &dict->items[i];
+                    if(kv->key == NULL) continue;
                     c11_sv field = py_name2sv(kv->key);
                     // include '\0'
                     PickleObject__write_bytes(buf, field.data, field.size + 1);
@@ -440,7 +442,7 @@ static py_i64 pkl__header_read_int(const unsigned char** p, char sep) {
     return out;
 }
 
-bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_n2i* type_mapping);
+bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_d2d* type_mapping);
 
 bool py_pickle_loads(const unsigned char* data, int size) {
     const unsigned char* p = data;
@@ -450,8 +452,8 @@ bool py_pickle_loads(const unsigned char* data, int size) {
         return ValueError("invalid pickle data");
     p += 4;
 
-    c11_smallmap_n2i type_mapping;
-    c11_smallmap_n2i__ctor(&type_mapping);
+    c11_smallmap_d2d type_mapping;
+    c11_smallmap_d2d__ctor(&type_mapping);
 
     while(true) {
         if(*p == '\n') {
@@ -462,25 +464,25 @@ bool py_pickle_loads(const unsigned char* data, int size) {
         c11_sv path = pkl__header_read_sv(&p, ')');
         py_Type new_type = pkl__header_find_type(path);
         if(new_type == 0) {
-            c11_smallmap_n2i__dtor(&type_mapping);
+            c11_smallmap_d2d__dtor(&type_mapping);
             return ImportError("cannot find type '%v'", path);
         }
-        if(type != new_type) c11_smallmap_n2i__set(&type_mapping, type, new_type);
+        if(type != new_type) c11_smallmap_d2d__set(&type_mapping, type, new_type);
     }
 
     int memo_length = pkl__header_read_int(&p, '\n');
     bool ok = py_pickle_loads_body(p, memo_length, &type_mapping);
-    c11_smallmap_n2i__dtor(&type_mapping);
+    c11_smallmap_d2d__dtor(&type_mapping);
     return ok;
 }
 
-static py_Type pkl__fix_type(py_Type type, c11_smallmap_n2i* type_mapping) {
-    int new_type = c11_smallmap_n2i__get(type_mapping, type, -1);
+static py_Type pkl__fix_type(py_Type type, c11_smallmap_d2d* type_mapping) {
+    int new_type = c11_smallmap_d2d__get(type_mapping, type, -1);
     if(new_type != -1) return (py_Type)new_type;
     return type;
 }
 
-bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_n2i* type_mapping) {
+bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_d2d* type_mapping) {
     py_StackRef p0 = py_peek(0);
     py_Ref p_memo = py_newtuple(py_pushtmp(), memo_length);
     while(true) {
@@ -685,7 +687,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 for(int i = 0; i < dict_length; i++) {
                     py_StackRef value = py_peek(-1);
                     c11_sv field = {(const char*)p, strlen((const char*)p)};
-                    NameDict__set(dict, py_namev(field), *value);
+                    NameDict__set(dict, py_namev(field), value);
                     py_pop();
                     p += field.size + 1;
                 }
