@@ -20,6 +20,10 @@
 #define PK_ENABLE_WATCHDOG          0                
 #endif
 
+#ifndef PK_ENABLE_CUSTOM_SNAME      // can be overridden by cmake
+#define PK_ENABLE_CUSTOM_SNAME      0                
+#endif
+
 // GC min threshold
 #ifndef PK_GC_MIN_THRESHOLD         // can be overridden by cmake
     #define PK_GC_MIN_THRESHOLD     32768

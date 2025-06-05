@@ -1,3 +1,5 @@
+#if PK_ENABLE_CUSTOM_SNAME == 0
+
 #include "pocketpy/common/name.h"
 #include "pocketpy/common/str.h"
 #include "pocketpy/pocketpy.h"
@@ -95,3 +97,5 @@ const char* py_name2str(py_Name index) {
     NameBucket* p = (NameBucket*)index;
     return p->data;
 }
+
+#endif

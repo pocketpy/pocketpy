@@ -9,6 +9,7 @@ endif()
 option(PK_ENABLE_OS "" OFF)
 option(PK_ENABLE_DETERMINISM "" OFF)
 option(PK_ENABLE_WATCHDOG "" OFF)
+option(PK_ENABLE_CUSTOM_SNAME "" OFF)
 
 # modules
 option(PK_BUILD_MODULE_LZ4 "" OFF)
