@@ -26,7 +26,7 @@ py_ItemRef py_emplacedict(py_Ref self, py_Name name) {
 bool py_applydict(py_Ref self, bool (*f)(py_Name, py_Ref, void*), void* ctx) {
     assert(self && self->is_ptr);
     NameDict* dict = PyObject__dict(self->_obj);
-    for(int i = 0; i < dict->length; i++) {
+    for(int i = 0; i < dict->capacity; i++) {
         NameDict_KV* kv = &dict->items[i];
         if(kv->key == NULL) continue;
         bool ok = f(kv->key, &kv->value, ctx);

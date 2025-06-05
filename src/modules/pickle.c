@@ -374,7 +374,7 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
             }
             if(ti->is_python) {
                 NameDict* dict = PyObject__dict(obj->_obj);
-                for(int i = dict->length - 1; i >= 0; i--) {
+                for(int i = dict->capacity - 1; i >= 0; i--) {
                     NameDict_KV* kv = &dict->items[i];
                     if(kv->key == NULL) continue;
                     if(!pkl__write_object(buf, &kv->value)) return false;
@@ -383,7 +383,7 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
                 pkl__emit_int(buf, obj->type);
                 buf->used_types[obj->type] = true;
                 pkl__emit_int(buf, dict->length);
-                for(int i = 0; i < dict->length; i++) {
+                for(int i = 0; i < dict->capacity; i++) {
                     NameDict_KV* kv = &dict->items[i];
                     if(kv->key == NULL) continue;
                     c11_sv field = py_name2sv(kv->key);

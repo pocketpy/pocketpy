@@ -678,9 +678,9 @@ void ManagedHeap__mark(ManagedHeap* self) {
             for(int i = 0; i < obj->slots; i++)
                 pk__mark_value(p + i);
         } else if(obj->slots == -1) {
-            NameDict* namedict = PyObject__dict(obj);
-            for(int i = 0; i < namedict->length; i++) {
-                NameDict_KV* kv = &namedict->items[i];
+            NameDict* dict = PyObject__dict(obj);
+            for(int i = 0; i < dict->capacity; i++) {
+                NameDict_KV* kv = &dict->items[i];
                 if(kv->key == NULL) continue;
                 pk__mark_value(&kv->value);
             }

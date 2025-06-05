@@ -764,9 +764,9 @@ void function__gc_mark(void* ud, c11_vector* p_stack) {
     Function* func = ud;
     if(func->globals) pk__mark_value(func->globals);
     if(func->closure) {
-        NameDict* namedict = func->closure;
-        for(int i = 0; i < namedict->length; i++) {
-            NameDict_KV* kv = &namedict->items[i];
+        NameDict* dict = func->closure;
+        for(int i = 0; i < dict->capacity; i++) {
+            NameDict_KV* kv = &dict->items[i];
             if(kv->key == NULL) continue;
             pk__mark_value(&kv->value);
         }

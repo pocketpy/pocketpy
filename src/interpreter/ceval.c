@@ -902,7 +902,7 @@ FrameResult VM__run_top_frame(VM* self) {
             case OP_POP_IMPORT_STAR: {
                 // [module]
                 NameDict* dict = PyObject__dict(TOP()->_obj);
-                py_Ref all = NameDict__try_get(dict, __all__);
+                py_ItemRef all = NameDict__try_get(dict, __all__);
                 if(all) {
                     py_TValue* p;
                     int length = pk_arrayview(all, &p);
@@ -912,7 +912,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     }
                     for(int i = 0; i < length; i++) {
                         py_Name name = py_namev(py_tosv(p + i));
-                        py_Ref value = NameDict__try_get(dict, name);
+                        py_ItemRef value = NameDict__try_get(dict, name);
                         if(value == NULL) {
                             ImportError("cannot import name '%n'", name);
                             goto __ERROR;
@@ -921,7 +921,7 @@ FrameResult VM__run_top_frame(VM* self) {
                         }
                     }
                 } else {
-                    for(int i = 0; i < dict->length; i++) {
+                    for(int i = 0; i < dict->capacity; i++) {
                         NameDict_KV* kv = &dict->items[i];
                         if(kv->key == NULL) continue;
                         c11_sv name = py_name2sv(kv->key);
