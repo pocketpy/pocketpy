@@ -92,6 +92,7 @@ FrameResult VM__run_top_frame(VM* self) {
             py_exception(tp_RecursionError, "maximum recursion depth exceeded");
             goto __ERROR;
         }
+        // NOTE: remember to change another occurrence after __ERROR_RE_RAISE:
         co_codes = frame->co->codes.data;
         co_names = frame->co->names.data;
         frame->ip++;
@@ -1239,6 +1240,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             frame = self->top_frame;
             co_codes = frame->co->codes.data;
+            co_names = frame->co->names.data;
             goto __ERROR;
         }
     }
