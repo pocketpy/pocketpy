@@ -2,7 +2,6 @@ name: PKBIND Build and Test
 
 on:
   push:
-    branches: [ main ]
     paths-ignore:
       - "docs/**"
       - "web/**"
