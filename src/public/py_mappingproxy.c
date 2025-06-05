@@ -53,10 +53,10 @@ static bool namedict_items(int argc, py_Ref argv) {
     NameDict* dict = PyObject__dict(object->_obj);
     py_newlist(py_retval());
     for(int i = 0; i < dict->capacity; i++) {
-        py_Ref slot = py_list_emplace(py_retval());
-        py_Ref p = py_newtuple(slot, 2);
         NameDict_KV* kv = &dict->items[i];
         if(kv->key == NULL) continue;
+        py_Ref slot = py_list_emplace(py_retval());
+        py_Ref p = py_newtuple(slot, 2);
         p[0] = *py_name2ref(kv->key);
         p[1] = kv->value;
     }

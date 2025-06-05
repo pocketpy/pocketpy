@@ -84,7 +84,8 @@ static bool disassemble(CodeObject* co) {
                 case OP_BEGIN_CLASS:
                 case OP_DELETE_GLOBAL:
                 case OP_STORE_CLASS_ATTR: {
-                    pk_sprintf(&ss, " (%n)", byte.arg);
+                    py_Name name = c11__getitem(py_Name, &co->names, byte.arg);
+                    pk_sprintf(&ss, " (%n)", name);
                     break;
                 }
                 case OP_LOAD_FAST:
