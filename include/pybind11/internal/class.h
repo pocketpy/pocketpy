@@ -30,8 +30,8 @@ public:
         auto& info = type_info::of<T>();
         info.name = name;
 
-        py_newfunction(
-            py_tpgetmagic(this->index(), __new__),
+        py_bind(
+            py_tpobject(this->index()),
             "__new__(type, *args, **kwargs)",
             [](int, py_Ref stack) {
                 auto cls = py_offset(stack, 0);
@@ -44,9 +44,7 @@ public:
                     py_newobject(py_retval(), steal<type>(cls).index(), slot, sizeof(instance));
                 new (data) instance{instance::Flag::Own, operator new (info->size), info};
                 return true;
-            },
-            nullptr,
-            0);
+            });
     }
 
     /// bind constructor
