@@ -225,6 +225,13 @@ char* py_formatexc() {
 }
 
 bool py_exception(py_Type type, const char* fmt, ...) {
+#ifndef NDEBUG
+    if(py_checkexc(true)) {
+        const char* name = py_tpname(pk_current_vm->curr_exception.type);
+        c11__abort("py_exception(): `%s` was already set!", name);
+    }
+#endif
+
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     va_list args;

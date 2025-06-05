@@ -46,15 +46,16 @@ py_Name py_namev(c11_sv name) {
     uint64_t hash = c11_sv__hash(name);
     int index = hash & 0xFFFF;
     NameBucket* p = pk_string_table.table[index];
+    NameBucket* prev = NULL;
     bool found = false;
     while(p) {
         c11_sv p_sv = {p->data, p->size};
         if(p->hash == hash && c11__sveq(p_sv, name)) {
             found = true;
             break;
-        } else {
-            p = p->next;
         }
+        prev = p;
+        p = p->next;
     }
     if(found) {
         atomic_store(&pk_string_table.lock, false);
@@ -68,11 +69,11 @@ py_Name py_namev(c11_sv name) {
     bucket->size = name.size;
     memcpy(bucket->data, name.data, name.size);
     bucket->data[name.size] = '\0';
-    if(p == NULL) {
+    if(prev == NULL) {
         pk_string_table.table[index] = bucket;
     } else {
-        assert(p->next == NULL);
-        p->next = bucket;
+        assert(prev->next == NULL);
+        prev->next = bucket;
     }
     atomic_store(&pk_string_table.lock, false);
     return (py_Name)bucket;
