@@ -1,3 +1,4 @@
+#include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 #include <stdlib.h>
 

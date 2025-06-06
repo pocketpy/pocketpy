@@ -1,4 +1,5 @@
 #include "pocketpy/common/str.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 
 const static c11_u32_range kEastAsianWidthRanges[] = {
