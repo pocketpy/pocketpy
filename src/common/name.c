@@ -2,6 +2,7 @@
 
 #include "pocketpy/common/name.h"
 #include "pocketpy/common/str.h"
+#include "pocketpy/common/threads.h"
 #include "pocketpy/pocketpy.h"
 #include <stdatomic.h>
 
@@ -43,7 +44,7 @@ void pk_names_finalize() {
 
 py_Name py_namev(c11_sv name) {
     while(atomic_flag_test_and_set(&pk_string_table.lock)) {
-        // busy-wait until the lock is released
+        c11_thrd_yield();
     }
     uint64_t hash = c11_sv__hash(name);
     int index = hash & 0xFFFF;
