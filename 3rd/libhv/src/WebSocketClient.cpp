@@ -1,6 +1,6 @@
 #include "HttpMessage.h"
 #include "libhv_bindings.hpp"
-#include "pocketpy/pocketpy.h"
+#include "pocketpy.h"
 #include "http/client/WebSocketClient.h"
 
 struct libhv_WebSocketClient {

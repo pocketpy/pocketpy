@@ -2,7 +2,7 @@
 #include "WebSocketChannel.h"
 #include "libhv_bindings.hpp"
 #include "http/server/WebSocketServer.h"
-#include "pocketpy/pocketpy.h"
+#include "pocketpy.h"
 
 struct libhv_HttpServer {
     hv::HttpService http_service;

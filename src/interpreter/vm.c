@@ -635,6 +635,11 @@ void CodeObject__gc_mark(const CodeObject* self, c11_vector* p_stack) {
     }
 }
 
+static void pk__mark_value_func(py_Ref val, void* ctx) {
+    c11_vector* p_stack = ctx;
+    pk__mark_value(val);
+}
+
 void ManagedHeap__mark(ManagedHeap* self) {
     VM* vm = pk_current_vm;
     c11_vector* p_stack = &self->gc_roots;
@@ -666,6 +671,8 @@ void ManagedHeap__mark(ManagedHeap* self) {
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
         pk__mark_value(&vm->reg[i]);
     }
+    // mark user func
+    if(vm->callbacks.gc_mark) vm->callbacks.gc_mark(pk__mark_value_func, p_stack);
     /*****************************/
     while(p_stack->length > 0) {
         PyObject* obj = c11_vector__back(PyObject*, p_stack);

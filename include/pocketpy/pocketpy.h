@@ -28,6 +28,12 @@ typedef double py_f64;
 /// A generic destructor function.
 typedef void (*py_Dtor)(void*);
 
+#ifdef PK_IS_PUBLIC_INCLUDE
+    typedef struct py_TValue {
+        char _[16];
+    } py_TValue;
+#endif
+
 /// A string view type. It is helpful for passing strings which are not null-terminated.
 typedef struct c11_sv {
     const char* data;
@@ -72,6 +78,8 @@ typedef struct py_Callbacks {
     void (*flush)();
     /// Used by `input` to get a character.
     int (*getchar)();
+    /// Used by `gc.collect()` to mark extra objects for garbage collection.
+    void (*gc_mark)(void (*f)(py_Ref val, void* ctx), void* ctx);
 } py_Callbacks;
 
 /// Native function signature.
