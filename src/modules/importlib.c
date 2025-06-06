@@ -1,3 +1,4 @@
+#include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 
 static bool importlib_reload(int argc, py_Ref argv) {
