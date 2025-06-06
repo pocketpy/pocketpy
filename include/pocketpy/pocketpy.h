@@ -29,9 +29,9 @@ typedef double py_f64;
 typedef void (*py_Dtor)(void*);
 
 #ifdef PK_IS_PUBLIC_INCLUDE
-    typedef struct py_TValue {
-        char _[16];
-    } py_TValue;
+typedef struct py_TValue {
+    char _[16];
+} py_TValue;
 #endif
 
 /// A string view type. It is helpful for passing strings which are not null-terminated.
@@ -378,8 +378,6 @@ PK_API void py_setglobal(py_Name name, py_Ref val);
 /// Get variable in the `builtins` module.
 PK_API py_ItemRef py_getbuiltin(py_Name name);
 
-/// Equivalent to `*dst = *src`.
-PK_API void py_assign(py_Ref dst, py_Ref src);
 /// Get the last return value.
 PK_API py_GlobalRef py_retval();
 
@@ -455,8 +453,9 @@ PK_API void py_bindmagic(py_Type type, py_Name name, py_CFunction f);
 #define PY_CHECK_ARG_TYPE(i, type)                                                                 \
     if(!py_checktype(py_arg(i), type)) return false
 
-#define py_offset(p, i) ((py_Ref)((char*)p + ((i) << 4)))
-#define py_arg(i) py_offset(argv, i)
+#define py_offset(p, i) ((p) + (i))
+#define py_arg(i) (&argv[i])
+#define py_assign(dst, src) *(dst) = *(src)
 
 /************* Python Equivalents *************/
 

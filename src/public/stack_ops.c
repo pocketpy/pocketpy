@@ -68,8 +68,6 @@ py_GlobalRef py_inspect_currentmodule() {
 
 py_Frame* py_inspect_currentframe() { return pk_current_vm->top_frame; }
 
-void py_assign(py_Ref dst, py_Ref src) { *dst = *src; }
-
 /* Stack References */
 py_Ref py_peek(int i) {
     assert(i <= 0);
