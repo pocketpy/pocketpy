@@ -77,7 +77,7 @@ typedef struct py_Callbacks {
     /// Flush the output buffer of `print`.
     void (*flush)();
     /// Used by `input` to get a character.
-    int (*getchar)();
+    int (*getchr)();
     /// Used by `gc.collect()` to mark extra objects for garbage collection.
     void (*gc_mark)(void (*f)(py_Ref val, void* ctx), void* ctx);
 } py_Callbacks;

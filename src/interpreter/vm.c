@@ -32,6 +32,8 @@ static void pk_default_print(const char* data) { printf("%s", data); }
 
 static void pk_default_flush() { fflush(stdout); }
 
+static int pk_default_getchr() { return getchar(); }
+
 void LineProfiler__tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     LineProfiler* self = &pk_current_vm->line_profiler;
     if(self->enabled && event == TRACE_EVENT_LINE) { LineProfiler__tracefunc_line(self, frame); }
@@ -75,7 +77,7 @@ void VM__ctor(VM* self) {
     self->callbacks.importfile = pk_default_importfile;
     self->callbacks.print = pk_default_print;
     self->callbacks.flush = pk_default_flush;
-    self->callbacks.getchar = getchar;
+    self->callbacks.getchr = pk_default_getchr;
 
     self->last_retval = *py_NIL();
     self->curr_exception = *py_NIL();
@@ -810,7 +812,7 @@ int py_replinput(char* buf, int max_size) {
     printf(">>> ");
 
     while(true) {
-        int c = pk_current_vm->callbacks.getchar();
+        int c = pk_current_vm->callbacks.getchr();
         if(c == EOF) return -1;
 
         if(c == '\n') {
