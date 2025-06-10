@@ -18,12 +18,10 @@ typedef struct py_TypeInfo {
 
     void (*dtor)(void*);
 
-    py_TValue annotations;  // type annotations
+    py_TValue annotations;
+    c11_vector /*T=py_Name*/ ordered_attrs;
 
     void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
-
-    /* Magic Slots */
-    // (deleted)
 } py_TypeInfo;
 
 typedef struct TypeList {
@@ -36,4 +34,3 @@ void TypeList__dtor(TypeList* self);
 py_TypeInfo* TypeList__get(TypeList* self, py_Type index);
 py_TypeInfo* TypeList__emplace(TypeList* self);
 void TypeList__apply(TypeList* self, void (*f)(py_TypeInfo*, void*), void* ctx);
-

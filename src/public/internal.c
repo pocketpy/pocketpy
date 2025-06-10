@@ -247,6 +247,18 @@ py_Ref py_tpfindname(py_Type t, py_Name name) {
     return NULL;
 }
 
+py_Name* py_tpclassattrs(py_Type t, int* out_length) {
+    py_TypeInfo* ti = pk__type_info(t);
+    *out_length = ti->ordered_attrs.length;
+    return ti->ordered_attrs.data;
+}
+
+py_Type py_tpbase(py_Type t) {
+    assert(t);
+    py_TypeInfo* ti = pk__type_info(t);
+    return py_totype(&ti->base_ti->self);
+}
+
 PK_DEPRECATED py_Ref py_tpgetmagic(py_Type type, py_Name name) {
     assert(py_ismagicname(name));
     py_TypeInfo* ti = pk__type_info(type);

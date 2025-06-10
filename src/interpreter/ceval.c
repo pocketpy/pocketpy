@@ -1079,6 +1079,8 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_STORE_CLASS_ATTR: {
                 assert(self->curr_class);
+                py_Type type = py_totype(self->curr_class);
+                py_TypeInfo* ti = TypeList__get(&self->types, type);
                 py_Name name = co_names[byte.arg];
                 // TOP() can be a function, classmethod or custom decorator
                 py_Ref actual_func = TOP();
@@ -1090,6 +1092,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     ud->clazz = self->curr_class->_obj;
                 }
                 py_setdict(self->curr_class, name, TOP());
+                c11_vector__push(py_Name, &ti->ordered_attrs, name);
                 POP();
                 DISPATCH();
             }

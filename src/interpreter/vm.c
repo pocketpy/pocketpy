@@ -63,6 +63,7 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
 
     self->module = module;
     self->annotations = *py_NIL();
+    c11_vector__ctor(&self->ordered_attrs, sizeof(py_Name));
 }
 
 void VM__ctor(VM* self) {

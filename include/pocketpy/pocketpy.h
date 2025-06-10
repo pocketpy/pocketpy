@@ -325,7 +325,7 @@ PK_API bool py_isinstance(py_Ref obj, py_Type type);
 PK_API bool py_issubclass(py_Type derived, py_Type base);
 
 /// Get the magic method from the given type only.
-/// The returned reference is always valid. However, its value may be `nil`.
+/// Return `nil` if not found.
 PK_API PK_DEPRECATED py_GlobalRef py_tpgetmagic(py_Type type, py_Name name);
 /// Search the magic method from the given type to the base type.
 /// Return `NULL` if not found.
@@ -333,6 +333,11 @@ PK_API py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
 /// Search the name from the given type to the base type.
 /// Return `NULL` if not found.
 PK_API py_ItemRef py_tpfindname(py_Type, py_Name name);
+/// Get ordered attributes of the type.
+// These attributes must be defined under `class` statement.
+PK_API py_Name* py_tpclassattrs(py_Type, int* out_length);
+/// Get the base type of the given type.
+PK_API py_Type py_tpbase(py_Type type);
 
 /// Get the type object of the given type.
 PK_API py_GlobalRef py_tpobject(py_Type type);
