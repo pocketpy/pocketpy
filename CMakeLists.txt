@@ -86,6 +86,11 @@ else()
     target_link_libraries(main ${PROJECT_NAME})
 endif()
 
+target_include_directories(
+    ${PROJECT_NAME}
+    INTERFACE
+    ${CMAKE_CURRENT_LIST_DIR}/include
+)
 
 if(PK_ENABLE_DETERMINISM)
     target_link_libraries(${PROJECT_NAME} dmath)
