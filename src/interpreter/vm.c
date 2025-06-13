@@ -66,10 +66,24 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
     c11_vector__ctor(&self->ordered_attrs, sizeof(py_Name));
 }
 
+static int BinTree__cmp_cstr(void* lhs, void* rhs) {
+    const char* l = (const char*)lhs;
+    const char* r = (const char*)rhs;
+    return strcmp(l, r);
+}
+
+static int BinTree__cmp_voidp(void* lhs, void* rhs) {
+    return lhs < rhs ? -1 : (lhs > rhs ? 1 : 0);
+}
+
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
 
-    ModuleDict__ctor(&self->modules, "", *py_NIL());
+    static const BinTreeConfig modules_config = {
+        .f_cmp = BinTree__cmp_cstr,
+        .need_free_key = true,
+    };
+    BinTree__ctor(&self->modules, c11_strdup(""), py_NIL(), &modules_config);
     TypeList__ctor(&self->types);
 
     self->builtins = *py_NIL();
@@ -99,7 +113,12 @@ void VM__ctor(VM* self) {
 
     ManagedHeap__ctor(&self->heap);
     ValueStack__ctor(&self->stack);
-    NameDict__ctor(&self->cached_names, PK_INST_ATTR_LOAD_FACTOR);
+
+    static const BinTreeConfig cached_names_config = {
+        .f_cmp = BinTree__cmp_voidp,
+        .need_free_key = false,
+    };
+    BinTree__ctor(&self->cached_names, NULL, py_NIL(), &cached_names_config);
 
     /* Init Builtin Types */
     // 0: unused
@@ -273,11 +292,11 @@ void VM__dtor(VM* self) {
     // clear frames
     while(self->top_frame)
         VM__pop_frame(self);
-    ModuleDict__dtor(&self->modules);
+    BinTree__dtor(&self->modules);
     TypeList__dtor(&self->types);
     FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__dtor(&self->stack);
-    NameDict__dtor(&self->cached_names);
+    BinTree__dtor(&self->cached_names);
 }
 
 void VM__push_frame(VM* self, py_Frame* frame) {
@@ -653,7 +672,9 @@ void ManagedHeap__mark(ManagedHeap* self) {
         pk__mark_value(p);
     }
     // mark modules
-    ModuleDict__apply_mark(&vm->modules, p_stack);
+    BinTree__apply_mark(&vm->modules, p_stack);
+    // mark cached names
+    BinTree__apply_mark(&vm->cached_names, p_stack);
     // mark types
     int types_length = vm->types.length;
     // 0-th type is placeholder
@@ -849,12 +870,13 @@ int py_replinput(char* buf, int max_size) {
 
 py_Ref py_name2ref(py_Name name) {
     assert(name != NULL);
-    NameDict* d = &pk_current_vm->cached_names;
-    py_Ref res = NameDict__try_get(d, name);
+    BinTree* d = &pk_current_vm->cached_names;
+    py_Ref res = BinTree__try_get(d, name);
     if(res != NULL) return res;
     // not found, create a new one
-    py_TValue tmp;
-    py_newstrv(&tmp, py_name2sv(name));
-    NameDict__set(d, name, &tmp);
-    return NameDict__try_get(d, name);
+    py_StackRef tmp = py_pushtmp();
+    py_newstrv(tmp, py_name2sv(name));
+    BinTree__set(d, name, tmp);
+    py_pop();
+    return BinTree__try_get(d, name);
 }

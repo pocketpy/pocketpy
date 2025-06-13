@@ -25,3 +25,10 @@ void* PyObject__userdata(PyObject* self);
 
 void PyObject__dtor(PyObject* self);
 
+
+#define pk__mark_value(val)                                                                        \
+    if((val)->is_ptr && !(val)->_obj->gc_marked) {                                                 \
+        PyObject* obj = (val)->_obj;                                                               \
+        obj->gc_marked = true;                                                                     \
+        c11_vector__push(PyObject*, p_stack, obj);                                                 \
+    }

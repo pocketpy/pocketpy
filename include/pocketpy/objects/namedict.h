@@ -1,25 +1,7 @@
 #pragma once
 
-#include "pocketpy/common/vector.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
-
-/* A simple binary tree for storing modules. */
-typedef struct ModuleDict {
-    char path[PK_MAX_MODULE_PATH_LEN + 1];
-    py_TValue module;
-    struct ModuleDict* left;
-    struct ModuleDict* right;
-} ModuleDict;
-
-void ModuleDict__ctor(ModuleDict* self, const char* path, py_TValue module);
-void ModuleDict__dtor(ModuleDict* self);
-void ModuleDict__set(ModuleDict* self, const char* key, py_TValue val);
-py_TValue* ModuleDict__try_get(ModuleDict* self, const char* path);
-bool ModuleDict__contains(ModuleDict* self, const char* path);
-void ModuleDict__apply_mark(ModuleDict* self, c11_vector* p_stack);
-
-/////////////////// NameDict ///////////////////
 
 typedef struct NameDict_KV {
     py_Name key;

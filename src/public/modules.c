@@ -13,7 +13,7 @@
 
 py_Ref py_getmodule(const char* path) {
     VM* vm = pk_current_vm;
-    return ModuleDict__try_get(&vm->modules, path);
+    return BinTree__try_get(&vm->modules, (void*)path);
 }
 
 py_Ref py_getbuiltin(py_Name name) { return py_getdict(&pk_current_vm->builtins, name); }
@@ -54,12 +54,12 @@ py_Ref py_newmodule(const char* path) {
 
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
-    bool exists = ModuleDict__contains(&pk_current_vm->modules, path);
+    bool exists = BinTree__contains(&pk_current_vm->modules, (void*)path);
     if(exists) c11__abort("module '%s' already exists", path);
 
     // convert to a weak (const char*)
     path = py_tostr(py_getdict(r0, __path__));
-    ModuleDict__set(&pk_current_vm->modules, path, *r0);
+    BinTree__set(&pk_current_vm->modules, c11_strdup(path), r0);
 
     py_shrink(2);
     return py_getmodule(path);

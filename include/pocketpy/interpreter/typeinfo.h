@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pocketpy/pocketpy.h"
+#include "pocketpy/common/vector.h"
 #include "pocketpy/objects/object.h"
 
 #define PK_MAX_CHUNK_LENGTH 256

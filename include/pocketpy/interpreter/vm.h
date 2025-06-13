@@ -3,6 +3,7 @@
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/name.h"
 #include "pocketpy/objects/codeobject.h"
+#include "pocketpy/objects/bintree.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/heap.h"
 #include "pocketpy/interpreter/frame.h"
@@ -30,7 +31,7 @@ typedef struct WatchdogInfo {
 typedef struct VM {
     py_Frame* top_frame;
 
-    ModuleDict modules;
+    BinTree modules;
     TypeList types;
 
     py_TValue builtins;  // builtins module
@@ -49,7 +50,7 @@ typedef struct VM {
     py_TValue reg[8];  // users' registers
     void* ctx;         // user-defined context
 
-    NameDict cached_names;
+    BinTree cached_names;
 
     py_StackRef curr_class;
     py_StackRef curr_decl_based_function;
@@ -75,13 +76,6 @@ bool pk__parse_int_slice(py_Ref slice,
                          int* restrict stop,
                          int* restrict step);
 bool pk__normalize_index(int* index, int length);
-
-#define pk__mark_value(val)                                                                        \
-    if((val)->is_ptr && !(val)->_obj->gc_marked) {                                                 \
-        PyObject* obj = (val)->_obj;                                                               \
-        obj->gc_marked = true;                                                                     \
-        c11_vector__push(PyObject*, p_stack, obj);                                                 \
-    }
 
 bool pk__object_new(int argc, py_Ref argv);
 py_TypeInfo* pk__type_info(py_Type type);
