@@ -30,7 +30,7 @@ typedef void (*py_Dtor)(void*);
 
 #ifdef PK_IS_PUBLIC_INCLUDE
 typedef struct py_TValue {
-    char _[16];
+    int64_t _[2];
 } py_TValue;
 #endif
 
