@@ -24,7 +24,10 @@ void py_setglobal(py_Name name, py_Ref val) { py_setdict(&pk_current_vm->main, n
 
 py_Ref py_newmodule(const char* path) {
     ManagedHeap* heap = &pk_current_vm->heap;
-    if(strlen(path) > PK_MAX_MODULE_PATH_LEN) c11__abort("module path too long: %s", path);
+
+    int path_len = strlen(path);
+    if(path_len > PK_MAX_MODULE_PATH_LEN) c11__abort("module path too long: %s", path);
+    if(path_len == 0) c11__abort("module path cannot be empty");
 
     py_Ref r0 = py_pushtmp();
     py_Ref r1 = py_pushtmp();
@@ -35,7 +38,7 @@ py_Ref py_newmodule(const char* path) {
         ._obj = ManagedHeap__new(heap, tp_module, -1, 0),
     };
 
-    int last_dot = c11_sv__rindex((c11_sv){path, strlen(path)}, '.');
+    int last_dot = c11_sv__rindex((c11_sv){path, path_len}, '.');
     if(last_dot == -1) {
         py_newstr(r1, path);
         py_setdict(r0, __name__, r1);

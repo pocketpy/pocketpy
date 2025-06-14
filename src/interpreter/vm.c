@@ -72,14 +72,12 @@ static int BinTree__cmp_cstr(void* lhs, void* rhs) {
     return strcmp(l, r);
 }
 
-static int BinTree__cmp_voidp(void* lhs, void* rhs) {
-    return lhs < rhs ? -1 : (lhs > rhs ? 1 : 0);
-}
+static int BinTree__cmp_voidp(void* lhs, void* rhs) { return lhs < rhs ? -1 : (lhs > rhs ? 1 : 0); }
 
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
 
-    static const BinTreeConfig modules_config = {
+    const static BinTreeConfig modules_config = {
         .f_cmp = BinTree__cmp_cstr,
         .need_free_key = true,
     };
@@ -114,7 +112,7 @@ void VM__ctor(VM* self) {
     ManagedHeap__ctor(&self->heap);
     ValueStack__ctor(&self->stack);
 
-    static const BinTreeConfig cached_names_config = {
+    const static BinTreeConfig cached_names_config = {
         .f_cmp = BinTree__cmp_voidp,
         .need_free_key = false,
     };
@@ -417,6 +415,7 @@ py_Type pk_newtype(const char* name,
 }
 
 py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, void (*dtor)(void*)) {
+    if(strlen(name) == 0) c11__abort("type name cannot be empty");
     py_Type type = pk_newtype(name, base, module, dtor, false, false);
     if(module) py_setdict(module, py_name(name), py_tpobject(type));
     return type;
