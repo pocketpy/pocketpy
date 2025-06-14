@@ -251,8 +251,6 @@ PK_API py_Name py_namev(c11_sv);
 /// Convert a name to a `c11_sv`.
 PK_API c11_sv py_name2sv(py_Name);
 
-#define py_ismagicname(name) (true)
-
 /************* Meta Operations *************/
 
 /// Create a new type.
@@ -612,12 +610,18 @@ PK_API int py_equal(py_Ref lhs, py_Ref rhs) PY_RAISE;
 /// 1: lhs < rhs, 0: lhs >= rhs, -1: error
 PK_API int py_less(py_Ref lhs, py_Ref rhs) PY_RAISE;
 
-#define py_eq(lhs, rhs) py_binaryop(lhs, rhs, __eq__, __eq__)
-#define py_ne(lhs, rhs) py_binaryop(lhs, rhs, __ne__, __ne__)
-#define py_lt(lhs, rhs) py_binaryop(lhs, rhs, __lt__, __gt__)
-#define py_le(lhs, rhs) py_binaryop(lhs, rhs, __le__, __ge__)
-#define py_gt(lhs, rhs) py_binaryop(lhs, rhs, __gt__, __lt__)
-#define py_ge(lhs, rhs) py_binaryop(lhs, rhs, __ge__, __le__)
+/// lhs == rhs
+PK_API bool py_eq(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs != rhs
+PK_API bool py_ne(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs < rhs
+PK_API bool py_lt(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs <= rhs
+PK_API bool py_le(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs > rhs
+PK_API bool py_gt(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
+/// lhs >= rhs
+PK_API bool py_ge(py_Ref lhs, py_Ref rhs) PY_RAISE PY_RETURN;
 
 /// Python equivalent to `callable(val)`.
 PK_API bool py_callable(py_Ref val);

@@ -233,7 +233,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
 }
 
 py_Ref py_tpfindmagic(py_Type t, py_Name name) {
-    assert(py_ismagicname(name));
+    // assert(py_ismagicname(name));
     return py_tpfindname(t, name);
 }
 
@@ -260,7 +260,7 @@ py_Type py_tpbase(py_Type t) {
 }
 
 PK_DEPRECATED py_Ref py_tpgetmagic(py_Type type, py_Name name) {
-    assert(py_ismagicname(name));
+    // assert(py_ismagicname(name));
     py_TypeInfo* ti = pk__type_info(type);
     py_Ref retval = py_getdict(&ti->self, name);
     return retval != NULL ? retval : py_NIL();
@@ -283,7 +283,7 @@ bool py_tpcall(py_Type type, int argc, py_Ref argv) {
 
 bool pk_callmagic(py_Name name, int argc, py_Ref argv) {
     assert(argc >= 1);
-    assert(py_ismagicname(name));
+    // assert(py_ismagicname(name));
     py_Ref tmp = py_tpfindmagic(argv->type, name);
     if(!tmp) return AttributeError(argv, name);
     return py_call(tmp, argc, argv);
