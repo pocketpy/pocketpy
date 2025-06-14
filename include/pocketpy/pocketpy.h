@@ -108,6 +108,8 @@ PK_API int py_currentvm();
 PK_API void py_switchvm(int index);
 /// Reset the current VM.
 PK_API void py_resetvm();
+/// Reset All VMs.
+PK_API void py_resetallvm();
 /// Get the current VM context. This is used for user-defined data.
 PK_API void* py_getvmctx();
 /// Set the current VM context. This is used for user-defined data.

@@ -94,6 +94,14 @@ void py_resetvm() {
     VM__ctor(vm);
 }
 
+void py_resetallvm() {
+    for(int i = 0; i < 16; i++) {
+        py_switchvm(i);
+        py_resetvm();
+    }
+    py_switchvm(0);
+}
+
 int py_currentvm() {
     for(int i = 0; i < 16; i++) {
         if(pk_all_vm[i] == pk_current_vm) return i;
