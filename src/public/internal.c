@@ -9,11 +9,15 @@
 _Thread_local VM* pk_current_vm;
 
 static bool pk_initialized;
+static bool pk_finalized;
+
 static VM pk_default_vm;
 static VM* pk_all_vm[16];
 static py_TValue _True, _False, _None, _NIL;
 
 void py_initialize() {
+    c11__rtassert(!pk_finalized);
+
     if(pk_initialized) {
         // c11__abort("py_initialize() can only be called once!");
         return;
@@ -52,6 +56,9 @@ py_GlobalRef py_None() { return &_None; }
 py_GlobalRef py_NIL() { return &_NIL; }
 
 void py_finalize() {
+    if(pk_finalized) c11__abort("py_finalize() can only be called once!");
+    pk_finalized = true;
+
     for(int i = 1; i < 16; i++) {
         VM* vm = pk_all_vm[i];
         if(vm) {
