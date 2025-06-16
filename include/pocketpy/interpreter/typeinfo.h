@@ -20,7 +20,6 @@ typedef struct py_TypeInfo {
     void (*dtor)(void*);
 
     py_TValue annotations;
-    c11_vector /*T=py_Name*/ ordered_attrs;
 
     void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
 } py_TypeInfo;

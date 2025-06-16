@@ -333,9 +333,6 @@ PK_API py_GlobalRef py_tpfindmagic(py_Type, py_Name name);
 /// Search the name from the given type to the base type.
 /// Return `NULL` if not found.
 PK_API py_ItemRef py_tpfindname(py_Type, py_Name name);
-/// Get ordered attributes of the type.
-// These attributes must be defined under `class` statement.
-PK_API py_Name* py_tpclassattrs(py_Type, int* out_length);
 /// Get the base type of the given type.
 PK_API py_Type py_tpbase(py_Type type);
 

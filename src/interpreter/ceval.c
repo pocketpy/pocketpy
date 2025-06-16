@@ -1092,7 +1092,6 @@ FrameResult VM__run_top_frame(VM* self) {
                     ud->clazz = self->curr_class->_obj;
                 }
                 py_setdict(self->curr_class, name, TOP());
-                c11_vector__push(py_Name, &ti->ordered_attrs, name);
                 POP();
                 DISPATCH();
             }

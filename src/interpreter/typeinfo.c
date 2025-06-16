@@ -12,7 +12,7 @@ void TypeList__ctor(TypeList* self) {
 void TypeList__dtor(TypeList* self) {
     for(py_Type t = 0; t < self->length; t++) {
         py_TypeInfo* info = TypeList__get(self, t);
-        c11_vector__dtor(&info->ordered_attrs);
+        (void)info;
     }
     for(int i = 0; i < PK_MAX_CHUNK_LENGTH; i++) {
         if(self->chunks[i]) PK_FREE(self->chunks[i]);
