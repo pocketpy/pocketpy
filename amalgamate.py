@@ -15,6 +15,8 @@ COPYRIGHT = '''/*
  *  Distributed Under The MIT License
  *  https://github.com/pocketpy/pocketpy
  */
+
+#define PK_IS_PUBLIC_INCLUDE
  '''
 
 def read_file(path):
