@@ -32,3 +32,4 @@ void PyObject__dtor(PyObject* self);
         obj->gc_marked = true;                                                                     \
         c11_vector__push(PyObject*, p_stack, obj);                                                 \
     }
+
