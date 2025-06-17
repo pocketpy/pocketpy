@@ -368,6 +368,25 @@ Literal0Expr* Literal0Expr__new(int line, TokenIndex token) {
     return self;
 }
 
+typedef struct LoadConstExpr {
+    EXPR_COMMON_HEADER
+    int index;
+} LoadConstExpr;
+
+void LoadConstExpr__emit_(Expr* self_, Ctx* ctx) {
+    LoadConstExpr* self = (LoadConstExpr*)self_;
+    Ctx__emit_(ctx, OP_LOAD_CONST, self->index, self->line);
+}
+
+LoadConstExpr* LoadConstExpr__new(int line, int index) {
+    const static ExprVt Vt = {.emit_ = LoadConstExpr__emit_};
+    LoadConstExpr* self = PK_MALLOC(sizeof(LoadConstExpr));
+    self->vt = &Vt;
+    self->line = line;
+    self->index = index;
+    return self;
+}
+
 typedef struct SliceExpr {
     EXPR_COMMON_HEADER
     Expr* start;
@@ -1864,9 +1883,70 @@ static Error* exprMap(Compiler* self) {
     return NULL;
 }
 
+static Error* read_literal(Compiler* self, py_Ref out);
+
+static Error* exprCompileTimeCall(Compiler* self, py_ItemRef func, int line) {
+    Error* err;
+    py_push(func);
+    py_pushnil();
+
+    uint16_t argc = 0;
+    uint16_t kwargc = 0;
+    // copied from `exprCall`
+    do {
+        match_newlines();
+        if(curr()->type == TK_RPAREN) break;
+        if(curr()->type == TK_ID && next()->type == TK_ASSIGN) {
+            consume(TK_ID);
+            py_Name key = py_namev(Token__sv(prev()));
+            consume(TK_ASSIGN);
+            // k=v
+            py_pushname(key);
+            check(read_literal(self, py_pushtmp()));
+            kwargc += 1;
+        } else {
+            if(kwargc > 0) {
+                return SyntaxError(self, "positional argument follows keyword argument");
+            }
+            check(read_literal(self, py_pushtmp()));
+            argc += 1;
+        }
+        match_newlines();
+    } while(match(TK_COMMA));
+    consume(TK_RPAREN);
+
+    bool ok = py_vectorcall(argc, kwargc);
+    if(!ok) {
+        char* msg = py_formatexc();
+        err = SyntaxError(self, "compile-time call error:\n%s", msg);
+        PK_FREE(msg);
+        return err;
+    }
+
+    // TODO: optimize string dedup
+    int index = Ctx__add_const(ctx(), py_retval());
+    Ctx__s_push(ctx(), (Expr*)LoadConstExpr__new(line, index));
+    return NULL;
+}
+
 static Error* exprCall(Compiler* self) {
     Error* err;
-    CallExpr* e = CallExpr__new(prev()->line, Ctx__s_popx(ctx()));
+    Expr* callable = Ctx__s_popx(ctx());
+    int line = prev()->line;
+    if(callable->vt->is_name) {
+        NameExpr* ne = (NameExpr*)callable;
+        if(ne->scope == NAME_GLOBAL) {
+            py_ItemRef func = py_compiletime_getfunc(ne->name);
+            if(func != NULL) {
+                py_StackRef p0 = py_peek(0);
+                err = exprCompileTimeCall(self, func, line);
+                if(err != NULL) py_clearexc(p0);
+                return err;
+            }
+        }
+    }
+
+    CallExpr* e = CallExpr__new(line, callable);
     Ctx__s_push(ctx(), (Expr*)e);  // push onto the stack in advance
     do {
         match_newlines();

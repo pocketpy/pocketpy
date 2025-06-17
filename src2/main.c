@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     py_initialize();
     py_sys_setargv(argc, argv);
 
-    assert(!profile);   // not implemented yet
+    assert(!profile);  // not implemented yet
     // if(profile) py_sys_settrace(LineProfiler__tracefunc, true);
 
     if(filename == NULL) {

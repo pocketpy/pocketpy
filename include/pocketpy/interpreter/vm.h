@@ -51,6 +51,7 @@ typedef struct VM {
     void* ctx;         // user-defined context
 
     BinTree cached_names;
+    NameDict compile_time_funcs;
 
     py_StackRef curr_class;
     py_StackRef curr_decl_based_function;

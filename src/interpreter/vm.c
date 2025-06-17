@@ -116,6 +116,7 @@ void VM__ctor(VM* self) {
         .need_free_key = false,
     };
     BinTree__ctor(&self->cached_names, NULL, py_NIL(), &cached_names_config);
+    NameDict__ctor(&self->compile_time_funcs, PK_TYPE_ATTR_LOAD_FACTOR);
 
     /* Init Builtin Types */
     // 0: unused
@@ -294,6 +295,7 @@ void VM__dtor(VM* self) {
     FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__dtor(&self->stack);
     BinTree__dtor(&self->cached_names);
+    NameDict__dtor(&self->compile_time_funcs);
 }
 
 void VM__push_frame(VM* self, py_Frame* frame) {
@@ -673,6 +675,12 @@ void ManagedHeap__mark(ManagedHeap* self) {
     BinTree__apply_mark(&vm->modules, p_stack);
     // mark cached names
     BinTree__apply_mark(&vm->cached_names, p_stack);
+    // mark compile time functions
+    for(int i = 0; i < vm->compile_time_funcs.capacity; i++) {
+        NameDict_KV* kv = &vm->compile_time_funcs.items[i];
+        if(kv->key == NULL) continue;
+        pk__mark_value(&kv->value);
+    }
     // mark types
     int types_length = vm->types.length;
     // 0-th type is placeholder

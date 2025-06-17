@@ -89,9 +89,23 @@ void py_bindmagic(py_Type type, py_Name name, py_CFunction f) {
 }
 
 void py_bind(py_Ref obj, const char* sig, py_CFunction f) {
-    py_TValue tmp;
-    py_Name name = py_newfunction(&tmp, sig, f, NULL, 0);
-    py_setdict(obj, name, &tmp);
+    py_Ref tmp = py_pushtmp();
+    py_Name name = py_newfunction(tmp, sig, f, NULL, 0);
+    py_setdict(obj, name, tmp);
+    py_pop();
+}
+
+void py_compiletime_bind(const char* sig, py_CFunction f) {
+    py_Ref tmp = py_pushtmp();
+    py_Name name = py_newfunction(tmp, sig, f, NULL, 0);
+    NameDict__set(&pk_current_vm->compile_time_funcs, name, tmp);
+    py_pop();
+}
+
+PK_API py_ItemRef py_compiletime_getfunc(py_Name name) {
+    NameDict* d = &pk_current_vm->compile_time_funcs;
+    if(d->length == 0) return NULL;
+    return NameDict__try_get(d, name);
 }
 
 py_Name py_newfunction(py_OutRef out,

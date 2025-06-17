@@ -129,6 +129,11 @@ PK_API void py_watchdog_begin(py_i64 timeout);
 /// Reset the watchdog.
 PK_API void py_watchdog_end();
 
+/// Bind a compile-time function via "decl-based" style.
+PK_API void py_compiletime_bind(const char* sig, py_CFunction f);
+/// Find a compile-time function by name.
+PK_API py_ItemRef py_compiletime_getfunc(py_Name name);
+
 /// Get the current source location of the frame.
 PK_API const char* py_Frame_sourceloc(py_Frame* frame, int* lineno);
 /// Python equivalent to `globals()` with respect to the given frame.
