@@ -2346,7 +2346,9 @@ static Error* read_literal(Compiler* self, py_Ref out) {
             }
             return NULL;
         }
-        default: py_newnil(out); return NULL;
+        default: {
+            return SyntaxError(self, "expected a literal, got '%s'", TokenSymbols[prev()->type]);
+        }
     }
 }
 
@@ -2385,7 +2387,6 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool is_lambda) {
                 consume(TK_ASSIGN);
                 py_TValue value;
                 check(read_literal(self, &value));
-                if(py_isnil(&value)) return SyntaxError(self, "default argument must be a literal");
                 FuncDecl__add_kwarg(decl, name, &value);
             } break;
             case 3:

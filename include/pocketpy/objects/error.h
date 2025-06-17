@@ -6,7 +6,7 @@
 typedef struct{
     SourceData_ src;
     int lineno;
-    char msg[100];
+    char msg[512];
 } Error;
 
 void py_BaseException__stpush(py_Ref, SourceData_ src, int lineno, const char* func_name);
