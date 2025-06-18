@@ -1935,14 +1935,12 @@ static Error* exprCall(Compiler* self) {
     int line = prev()->line;
     if(callable->vt->is_name) {
         NameExpr* ne = (NameExpr*)callable;
-        if(ne->scope == NAME_GLOBAL) {
-            py_ItemRef func = py_compiletime_getfunc(ne->name);
-            if(func != NULL) {
-                py_StackRef p0 = py_peek(0);
-                err = exprCompileTimeCall(self, func, line);
-                if(err != NULL) py_clearexc(p0);
-                return err;
-            }
+        py_ItemRef func = py_macroget(ne->name);
+        if(func != NULL) {
+            py_StackRef p0 = py_peek(0);
+            err = exprCompileTimeCall(self, func, line);
+            if(err != NULL) py_clearexc(p0);
+            return err;
         }
     }
 
