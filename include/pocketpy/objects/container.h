@@ -1,8 +1,9 @@
 #pragma once
 
 #include "pocketpy/objects/base.h"
-#include "pocketpy/common/vector.h"
-#include "pocketpy/pocketpy.h"
+#include "pocketpy/common/chunkedvector.h"
+#include "pocketpy/config.h"
+#include <stdint.h>
 
 #define FIXEDHASH_T__HEADER
 #define K py_Name

@@ -1,8 +1,8 @@
+#if !defined(FIXEDHASH_T__HEADER) && !defined(FIXEDHASH_T__SOURCE)
+
 #include "pocketpy/common/chunkedvector.h"
 #include "pocketpy/config.h"
 #include <stdint.h>
-
-#if !defined(FIXEDHASH_T__HEADER) && !defined(FIXEDHASH_T__SOURCE)
 
 #define FIXEDHASH_T__HEADER
 #define FIXEDHASH_T__SOURCE

@@ -1,5 +1,7 @@
 #if !defined(SMALLMAP_T__HEADER) && !defined(SMALLMAP_T__SOURCE)
 #include "pocketpy/common/vector.h"
+#include "pocketpy/common/utils.h"
+#include "pocketpy/config.h"
 
 #define SMALLMAP_T__HEADER
 #define SMALLMAP_T__SOURCE
