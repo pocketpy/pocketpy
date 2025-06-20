@@ -105,3 +105,16 @@ V* METHOD(try_get)(NAME* self, K key) {
 }
 
 #endif
+
+/* Undefine all macros */
+#undef KV
+#undef METHOD
+#undef CONCAT
+#undef CONCAT_
+
+#undef K
+#undef V
+#undef NAME
+#undef less
+#undef partial_less
+#undef equal
