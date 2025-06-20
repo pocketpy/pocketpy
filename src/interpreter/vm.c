@@ -44,7 +44,7 @@ static void py_TypeInfo__ctor(py_TypeInfo* self,
                               py_Type index,
                               py_Type base,
                               py_TypeInfo* base_ti,
-                              py_TValue module) {
+                              py_GlobalRef module) {
     memset(self, 0, sizeof(py_TypeInfo));
 
     self->name = name;
@@ -403,7 +403,7 @@ py_Type pk_newtype(const char* name,
     if(base_ti && base_ti->is_sealed) {
         c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
     }
-    py_TypeInfo__ctor(ti, py_name(name), index, base, base_ti, module ? *module : *py_NIL());
+    py_TypeInfo__ctor(ti, py_name(name), index, base, base_ti, module ? module : py_NIL());
     if(!dtor && base) dtor = base_ti->dtor;
     ti->dtor = dtor;
     ti->is_python = is_python;

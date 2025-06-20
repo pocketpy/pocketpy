@@ -12,7 +12,7 @@ typedef struct py_TypeInfo {
     struct py_TypeInfo* base_ti;
 
     py_TValue self;
-    py_TValue module;  // the module where the type is defined
+    py_GlobalRef module;
 
     bool is_python;  // is it a python class? (not derived from c object)
     bool is_sealed;  // can it be subclassed?

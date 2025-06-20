@@ -265,7 +265,7 @@ py_Ref py_tpfindname(py_Type t, py_Name name) {
 py_Type py_tpbase(py_Type t) {
     assert(t);
     py_TypeInfo* ti = pk__type_info(t);
-    return py_totype(&ti->base_ti->self);
+    return ti->base;
 }
 
 PK_DEPRECATED py_Ref py_tpgetmagic(py_Type type, py_Name name) {

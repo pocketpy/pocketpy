@@ -101,10 +101,10 @@ static bool type__or__(int argc, py_Ref argv) {
 static bool type__module__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_TypeInfo* ti = pk__type_info(py_totype(argv));
-    if(py_isnil(&ti->module)) {
+    if(py_isnil(ti->module)) {
         py_newnone(py_retval());
     } else {
-        py_Ref path = py_getdict(&ti->module, __path__);
+        py_Ref path = py_getdict(ti->module, __path__);
         py_assign(py_retval(), path);
     }
     return true;
