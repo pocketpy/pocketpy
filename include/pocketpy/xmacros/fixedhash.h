@@ -48,6 +48,7 @@ NAME* METHOD(new)();
 void METHOD(delete)(NAME* self);
 void METHOD(set)(NAME* self, K key, V* value);
 V* METHOD(try_get)(NAME* self, K key);
+bool METHOD(contains)(NAME* self, K key);
 
 #endif
 
@@ -102,6 +103,11 @@ V* METHOD(try_get)(NAME* self, K key) {
         index = ((5 * index) + 1) & 0xFFFF;
     }
     return NULL;
+}
+
+bool METHOD(contains)(NAME* self, K key) {
+    V* value = METHOD(try_get)(self, key);
+    return value != NULL;
 }
 
 #endif

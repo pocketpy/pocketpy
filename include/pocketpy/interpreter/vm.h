@@ -4,6 +4,7 @@
 #include "pocketpy/common/name.h"
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/bintree.h"
+#include "pocketpy/objects/container.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/heap.h"
 #include "pocketpy/interpreter/frame.h"
@@ -50,7 +51,7 @@ typedef struct VM {
     py_TValue reg[8];  // users' registers
     void* ctx;         // user-defined context
 
-    BinTree cached_names;
+    CachedNames cached_names;
     NameDict compile_time_funcs;
 
     py_StackRef curr_class;

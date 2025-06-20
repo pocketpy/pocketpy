@@ -111,11 +111,7 @@ void VM__ctor(VM* self) {
     ManagedHeap__ctor(&self->heap);
     ValueStack__ctor(&self->stack);
 
-    const static BinTreeConfig cached_names_config = {
-        .f_cmp = BinTree__cmp_voidp,
-        .need_free_key = false,
-    };
-    BinTree__ctor(&self->cached_names, NULL, py_NIL(), &cached_names_config);
+    CachedNames__ctor(&self->cached_names);
     NameDict__ctor(&self->compile_time_funcs, PK_TYPE_ATTR_LOAD_FACTOR);
 
     /* Init Builtin Types */
@@ -294,7 +290,7 @@ void VM__dtor(VM* self) {
     TypeList__dtor(&self->types);
     FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__dtor(&self->stack);
-    BinTree__dtor(&self->cached_names);
+    CachedNames__dtor(&self->cached_names);
     NameDict__dtor(&self->compile_time_funcs);
 }
 
@@ -674,7 +670,10 @@ void ManagedHeap__mark(ManagedHeap* self) {
     // mark modules
     BinTree__apply_mark(&vm->modules, p_stack);
     // mark cached names
-    BinTree__apply_mark(&vm->cached_names, p_stack);
+    for(int i = 0; i < vm->cached_names.entries.length; i++) {
+        CachedNames_KV* kv = c11_chunkedvector__at(&vm->cached_names.entries, i);
+        pk__mark_value(&kv->val);
+    }
     // mark compile time functions
     for(int i = 0; i < vm->compile_time_funcs.capacity; i++) {
         NameDict_KV* kv = &vm->compile_time_funcs.items[i];
@@ -876,13 +875,13 @@ int py_replinput(char* buf, int max_size) {
 
 py_Ref py_name2ref(py_Name name) {
     assert(name != NULL);
-    BinTree* d = &pk_current_vm->cached_names;
-    py_Ref res = BinTree__try_get(d, name);
+    CachedNames* d = &pk_current_vm->cached_names;
+    py_Ref res = CachedNames__try_get(d, name);
     if(res != NULL) return res;
     // not found, create a new one
     py_StackRef tmp = py_pushtmp();
     py_newstrv(tmp, py_name2sv(name));
-    BinTree__set(d, name, tmp);
+    CachedNames__set(d, name, tmp);
     py_pop();
-    return BinTree__try_get(d, name);
+    return CachedNames__try_get(d, name);
 }
