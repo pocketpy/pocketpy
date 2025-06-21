@@ -255,7 +255,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
                 if(res == -1) goto __ERROR;
                 // builtins
-                py_Ref tmp = py_getdict(&self->builtins, name);
+                py_Ref tmp = py_getdict(self->builtins, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -277,7 +277,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 }
                 if(res == -1) goto __ERROR;
 
-                tmp = py_getdict(&self->builtins, name);
+                tmp = py_getdict(self->builtins, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -293,7 +293,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     DISPATCH();
                 }
                 if(res == -1) goto __ERROR;
-                py_Ref tmp = py_getdict(&self->builtins, name);
+                py_Ref tmp = py_getdict(self->builtins, name);
                 if(tmp != NULL) {
                     PUSH(tmp);
                     DISPATCH();
@@ -325,7 +325,7 @@ FrameResult VM__run_top_frame(VM* self) {
                     DISPATCH();
                 }
                 if(res == -1) goto __ERROR;
-                tmp = py_getdict(&self->builtins, name);
+                tmp = py_getdict(self->builtins, name);
                 if(tmp) {
                     PUSH(tmp);
                     DISPATCH();
@@ -505,7 +505,7 @@ FrameResult VM__run_top_frame(VM* self) {
             /*****************************************/
             case OP_BUILD_IMAG: {
                 // [x]
-                py_Ref f = py_getdict(&self->builtins, py_name("complex"));
+                py_Ref f = py_getdict(self->builtins, py_name("complex"));
                 assert(f != NULL);
                 py_TValue tmp = *TOP();
                 *TOP() = *f;           // [complex]
@@ -558,7 +558,7 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_BUILD_SET: {
                 py_TValue* begin = SP() - byte.arg;
-                py_Ref typeobject_set = py_getdict(&self->builtins, py_name("set"));
+                py_Ref typeobject_set = py_getdict(self->builtins, py_name("set"));
                 assert(typeobject_set != NULL);
                 py_push(typeobject_set);
                 py_pushnil();
@@ -1079,8 +1079,6 @@ FrameResult VM__run_top_frame(VM* self) {
             }
             case OP_STORE_CLASS_ATTR: {
                 assert(self->curr_class);
-                py_Type type = py_totype(self->curr_class);
-                py_TypeInfo* ti = TypeList__get(&self->types, type);
                 py_Name name = co_names[byte.arg];
                 // TOP() can be a function, classmethod or custom decorator
                 py_Ref actual_func = TOP();

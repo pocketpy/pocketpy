@@ -49,7 +49,7 @@ bool py_compile(const char* source,
 
 bool pk_exec(CodeObject* co, py_Ref module) {
     VM* vm = pk_current_vm;
-    if(!module) module = &vm->main;
+    if(!module) module = vm->main;
     assert(module->type == tp_module);
 
     py_StackRef sp = vm->stack.sp;
@@ -63,7 +63,7 @@ bool pk_exec(CodeObject* co, py_Ref module) {
 
 bool pk_execdyn(CodeObject* co, py_Ref module, py_Ref globals, py_Ref locals) {
     VM* vm = pk_current_vm;
-    if(!module) module = &vm->main;
+    if(!module) module = vm->main;
     assert(module->type == tp_module);
 
     py_StackRef sp = vm->stack.sp;

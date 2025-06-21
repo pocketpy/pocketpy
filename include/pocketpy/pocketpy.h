@@ -118,6 +118,8 @@ PK_API void py_setvmctx(void* ctx);
 PK_API void py_sys_setargv(int argc, char** argv);
 /// Set the trace function for the current VM.
 PK_API void py_sys_settrace(py_TraceFunc func, bool reset);
+/// Invoke the garbage collector.
+PK_API int py_gc_collect();
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
 

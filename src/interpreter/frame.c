@@ -194,7 +194,7 @@ const char* py_Frame_sourceloc(py_Frame* self, int* lineno) {
 
 void py_Frame_newglobals(py_Frame* frame, py_OutRef out) {
     if(!frame) {
-        pk_mappingproxy__namedict(out, &pk_current_vm->main);
+        pk_mappingproxy__namedict(out, pk_current_vm->main);
         return;
     }
     if(frame->globals->type == tp_module) {

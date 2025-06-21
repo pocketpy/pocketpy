@@ -16,11 +16,11 @@ py_Ref py_getmodule(const char* path) {
     return BinTree__try_get(&vm->modules, (void*)path);
 }
 
-py_Ref py_getbuiltin(py_Name name) { return py_getdict(&pk_current_vm->builtins, name); }
+py_Ref py_getbuiltin(py_Name name) { return py_getdict(pk_current_vm->builtins, name); }
 
-py_Ref py_getglobal(py_Name name) { return py_getdict(&pk_current_vm->main, name); }
+py_Ref py_getglobal(py_Name name) { return py_getdict(pk_current_vm->main, name); }
 
-void py_setglobal(py_Name name, py_Ref val) { py_setdict(&pk_current_vm->main, name, val); }
+void py_setglobal(py_Name name, py_Ref val) { py_setdict(pk_current_vm->main, name, val); }
 
 py_Ref py_newmodule(const char* path) {
     ManagedHeap* heap = &pk_current_vm->heap;
@@ -608,7 +608,7 @@ static bool builtins_eval(int argc, py_Ref argv) {
 
 static bool
     pk_smartexec(const char* source, py_Ref module, enum py_CompileMode mode, va_list args) {
-    if(module == NULL) module = &pk_current_vm->main;
+    if(module == NULL) module = pk_current_vm->main;
     pk_mappingproxy__namedict(py_pushtmp(), module);  // globals
     py_newdict(py_pushtmp());                         // locals
     bool ok = py_compile(source, "<string>", mode, true);
@@ -716,8 +716,8 @@ static bool NotImplementedType__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-py_TValue pk_builtins__register() {
-    py_Ref builtins = py_newmodule("builtins");
+py_GlobalRef pk_builtins__register() {
+    py_GlobalRef builtins = py_newmodule("builtins");
     py_bindfunc(builtins, "exit", builtins_exit);
     py_bindfunc(builtins, "input", builtins_input);
     py_bindfunc(builtins, "repr", builtins_repr);
@@ -760,7 +760,7 @@ py_TValue pk_builtins__register() {
     py_setdict(py_tpobject(tp_ellipsis), __hash__, py_None());
     py_bindmagic(tp_NotImplementedType, __repr__, NotImplementedType__repr__);
     py_setdict(py_tpobject(tp_NotImplementedType), __hash__, py_None());
-    return *builtins;
+    return builtins;
 }
 
 void function__gc_mark(void* ud, c11_vector* p_stack) {

@@ -85,7 +85,7 @@ py_Type py_gettype(const char* module, py_Name name) {
         mod = py_getmodule(module);
         if(!mod) return 0;
     } else {
-        mod = &pk_current_vm->builtins;
+        mod = pk_current_vm->builtins;
     }
     py_Ref object = py_getdict(mod, name);
     if(object && py_istype(object, tp_type)) return py_totype(object);

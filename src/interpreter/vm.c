@@ -83,8 +83,8 @@ void VM__ctor(VM* self) {
     BinTree__ctor(&self->modules, c11_strdup(""), py_NIL(), &modules_config);
     TypeList__ctor(&self->types);
 
-    self->builtins = *py_NIL();
-    self->main = *py_NIL();
+    self->builtins = NULL;
+    self->main = NULL;
 
     self->callbacks.importfile = pk_default_importfile;
     self->callbacks.print = pk_default_print;
@@ -175,8 +175,8 @@ void VM__ctor(VM* self) {
     // inject some builtin exceptions
 #define INJECT_BUILTIN_EXC(name, TBase)                                                            \
     do {                                                                                           \
-        py_Type type = pk_newtype(#name, TBase, &self->builtins, NULL, false, true);               \
-        py_setdict(&self->builtins, py_name(#name), py_tpobject(type));                            \
+        py_Type type = pk_newtype(#name, TBase, self->builtins, NULL, false, true);                \
+        py_setdict(self->builtins, py_name(#name), py_tpobject(type));                             \
         validate(tp_##name, type);                                                                 \
     } while(0)
 
@@ -184,7 +184,7 @@ void VM__ctor(VM* self) {
     INJECT_BUILTIN_EXC(KeyboardInterrupt, tp_BaseException);
 
     validate(tp_StopIteration, pk_StopIteration__register());
-    py_setdict(&self->builtins, py_name("StopIteration"), py_tpobject(tp_StopIteration));
+    py_setdict(self->builtins, py_name("StopIteration"), py_tpobject(tp_StopIteration));
 
     INJECT_BUILTIN_EXC(SyntaxError, tp_Exception);
     INJECT_BUILTIN_EXC(RecursionError, tp_Exception);
@@ -230,10 +230,10 @@ void VM__ctor(VM* self) {
 
     for(int i = 0; i < c11__count_array(public_types); i++) {
         py_TypeInfo* ti = pk__type_info(public_types[i]);
-        py_setdict(&self->builtins, ti->name, &ti->self);
+        py_setdict(self->builtins, ti->name, &ti->self);
     }
 
-    py_newnotimplemented(py_emplacedict(&self->builtins, py_name("NotImplemented")));
+    py_newnotimplemented(py_emplacedict(self->builtins, py_name("NotImplemented")));
 
     pk__add_module_vmath();
     pk__add_module_array2d();
@@ -266,7 +266,7 @@ void VM__ctor(VM* self) {
     // add python builtins
     do {
         bool ok;
-        ok = py_exec(kPythonLibs_builtins, "<builtins>", EXEC_MODE, &self->builtins);
+        ok = py_exec(kPythonLibs_builtins, "<builtins>", EXEC_MODE, self->builtins);
         if(!ok) goto __ABORT;
         break;
     __ABORT:
@@ -274,7 +274,7 @@ void VM__ctor(VM* self) {
         c11__abort("failed to load python builtins!");
     } while(0);
 
-    self->main = *py_newmodule("__main__");
+    self->main = py_newmodule("__main__");
 }
 
 void VM__dtor(VM* self) {
@@ -766,7 +766,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
 
 void pk_print_stack(VM* self, py_Frame* frame, Bytecode byte) {
     return;
-    if(frame == NULL || py_isnil(&self->main)) return;
+    if(frame == NULL || py_isnil(self->main)) return;
 
     py_TValue* sp = self->stack.sp;
     c11_sbuf buf;

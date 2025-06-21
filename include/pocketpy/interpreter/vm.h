@@ -35,8 +35,8 @@ typedef struct VM {
     BinTree modules;
     TypeList types;
 
-    py_TValue builtins;  // builtins module
-    py_TValue main;      // __main__ module
+    py_GlobalRef builtins;  // builtins module
+    py_GlobalRef main;      // __main__ module
 
     py_Callbacks callbacks;
 
@@ -152,7 +152,7 @@ py_Type pk_generator__register();
 py_Type pk_namedict__register();
 py_Type pk_code__register();
 
-py_TValue pk_builtins__register();
+py_GlobalRef pk_builtins__register();
 
 /* mappingproxy */
 void pk_mappingproxy__namedict(py_Ref out, py_Ref object);

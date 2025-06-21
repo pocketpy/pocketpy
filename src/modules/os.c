@@ -229,7 +229,7 @@ void pk__add_module_io() {
     py_newint(py_emplacedict(mod, py_name("SEEK_CUR")), SEEK_CUR);
     py_newint(py_emplacedict(mod, py_name("SEEK_END")), SEEK_END);
 
-    py_setdict(&pk_current_vm->builtins, py_name("open"), py_tpobject(FileIO));
+    py_setdict(pk_current_vm->builtins, py_name("open"), py_tpobject(FileIO));
 }
 
 #else
