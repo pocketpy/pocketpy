@@ -60,6 +60,7 @@ jobs:
         platform: x64
     - name: Run Sanitizers
       run: |
+        sudo apt-get install -y libclang-rt-17-dev
         bash build_g.sh
         bash run_tests.sh
         rm -rf ./main
