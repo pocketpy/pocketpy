@@ -52,7 +52,7 @@ int py_bool(py_Ref val) {
 }
 
 bool py_hash(py_Ref val, int64_t* out) {
-    py_TypeInfo* ti = pk__type_info(val->type);
+    py_TypeInfo* ti = pk_typeinfo(val->type);
     do {
         py_Ref slot_hash = py_getdict(&ti->self, __hash__);
         if(slot_hash && py_isnone(slot_hash)) break;
@@ -93,8 +93,8 @@ int py_next(py_Ref val) {
 
 bool py_getattr(py_Ref self, py_Name name) {
     // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
-    py_Type type = self->type;
-    py_Ref cls_var = py_tpfindname(type, name);
+    py_TypeInfo* ti = pk_typeinfo(self->type);
+    py_Ref cls_var = pk_tpfindname(ti, name);
     if(cls_var) {
         // handle descriptor
         if(py_istype(cls_var, tp_property)) {
@@ -111,8 +111,9 @@ bool py_getattr(py_Ref self, py_Name name) {
                 return true;
             }
         } else {
-            py_Type* inner_type = py_touserdata(self);
-            py_Ref res = py_tpfindname(*inner_type, name);
+            // self is a type object
+            py_TypeInfo* inner_type = py_touserdata(self);
+            py_Ref res = pk_tpfindname(inner_type, name);
             if(res) {
                 if(py_istype(res, tp_staticmethod)) {
                     res = py_getslot(res, 0);
@@ -145,7 +146,7 @@ bool py_getattr(py_Ref self, py_Name name) {
                 return true;
             }
             case tp_classmethod: {
-                py_newboundmethod(py_retval(), py_tpobject(type), py_getslot(cls_var, 0));
+                py_newboundmethod(py_retval(), &ti->self, py_getslot(cls_var, 0));
                 return true;
             }
             default: {
@@ -156,7 +157,7 @@ bool py_getattr(py_Ref self, py_Name name) {
         }
     }
 
-    py_Ref fallback = py_tpfindmagic(type, __getattr__);
+    py_Ref fallback = pk_tpfindmagic(ti, __getattr__);
     if(fallback) {
         py_push(fallback);
         py_push(self);

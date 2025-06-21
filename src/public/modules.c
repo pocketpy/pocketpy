@@ -843,7 +843,7 @@ static bool super__new__(int argc, py_Ref argv) {
             if(callable->type == tp_function) {
                 Function* func = py_touserdata(callable);
                 if(func->clazz != NULL) {
-                    class_arg = *(py_Type*)PyObject__userdata(func->clazz);
+                    class_arg = ((py_TypeInfo*)PyObject__userdata(func->clazz))->index;
                     if(frame->co->nlocals > 0) { self_arg = &frame->locals[0]; }
                 }
             }
@@ -851,7 +851,7 @@ static bool super__new__(int argc, py_Ref argv) {
         if(class_arg == 0 || self_arg == NULL) return RuntimeError("super(): no arguments");
         if(self_arg->type == tp_type) {
             // f(cls, ...)
-            class_arg = pk__type_info(class_arg)->base;
+            class_arg = pk_typeinfo(class_arg)->base;
             if(class_arg == 0) return RuntimeError("super(): base class is invalid");
             py_assign(py_retval(), py_tpobject(class_arg));
             return true;
@@ -868,7 +868,7 @@ static bool super__new__(int argc, py_Ref argv) {
         return TypeError("super() takes 0 or 2 arguments");
     }
 
-    class_arg = pk__type_info(class_arg)->base;
+    class_arg = pk_typeinfo(class_arg)->base;
     if(class_arg == 0) return RuntimeError("super(): base class is invalid");
 
     py_Type* p_class_arg = py_newobject(py_retval(), tp_super, 1, sizeof(py_Type));

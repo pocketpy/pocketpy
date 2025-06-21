@@ -1,51 +1,49 @@
-#include "pocketpy/interpreter/typeinfo.h"
-#include "pocketpy/common/utils.h"
+#include "pocketpy/interpreter/vm.h"
 
-#define CHUNK_SIZE 128
-#define LOG2_CHUNK_SIZE 7
-
-void TypeList__ctor(TypeList* self) {
-    self->length = 0;
-    memset(self->chunks, 0, sizeof(self->chunks));
+py_ItemRef pk_tpfindname(py_TypeInfo* ti, py_Name name) {
+    assert(ti != NULL);
+    do {
+        py_Ref res = py_getdict(&ti->self, name);
+        if(res) return res;
+        ti = ti->base_ti;
+    } while(ti);
+    return NULL;
 }
 
-void TypeList__dtor(TypeList* self) {
-    for(py_Type t = 0; t < self->length; t++) {
-        py_TypeInfo* info = TypeList__get(self, t);
-        (void)info;
-    }
-    for(int i = 0; i < PK_MAX_CHUNK_LENGTH; i++) {
-        if(self->chunks[i]) PK_FREE(self->chunks[i]);
-    }
+py_ItemRef py_tpfindname(py_Type type, py_Name name) {
+    py_TypeInfo* ti = pk_typeinfo(type);
+    return pk_tpfindname(ti, name);
 }
 
-py_TypeInfo* TypeList__get(TypeList* self, py_Type index) {
-    assert(index < self->length);
-    int chunk = index >> LOG2_CHUNK_SIZE;
-    int offset = index & (CHUNK_SIZE - 1);
-    return self->chunks[chunk] + offset;
+py_Ref py_tpfindmagic(py_Type t, py_Name name) {
+    // assert(py_ismagicname(name));
+    return py_tpfindname(t, name);
 }
 
-py_TypeInfo* TypeList__emplace(TypeList* self) {
-    int chunk = self->length >> LOG2_CHUNK_SIZE;
-    int offset = self->length & (CHUNK_SIZE - 1);
-    if(self->chunks[chunk] == NULL) {
-        if(chunk >= PK_MAX_CHUNK_LENGTH) {
-            c11__abort("TypeList__emplace(): max chunk length exceeded");
-        }
-        self->chunks[chunk] = PK_MALLOC(sizeof(py_TypeInfo) * CHUNK_SIZE);
-        memset(self->chunks[chunk], 0, sizeof(py_TypeInfo) * CHUNK_SIZE);
-    }
-    self->length++;
-    return self->chunks[chunk] + offset;
+py_Type py_tpbase(py_Type t) {
+    assert(t);
+    py_TypeInfo* ti = pk_typeinfo(t);
+    return ti->base;
 }
 
-void TypeList__apply(TypeList* self, void (*f)(py_TypeInfo*, void*), void* ctx) {
-    for(int i = 0; i < self->length; i++) {
-        py_TypeInfo* info = TypeList__get(self, i);
-        f(info, ctx);
-    }
+PK_DEPRECATED py_Ref py_tpgetmagic(py_Type type, py_Name name) {
+    // assert(py_ismagicname(name));
+    py_TypeInfo* ti = pk_typeinfo(type);
+    py_Ref retval = py_getdict(&ti->self, name);
+    return retval != NULL ? retval : py_NIL();
 }
 
-#undef CHUNK_SIZE
-#undef LOG2_CHUNK_SIZE
+py_Ref py_tpobject(py_Type type) {
+    assert(type);
+    return &pk_typeinfo(type)->self;
+}
+
+const char* py_tpname(py_Type type) {
+    if(!type) return "nil";
+    py_Name name = pk_typeinfo(type)->name;
+    return py_name2str(name);
+}
+
+py_TypeInfo* pk_typeinfo(py_Type type) {
+    return c11__getitem(TypePointer, &pk_current_vm->types, type).ti;
+}

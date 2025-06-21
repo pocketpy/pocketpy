@@ -86,5 +86,5 @@ void pk__add_module_enum() {
     py_bindproperty(type, "name", Enum__name, NULL);
     py_bindproperty(type, "value", Enum__value, NULL);
 
-    pk__type_info(type)->on_end_subclass = Enum__on_end_subclass;
+    pk_typeinfo(type)->on_end_subclass = Enum__on_end_subclass;
 }

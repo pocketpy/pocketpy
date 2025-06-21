@@ -39,39 +39,11 @@ void LineProfiler__tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     if(self->enabled && event == TRACE_EVENT_LINE) { LineProfiler__tracefunc_line(self, frame); }
 }
 
-static void py_TypeInfo__ctor(py_TypeInfo* self,
-                              py_Name name,
-                              py_Type index,
-                              py_Type base,
-                              py_TypeInfo* base_ti,
-                              py_GlobalRef module) {
-    memset(self, 0, sizeof(py_TypeInfo));
-
-    self->name = name;
-    self->base = base;
-    self->base_ti = base_ti;
-
-    // create type object with __dict__
-    ManagedHeap* heap = &pk_current_vm->heap;
-    PyObject* typeobj = ManagedHeap__new(heap, tp_type, -1, sizeof(py_Type));
-    *(py_Type*)PyObject__userdata(typeobj) = index;
-    self->self = (py_TValue){
-        .type = typeobj->type,
-        .is_ptr = true,
-        ._obj = typeobj,
-    };
-
-    self->module = module;
-    self->annotations = *py_NIL();
-}
-
 static int BinTree__cmp_cstr(void* lhs, void* rhs) {
     const char* l = (const char*)lhs;
     const char* r = (const char*)rhs;
     return strcmp(l, r);
 }
-
-static int BinTree__cmp_voidp(void* lhs, void* rhs) { return lhs < rhs ? -1 : (lhs > rhs ? 1 : 0); }
 
 void VM__ctor(VM* self) {
     self->top_frame = NULL;
@@ -81,7 +53,7 @@ void VM__ctor(VM* self) {
         .need_free_key = true,
     };
     BinTree__ctor(&self->modules, c11_strdup(""), py_NIL(), &modules_config);
-    TypeList__ctor(&self->types);
+    c11_vector__ctor(&self->types, sizeof(TypePointer));
 
     self->builtins = NULL;
     self->main = NULL;
@@ -116,14 +88,15 @@ void VM__ctor(VM* self) {
 
     /* Init Builtin Types */
     // 0: unused
-    void* placeholder = TypeList__emplace(&self->types);
-    memset(placeholder, 0, sizeof(py_TypeInfo));
+    TypePointer* placeholder = c11_vector__emplace(&self->types);
+    placeholder->ti = NULL;
+    placeholder->dtor = NULL;
 
 #define validate(t, expr)                                                                          \
     if(t != (expr)) abort()
 
-    validate(tp_object, pk_newtype("object", 0, NULL, NULL, true, false));
-    validate(tp_type, pk_newtype("type", 1, NULL, NULL, false, true));
+    validate(tp_object, pk_newtype("object", tp_nil, NULL, NULL, true, false));
+    validate(tp_type, pk_newtype("type", tp_object, NULL, NULL, false, true));
     pk_object__register();
 
     validate(tp_int, pk_newtype("int", tp_object, NULL, NULL, false, true));
@@ -229,7 +202,7 @@ void VM__ctor(VM* self) {
     };
 
     for(int i = 0; i < c11__count_array(public_types); i++) {
-        py_TypeInfo* ti = pk__type_info(public_types[i]);
+        py_TypeInfo* ti = pk_typeinfo(public_types[i]);
         py_setdict(self->builtins, ti->name, &ti->self);
     }
 
@@ -287,7 +260,7 @@ void VM__dtor(VM* self) {
     while(self->top_frame)
         VM__pop_frame(self);
     BinTree__dtor(&self->modules);
-    TypeList__dtor(&self->types);
+    c11_vector__dtor(&self->types);
     FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__dtor(&self->stack);
     CachedNames__dtor(&self->cached_names);
@@ -398,16 +371,30 @@ py_Type pk_newtype(const char* name,
                    bool is_python,
                    bool is_sealed) {
     py_Type index = pk_current_vm->types.length;
-    py_TypeInfo* ti = TypeList__emplace(&pk_current_vm->types);
-    py_TypeInfo* base_ti = base ? pk__type_info(base) : NULL;
+    py_TypeInfo* self = py_newobject(py_retval(), tp_type, -1, sizeof(py_TypeInfo));
+    py_TypeInfo* base_ti = base ? pk_typeinfo(base) : NULL;
     if(base_ti && base_ti->is_sealed) {
         c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
     }
-    py_TypeInfo__ctor(ti, py_name(name), index, base, base_ti, module ? module : py_NIL());
+
+    memset(self, 0, sizeof(py_TypeInfo));
+    self->name = py_name(name);
+    self->index = index;
+    self->base = base;
+    self->base_ti = base_ti;
+
+    self->self = *py_retval();
+    self->module = module ? module : py_NIL();
+    self->annotations = *py_NIL();
+
     if(!dtor && base) dtor = base_ti->dtor;
-    ti->dtor = dtor;
-    ti->is_python = is_python;
-    ti->is_sealed = is_sealed;
+    self->is_python = is_python;
+    self->is_sealed = is_sealed;
+    self->dtor = dtor;
+
+    TypePointer* pointer = c11_vector__emplace(&pk_current_vm->types);
+    pointer->ti = self;
+    pointer->dtor = dtor;
     return index;
 }
 
@@ -628,12 +615,6 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
 }
 
 /****************************************/
-void PyObject__dtor(PyObject* self) {
-    py_TypeInfo* ti = pk__type_info(self->type);
-    if(ti->dtor) ti->dtor(PyObject__userdata(self));
-    if(self->slots == -1) NameDict__dtor(PyObject__dict(self));
-}
-
 void FuncDecl__gc_mark(const FuncDecl* self, c11_vector* p_stack) {
     CodeObject__gc_mark(&self->code, p_stack);
     for(int j = 0; j < self->kwargs.length; j++) {
@@ -684,10 +665,8 @@ void ManagedHeap__mark(ManagedHeap* self) {
     int types_length = vm->types.length;
     // 0-th type is placeholder
     for(py_Type i = 1; i < types_length; i++) {
-        py_TypeInfo* ti = TypeList__get(&vm->types, i);
-        // mark type object
+        py_TypeInfo* ti = c11__getitem(TypePointer, &vm->types, i).ti;
         pk__mark_value(&ti->self);
-        // mark type annotations
         pk__mark_value(&ti->annotations);
     }
     // mark frame
@@ -762,126 +741,4 @@ void ManagedHeap__mark(ManagedHeap* self) {
             }
         }
     }
-}
-
-void pk_print_stack(VM* self, py_Frame* frame, Bytecode byte) {
-    return;
-    if(frame == NULL || py_isnil(self->main)) return;
-
-    py_TValue* sp = self->stack.sp;
-    c11_sbuf buf;
-    c11_sbuf__ctor(&buf);
-    for(py_Ref p = self->stack.begin; p != sp; p++) {
-        switch(p->type) {
-            case tp_nil: c11_sbuf__write_cstr(&buf, "nil"); break;
-            case tp_int: c11_sbuf__write_i64(&buf, p->_i64); break;
-            case tp_float: c11_sbuf__write_f64(&buf, p->_f64, -1); break;
-            case tp_bool: c11_sbuf__write_cstr(&buf, p->_bool ? "True" : "False"); break;
-            case tp_NoneType: c11_sbuf__write_cstr(&buf, "None"); break;
-            case tp_list: {
-                pk_sprintf(&buf, "list(%d)", py_list_len(p));
-                break;
-            }
-            case tp_tuple: {
-                pk_sprintf(&buf, "tuple(%d)", py_tuple_len(p));
-                break;
-            }
-            case tp_function: {
-                Function* ud = py_touserdata(p);
-                c11_sbuf__write_cstr(&buf, ud->decl->code.name->data);
-                c11_sbuf__write_cstr(&buf, "()");
-                break;
-            }
-            case tp_type: {
-                pk_sprintf(&buf, "<class '%t'>", py_totype(p));
-                break;
-            }
-            case tp_str: {
-                pk_sprintf(&buf, "%q", py_tosv(p));
-                break;
-            }
-            case tp_module: {
-                py_Ref path = py_getdict(p, __path__);
-                pk_sprintf(&buf, "<module '%v'>", py_tosv(path));
-                break;
-            }
-            default: {
-                pk_sprintf(&buf, "(%t)", p->type);
-                break;
-            }
-        }
-        if(p != &sp[-1]) c11_sbuf__write_cstr(&buf, ", ");
-    }
-    c11_string* stack_str = c11_sbuf__submit(&buf);
-
-    printf("%s:%-3d: %-25s %-6d [%s]\n",
-           frame->co->src->filename->data,
-           Frame__lineno(frame),
-           pk_opname(byte.op),
-           byte.arg,
-           stack_str->data);
-    c11_string__delete(stack_str);
-}
-
-bool pk_wrapper__self(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    py_assign(py_retval(), argv);
-    return true;
-}
-
-py_TypeInfo* pk__type_info(py_Type type) { return TypeList__get(&pk_current_vm->types, type); }
-
-int py_replinput(char* buf, int max_size) {
-    buf[0] = '\0';  // reset first char because we check '@' at the beginning
-
-    int size = 0;
-    bool multiline = false;
-    printf(">>> ");
-
-    while(true) {
-        int c = pk_current_vm->callbacks.getchr();
-        if(c == EOF) return -1;
-
-        if(c == '\n') {
-            char last = '\0';
-            if(size > 0) last = buf[size - 1];
-            if(multiline) {
-                if(last == '\n') {
-                    break;  // 2 consecutive newlines to end multiline input
-                } else {
-                    printf("... ");
-                }
-            } else {
-                if(last == ':' || last == '(' || last == '[' || last == '{' || buf[0] == '@') {
-                    printf("... ");
-                    multiline = true;
-                } else {
-                    break;
-                }
-            }
-        }
-
-        if(size == max_size - 1) {
-            buf[size] = '\0';
-            return size;
-        }
-
-        buf[size++] = c;
-    }
-
-    buf[size] = '\0';
-    return size;
-}
-
-py_Ref py_name2ref(py_Name name) {
-    assert(name != NULL);
-    CachedNames* d = &pk_current_vm->cached_names;
-    py_Ref res = CachedNames__try_get(d, name);
-    if(res != NULL) return res;
-    // not found, create a new one
-    py_StackRef tmp = py_pushtmp();
-    py_newstrv(tmp, py_name2sv(name));
-    CachedNames__set(d, name, tmp);
-    py_pop();
-    return CachedNames__try_get(d, name);
 }

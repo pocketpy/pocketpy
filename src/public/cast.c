@@ -45,49 +45,11 @@ bool py_tobool(py_Ref self) {
 
 py_Type py_totype(py_Ref self) {
     assert(self->type == tp_type);
-    py_Type* ud = py_touserdata(self);
-    return *ud;
+    py_TypeInfo* ud = py_touserdata(self);
+    return ud->index;
 }
 
 void* py_touserdata(py_Ref self) {
     assert(self && self->is_ptr);
     return PyObject__userdata(self->_obj);
-}
-
-bool py_istype(py_Ref self, py_Type type) { return self->type == type; }
-
-bool py_checktype(py_Ref self, py_Type type) {
-    if(self->type == type) return true;
-    return TypeError("expected '%t', got '%t'", type, self->type);
-}
-
-bool py_checkinstance(py_Ref self, py_Type type) {
-    if(py_isinstance(self, type)) return true;
-    return TypeError("expected '%t' or its subclass, got '%t'", type, self->type);
-}
-
-bool py_isinstance(py_Ref obj, py_Type type) { return py_issubclass(obj->type, type); }
-
-bool py_issubclass(py_Type derived, py_Type base) {
-    TypeList* types = &pk_current_vm->types;
-    do {
-        if(derived == base) return true;
-        derived = TypeList__get(types, derived)->base;
-    } while(derived);
-    return false;
-}
-
-py_Type py_typeof(py_Ref self) { return self->type; }
-
-py_Type py_gettype(const char* module, py_Name name) {
-    py_Ref mod;
-    if(module != NULL) {
-        mod = py_getmodule(module);
-        if(!mod) return 0;
-    } else {
-        mod = pk_current_vm->builtins;
-    }
-    py_Ref object = py_getdict(mod, name);
-    if(object && py_istype(object, tp_type)) return py_totype(object);
-    return 0;
 }

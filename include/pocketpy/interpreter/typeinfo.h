@@ -4,10 +4,9 @@
 #include "pocketpy/common/vector.h"
 #include "pocketpy/objects/object.h"
 
-#define PK_MAX_CHUNK_LENGTH 256
-
 typedef struct py_TypeInfo {
     py_Name name;
+    py_Type index;
     py_Type base;
     struct py_TypeInfo* base_ti;
 
@@ -17,20 +16,13 @@ typedef struct py_TypeInfo {
     bool is_python;  // is it a python class? (not derived from c object)
     bool is_sealed;  // can it be subclassed?
 
-    void (*dtor)(void*);
+    py_Dtor dtor;  // destructor for this type, NULL if no dtor
 
     py_TValue annotations;
 
     void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
 } py_TypeInfo;
 
-typedef struct TypeList {
-    int length;
-    py_TypeInfo* chunks[PK_MAX_CHUNK_LENGTH];
-} TypeList;
-
-void TypeList__ctor(TypeList* self);
-void TypeList__dtor(TypeList* self);
-py_TypeInfo* TypeList__get(TypeList* self, py_Type index);
-py_TypeInfo* TypeList__emplace(TypeList* self);
-void TypeList__apply(TypeList* self, void (*f)(py_TypeInfo*, void*), void* ctx);
+py_TypeInfo* pk_typeinfo(py_Type type);
+py_ItemRef pk_tpfindname(py_TypeInfo* ti, py_Name name);
+#define pk_tpfindmagic pk_tpfindname

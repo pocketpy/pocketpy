@@ -60,7 +60,7 @@ static bool pkpy_memory_usage(int argc, py_Ref argv) {
 static bool pkpy_is_user_defined_type(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_type);
-    py_TypeInfo* ti = pk__type_info(py_totype(argv));
+    py_TypeInfo* ti = py_touserdata(argv);
     py_newbool(py_retval(), ti->is_python);
     return true;
 }

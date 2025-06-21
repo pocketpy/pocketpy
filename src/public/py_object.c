@@ -4,8 +4,8 @@
 
 bool pk__object_new(int argc, py_Ref argv) {
     if(argc == 0) return TypeError("object.__new__(): not enough arguments");
-    py_Type cls = py_totype(py_arg(0));
-    py_TypeInfo* ti = pk__type_info(cls);
+    py_TypeInfo* ti = py_touserdata(argv);
+    py_Type cls = ti->index;
     if(!ti->is_python) {
         return TypeError("object.__new__(%t) is not safe, use %t.__new__() instead", cls, cls);
     }
@@ -72,7 +72,7 @@ static bool type__new__(int argc, py_Ref argv) {
 
 static bool type__base__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_TypeInfo* ti = pk__type_info(py_totype(argv));
+    py_TypeInfo* ti = py_touserdata(argv);
     if(ti->base) {
         py_assign(py_retval(), &ti->base_ti->self);
     } else {
@@ -83,7 +83,7 @@ static bool type__base__(int argc, py_Ref argv) {
 
 static bool type__name__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_TypeInfo* ti = pk__type_info(py_totype(argv));
+    py_TypeInfo* ti = py_touserdata(argv);
     py_assign(py_retval(), py_name2ref(ti->name));
     return true;
 }
@@ -100,7 +100,7 @@ static bool type__or__(int argc, py_Ref argv) {
 
 static bool type__module__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_TypeInfo* ti = pk__type_info(py_totype(argv));
+    py_TypeInfo* ti = py_touserdata(argv);
     if(py_isnil(ti->module)) {
         py_newnone(py_retval());
     } else {
@@ -112,7 +112,7 @@ static bool type__module__(int argc, py_Ref argv) {
 
 static bool type__annotations__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    py_TypeInfo* ti = pk__type_info(py_totype(argv));
+    py_TypeInfo* ti = py_touserdata(argv);
     if(py_isnil(&ti->annotations)) {
         py_newdict(py_retval());
     } else {

@@ -61,7 +61,7 @@ static void PickleObject__write_bytes(PickleObject* buf, const void* data, int s
 }
 
 static void c11_sbuf__write_type_path(c11_sbuf* path_buf, py_Type type) {
-    py_TypeInfo* ti = pk__type_info(type);
+    py_TypeInfo* ti = pk_typeinfo(type);
     if(py_isnil(ti->module)) {
         c11_sbuf__write_cstr(path_buf, py_name2str(ti->name));
         return;
@@ -349,7 +349,7 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
             // try memo for `is_ptr=true` objects
             if(pkl__try_memo(buf, obj->_obj)) return true;
 
-            py_TypeInfo* ti = pk__type_info(obj->type);
+            py_TypeInfo* ti = pk_typeinfo(obj->type);
             py_Ref f_reduce = py_tpfindmagic(obj->type, __reduce__);
             if(f_reduce != NULL) {
                 if(!py_call(f_reduce, 1, obj)) return false;

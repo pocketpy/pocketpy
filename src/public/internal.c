@@ -238,52 +238,13 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
                 break;
             case tp_classmethod:
                 self[0] = *py_getslot(cls_var, 0);
-                self[1] = pk__type_info(type)->self;
+                self[1] = pk_typeinfo(type)->self;
                 break;
             default: c11__unreachable();
         }
         return true;
     }
     return false;
-}
-
-py_Ref py_tpfindmagic(py_Type t, py_Name name) {
-    // assert(py_ismagicname(name));
-    return py_tpfindname(t, name);
-}
-
-py_Ref py_tpfindname(py_Type t, py_Name name) {
-    py_TypeInfo* ti = pk__type_info(t);
-    do {
-        py_Ref res = py_getdict(&ti->self, name);
-        if(res) return res;
-        ti = ti->base_ti;
-    } while(ti);
-    return NULL;
-}
-
-py_Type py_tpbase(py_Type t) {
-    assert(t);
-    py_TypeInfo* ti = pk__type_info(t);
-    return ti->base;
-}
-
-PK_DEPRECATED py_Ref py_tpgetmagic(py_Type type, py_Name name) {
-    // assert(py_ismagicname(name));
-    py_TypeInfo* ti = pk__type_info(type);
-    py_Ref retval = py_getdict(&ti->self, name);
-    return retval != NULL ? retval : py_NIL();
-}
-
-py_Ref py_tpobject(py_Type type) {
-    assert(type);
-    return &pk__type_info(type)->self;
-}
-
-const char* py_tpname(py_Type type) {
-    if(!type) return "nil";
-    py_Name name = pk__type_info(type)->name;
-    return py_name2str(name);
 }
 
 bool py_tpcall(py_Type type, int argc, py_Ref argv) {

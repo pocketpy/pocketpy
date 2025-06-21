@@ -29,11 +29,16 @@ typedef struct WatchdogInfo {
     clock_t max_reset_time;
 } WatchdogInfo;
 
+typedef struct TypePointer {
+    py_TypeInfo* ti;
+    py_Dtor dtor;
+} TypePointer;
+
 typedef struct VM {
     py_Frame* top_frame;
 
     BinTree modules;
-    TypeList types;
+    c11_vector /*TypePointer*/ types;
 
     py_GlobalRef builtins;  // builtins module
     py_GlobalRef main;      // __main__ module
@@ -80,7 +85,7 @@ bool pk__parse_int_slice(py_Ref slice,
 bool pk__normalize_index(int* index, int length);
 
 bool pk__object_new(int argc, py_Ref argv);
-py_TypeInfo* pk__type_info(py_Type type);
+py_TypeInfo* pk_typeinfo(py_Type type);
 
 bool pk_wrapper__self(int argc, py_Ref argv);
 
