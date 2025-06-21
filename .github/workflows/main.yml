@@ -56,8 +56,13 @@ jobs:
     - name: Setup Clang
       uses: egor-tensin/setup-clang@v1
       with:
-        version: 15
+        version: 17
         platform: x64
+    - name: Run Sanitizers
+      run: |
+        bash build_g.sh
+        bash run_tests.sh
+        rm -rf ./main
     - name: Unit Test with Coverage
       run: bash run_tests.sh
     - name: Upload coverage reports to Codecov
