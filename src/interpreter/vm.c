@@ -260,11 +260,11 @@ void VM__dtor(VM* self) {
     while(self->top_frame)
         VM__pop_frame(self);
     BinTree__dtor(&self->modules);
-    c11_vector__dtor(&self->types);
     FixedMemoryPool__dtor(&self->pool_frame);
     ValueStack__dtor(&self->stack);
     CachedNames__dtor(&self->cached_names);
     NameDict__dtor(&self->compile_time_funcs);
+    c11_vector__dtor(&self->types);
 }
 
 void VM__push_frame(VM* self, py_Frame* frame) {
