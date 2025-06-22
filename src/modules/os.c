@@ -97,6 +97,8 @@ void pk__add_module_os() {
     py_ItemRef path_object = py_emplacedict(mod, py_name("path"));
     py_newobject(path_object, tp_object, -1, 0);
     py_bindfunc(path_object, "exists", os_path_exists);
+
+    py_newdict(py_emplacedict(mod, py_name("environ")));
 }
 
 typedef struct {

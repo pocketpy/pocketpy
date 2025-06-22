@@ -55,26 +55,28 @@ static void py_TypeInfo__common_init(py_Name name,
                                      void (*dtor)(void*),
                                      bool is_python,
                                      bool is_sealed,
-                                     py_TypeInfo* self) {
+                                     py_TypeInfo* self,
+                                     py_TValue* typeobject) {
     py_TypeInfo* base_ti = base ? pk_typeinfo(base) : NULL;
     if(base_ti && base_ti->is_sealed) {
         c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
     }
 
-    memset(self, 0, sizeof(py_TypeInfo));
     self->name = name;
     self->index = index;
     self->base = base;
     self->base_ti = base_ti;
 
-    self->self = *py_retval();
+    py_assign(&self->self, typeobject);
     self->module = module ? module : py_NIL();
-    self->annotations = *py_NIL();
 
     if(!dtor && base) dtor = base_ti->dtor;
     self->is_python = is_python;
     self->is_sealed = is_sealed;
+
+    self->annotations = *py_NIL();
     self->dtor = dtor;
+    self->on_end_subclass = NULL;
 }
 
 py_Type pk_newtype(const char* name,
@@ -85,7 +87,15 @@ py_Type pk_newtype(const char* name,
                    bool is_sealed) {
     py_Type index = pk_current_vm->types.length;
     py_TypeInfo* self = py_newobject(py_retval(), tp_type, -1, sizeof(py_TypeInfo));
-    py_TypeInfo__common_init(py_name(name), base, index, module, dtor, is_python, is_sealed, self);
+    py_TypeInfo__common_init(py_name(name),
+                             base,
+                             index,
+                             module,
+                             dtor,
+                             is_python,
+                             is_sealed,
+                             self,
+                             py_retval());
     TypePointer* pointer = c11_vector__emplace(&pk_current_vm->types);
     pointer->ti = self;
     pointer->dtor = self->dtor;
@@ -102,11 +112,22 @@ py_Type pk_newtypewithmode(py_Name name,
     if(mode == RELOAD_MODE && module != NULL) {
         py_ItemRef old_class = py_getdict(module, name);
         if(old_class != NULL && py_istype(old_class, tp_type)) {
-            NameDict* old_dict = PyObject__dict(old_class->_obj);
-            NameDict__clear(old_dict);
+#ifndef NDEBUG
+            const char* name_cstr = py_name2str(name);
+            (void)name_cstr;  // avoid unused warning
+#endif
+            py_cleardict(old_class);
             py_TypeInfo* self = py_touserdata(old_class);
             py_Type index = self->index;
-            py_TypeInfo__common_init(name, base, index, module, dtor, is_python, is_sealed, self);
+            py_TypeInfo__common_init(name,
+                                     base,
+                                     index,
+                                     module,
+                                     dtor,
+                                     is_python,
+                                     is_sealed,
+                                     self,
+                                     &self->self);
             TypePointer* pointer = c11__at(TypePointer, &pk_current_vm->types, index);
             pointer->ti = self;
             pointer->dtor = self->dtor;

@@ -197,4 +197,5 @@ void Function__dtor(Function* self) {
     // self->decl->code.src->filename->data);
     PK_DECREF(self->decl);
     if(self->closure) NameDict__delete(self->closure);
+    memset(self, 0, sizeof(Function));
 }

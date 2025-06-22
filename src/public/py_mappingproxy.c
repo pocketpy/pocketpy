@@ -20,6 +20,15 @@ static bool namedict__getitem__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool namedict__get(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    py_Name name = py_namev(py_tosv(py_arg(1)));
+    py_Ref res = py_getdict(py_getslot(argv, 0), name);
+    py_assign(py_retval(), res ? res : py_arg(2));
+    return true;
+}
+
 static bool namedict__setitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -82,5 +91,6 @@ py_Type pk_namedict__register() {
     py_setdict(py_tpobject(type), __hash__, py_None());
     py_bindmethod(type, "items", namedict_items);
     py_bindmethod(type, "clear", namedict_clear);
+    py_bindmethod(type, "get", namedict__get);
     return type;
 }

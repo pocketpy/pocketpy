@@ -38,8 +38,8 @@ typedef struct py_ModuleInfo {
     c11_string* name;
     c11_string* package;
     c11_string* path;
+    py_GlobalRef self;  // weakref to the original module object
 } py_ModuleInfo;
-
 
 typedef struct VM {
     py_Frame* top_frame;

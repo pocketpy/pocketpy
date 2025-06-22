@@ -52,7 +52,7 @@ void VM__ctor(VM* self) {
         .f_cmp = BinTree__cmp_cstr,
         .need_free_key = false,
     };
-    BinTree__ctor(&self->modules, c11_strdup(""), py_NIL(), &modules_config);
+    BinTree__ctor(&self->modules, "", py_NIL(), &modules_config);
     c11_vector__ctor(&self->types, sizeof(TypePointer));
 
     self->builtins = NULL;

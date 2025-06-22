@@ -16,10 +16,8 @@ typedef struct py_TypeInfo {
     bool is_python;  // is it a python class? (not derived from c object)
     bool is_sealed;  // can it be subclassed?
 
-    py_Dtor dtor;  // destructor for this type, NULL if no dtor
-
     py_TValue annotations;
-
+    py_Dtor dtor;  // destructor for this type, NULL if no dtor
     void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
 } py_TypeInfo;
 

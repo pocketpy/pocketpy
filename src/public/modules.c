@@ -83,7 +83,9 @@ py_Ref py_newmodule(const char* path) {
     if(exists) c11__abort("module '%s' already exists", path);
 
     BinTree__set(&pk_current_vm->modules, (void*)path, py_retval());
-    return py_getmodule(path);
+    py_GlobalRef retval = py_getmodule(path);
+    mi->self = retval;
+    return retval;
 }
 
 int load_module_from_dll_desktop_only(const char* path) PY_RAISE PY_RETURN;
@@ -181,9 +183,11 @@ __SUCCESS:
     return ok ? 1 : -1;
 }
 
-bool py_importlib_reload(py_GlobalRef module) {
+bool py_importlib_reload(py_Ref module) {
     VM* vm = pk_current_vm;
     py_ModuleInfo* mi = py_touserdata(module);
+    // We should ensure that the module is its original py_GlobalRef
+    module = mi->self;
     c11_sv path = c11_string__sv(mi->path);
     c11_string* slashed_path = c11_sv__replace(path, '.', PK_PLATFORM_SEP);
     c11_string* filename = c11_string__new3("%s.py", slashed_path->data);
@@ -195,7 +199,7 @@ bool py_importlib_reload(py_GlobalRef module) {
     }
     c11_string__delete(slashed_path);
     if(data == NULL) return ImportError("module '%v' not found", path);
-    py_cleardict(module);
+    // py_cleardict(module); BUG: removing old classes will cause RELOAD_MODE to fail
     bool ok = py_exec(data, filename->data, RELOAD_MODE, module);
     c11_string__delete(filename);
     PK_FREE(data);

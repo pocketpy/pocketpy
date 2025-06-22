@@ -558,7 +558,7 @@ PK_API py_GlobalRef py_newmodule(const char* path);
 /// Get a module by path.
 PK_API py_GlobalRef py_getmodule(const char* path);
 /// Reload an existing module.
-PK_API bool py_importlib_reload(py_GlobalRef module) PY_RAISE PY_RETURN;
+PK_API bool py_importlib_reload(py_Ref module) PY_RAISE PY_RETURN;
 
 /// Import a module.
 /// The result will be set to `py_retval()`.
