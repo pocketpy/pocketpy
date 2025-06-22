@@ -364,47 +364,6 @@ bool pk__normalize_index(int* index, int length) {
     return true;
 }
 
-py_Type pk_newtype(const char* name,
-                   py_Type base,
-                   const py_GlobalRef module,
-                   void (*dtor)(void*),
-                   bool is_python,
-                   bool is_sealed) {
-    py_Type index = pk_current_vm->types.length;
-    py_TypeInfo* self = py_newobject(py_retval(), tp_type, -1, sizeof(py_TypeInfo));
-    py_TypeInfo* base_ti = base ? pk_typeinfo(base) : NULL;
-    if(base_ti && base_ti->is_sealed) {
-        c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
-    }
-
-    memset(self, 0, sizeof(py_TypeInfo));
-    self->name = py_name(name);
-    self->index = index;
-    self->base = base;
-    self->base_ti = base_ti;
-
-    self->self = *py_retval();
-    self->module = module ? module : py_NIL();
-    self->annotations = *py_NIL();
-
-    if(!dtor && base) dtor = base_ti->dtor;
-    self->is_python = is_python;
-    self->is_sealed = is_sealed;
-    self->dtor = dtor;
-
-    TypePointer* pointer = c11_vector__emplace(&pk_current_vm->types);
-    pointer->ti = self;
-    pointer->dtor = dtor;
-    return index;
-}
-
-py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, void (*dtor)(void*)) {
-    if(strlen(name) == 0) c11__abort("type name cannot be empty");
-    py_Type type = pk_newtype(name, base, module, dtor, false, false);
-    if(module) py_setdict(module, py_name(name), py_tpobject(type));
-    return type;
-}
-
 static bool
     prepare_py_call(py_TValue* buffer, py_Ref argv, py_Ref p1, int kwargc, const FuncDecl* decl) {
     const CodeObject* co = &decl->code;

@@ -100,13 +100,6 @@ typedef enum FrameResult {
 
 FrameResult VM__run_top_frame(VM* self);
 
-py_Type pk_newtype(const char* name,
-                   py_Type base,
-                   const py_GlobalRef module,
-                   void (*dtor)(void*),
-                   bool is_python,
-                   bool is_sealed);
-
 FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall);
 
 const char* pk_opname(Opcode op);

@@ -26,3 +26,18 @@ typedef struct py_TypeInfo {
 py_TypeInfo* pk_typeinfo(py_Type type);
 py_ItemRef pk_tpfindname(py_TypeInfo* ti, py_Name name);
 #define pk_tpfindmagic pk_tpfindname
+
+py_Type pk_newtype(const char* name,
+                   py_Type base,
+                   const py_GlobalRef module,
+                   void (*dtor)(void*),
+                   bool is_python,
+                   bool is_sealed);
+
+
+py_Type pk_newtypewithmode(py_Name name,
+                   py_Type base,
+                   const py_GlobalRef module,
+                   void (*dtor)(void*),
+                   bool is_python,
+                   bool is_sealed, enum py_CompileMode mode);

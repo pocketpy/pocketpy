@@ -176,7 +176,7 @@ bool py_importlib_reload(py_GlobalRef module) {
     }
     c11_string__delete(slashed_path);
     if(data == NULL) return ImportError("module '%v' not found", path);
-    bool ok = py_exec(data, filename->data, EXEC_MODE, module);
+    bool ok = py_exec(data, filename->data, RELOAD_MODE, module);
     c11_string__delete(filename);
     PK_FREE(data);
     py_assign(py_retval(), module);

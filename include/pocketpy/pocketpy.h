@@ -92,7 +92,8 @@ typedef bool (*py_CFunction)(int argc, py_StackRef argv) PY_RAISE PY_RETURN;
 /// + `EXEC_MODE`: for statements.
 /// + `EVAL_MODE`: for expressions.
 /// + `SINGLE_MODE`: for REPL or jupyter notebook execution.
-enum py_CompileMode { EXEC_MODE, EVAL_MODE, SINGLE_MODE };
+/// + `RELOAD_MODE`: for reloading a module without allocating new types if possible.
+enum py_CompileMode { EXEC_MODE, EVAL_MODE, SINGLE_MODE, RELOAD_MODE };
 
 /************* Global Setup *************/
 
