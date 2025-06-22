@@ -104,8 +104,8 @@ static bool type__module__(int argc, py_Ref argv) {
     if(py_isnil(ti->module)) {
         py_newnone(py_retval());
     } else {
-        py_Ref path = py_getdict(ti->module, __path__);
-        py_assign(py_retval(), path);
+        py_ModuleInfo* mi = py_touserdata(ti->module);
+        py_newstrv(py_retval(), c11_string__sv(mi->path));
     }
     return true;
 }

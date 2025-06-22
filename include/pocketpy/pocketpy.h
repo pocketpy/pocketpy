@@ -406,6 +406,8 @@ PK_API py_ItemRef py_emplacedict(py_Ref self, py_Name name);
 /// NOTE: Be careful if `f` modifies the object's `__dict__`.
 PK_API bool
     py_applydict(py_Ref self, bool (*f)(py_Name name, py_Ref val, void* ctx), void* ctx) PY_RAISE;
+/// Clear the object's `__dict__`. This function is dangerous.
+PK_API void py_cleardict(py_Ref self);
 
 /// Get the i-th slot of the object.
 /// The object must have slots and `i` must be in valid range.

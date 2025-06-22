@@ -37,8 +37,8 @@ void pk_print_stack(VM* self, py_Frame* frame, Bytecode byte) {
                 break;
             }
             case tp_module: {
-                py_Ref path = py_getdict(p, __path__);
-                pk_sprintf(&buf, "<module '%v'>", py_tosv(path));
+                py_ModuleInfo* mi = py_touserdata(p);
+                pk_sprintf(&buf, "<module '%v'>", c11_string__sv(mi->path));
                 break;
             }
             default: {

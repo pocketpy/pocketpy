@@ -34,6 +34,13 @@ typedef struct TypePointer {
     py_Dtor dtor;
 } TypePointer;
 
+typedef struct py_ModuleInfo {
+    c11_string* name;
+    c11_string* package;
+    c11_string* path;
+} py_ModuleInfo;
+
+
 typedef struct VM {
     py_Frame* top_frame;
 
@@ -139,6 +146,7 @@ py_Type pk_nativefunc__register();
 py_Type pk_boundmethod__register();
 py_Type pk_range__register();
 py_Type pk_range_iterator__register();
+py_Type pk_module__register();
 py_Type pk_BaseException__register();
 py_Type pk_Exception__register();
 py_Type pk_StopIteration__register();

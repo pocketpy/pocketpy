@@ -35,6 +35,12 @@ bool py_applydict(py_Ref self, bool (*f)(py_Name, py_Ref, void*), void* ctx) {
     return true;
 }
 
+void py_cleardict(py_Ref self) {
+    assert(self && self->is_ptr);
+    NameDict* dict = PyObject__dict(self->_obj);
+    NameDict__clear(dict);
+}
+
 bool py_deldict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
     return NameDict__del(PyObject__dict(self->_obj), name);

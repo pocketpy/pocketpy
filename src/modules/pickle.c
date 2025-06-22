@@ -66,10 +66,10 @@ static void c11_sbuf__write_type_path(c11_sbuf* path_buf, py_Type type) {
         c11_sbuf__write_cstr(path_buf, py_name2str(ti->name));
         return;
     }
-    const char* mod_path = py_tostr(py_getdict(ti->module, __path__));
-    c11_sbuf__write_cstr(path_buf, mod_path);
+    py_ModuleInfo* mi = py_touserdata(ti->module);
+    c11_sbuf__write_sv(path_buf, c11_string__sv(mi->path));
     c11_sbuf__write_char(path_buf, '.');
-    c11_sbuf__write_cstr(path_buf, py_name2str(ti->name));
+    c11_sbuf__write_sv(path_buf, py_name2sv(ti->name));
 }
 
 static void pkl__emit_op(PickleObject* buf, PickleOp op) {

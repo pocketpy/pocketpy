@@ -22,49 +22,67 @@ py_Ref py_getglobal(py_Name name) { return py_getdict(pk_current_vm->main, name)
 
 void py_setglobal(py_Name name, py_Ref val) { py_setdict(pk_current_vm->main, name, val); }
 
-py_Ref py_newmodule(const char* path) {
-    ManagedHeap* heap = &pk_current_vm->heap;
+static void py_ModuleInfo__dtor(py_ModuleInfo* mi) {
+    c11_string__delete(mi->name);
+    c11_string__delete(mi->package);
+    c11_string__delete(mi->path);
+}
 
+static bool module__name__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_ModuleInfo* mi = py_touserdata(argv);
+    py_newstrv(py_retval(), c11_string__sv(mi->name));
+    return true;
+}
+
+static bool module__package__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_ModuleInfo* mi = py_touserdata(argv);
+    py_newstrv(py_retval(), c11_string__sv(mi->package));
+    return true;
+}
+
+static bool module__path__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_ModuleInfo* mi = py_touserdata(argv);
+    py_newstrv(py_retval(), c11_string__sv(mi->path));
+    return true;
+}
+
+py_Type pk_module__register() {
+    py_Type type = pk_newtype("module", tp_object, NULL, (py_Dtor)py_ModuleInfo__dtor, false, true);
+    py_bindproperty(type, "__name__", module__name__, NULL);
+    py_bindproperty(type, "__package__", module__package__, NULL);
+    py_bindproperty(type, "__path__", module__path__, NULL);
+    return type;
+}
+
+py_Ref py_newmodule(const char* path) {
     int path_len = strlen(path);
     if(path_len > PK_MAX_MODULE_PATH_LEN) c11__abort("module path too long: %s", path);
     if(path_len == 0) c11__abort("module path cannot be empty");
 
-    py_Ref r0 = py_pushtmp();
-    py_Ref r1 = py_pushtmp();
-
-    *r0 = (py_TValue){
-        .type = tp_module,
-        .is_ptr = true,
-        ._obj = ManagedHeap__new(heap, tp_module, -1, 0),
-    };
+    py_ModuleInfo* mi = py_newobject(py_retval(), tp_module, -1, sizeof(py_ModuleInfo));
 
     int last_dot = c11_sv__rindex((c11_sv){path, path_len}, '.');
     if(last_dot == -1) {
-        py_newstr(r1, path);
-        py_setdict(r0, __name__, r1);
-        py_newstr(r1, "");
-        py_setdict(r0, __package__, r1);
+        mi->name = c11_string__new(path);
+        mi->package = c11_string__new("");
     } else {
         const char* start = path + last_dot + 1;
-        py_newstr(r1, start);
-        py_setdict(r0, __name__, r1);
-        py_newstrv(r1, (c11_sv){path, last_dot});
-        py_setdict(r0, __package__, r1);
+        mi->name = c11_string__new(start);
+        mi->package = c11_string__new2(path, last_dot);
     }
 
-    py_newstr(r1, path);
-    py_setdict(r0, __path__, r1);
+    mi->path = c11_string__new(path);
+    path = mi->path->data;
 
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
     bool exists = BinTree__contains(&pk_current_vm->modules, (void*)path);
     if(exists) c11__abort("module '%s' already exists", path);
 
-    // convert to a weak (const char*)
-    path = py_tostr(py_getdict(r0, __path__));
-    BinTree__set(&pk_current_vm->modules, c11_strdup(path), r0);
-
-    py_shrink(2);
+    BinTree__set(&pk_current_vm->modules, (void*)path, py_retval());
     return py_getmodule(path);
 }
 
@@ -84,8 +102,8 @@ int py_import(const char* path_cstr) {
         c11_sv top_filename = c11_string__sv(vm->top_frame->co->src->filename);
         int is_init = c11_sv__endswith(top_filename, (c11_sv){"__init__.py", 11});
 
-        py_Ref package = py_getdict(vm->top_frame->module, __path__);
-        c11_sv package_sv = py_tosv(package);
+        py_ModuleInfo* mi = py_touserdata(vm->top_frame->module);
+        c11_sv package_sv = c11_string__sv(mi->path);
         if(package_sv.size == 0) {
             return ImportError("attempted relative import with no known parent package");
         }
@@ -165,7 +183,8 @@ __SUCCESS:
 
 bool py_importlib_reload(py_GlobalRef module) {
     VM* vm = pk_current_vm;
-    c11_sv path = py_tosv(py_getdict(module, __path__));
+    py_ModuleInfo* mi = py_touserdata(module);
+    c11_sv path = c11_string__sv(mi->path);
     c11_string* slashed_path = c11_sv__replace(path, '.', PK_PLATFORM_SEP);
     c11_string* filename = c11_string__new3("%s.py", slashed_path->data);
     char* data = vm->callbacks.importfile(filename->data);
@@ -176,6 +195,7 @@ bool py_importlib_reload(py_GlobalRef module) {
     }
     c11_string__delete(slashed_path);
     if(data == NULL) return ImportError("module '%v' not found", path);
+    py_cleardict(module);
     bool ok = py_exec(data, filename->data, RELOAD_MODE, module);
     c11_string__delete(filename);
     PK_FREE(data);

@@ -50,7 +50,7 @@ void VM__ctor(VM* self) {
 
     const static BinTreeConfig modules_config = {
         .f_cmp = BinTree__cmp_cstr,
-        .need_free_key = true,
+        .need_free_key = false,
     };
     BinTree__ctor(&self->modules, c11_strdup(""), py_NIL(), &modules_config);
     c11_vector__ctor(&self->types, sizeof(TypePointer));
@@ -114,7 +114,7 @@ void VM__ctor(VM* self) {
     validate(tp_slice, pk_slice__register());
     validate(tp_range, pk_range__register());
     validate(tp_range_iterator, pk_range_iterator__register());
-    validate(tp_module, pk_newtype("module", tp_object, NULL, NULL, false, true));
+    validate(tp_module, pk_module__register());
 
     validate(tp_function, pk_function__register());
     validate(tp_nativefunc, pk_nativefunc__register());
