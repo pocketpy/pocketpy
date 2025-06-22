@@ -45,6 +45,12 @@ const char* py_tpname(py_Type type) {
 }
 
 py_TypeInfo* pk_typeinfo(py_Type type) {
+#ifndef NDEBUG
+    int length = pk_current_vm->types.length;
+    if(type < 0 || type >= length) {
+        c11__abort("type index %d is out of bounds [0, %d)", type, length);
+    }
+#endif
     return c11__getitem(TypePointer, &pk_current_vm->types, type).ti;
 }
 
