@@ -203,6 +203,11 @@ void pk_vsprintf(c11_sbuf* ss, const char* fmt, va_list args) {
                 c11_sbuf__write_quoted(ss, sv, '\'');
                 break;
             }
+            case 'Q': {
+                c11_sv sv = va_arg(args, c11_sv);
+                c11_sbuf__write_quoted(ss, sv, '"');
+                break;
+            }
             case 'v': {
                 c11_sv sv = va_arg(args, c11_sv);
                 c11_sbuf__write_sv(ss, sv);
