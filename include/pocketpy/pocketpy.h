@@ -201,6 +201,8 @@ PK_API py_GlobalRef py_NIL();
 
 /// Create an `int` object.
 PK_API void py_newint(py_OutRef, py_i64);
+/// Create a trivial value object.
+PK_API void py_newtrivial(py_OutRef out, py_Type type, py_i64 data);
 /// Create a `float` object.
 PK_API void py_newfloat(py_OutRef, py_f64);
 /// Create a `bool` object.
@@ -282,6 +284,8 @@ PK_API void* py_newobject(py_OutRef out, py_Type type, int slots, int udsize);
 
 /// Convert an `int` object in python to `int64_t`.
 PK_API py_i64 py_toint(py_Ref);
+/// Convert a trivial value object in python to `int64_t`.
+PK_API py_i64 py_totrivial(py_Ref);
 /// Convert a `float` object in python to `double`.
 PK_API py_f64 py_tofloat(py_Ref);
 /// Cast a `int` or `float` object in python to `double`.
@@ -389,6 +393,7 @@ PK_API void py_setglobal(py_Name name, py_Ref val);
 PK_API py_ItemRef py_getbuiltin(py_Name name);
 
 /// Get the last return value.
+/// Please note that `py_retval()` cannot be used as input argument.
 PK_API py_GlobalRef py_retval();
 
 /// Get an item from the object's `__dict__`.

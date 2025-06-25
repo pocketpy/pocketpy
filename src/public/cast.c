@@ -9,6 +9,8 @@ int64_t py_toint(py_Ref self) {
     return self->_i64;
 }
 
+py_i64 py_totrivial(py_Ref self) { return self->_i64; }
+
 double py_tofloat(py_Ref self) {
     assert(self->type == tp_float);
     return self->_f64;
