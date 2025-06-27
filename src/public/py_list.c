@@ -3,6 +3,7 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/interpreter/types.h"
+#include "pocketpy/objects/iterator.h"
 #include "pocketpy/common/sstream.h"
 
 void py_newlist(py_OutRef out) {
@@ -394,7 +395,11 @@ static bool list_sort(int argc, py_Ref argv) {
 
 static bool list__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    return pk_arrayiter(argv);
+    list_iterator* ud = py_newobject(py_retval(), tp_list_iterator, 1, sizeof(list_iterator));
+    ud->vec = py_touserdata(argv);
+    ud->index = 0;
+    py_setslot(py_retval(), 0, argv);  // keep a reference to the object
+    return true;
 }
 
 static bool list__contains__(int argc, py_Ref argv) {

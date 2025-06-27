@@ -3,6 +3,7 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/objects/object.h"
+#include "pocketpy/objects/iterator.h"
 #include "pocketpy/interpreter/vm.h"
 
 py_ObjectRef py_newtuple(py_OutRef out, int n) {
@@ -144,7 +145,12 @@ static bool tuple__lt__(int argc, py_Ref argv) {
 
 static bool tuple__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    return pk_arrayiter(argv);
+    tuple_iterator* ud = py_newobject(py_retval(), tp_tuple_iterator, 1, sizeof(tuple_iterator));
+    ud->p = py_tuple_data(argv);
+    ud->length = py_tuple_len(argv);
+    ud->index = 0;
+    py_setslot(py_retval(), 0, argv);  // keep a reference to the object
+    return true;
 }
 
 static bool tuple__contains__(int argc, py_Ref argv) {

@@ -762,7 +762,8 @@ enum py_PredefinedType {
     tp_str_iterator,
     tp_list,   // c11_vector
     tp_tuple,  // N slots
-    tp_array_iterator,
+    tp_list_iterator,   // 1 slot
+    tp_tuple_iterator,  // 1 slot
     tp_slice,  // 3 slots (start, stop, step)
     tp_range,
     tp_range_iterator,

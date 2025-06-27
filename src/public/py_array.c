@@ -1,12 +1,7 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/objects/object.h"
+#include "pocketpy/objects/iterator.h"
 #include "pocketpy/interpreter/vm.h"
-
-typedef struct array_iterator {
-    py_TValue* p;
-    int length;
-    int index;
-} array_iterator;
 
 int pk_arrayview(py_Ref self, py_TValue** p) {
     if(self->type == tp_list) {
@@ -46,18 +41,6 @@ bool pk_wrapper__arrayequal(py_Type type, int argc, py_Ref argv) {
     return true;
 }
 
-bool pk_arrayiter(py_Ref val) {
-    py_TValue* p;
-    int length = pk_arrayview(val, &p);
-    if(length == -1) return TypeError("expected list or tuple, got %t", val->type);
-    array_iterator* ud = py_newobject(py_retval(), tp_array_iterator, 1, sizeof(array_iterator));
-    ud->p = p;
-    ud->length = length;
-    ud->index = 0;
-    py_setslot(py_retval(), 0, val);  // keep a reference to the object
-    return true;
-}
-
 bool pk_arraycontains(py_Ref self, py_Ref val) {
     py_TValue* p;
     int length = pk_arrayview(self, &p);
@@ -74,25 +57,39 @@ bool pk_arraycontains(py_Ref self, py_Ref val) {
     return true;
 }
 
-static bool array_iterator__iter__(int argc, py_Ref argv) {
+static bool list_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    *py_retval() = *argv;
-    return true;
-}
-
-static bool array_iterator__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    array_iterator* ud = py_touserdata(argv);
-    if(ud->index < ud->length) {
-        *py_retval() = ud->p[ud->index++];
+    list_iterator* ud = py_touserdata(argv);
+    if(ud->index < ud->vec->length) {
+        py_TValue* res = c11__at(py_TValue, ud->vec, ud->index);
+        py_assign(py_retval(), res);
+        ud->index++;
         return true;
     }
     return StopIteration();
 }
 
-py_Type pk_array_iterator__register() {
-    py_Type type = pk_newtype("array_iterator", tp_object, NULL, NULL, false, true);
-    py_bindmagic(type, __iter__, array_iterator__iter__);
-    py_bindmagic(type, __next__, array_iterator__next__);
+static bool tuple_iterator__next__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    tuple_iterator* ud = py_touserdata(argv);
+    if(ud->index < ud->length) {
+        py_assign(py_retval(), ud->p + ud->index);
+        ud->index++;
+        return true;
+    }
+    return StopIteration();
+}
+
+py_Type pk_list_iterator__register() {
+    py_Type type = pk_newtype("list_iterator", tp_object, NULL, NULL, false, true);
+    py_bindmagic(type, __iter__, pk_wrapper__self);
+    py_bindmagic(type, __next__, list_iterator__next__);
+    return type;
+}
+
+py_Type pk_tuple_iterator__register() {
+    py_Type type = pk_newtype("tuple_iterator", tp_object, NULL, NULL, false, true);
+    py_bindmagic(type, __iter__, pk_wrapper__self);
+    py_bindmagic(type, __next__, tuple_iterator__next__);
     return type;
 }

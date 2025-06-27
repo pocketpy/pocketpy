@@ -109,7 +109,8 @@ void VM__ctor(VM* self) {
 
     validate(tp_list, pk_list__register());
     validate(tp_tuple, pk_tuple__register());
-    validate(tp_array_iterator, pk_array_iterator__register());
+    validate(tp_list_iterator, pk_list_iterator__register());
+    validate(tp_tuple_iterator, pk_tuple_iterator__register());
 
     validate(tp_slice, pk_slice__register());
     validate(tp_range, pk_range__register());

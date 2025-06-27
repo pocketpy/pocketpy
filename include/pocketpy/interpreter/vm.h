@@ -113,7 +113,6 @@ const char* pk_opname(Opcode op);
 
 int pk_arrayview(py_Ref self, py_TValue** p);
 bool pk_wrapper__arrayequal(py_Type type, int argc, py_Ref argv);
-bool pk_arrayiter(py_Ref val);
 bool pk_arraycontains(py_Ref self, py_Ref val);
 
 bool pk_loadmethod(py_StackRef self, py_Name name);
@@ -139,7 +138,8 @@ py_Type pk_dict__register();
 py_Type pk_dict_items__register();
 py_Type pk_list__register();
 py_Type pk_tuple__register();
-py_Type pk_array_iterator__register();
+py_Type pk_list_iterator__register();
+py_Type pk_tuple_iterator__register();
 py_Type pk_slice__register();
 py_Type pk_function__register();
 py_Type pk_nativefunc__register();
