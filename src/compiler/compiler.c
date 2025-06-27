@@ -28,6 +28,7 @@ typedef struct ExprVt {
     bool is_subscr;   // SubscrExpr
     bool is_starred;  // StarredExpr
     bool is_binary;   // BinaryExpr
+    bool is_ternary;  // TernaryExpr
     void (*dtor)(Expr*);
 } ExprVt;
 
@@ -873,7 +874,11 @@ void TernaryExpr__emit_(Expr* self_, Ctx* ctx) {
 }
 
 TernaryExpr* TernaryExpr__new(int line) {
-    const static ExprVt Vt = {.dtor = TernaryExpr__dtor, .emit_ = TernaryExpr__emit_};
+    const static ExprVt Vt = {
+        .dtor = TernaryExpr__dtor,
+        .emit_ = TernaryExpr__emit_,
+        .is_ternary = true,
+    };
     TernaryExpr* self = PK_MALLOC(sizeof(TernaryExpr));
     self->vt = &Vt;
     self->line = line;
@@ -1681,6 +1686,10 @@ static Error* exprTernary(Compiler* self) {
     e->cond = Ctx__s_popx(ctx());
     e->true_expr = Ctx__s_popx(ctx());
     Ctx__s_push(ctx(), (Expr*)e);
+
+    if(e->cond->vt->is_ternary || e->false_expr->vt->is_ternary || e->true_expr->vt->is_ternary) {
+        return SyntaxError(self, "nested ternary expressions without `()` are ambiguous");
+    }
     return NULL;
 }
 
