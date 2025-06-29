@@ -61,7 +61,7 @@ static uint32_t Dict__next_cap(uint32_t cap) {
     }
 }
 
-static uint64_t Dict__hash(uint64_t key) {
+static uint64_t Dict__hash_2nd(uint64_t key) {
     // https://gist.github.com/badboy/6267743
     key = (~key) + (key << 21);  // key = (key << 21) - key - 1
     key = key ^ (key >> 24);
@@ -143,7 +143,11 @@ static bool Dict__probe(Dict* self,
                         DictEntry** p_entry) {
     py_i64 h_user;
     if(!py_hash(key, &h_user)) return false;
-    *p_hash = Dict__hash((uint64_t)h_user);
+    if(py_isstr(key)) {
+        *p_hash = (uint64_t)h_user;
+    } else {
+        *p_hash = Dict__hash_2nd((uint64_t)h_user);
+    }
     uint32_t mask = self->capacity - 1;
     uint32_t idx = (*p_hash) % self->capacity;
     while(true) {

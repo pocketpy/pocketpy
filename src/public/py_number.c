@@ -245,24 +245,6 @@ static bool float__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-union c11_8bytes {
-    py_i64 _i64;
-    py_f64 _f64;
-
-    union {
-        uint32_t upper;
-        uint32_t lower;
-    } bits;
-};
-
-static py_i64 c11_8bytes__hash(union c11_8bytes u) {
-    // https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
-    const uint32_t C = 2654435761;
-    u.bits.upper *= C;
-    u.bits.lower *= C;
-    return u._i64;
-}
-
 static bool int__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_assign(py_retval(), argv);
@@ -272,8 +254,9 @@ static bool int__hash__(int argc, py_Ref argv) {
 static bool float__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 val = py_tofloat(&argv[0]);
-    union c11_8bytes u = {._f64 = val};
-    py_newint(py_retval(), c11_8bytes__hash(u));
+    py_i64 h_user;
+    memcpy(&h_user, &val, sizeof(py_f64));
+    py_newint(py_retval(), h_user);
     return true;
 }
 
