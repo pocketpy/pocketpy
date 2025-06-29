@@ -30,6 +30,12 @@ static bool stack_format_object(VM* self, c11_sv spec);
         goto __NEXT_STEP;                                                                          \
     } while(0)
 
+#define RESET_CO_CACHE()                                                                           \
+    do {                                                                                           \
+        co_codes = frame->co->codes.data;                                                          \
+        co_names = frame->co->names.data;                                                          \
+    } while(0)
+
 /* Stack manipulation macros */
 // https://github.com/python/cpython/blob/3.9/Python/ceval.c#L1123
 #define TOP() (self->stack.sp - 1)
@@ -92,9 +98,7 @@ FrameResult VM__run_top_frame(VM* self) {
             py_exception(tp_RecursionError, "maximum recursion depth exceeded");
             goto __ERROR;
         }
-        // NOTE: remember to change another occurrence after __ERROR_RE_RAISE:
-        co_codes = frame->co->codes.data;
-        co_names = frame->co->names.data;
+        RESET_CO_CACHE();
         frame->ip++;
 
     __NEXT_STEP:
@@ -1239,8 +1243,7 @@ FrameResult VM__run_top_frame(VM* self) {
                 return RES_ERROR;
             }
             frame = self->top_frame;
-            co_codes = frame->co->codes.data;
-            co_names = frame->co->names.data;
+            RESET_CO_CACHE();
             goto __ERROR;
         }
     }
@@ -1522,6 +1525,7 @@ static bool stack_format_object(VM* self, c11_sv spec) {
 #undef SP
 #undef INSERT_THIRD
 #undef vectorcall_opcall
+#undef RESET_CO_CACHE
 
 void py_sys_settrace(py_TraceFunc func, bool reset) {
     TraceInfo* info = &pk_current_vm->trace_info;
