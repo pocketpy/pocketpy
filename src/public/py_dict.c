@@ -251,7 +251,7 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
     self->length++;
     // check if we need to rehash
     float load_factor = (float)self->length / self->capacity;
-    if(load_factor > 0.572) Dict__rehash_2x(self);
+    if(load_factor > 0.3) Dict__rehash_2x(self);
     return true;
 }
 
@@ -338,13 +338,13 @@ static bool dict__new__(int argc, py_Ref argv) {
     py_Type cls = py_totype(argv);
     int slots = cls == tp_dict ? 0 : -1;
     Dict* ud = py_newobject(py_retval(), cls, slots, sizeof(Dict));
-    Dict__ctor(ud, 7, 4);
+    Dict__ctor(ud, 17, 4);
     return true;
 }
 
 void py_newdict(py_OutRef out) {
     Dict* ud = py_newobject(out, tp_dict, 0, sizeof(Dict));
-    Dict__ctor(ud, 7, 4);
+    Dict__ctor(ud, 17, 4);
 }
 
 static bool dict__init__(int argc, py_Ref argv) {
