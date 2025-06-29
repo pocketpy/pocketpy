@@ -178,7 +178,7 @@ bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
     return VM__vectorcall(pk_current_vm, argc, kwargc, false) != RES_ERROR;
 }
 
-py_Ref py_retval() { return &pk_current_vm->last_retval; }
+PK_INLINE py_Ref py_retval() { return &pk_current_vm->last_retval; }
 
 bool py_pushmethod(py_Name name) {
     bool ok = pk_loadmethod(py_peek(-1), name);

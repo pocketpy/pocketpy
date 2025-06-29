@@ -92,7 +92,6 @@ bool pk__parse_int_slice(py_Ref slice,
 bool pk__normalize_index(int* index, int length);
 
 bool pk__object_new(int argc, py_Ref argv);
-py_TypeInfo* pk_typeinfo(py_Type type);
 
 bool pk_wrapper__self(int argc, py_Ref argv);
 

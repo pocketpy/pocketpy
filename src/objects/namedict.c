@@ -6,6 +6,18 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#define HASH_PROBE_0(__k, ok, i)                                                                   \
+    ok = false;                                                                                    \
+    i = (uintptr_t)(__k)&self->mask;                                                               \
+    do {                                                                                           \
+        if(self->items[i].key == (__k)) {                                                          \
+            ok = true;                                                                             \
+            break;                                                                                 \
+        }                                                                                          \
+        if(self->items[i].key == NULL) break;                                                      \
+        i = (5 * i + 1) & self->mask;                                                              \
+    } while(true);
+
 #define HASH_PROBE_1(__k, ok, i)                                                                   \
     ok = false;                                                                                    \
     i = (uintptr_t)(__k)&self->mask;                                                               \
@@ -16,8 +28,6 @@
         }                                                                                          \
         i = (5 * i + 1) & self->mask;                                                              \
     }
-
-#define HASH_PROBE_0 HASH_PROBE_1
 
 static void NameDict__set_capacity_and_alloc_items(NameDict* self, int val) {
     self->capacity = val;

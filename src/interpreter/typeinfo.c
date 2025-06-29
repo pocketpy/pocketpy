@@ -10,17 +10,17 @@ py_ItemRef pk_tpfindname(py_TypeInfo* ti, py_Name name) {
     return NULL;
 }
 
-py_ItemRef py_tpfindname(py_Type type, py_Name name) {
+PK_INLINE py_ItemRef py_tpfindname(py_Type type, py_Name name) {
     py_TypeInfo* ti = pk_typeinfo(type);
     return pk_tpfindname(ti, name);
 }
 
-py_Ref py_tpfindmagic(py_Type t, py_Name name) {
+PK_INLINE py_Ref py_tpfindmagic(py_Type t, py_Name name) {
     // assert(py_ismagicname(name));
     return py_tpfindname(t, name);
 }
 
-py_Type py_tpbase(py_Type t) {
+PK_INLINE py_Type py_tpbase(py_Type t) {
     assert(t);
     py_TypeInfo* ti = pk_typeinfo(t);
     return ti->base;
@@ -44,7 +44,7 @@ const char* py_tpname(py_Type type) {
     return py_name2str(name);
 }
 
-py_TypeInfo* pk_typeinfo(py_Type type) {
+PK_INLINE py_TypeInfo* pk_typeinfo(py_Type type) {
 #ifndef NDEBUG
     int length = pk_current_vm->types.length;
     if(type < 0 || type >= length) {
