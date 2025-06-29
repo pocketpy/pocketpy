@@ -800,7 +800,7 @@ static void register_array2d_like(py_Ref mod) {
     }
 }
 
-static bool array2d_like_iterator__next__(int argc, py_Ref argv) {
+bool array2d_like_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_array2d_like_iterator* self = py_touserdata(argv);
     if(self->j >= self->array->n_rows) return StopIteration();

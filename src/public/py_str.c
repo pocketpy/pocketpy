@@ -513,7 +513,7 @@ py_Type pk_str__register() {
     return type;
 }
 
-static bool str_iterator__next__(int argc, py_Ref argv) {
+bool str_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int* ud = py_touserdata(&argv[0]);
     int size;

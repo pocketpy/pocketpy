@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/typeinfo.h"
+#include "pocketpy/interpreter/bindings.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
@@ -77,12 +78,39 @@ bool py_iter(py_Ref val) {
 
 int py_next(py_Ref val) {
     VM* vm = pk_current_vm;
-    py_Ref tmp = py_tpfindmagic(val->type, __next__);
-    if(!tmp) {
-        TypeError("'%t' object is not an iterator", val->type);
-        return -1;
+
+    switch(val->type) {
+        case tp_generator:
+            if(generator__next__(1, val)) return 1;
+            break;
+        case tp_array2d_like_iterator:
+            if(array2d_like_iterator__next__(1, val)) return 1;
+            break;
+        case tp_list_iterator:
+            if(list_iterator__next__(1, val)) return 1;
+            break;
+        case tp_tuple_iterator:
+            if(tuple_iterator__next__(1, val)) return 1;
+            break;
+        case tp_dict_iterator:
+            if(dict_items__next__(1, val)) return 1;
+            break;
+        case tp_range_iterator:
+            if(range_iterator__next__(1, val)) return 1;
+            break;
+        case tp_str_iterator:
+            if(str_iterator__next__(1, val)) return 1;
+            break;
+        default: {
+            py_Ref tmp = py_tpfindmagic(val->type, __next__);
+            if(!tmp) {
+                TypeError("'%t' object is not an iterator", val->type);
+                return -1;
+            }
+            if(py_call(tmp, 1, val)) return 1;
+            break;
+        }
     }
-    if(py_call(tmp, 1, val)) return 1;
     if(vm->curr_exception.type == tp_StopIteration) {
         vm->last_retval = vm->curr_exception;
         py_clearexc(NULL);

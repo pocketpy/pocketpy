@@ -57,7 +57,7 @@ bool pk_arraycontains(py_Ref self, py_Ref val) {
     return true;
 }
 
-static bool list_iterator__next__(int argc, py_Ref argv) {
+bool list_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     list_iterator* ud = py_touserdata(argv);
     if(ud->index < ud->vec->length) {
@@ -69,7 +69,7 @@ static bool list_iterator__next__(int argc, py_Ref argv) {
     return StopIteration();
 }
 
-static bool tuple_iterator__next__(int argc, py_Ref argv) {
+bool tuple_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     tuple_iterator* ud = py_touserdata(argv);
     if(ud->index < ud->length) {

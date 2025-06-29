@@ -610,7 +610,7 @@ py_Type pk_dict__register() {
 }
 
 //////////////////////////
-static bool dict_items__next__(int argc, py_Ref argv) {
+bool dict_items__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     DictIterator* iter = py_touserdata(py_arg(0));
     if(DictIterator__modified(iter)) return RuntimeError("dictionary modified during iteration");
