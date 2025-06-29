@@ -12,9 +12,9 @@ typedef struct {
 typedef struct {
     int length;
     uint32_t capacity;
-    void* indices;
-    bool index_is_short;
     uint32_t null_index_value;
+    bool index_is_short;
+    void* indices;
     c11_vector /*T=DictEntry*/ entries;
 } Dict;
 
