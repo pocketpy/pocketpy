@@ -228,7 +228,7 @@ static void Dict__compact_entries(Dict* self) {
     }
     self->entries.length = n;
     // update indices
-    for(int idx = 0; idx < self->capacity; idx++) {
+    for(uint32_t idx = 0; idx < self->capacity; idx++) {
         uint32_t idx2 = Dict__get_index(self, idx);
         if(idx2 == self->null_index_value) continue;
         Dict__set_index(self, idx, mappings[idx2]);
