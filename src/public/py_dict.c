@@ -251,7 +251,7 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
     self->length++;
     // check if we need to rehash
     float load_factor = (float)self->length / self->capacity;
-    if(load_factor > 0.3) Dict__rehash_2x(self);
+    if(load_factor > (self->index_is_short ? 0.3f : 0.4f)) Dict__rehash_2x(self);
     return true;
 }
 
