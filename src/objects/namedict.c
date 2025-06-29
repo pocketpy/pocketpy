@@ -14,7 +14,7 @@
             ok = true;                                                                             \
             break;                                                                                 \
         }                                                                                          \
-        i = (i + 1) & self->mask;                                                                  \
+        i = (5 * i + 1) & self->mask;                                                              \
     }
 
 #define HASH_PROBE_0 HASH_PROBE_1
@@ -105,7 +105,7 @@ bool NameDict__del(NameDict* self, py_Name key) {
     uint32_t posToRemove = i;
     uint32_t posToShift = posToRemove;
     while(true) {
-        posToShift = (posToShift + 1) & self->mask;
+        posToShift = (5 * posToShift + 1) & self->mask;
         if(self->items[posToShift].key == NULL) break;
         uintptr_t hash_z = (uintptr_t)self->items[posToShift].key;
         uintptr_t insertPos = hash_z & self->mask;
