@@ -49,6 +49,10 @@ if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
 endif()
 
+if(PK_ENABLE_THREADS)
+    add_definitions(-DPK_ENABLE_THREADS=1)
+endif()
+
 if(PK_ENABLE_DETERMINISM)
     add_subdirectory(3rd/dmath/dmath)
     add_definitions(-DPK_ENABLE_DETERMINISM=1)
@@ -104,8 +108,10 @@ if(PK_ENABLE_DETERMINISM)
     endif()
 endif()
 
-find_package(Threads REQUIRED)
-target_link_libraries(${PROJECT_NAME} Threads::Threads)
+if(PK_ENABLE_THREADS)
+    find_package(Threads REQUIRED)
+    target_link_libraries(${PROJECT_NAME} Threads::Threads)
+endif()
 
 if(UNIX AND NOT APPLE)
     if(NOT PK_ENABLE_DETERMINISM)

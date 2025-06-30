@@ -7,9 +7,12 @@
 #define PK_VERSION_PATCH            0
 
 /*************** feature settings ***************/
-// Whether to compile os-related modules or not
 #ifndef PK_ENABLE_OS                // can be overridden by cmake
 #define PK_ENABLE_OS                1
+#endif
+
+#ifndef PK_ENABLE_THREADS           // can be overridden by cmake
+#define PK_ENABLE_THREADS           1
 #endif
 
 #ifndef PK_ENABLE_DETERMINISM       // must be enabled from cmake

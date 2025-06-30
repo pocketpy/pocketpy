@@ -2,9 +2,8 @@
 
 #include "pocketpy/common/name.h"
 #include "pocketpy/common/str.h"
-#include "pocketpy/common/threads.h"
 #include "pocketpy/pocketpy.h"
-#include <stdatomic.h>
+#include "pocketpy/common/threads.h"
 
 typedef struct NameBucket NameBucket;
 
@@ -17,7 +16,9 @@ typedef struct NameBucket {
 
 static struct {
     NameBucket* table[0x10000];
+#if PK_ENABLE_THREADS
     atomic_flag lock;
+#endif
 } pk_string_table;
 
 #define MAGIC_METHOD(x) py_Name x;
@@ -43,9 +44,11 @@ void pk_names_finalize() {
 }
 
 py_Name py_namev(c11_sv name) {
+#if PK_ENABLE_THREADS
     while(atomic_flag_test_and_set(&pk_string_table.lock)) {
         c11_thrd_yield();
     }
+#endif
     uint64_t hash = c11_sv__hash(name);
     int index = hash & 0xFFFF;
     NameBucket* p = pk_string_table.table[index];
@@ -61,7 +64,9 @@ py_Name py_namev(c11_sv name) {
         p = p->next;
     }
     if(found) {
+#if PK_ENABLE_THREADS
         atomic_flag_clear(&pk_string_table.lock);
+#endif
         return (py_Name)p;
     }
 
@@ -78,7 +83,9 @@ py_Name py_namev(c11_sv name) {
         assert(prev->next == NULL);
         prev->next = bucket;
     }
+#if PK_ENABLE_THREADS
     atomic_flag_clear(&pk_string_table.lock);
+#endif
     return (py_Name)bucket;
 }
 
