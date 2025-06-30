@@ -5,13 +5,18 @@
 
 #define kPoolArenaSize (120 * 1024)
 #define kMultiPoolCount 5
-#define kPoolMaxBlockSize (32*kMultiPoolCount)
+#define kPoolMaxBlockSize (32 * kMultiPoolCount)
 
 typedef struct PoolArena {
     int block_size;
     int block_count;
     int unused_length;
-    char data[kPoolArenaSize];
+
+    union {
+        char data[kPoolArenaSize];
+        int64_t _align64;
+    };
+
     int unused[];
 } PoolArena;
 
