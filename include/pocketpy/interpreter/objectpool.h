@@ -11,8 +11,8 @@ typedef struct PoolArena {
     int block_size;
     int block_count;
     int unused_length;
-    int* unused;
     char data[kPoolArenaSize];
+    int unused[];
 } PoolArena;
 
 typedef struct Pool {
