@@ -47,23 +47,33 @@ file(GLOB_RECURSE POCKETPY_SRC ${CMAKE_CURRENT_LIST_DIR}/src/*.c)
 
 if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
+else()
+    add_definitions(-DPK_ENABLE_OS=0)
 endif()
 
 if(PK_ENABLE_THREADS)
     add_definitions(-DPK_ENABLE_THREADS=1)
+else()
+    add_definitions(-DPK_ENABLE_THREADS=0)
 endif()
 
 if(PK_ENABLE_DETERMINISM)
     add_subdirectory(3rd/dmath/dmath)
     add_definitions(-DPK_ENABLE_DETERMINISM=1)
+else()
+    add_definitions(-DPK_ENABLE_DETERMINISM=0)
 endif()
 
 if(PK_ENABLE_WATCHDOG)
     add_definitions(-DPK_ENABLE_WATCHDOG=1)
+else()
+    add_definitions(-DPK_ENABLE_WATCHDOG=0)
 endif()
 
 if(PK_ENABLE_CUSTOM_SNAME)
     add_definitions(-DPK_ENABLE_CUSTOM_SNAME=1)
+else()
+    add_definitions(-DPK_ENABLE_CUSTOM_SNAME=0)
 endif()
 
 
