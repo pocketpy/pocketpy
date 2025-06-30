@@ -6,8 +6,8 @@ else()
 endif()
 
 # system features
-option(PK_ENABLE_OS "" OFF)
-option(PK_ENABLE_THREADS "" OFF)
+option(PK_ENABLE_OS "" ON)
+option(PK_ENABLE_THREADS "" ON)
 option(PK_ENABLE_DETERMINISM "" OFF)
 option(PK_ENABLE_WATCHDOG "" OFF)
 option(PK_ENABLE_CUSTOM_SNAME "" OFF)

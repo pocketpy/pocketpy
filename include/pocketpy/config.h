@@ -84,3 +84,9 @@
         #define restrict
     #endif
 #endif
+
+#if PK_ENABLE_THREADS
+    #define PK_THREAD_LOCAL _Thread_local
+#else
+    #define PK_THREAD_LOCAL
+#endif

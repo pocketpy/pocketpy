@@ -20,7 +20,7 @@ assert config in ['Debug', 'Release', 'RelWithDebInfo']
 
 os.chdir("build")
 
-code = os.system(f"cmake .. -DPK_ENABLE_OS=ON -DPK_ENABLE_THREADS=ON -DPK_ENABLE_DETERMINISM=ON -DCMAKE_BUILD_TYPE={config} {extra_flags}")
+code = os.system(f"cmake .. -DPK_ENABLE_DETERMINISM=ON -DCMAKE_BUILD_TYPE={config} {extra_flags}")
 assert code == 0
 code = os.system(f"cmake --build . --config {config} -j 4")
 assert code == 0
