@@ -162,7 +162,7 @@ jobs:
           uses: jirutka/setup-alpine@v1
           with:
             arch: ${{ matrix.arch }}
-            packages: gcc g++ make cmake libc-dev linux-headers python3
+            packages: gcc g++ make cmake libc-dev linux-headers python3 git
         - name: Build and Test
           run: |
             echo "Building for architecture: ${{ matrix.arch }}"
