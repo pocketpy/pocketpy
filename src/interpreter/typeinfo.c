@@ -81,6 +81,10 @@ static void py_TypeInfo__common_init(py_Name name,
     self->is_python = is_python;
     self->is_sealed = is_sealed;
 
+    self->getattribute = NULL;
+    self->setattribute = NULL;
+    self->delattribute = NULL;
+
     self->annotations = *py_NIL();
     self->dtor = dtor;
     self->on_end_subclass = NULL;
@@ -150,4 +154,15 @@ py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, vo
     py_Type type = pk_newtype(name, base, module, dtor, false, false);
     if(module) py_setdict(module, py_name(name), py_tpobject(type));
     return type;
+}
+
+void py_tphookattributes(py_Type type,
+                         bool (*getattribute)(py_Ref self, py_Name name),
+                         bool (*setattribute)(py_Ref self, py_Name name, py_Ref val),
+                         bool (*delattribute)(py_Ref self, py_Name name)) {
+    assert(type);
+    py_TypeInfo* ti = pk_typeinfo(type);
+    ti->getattribute = getattribute;
+    ti->setattribute = setattribute;
+    ti->delattribute = delattribute;
 }

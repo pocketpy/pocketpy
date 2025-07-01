@@ -30,7 +30,10 @@ typedef void (*py_Dtor)(void*);
 
 #ifdef PK_IS_PUBLIC_INCLUDE
 typedef struct py_TValue {
-    int64_t _[2];
+    py_Type type;
+    bool is_ptr;
+    int extra;
+    int64_t _i64;
 } py_TValue;
 #endif
 
@@ -354,6 +357,12 @@ PK_API py_GlobalRef py_tpobject(py_Type type);
 PK_API const char* py_tpname(py_Type type);
 /// Call a type to create a new instance.
 PK_API bool py_tpcall(py_Type type, int argc, py_Ref argv) PY_RAISE PY_RETURN;
+
+/// Set attribute hooks for the given type.
+PK_API void py_tphookattributes(py_Type type,
+                                bool (*getattribute)(py_Ref self, py_Name name),
+                                bool (*setattribute)(py_Ref self, py_Name name, py_Ref val),
+                                bool (*delattribute)(py_Ref self, py_Name name));
 
 /// Check if the object is an instance of the given type exactly.
 /// Raise `TypeError` if the check fails.
@@ -760,11 +769,11 @@ enum py_PredefinedType {
     tp_bool,
     tp_str,
     tp_str_iterator,
-    tp_list,   // c11_vector
-    tp_tuple,  // N slots
+    tp_list,            // c11_vector
+    tp_tuple,           // N slots
     tp_list_iterator,   // 1 slot
     tp_tuple_iterator,  // 1 slot
-    tp_slice,  // 3 slots (start, stop, step)
+    tp_slice,           // 3 slots (start, stop, step)
     tp_range,
     tp_range_iterator,
     tp_module,
