@@ -1,6 +1,5 @@
 #include "pocketpy/common/vector.h"
 
-#include <stdlib.h>
 #include <string.h>
 #include "pocketpy/common/utils.h"
 #include "pocketpy/config.h"

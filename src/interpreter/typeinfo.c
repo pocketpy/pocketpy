@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/vm.h"
+#include <assert.h>
 
 py_ItemRef pk_tpfindname(py_TypeInfo* ti, py_Name name) {
     assert(ti != NULL);

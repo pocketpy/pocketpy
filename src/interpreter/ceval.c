@@ -7,6 +7,7 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/objects/error.h"
 #include <stdbool.h>
+#include <assert.h>
 #include <time.h>
 
 static bool stack_format_object(VM* self, c11_sv spec);

@@ -4,6 +4,7 @@
 #include "pocketpy/common/str.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/common/threads.h"
+#include <assert.h>
 
 typedef struct NameBucket NameBucket;
 

@@ -1,9 +1,6 @@
 #include "pocketpy/common/chunkedvector.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include "pocketpy/common/utils.h"
 #include "pocketpy/config.h"
+#include <assert.h>
 
 #if defined(_MSC_VER)
 #include <intrin.h>

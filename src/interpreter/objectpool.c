@@ -1,12 +1,10 @@
 #include "pocketpy/interpreter/objectpool.h"
 
-#include "pocketpy/config.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 
 #include <assert.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
 
 static PoolArena* PoolArena__new(int block_size) {

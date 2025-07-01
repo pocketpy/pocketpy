@@ -1,6 +1,4 @@
-#include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
-#include <stdlib.h>
 
 static bool traceback_format_exc(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);

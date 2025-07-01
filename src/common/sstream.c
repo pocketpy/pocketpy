@@ -4,8 +4,8 @@
 #include "pocketpy/pocketpy.h"
 
 #include <stdarg.h>
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
 #include <ctype.h>
 #include <math.h>
 

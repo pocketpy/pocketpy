@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
-#include <stdlib.h>
 
 #define HASH_PROBE_0(__k, ok, i)                                                                   \
     ok = false;                                                                                    \

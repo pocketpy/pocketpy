@@ -3,6 +3,7 @@
 #include "pocketpy/interpreter/objectpool.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
+#include <assert.h>
 
 void ManagedHeap__ctor(ManagedHeap* self) {
     MultiPool__ctor(&self->small_objects);

@@ -5,6 +5,7 @@ project(pocketpy)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+include(FetchContent)
 include(CMakeOptions.txt)
 
 if(WIN32)
@@ -76,6 +77,25 @@ else()
     add_definitions(-DPK_ENABLE_CUSTOM_SNAME=0)
 endif()
 
+if(PK_ENABLE_MIMALLOC)
+    message(">> Fetching mimalloc")
+    FetchContent_Declare(
+        mimalloc
+        GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
+        GIT_TAG        v3.1.5
+    )
+
+    set(MI_OVERRIDE OFF CACHE BOOL "" FORCE)
+    set(MI_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(MI_BUILD_STATIC ON CACHE BOOL "" FORCE)
+    set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(mimalloc)
+
+    add_definitions(-DPK_ENABLE_MIMALLOC=1)
+else()
+    add_definitions(-DPK_ENABLE_MIMALLOC=0)
+endif()
+
 
 if(PK_BUILD_MODULE_LZ4)
     add_subdirectory(3rd/lz4)
@@ -86,6 +106,7 @@ if(PK_BUILD_MODULE_LIBHV)
     add_subdirectory(3rd/libhv)
     add_definitions(-DPK_BUILD_MODULE_LIBHV)
 endif()
+
 
 if(PK_BUILD_SHARED_LIB)
     message(">> Building shared library")
@@ -149,4 +170,8 @@ endif()
 
 if(PK_BUILD_MODULE_LIBHV)
     target_link_libraries(${PROJECT_NAME} libhv_bindings)
+endif()
+
+if(PK_ENABLE_MIMALLOC)
+    target_link_libraries(${PROJECT_NAME} mimalloc::mimalloc)
 endif()

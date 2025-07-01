@@ -1,6 +1,5 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/memorypool.h"
-#include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/generator.h"
 #include "pocketpy/interpreter/modules.h"
@@ -10,6 +9,7 @@
 #include "pocketpy/common/_generated.h"
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
+#include <assert.h>
 
 static char* pk_default_importfile(const char* path) {
 #if PK_ENABLE_OS

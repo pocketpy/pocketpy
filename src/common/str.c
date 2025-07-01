@@ -2,11 +2,9 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 
-#include <assert.h>
 #include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
 #include <stdio.h>
+#include <assert.h>
 
 c11_string* c11_string__new(const char* data) { return c11_string__new2(data, strlen(data)); }
 

@@ -1,7 +1,6 @@
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/common/sstream.h"
 #include <ctype.h>
-#include <stdlib.h>
 #include <string.h>
 
 static void SourceData__ctor(struct SourceData* self,
