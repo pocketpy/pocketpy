@@ -85,7 +85,7 @@
 // Memory allocation functions
 #ifndef PK_MALLOC
     #if PK_ENABLE_MIMALLOC
-        #include <mimalloc.h>
+        #include "mimalloc.h"
         #define PK_MALLOC(size)                 mi_malloc(size)
         #define PK_REALLOC(ptr, size)           mi_realloc(ptr, size)
         #define PK_FREE(ptr)                    mi_free(ptr)

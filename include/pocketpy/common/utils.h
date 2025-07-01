@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
 #define PK_REGION(name) 1
