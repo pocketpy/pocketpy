@@ -57,6 +57,9 @@ assert 'aa bb cccc'.split('cc') == ['aa bb ', '', '']
 assert '.a.b.'.split('.') == ['', 'a', 'b', '']
 assert '.a...b.'.split('.') == ['', 'a', '', '', 'b', '']
 
+# https://github.com/pocketpy/pocketpy/issues/378
+assert "a b   \n   c\td".split() == ['a', 'b', 'c', 'd']
+
 try:
     'a'.split('')
     exit(1)

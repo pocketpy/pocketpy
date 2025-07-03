@@ -327,7 +327,7 @@ static bool str_split(int argc, py_Ref argv) {
     if(argc > 2) return TypeError("split() takes at most 2 arguments");
     if(argc == 1) {
         // sep = None
-        res = c11_sv__split(self, ' ');
+        res = c11_sv__splitwhitespace(self);
         discard_empty = true;
     }
     if(argc == 2) {
