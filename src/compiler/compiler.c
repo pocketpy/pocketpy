@@ -2865,13 +2865,14 @@ static Error* compile_stmt(Compiler* self) {
 
             bool is_typed_name = false;  // e.g. x: int
             // eat variable's type hint if it is a single name
-            if(Ctx__s_top(ctx())->vt->is_name) {
+            const ExprVt* top_vt = Ctx__s_top(ctx())->vt;
+            if(top_vt->is_name || top_vt->is_attrib) {
                 if(match(TK_COLON)) {
                     c11_sv type_hint;
                     check(consume_type_hints_sv(self, &type_hint));
                     is_typed_name = true;
 
-                    if(ctx()->is_compiling_class) {
+                    if(ctx()->is_compiling_class && top_vt->is_name) {
                         NameExpr* ne = (NameExpr*)Ctx__s_top(ctx());
                         int index = Ctx__add_const_string(ctx(), type_hint);
                         Ctx__emit_(ctx(), OP_LOAD_CONST, index, BC_KEEPLINE);
