@@ -1,6 +1,9 @@
 #pragma once
 
+#include "pocketpy/config.h"
 #include <stdint.h>
+
+#if PK_ENABLE_OS
 
 typedef void* c11_socket_handler;
 
@@ -23,3 +26,5 @@ int c11_socket_close(c11_socket_handler socket);
 int c11_socket_set_block(c11_socket_handler socket, int flag);
 c11_socket_handler c11_socket_invalid_socket_handler();
 int c11_socket_get_last_error();
+
+#endif // PK_ENABLE_OS
