@@ -5,7 +5,6 @@ project(pocketpy)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-include(FetchContent)
 include(CMakeOptions.txt)
 
 if(WIN32)
@@ -78,6 +77,8 @@ endif()
 
 if(PK_ENABLE_MIMALLOC)
     message(">> Fetching mimalloc")
+    include(FetchContent)
+    
     FetchContent_Declare(
         mimalloc
         GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
