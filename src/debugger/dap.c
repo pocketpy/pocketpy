@@ -54,10 +54,14 @@ void c11_dap_handle_initialize(py_Ref arguments, c11_sbuf* buffer) {
     c11_sbuf__write_char(buffer, ',');
 }
 
+<<<<<<< HEAD
 void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) {
     server.isatttach = true;
 
 }
+=======
+void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) { server.isatttach = true; }
+>>>>>>> 429f2e78 (simplify the workdir process)
 
 void c11_dap_handle_next(py_Ref arguments, c11_sbuf* buffer) {
     c11_debugger_set_step_mode(C11_STEP_OVER);
@@ -230,9 +234,24 @@ void c11_dap_send_event(const char* event_name, const char* body_json) {
 
 void c11_dap_send_stop_event() {
     c11_dap_send_event("stopped",
-                       "{\"reason\":\"breakpoint\",\"threadId\":1,\"allThreadsStopped\":true}");
+                       "{\"threadId\":1,\"allThreadsStopped\":true}");
 }
 
+<<<<<<< HEAD
+=======
+void c11_dap_send_exited_event(int exitCode) {
+    char body[64];
+    snprintf(body, sizeof(body), "{\"exitCode\":%d}", exitCode);
+    c11_dap_send_event("exited", body);
+}
+
+void c11_dap_send_fatal_event(const char* message) {
+    char body[128];
+    snprintf(body, sizeof(body), "{\"message\":\"%s\"}", message);
+    c11_dap_send_event("pkpy/fatalError", body);
+}
+
+>>>>>>> 429f2e78 (simplify the workdir process)
 void c11_dap_send_initialized_event() { c11_dap_send_event("initialized", "{}"); }
 
 int c11_dap_read_content_length(const char* buffer, int* header_length) {
@@ -346,7 +365,20 @@ void c11_dap_configure_debugger() {
 
 void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     py_sys_settrace(NULL, false);
-    c11_debugger_on_trace(frame, event);
+    C11_DEBUGGER_FAIL_REASON result = c11_debugger_on_trace(frame, event);
+    if(result != C11_DEBUGGER_SUCCESS) {
+        const char* message = NULL;
+        switch(result) {
+            case C11_DEBUGGER_FILEPATH_ERROR:
+                message = "Invalid py_file path: '..' forbidden, './' only allowed at start.";
+                break;
+            case C11_DEBUGGER_UNKNOW_ERROR:
+            default: message = "Unknown debugger failure."; break;
+        }
+        if(message) { c11_dap_send_fatal_event(message); }
+        c11_dap_send_exited_event(1);
+        exit(1);
+    }
     c11_dap_handle_message();
     if(!c11_debugger_should_pause()) {
         py_sys_settrace(c11_dap_tracefunc, false);
