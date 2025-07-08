@@ -58,14 +58,7 @@ void c11_dap_handle_initialize(py_Ref arguments, c11_sbuf* buffer) {
 
 void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) {
     server.isatttach = true;
-    int res = py_dict_getitem_by_str(arguments, "workdir");
-    if(res == -1) {
-        py_printexc();
-        return;
-    }
-    const char* workdir = NULL;
-    if(res) { workdir = py_tostr(py_retval()); }
-    c11_debugger_set_work_directort(workdir);
+
 }
 
 void c11_dap_handle_next(py_Ref arguments, c11_sbuf* buffer) {

@@ -41,27 +41,28 @@ static struct c11_debugger {
     c11_vector py_frames;
     c11_smallmap_d2index scopes_query_cache;
 
-    const char* work_directory;
+    #define python_vars py_r7()
+
 } debugger;
 
 inline static void init_structures() {
     c11_vector__ctor(&debugger.breakpoints, sizeof(c11_debugger_breakpoint));
     c11_vector__ctor(&debugger.py_frames, sizeof(py_Frame*));
     c11_smallmap_d2index__ctor(&debugger.scopes_query_cache);
-    py_newlist(py_r7());
-    py_newnil(py_list_emplace(py_r7()));
+    py_newlist(python_vars);
+    py_newnil(py_list_emplace(python_vars));
 }
 
 inline static void clear_structures() {
     c11_vector__clear(&debugger.py_frames);
     c11_smallmap_d2index__clear(&debugger.scopes_query_cache);
-    py_list_clear(py_r7());
-    py_newnone(py_list_emplace(py_r7()));
+    py_list_clear(python_vars);
+    py_newnone(py_list_emplace(python_vars));
 }
 
 inline static py_Ref get_variable(int var_ref) {
-    assert(var_ref < py_list_len(py_r7()) && var_ref > 0);
-    return py_list_getitem(py_r7(), var_ref);
+    assert(var_ref < py_list_len(python_vars) && var_ref > 0);
+    return py_list_getitem(python_vars, var_ref);
 }
 
 void c11_debugger_init() {
@@ -71,7 +72,6 @@ void c11_debugger_init() {
     debugger.step_line = -1;
     debugger.keep_suspend = false;
     debugger.step_mode = C11_STEP_CONTINUE;
-    debugger.work_directory = NULL;
     init_structures();
 }
 
@@ -98,21 +98,8 @@ void c11_debugger_set_step_mode(enum C11_STEP_MODE mode) {
     debugger.keep_suspend = false;
 }
 
-const char* c11_strip_workdir_prefix_dap(const char* full_path, const char* workdir) {
-    if(!full_path || !workdir) return full_path;
-    size_t wd_len = strlen(workdir);
-    const char* suffix = full_path + wd_len;
-    if(*suffix == '\\') {
-        return suffix + 1;
-    } else if(*suffix == '\0') {
-        return suffix;
-    } else {
-        return full_path;
-    }
-}
 
 int c11_debugger_setbreakpoint(const char* filename, int lineno) {
-    filename = c11_strip_workdir_prefix_dap(filename, debugger.work_directory);
     c11_debugger_breakpoint breakpoint = {.sourcename = c11_strdup(filename), .lineno = lineno};
     c11_vector__push(c11_debugger_breakpoint, &debugger.breakpoints, breakpoint);
     return debugger.breakpoints.length;
@@ -169,13 +156,6 @@ int c11_debugger_should_pause() {
 
 int c11_debugger_should_keep_pause(void) { return debugger.keep_suspend; }
 
-void c11_debugger_set_work_directort(const char* path) {
-    if(path == NULL) return;
-    char* format_path = c11_strdup(path);
-    format_path[0] = (char)tolower(format_path[0]);
-    debugger.work_directory = format_path;
-    printf("[DEBUGGER INFO] set workdir as %s\n", format_path);
-}
 
 inline static c11_sv sv_from_cstr(const char* str) {
     c11_sv sv = {.data = str, .size = strlen(str)};
@@ -193,13 +173,6 @@ const inline static char* get_basename(const char* path) {
     return last_slash ? last_slash + 1 : path;
 }
 
-const inline static char* prepend_workdir(const char* workdir, const char* path) {
-    static char full_path[512];
-    if(!workdir || !path) return path;
-    snprintf(full_path, sizeof(full_path), "%s\\%s", workdir, path);
-    return full_path;
-}
-
 void c11_debugger_frames(c11_sbuf* buffer) {
     c11_sbuf__write_cstr(buffer, "{\"stackFrames\": [");
     int idx = 0;
@@ -208,8 +181,7 @@ void c11_debugger_frames(c11_sbuf* buffer) {
     while(now_frame) {
         if(idx > 0) c11_sbuf__write_char(buffer, ',');
         int line;
-        const char* raw_filename = py_Frame_sourceloc(now_frame, &line);
-        const char* filename = prepend_workdir(debugger.work_directory, raw_filename);
+        const char* filename = py_Frame_sourceloc(now_frame, &line);
         const char* basename = get_basename(filename);
         const char* modname = now_frame->co->name->data;
         pk_sprintf(
@@ -230,9 +202,9 @@ void c11_debugger_frames(c11_sbuf* buffer) {
 inline static c11_debugger_scope_index append_new_scope(int frameid) {
     assert(frameid < debugger.py_frames.length);
     py_Frame* requested_frame = c11__getitem(py_Frame*, &debugger.py_frames, frameid);
-    int base_index = py_list_len(py_r7());
-    py_Ref new_locals = py_list_emplace(py_r7());
-    py_Ref new_globals = py_list_emplace(py_r7());
+    int base_index = py_list_len(python_vars);
+    py_Ref new_locals = py_list_emplace(python_vars);
+    py_Ref new_globals = py_list_emplace(python_vars);
     py_Frame_newlocals(requested_frame, new_locals);
     py_Frame_newglobals(requested_frame, new_globals);
     c11_debugger_scope_index result = {.locals_ref = base_index, .globals_ref = base_index + 1};
@@ -278,7 +250,7 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
     py_Ref kv_list = py_pushtmp();
     py_assign(kv_list, py_retval());
     // 2. prepare base_ref
-    int base_index = py_list_len(py_r7());
+    int base_index = py_list_len(python_vars);
     py_Ref base_var_ref = py_pushtmp();
     py_newint(base_var_ref, base_index);
 
@@ -300,8 +272,8 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
     py_Ref dap_obj = py_pushtmp();
     py_assign(dap_obj, py_retval());
 
-    // 4. extend py_r7
-    if(!py_smartexec("_0.extend([kv[1] for kv in _1])", NULL, py_r7(), kv_list)) {
+    // 4. extend python_vars
+    if(!py_smartexec("_0.extend([kv[1] for kv in _1])", NULL, python_vars, kv_list)) {
         py_printexc();
         return false;
     }
@@ -319,3 +291,4 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
     py_pop();  // kv_list
     return true;
 }
+#undef python_vars
