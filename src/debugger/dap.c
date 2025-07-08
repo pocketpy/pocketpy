@@ -285,6 +285,7 @@ void c11_dap_send_fatal_event(const char* message) {
     c11_dap_send_event("pkpy/fatalError", body);
 }
 
+>>>>>>> 429f2e78 (simplify the workdir process)
 void c11_dap_send_initialized_event() { c11_dap_send_event("initialized", "{}"); }
 
 int c11_dap_read_content_length(const char* buffer, int* header_length) {
