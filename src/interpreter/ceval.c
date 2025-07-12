@@ -1303,7 +1303,10 @@ bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
         py_newbool(py_retval(), !res);
         return true;
     }
-    return TypeError("unsupported operand type(s) for '%s'", pk_op2str(op));
+
+    py_Type lhs_t = rop ? TOP()->type : SECOND()->type;
+    py_Type rhs_t = rop ? SECOND()->type : TOP()->type;
+    return TypeError("unsupported operand type(s) for '%s': '%t' and '%t'", pk_op2str(op), lhs_t, rhs_t);
 }
 
 bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
