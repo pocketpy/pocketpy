@@ -47,6 +47,18 @@ void py_initialize() {
     pk_initialized = true;
 }
 
+void* py_malloc(size_t size) {
+    return PK_MALLOC(size);
+}
+
+void* py_realloc(void* ptr, size_t size) {
+    return PK_REALLOC(ptr, size);
+}
+
+void py_free(void* ptr) {
+    PK_FREE(ptr);
+}
+
 py_GlobalRef py_True() { return &_True; }
 
 py_GlobalRef py_False() { return &_False; }

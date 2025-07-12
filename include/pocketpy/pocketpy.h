@@ -127,6 +127,13 @@ PK_API int py_gc_collect();
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
 
+/// Wrapper for `PK_MALLOC(size)`.
+PK_API void* py_malloc(size_t size);
+/// Wrapper for `PK_REALLOC(ptr, size)`.
+PK_API void* py_realloc(void* ptr, size_t size);
+/// Wrapper for `PK_FREE(ptr)`.
+PK_API void py_free(void* ptr);
+
 /// Begin the watchdog with `timeout` in milliseconds.
 /// `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
 /// You need to call `py_watchdog_end()` later.
