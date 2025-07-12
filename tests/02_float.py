@@ -109,3 +109,8 @@ assert abs(0.0) == 0.0
 #     exit(1)
 # except ValueError:
 #     pass
+
+assert eq(10 % 4, 2)
+assert eq(10.5 % 4, 2.5)
+assert eq(10 % 4.5, 1.0)
+assert eq(10.5 % 4.5, 1.5)

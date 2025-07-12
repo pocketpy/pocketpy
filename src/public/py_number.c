@@ -175,6 +175,32 @@ static bool int__mod__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool float__mod__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_f64 lhs = py_tofloat(&argv[0]);
+    py_f64 rhs;
+    if(try_castfloat(&argv[1], &rhs)) {
+        if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
+        py_newfloat(py_retval(), fmod(lhs, rhs));
+        return true;
+    }
+    py_newnotimplemented(py_retval());
+    return true;
+}
+
+static bool float__rmod__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_f64 rhs = py_tofloat(&argv[0]);
+    py_f64 lhs;
+    if(try_castfloat(&argv[1], &lhs)) {
+        if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
+        py_newfloat(py_retval(), fmod(lhs, rhs));
+        return true;
+    }
+    py_newnotimplemented(py_retval());
+    return true;
+}
+
 static bool int__divmod__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -507,6 +533,10 @@ void pk_number__register() {
     py_bindmagic(tp_int, __floordiv__, int__floordiv__);
     py_bindmagic(tp_int, __mod__, int__mod__);
     py_bindmagic(tp_int, __divmod__, int__divmod__);
+
+    // fmod
+    py_bindmagic(tp_float, __mod__, float__mod__);
+    py_bindmagic(tp_float, __rmod__, float__rmod__);
 
     // int.__invert__ & int.<BITWISE OP>
     py_bindmagic(tp_int, __invert__, int__invert__);
