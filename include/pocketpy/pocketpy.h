@@ -33,8 +33,13 @@ typedef struct py_TValue {
     py_Type type;
     bool is_ptr;
     int extra;
-    int64_t _i64;
+    union {
+        int64_t _i64;
+        char _chars[16];
+    };
 } py_TValue;
+
+static_assert(sizeof(py_TValue) == 24, "sizeof(py_TValue) != 24");
 #endif
 
 /// A string view type. It is helpful for passing strings which are not null-terminated.
@@ -212,7 +217,7 @@ PK_API py_GlobalRef py_NIL();
 /// Create an `int` object.
 PK_API void py_newint(py_OutRef, py_i64);
 /// Create a trivial value object.
-PK_API void py_newtrivial(py_OutRef out, py_Type type, py_i64 data);
+PK_API void py_newtrivial(py_OutRef out, py_Type type, void* data, int size);
 /// Create a `float` object.
 PK_API void py_newfloat(py_OutRef, py_f64);
 /// Create a `bool` object.
@@ -295,7 +300,7 @@ PK_API void* py_newobject(py_OutRef out, py_Type type, int slots, int udsize);
 /// Convert an `int` object in python to `int64_t`.
 PK_API py_i64 py_toint(py_Ref);
 /// Convert a trivial value object in python to `int64_t`.
-PK_API py_i64 py_totrivial(py_Ref);
+PK_API void* py_totrivial(py_Ref);
 /// Convert a `float` object in python to `double`.
 PK_API py_f64 py_tofloat(py_Ref);
 /// Cast a `int` or `float` object in python to `double`.

@@ -58,25 +58,23 @@ c11_vec2i py_tovec2i(py_Ref self) {
 void py_newvec3(py_OutRef out, c11_vec3 v) {
     out->type = tp_vec3;
     out->is_ptr = false;
-    c11_vec3* data = (c11_vec3*)(&out->extra);
-    *data = v;
+    out->_vec3 = v;
 }
 
 c11_vec3 py_tovec3(py_Ref self) {
     assert(self->type == tp_vec3);
-    return *(c11_vec3*)(&self->extra);
+    return self->_vec3;
 }
 
 void py_newvec3i(py_OutRef out, c11_vec3i v) {
     out->type = tp_vec3i;
     out->is_ptr = false;
-    c11_vec3i* data = (c11_vec3i*)(&out->extra);
-    *data = v;
+    out->_vec3i = v;
 }
 
 c11_vec3i py_tovec3i(py_Ref self) {
     assert(self->type == tp_vec3i);
-    return *(c11_vec3i*)(&self->extra);
+    return self->_vec3i;
 }
 
 c11_mat3x3* py_newmat3x3(py_OutRef out) {

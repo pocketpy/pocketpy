@@ -9,7 +9,7 @@
 void py_newstr(py_OutRef out, const char* data) { py_newstrv(out, (c11_sv){data, strlen(data)}); }
 
 char* py_newstrn(py_OutRef out, int size) {
-    if(size < 8) {
+    if(size < 16) {
         out->type = tp_str;
         out->is_ptr = false;
         c11_string* ud = (c11_string*)(&out->extra);

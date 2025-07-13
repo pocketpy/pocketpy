@@ -231,3 +231,7 @@ assert f"{(1, 2, 3)}" == "(1, 2, 3)"
 
 # stack=[1,2,3,4]
 # assert f"{stack[2:]}" == '[3, 4]'
+
+
+assert id('1' * 16) is not None
+assert id('1' * 15) is None

@@ -19,8 +19,10 @@ typedef struct py_TValue {
         PyObject* _obj;
         c11_vec2 _vec2;
         c11_vec2i _vec2i;
+        c11_vec3 _vec3;
+        c11_vec3i _vec3i;
         c11_color32 _color32;
         void* _ptr;
-        char _chars[8];
+        char _chars[16];
     };
 } py_TValue;
