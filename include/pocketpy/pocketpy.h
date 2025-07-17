@@ -33,6 +33,7 @@ typedef struct py_TValue {
     py_Type type;
     bool is_ptr;
     int extra;
+
     union {
         int64_t _i64;
         char _chars[16];
@@ -372,9 +373,11 @@ PK_API bool py_tpcall(py_Type type, int argc, py_Ref argv) PY_RAISE PY_RETURN;
 
 /// Set attribute hooks for the given type.
 PK_API void py_tphookattributes(py_Type type,
-                                bool (*getattribute)(py_Ref self, py_Name name),
-                                bool (*setattribute)(py_Ref self, py_Name name, py_Ref val),
-                                bool (*delattribute)(py_Ref self, py_Name name));
+                                bool (*getattribute)(py_Ref self, py_Name name) PY_RAISE PY_RETURN,
+                                bool (*setattribute)(py_Ref self, py_Name name, py_Ref val)
+                                    PY_RAISE PY_RETURN,
+                                bool (*delattribute)(py_Ref self, py_Name name) PY_RAISE,
+                                bool (*getunboundmethod)(py_Ref self, py_Name name) PY_RETURN);
 
 /// Check if the object is an instance of the given type exactly.
 /// Raise `TypeError` if the check fails.

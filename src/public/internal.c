@@ -45,17 +45,11 @@ void py_initialize() {
     pk_initialized = true;
 }
 
-void* py_malloc(size_t size) {
-    return PK_MALLOC(size);
-}
+void* py_malloc(size_t size) { return PK_MALLOC(size); }
 
-void* py_realloc(void* ptr, size_t size) {
-    return PK_REALLOC(ptr, size);
-}
+void* py_realloc(void* ptr, size_t size) { return PK_REALLOC(ptr, size); }
 
-void py_free(void* ptr) {
-    PK_FREE(ptr);
-}
+void py_free(void* ptr) { PK_FREE(ptr); }
 
 py_GlobalRef py_True() { return &_True; }
 
@@ -233,7 +227,20 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
         self_bak = *self;
     }
 
-    py_Ref cls_var = py_tpfindname(type, name);
+    py_TypeInfo* ti = pk_typeinfo(type);
+
+    if(ti->getunboundmethod) {
+        bool ok = ti->getunboundmethod(self, name);
+        if(ok) {
+            self[0] = *py_retval();
+            self[1] = self_bak;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    py_Ref cls_var = pk_tpfindname(ti, name);
     if(cls_var != NULL) {
         switch(cls_var->type) {
             case tp_function:
@@ -248,7 +255,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
                 break;
             case tp_classmethod:
                 self[0] = *py_getslot(cls_var, 0);
-                self[1] = pk_typeinfo(type)->self;
+                self[1] = ti->self;
                 break;
             default: c11__unreachable();
         }

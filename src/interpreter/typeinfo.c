@@ -159,10 +159,12 @@ py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, vo
 void py_tphookattributes(py_Type type,
                          bool (*getattribute)(py_Ref self, py_Name name),
                          bool (*setattribute)(py_Ref self, py_Name name, py_Ref val),
-                         bool (*delattribute)(py_Ref self, py_Name name)) {
+                         bool (*delattribute)(py_Ref self, py_Name name),
+                         bool (*getunboundmethod)(py_Ref self, py_Name name)) {
     assert(type);
     py_TypeInfo* ti = pk_typeinfo(type);
     ti->getattribute = getattribute;
     ti->setattribute = setattribute;
     ti->delattribute = delattribute;
+    ti->getunboundmethod = getunboundmethod;
 }
