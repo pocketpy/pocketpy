@@ -300,7 +300,7 @@ PK_API void* py_newobject(py_OutRef out, py_Type type, int slots, int udsize);
 
 /// Convert an `int` object in python to `int64_t`.
 PK_API py_i64 py_toint(py_Ref);
-/// Convert a trivial value object in python to `int64_t`.
+/// Get the address of the trivial value object.
 PK_API void* py_totrivial(py_Ref);
 /// Convert a `float` object in python to `double`.
 PK_API py_f64 py_tofloat(py_Ref);
