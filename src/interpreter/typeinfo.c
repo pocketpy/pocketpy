@@ -84,6 +84,7 @@ static void py_TypeInfo__common_init(py_Name name,
     self->getattribute = NULL;
     self->setattribute = NULL;
     self->delattribute = NULL;
+    self->getunboundmethod = NULL;
 
     self->annotations = *py_NIL();
     self->dtor = dtor;
