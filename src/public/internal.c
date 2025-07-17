@@ -231,6 +231,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
 
     if(ti->getunboundmethod) {
         bool ok = ti->getunboundmethod(self, name);
+        assert(py_retval()->type == tp_nativefunc || py_retval()->type == tp_function);
         if(ok) {
             self[0] = *py_retval();
             self[1] = self_bak;

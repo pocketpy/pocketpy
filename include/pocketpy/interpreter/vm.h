@@ -67,7 +67,7 @@ typedef struct VM {
     NameDict compile_time_funcs;
 
     py_StackRef curr_class;
-    py_StackRef curr_decl_based_function;
+    py_StackRef curr_decl_based_function;   // this is for get current function without frame
     TraceInfo trace_info;
     WatchdogInfo watchdog_info;
     LineProfiler line_profiler;
