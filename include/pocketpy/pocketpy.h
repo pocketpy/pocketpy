@@ -370,7 +370,8 @@ PK_API py_GlobalRef py_tpobject(py_Type type);
 PK_API const char* py_tpname(py_Type type);
 /// Call a type to create a new instance.
 PK_API bool py_tpcall(py_Type type, int argc, py_Ref argv) PY_RAISE PY_RETURN;
-
+/// Disable the type for subclassing.
+PK_API void py_tpsetfinal(py_Type type);
 /// Set attribute hooks for the given type.
 PK_API void py_tphookattributes(py_Type type,
                                 bool (*getattribute)(py_Ref self, py_Name name) PY_RAISE PY_RETURN,

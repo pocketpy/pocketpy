@@ -1041,7 +1041,7 @@ __NEXT_STEP:
             POP();
 
             py_TypeInfo* base_ti = pk_typeinfo(base);
-            if(base_ti->is_sealed) {
+            if(base_ti->is_final) {
                 TypeError("type '%t' is not an acceptable base type", base);
                 goto __ERROR;
             }

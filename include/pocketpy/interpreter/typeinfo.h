@@ -14,7 +14,7 @@ typedef struct py_TypeInfo {
     py_GlobalRef module;
 
     bool is_python;  // is it a python class? (not derived from c object)
-    bool is_sealed;  // can it be subclassed?
+    bool is_final;  // can it be subclassed?
 
     bool (*getattribute)(py_Ref self, py_Name name) PY_RAISE PY_RETURN;
     bool (*setattribute)(py_Ref self, py_Name name, py_Ref val) PY_RAISE PY_RETURN;
@@ -35,7 +35,7 @@ py_Type pk_newtype(const char* name,
                    const py_GlobalRef module,
                    void (*dtor)(void*),
                    bool is_python,
-                   bool is_sealed);
+                   bool is_final);
 
 
 py_Type pk_newtypewithmode(py_Name name,
@@ -43,4 +43,4 @@ py_Type pk_newtypewithmode(py_Name name,
                    const py_GlobalRef module,
                    void (*dtor)(void*),
                    bool is_python,
-                   bool is_sealed, enum py_CompileMode mode);
+                   bool is_final, enum py_CompileMode mode);

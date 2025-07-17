@@ -61,11 +61,11 @@ static void py_TypeInfo__common_init(py_Name name,
                                      const py_GlobalRef module,
                                      void (*dtor)(void*),
                                      bool is_python,
-                                     bool is_sealed,
+                                     bool is_final,
                                      py_TypeInfo* self,
                                      py_TValue* typeobject) {
     py_TypeInfo* base_ti = base ? pk_typeinfo(base) : NULL;
-    if(base_ti && base_ti->is_sealed) {
+    if(base_ti && base_ti->is_final) {
         c11__abort("type '%s' is not an acceptable base type", py_name2str(base_ti->name));
     }
 
@@ -79,7 +79,7 @@ static void py_TypeInfo__common_init(py_Name name,
 
     if(!dtor && base) dtor = base_ti->dtor;
     self->is_python = is_python;
-    self->is_sealed = is_sealed;
+    self->is_final = is_final;
 
     self->getattribute = NULL;
     self->setattribute = NULL;
@@ -96,7 +96,7 @@ py_Type pk_newtype(const char* name,
                    const py_GlobalRef module,
                    void (*dtor)(void*),
                    bool is_python,
-                   bool is_sealed) {
+                   bool is_final) {
     py_Type index = pk_current_vm->types.length;
     py_TypeInfo* self = py_newobject(py_retval(), tp_type, -1, sizeof(py_TypeInfo));
     py_TypeInfo__common_init(py_name(name),
@@ -105,7 +105,7 @@ py_Type pk_newtype(const char* name,
                              module,
                              dtor,
                              is_python,
-                             is_sealed,
+                             is_final,
                              self,
                              py_retval());
     TypePointer* pointer = c11_vector__emplace(&pk_current_vm->types);
@@ -119,7 +119,7 @@ py_Type pk_newtypewithmode(py_Name name,
                            const py_GlobalRef module,
                            void (*dtor)(void*),
                            bool is_python,
-                           bool is_sealed,
+                           bool is_final,
                            enum py_CompileMode mode) {
     if(mode == RELOAD_MODE && module != NULL) {
         py_ItemRef old_class = py_getdict(module, name);
@@ -137,7 +137,7 @@ py_Type pk_newtypewithmode(py_Name name,
                                      module,
                                      dtor,
                                      is_python,
-                                     is_sealed,
+                                     is_final,
                                      self,
                                      &self->self);
             TypePointer* pointer = c11__at(TypePointer, &pk_current_vm->types, index);
@@ -147,7 +147,7 @@ py_Type pk_newtypewithmode(py_Name name,
         }
     }
 
-    return pk_newtype(py_name2str(name), base, module, dtor, is_python, is_sealed);
+    return pk_newtype(py_name2str(name), base, module, dtor, is_python, is_final);
 }
 
 py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, void (*dtor)(void*)) {
@@ -155,6 +155,12 @@ py_Type py_newtype(const char* name, py_Type base, const py_GlobalRef module, vo
     py_Type type = pk_newtype(name, base, module, dtor, false, false);
     if(module) py_setdict(module, py_name(name), py_tpobject(type));
     return type;
+}
+
+void py_tpsetfinal(py_Type type) {
+    assert(type);
+    py_TypeInfo* ti = pk_typeinfo(type);
+    ti->is_final = true;
 }
 
 void py_tphookattributes(py_Type type,
