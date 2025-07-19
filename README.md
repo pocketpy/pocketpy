@@ -31,6 +31,7 @@ Developers are able to write Python bindings via C-API or pybind11 compatible in
 Please see https://pocketpy.dev for details and try the following resources.
 + [Live Python Demo](https://pocketpy.dev/static/web/): Run Python code in your browser
 + [Live C Examples](https://pocketpy.github.io/examples/): Explore C-APIs in your browser
++ [Godot Extension](https://github.com/pocketpy/godot-pocketpy): Use pocketpy in Godot Engine
 
 ## Supported Platforms
 
@@ -186,6 +187,7 @@ And these are the results of the primes benchmark on Intel i5-12400F, WSL (Ubunt
 
 |                                                                 | Description                                                              |
 |-----------------------------------------------------------------|--------------------------------------------------------------------------|
+| [godot-pocketpy](https://github.com/pocketpy/godot-pocketpy)    | Godot extension for using pocketpy in Godot Engine.                      |
 | [TIC-80](https://github.com/nesbox/TIC-80)                      | TIC-80 is a fantasy computer for making, playing and sharing tiny games. |
 | [py-js](https://github.com/shakfu/py-js)                        | Python3 externals for Max / MSP.                                         |
 | [crescent](https://github.com/chukobyte/crescent)               | Crescent is a cross-platform 2D fighting and beat-em-up game engine.     |
