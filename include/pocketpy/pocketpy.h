@@ -79,8 +79,10 @@ typedef void (*py_TraceFunc)(py_Frame* frame, enum py_TraceEvent);
 
 /// A struct contains the callbacks of the VM.
 typedef struct py_Callbacks {
-    /// Used by `__import__` to load source code of a module.
+    /// Used by `__import__` to load a source module.
     char* (*importfile)(const char*);
+    /// Called before `importfile` to lazy-import a C module.
+    py_GlobalRef (*lazyimport)(const char*);
     /// Used by `print` to output a string.
     void (*print)(const char*);
     /// Flush the output buffer of `print`.

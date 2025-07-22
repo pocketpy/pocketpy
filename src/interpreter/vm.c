@@ -59,6 +59,7 @@ void VM__ctor(VM* self) {
     self->main = NULL;
 
     self->callbacks.importfile = pk_default_importfile;
+    self->callbacks.lazyimport = NULL;
     self->callbacks.print = pk_default_print;
     self->callbacks.flush = pk_default_flush;
     self->callbacks.getchr = pk_default_getchr;
