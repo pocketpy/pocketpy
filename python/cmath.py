@@ -131,7 +131,7 @@ def asin(z: complex):
     return -1j * log(1j * z + sqrt(1 - z * z))
 
 def atan(z: complex):
-    return 1j / 2 * log((1 - 1j * z) / (1 + 1j * z))
+    return 1j / 2 * log((1 - 1j * z) / (1 + 1j * z)) # type: ignore
 
 def cos(z: complex):
     return (exp(z) + exp(-z)) / 2
