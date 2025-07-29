@@ -747,19 +747,26 @@ PK_API bool
 /// noexcept
 PK_API int py_dict_len(py_Ref self);
 
+/************* random module *************/
+PK_API void py_newRandom(py_OutRef out);
+PK_API void py_Random_seed(py_Ref self, py_i64 seed);
+PK_API py_f64 py_Random_random(py_Ref self);
+PK_API py_f64 py_Random_uniform(py_Ref self, py_f64 a, py_f64 b);
+PK_API py_i64 py_Random_randint(py_Ref self, py_i64 a, py_i64 b);
+
 /************* vmath module *************/
-void py_newvec2(py_OutRef out, c11_vec2);
-void py_newvec3(py_OutRef out, c11_vec3);
-void py_newvec2i(py_OutRef out, c11_vec2i);
-void py_newvec3i(py_OutRef out, c11_vec3i);
-void py_newcolor32(py_OutRef out, c11_color32);
-c11_mat3x3* py_newmat3x3(py_OutRef out);
-c11_vec2 py_tovec2(py_Ref self);
-c11_vec3 py_tovec3(py_Ref self);
-c11_vec2i py_tovec2i(py_Ref self);
-c11_vec3i py_tovec3i(py_Ref self);
-c11_mat3x3* py_tomat3x3(py_Ref self);
-c11_color32 py_tocolor32(py_Ref self);
+PK_API void py_newvec2(py_OutRef out, c11_vec2);
+PK_API void py_newvec3(py_OutRef out, c11_vec3);
+PK_API void py_newvec2i(py_OutRef out, c11_vec2i);
+PK_API void py_newvec3i(py_OutRef out, c11_vec3i);
+PK_API void py_newcolor32(py_OutRef out, c11_color32);
+PK_API c11_mat3x3* py_newmat3x3(py_OutRef out);
+PK_API c11_vec2 py_tovec2(py_Ref self);
+PK_API c11_vec3 py_tovec3(py_Ref self);
+PK_API c11_vec2i py_tovec2i(py_Ref self);
+PK_API c11_vec3i py_tovec3i(py_Ref self);
+PK_API c11_mat3x3* py_tomat3x3(py_Ref self);
+PK_API c11_color32 py_tocolor32(py_Ref self);
 
 /************* Others *************/
 
