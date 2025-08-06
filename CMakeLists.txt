@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(pocketpy)
 
-if(PK_BUILD_SHARED_LIB)
+if(PK_BUILD_SHARED_LIB or NOT PK_BUILD_STATIC_MAIN)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
