@@ -1011,6 +1011,14 @@ static bool color32__repr__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool color32__hash__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_color32 color = py_tocolor32(argv);
+    uint32_t* color_int = (uint32_t*)&color;
+    py_newint(py_retval(), *color_int);
+    return true;
+}
+
 static bool color32_ansi_fg(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_color32 color = py_tocolor32(argv);
@@ -1256,6 +1264,7 @@ void pk__add_module_vmath() {
     py_bindmagic(color32, __repr__, color32__repr__);
     py_bindmagic(color32, __eq__, color32__eq__);
     py_bindmagic(color32, __ne__, color32__ne__);
+    py_bindmagic(color32, __hash__, color32__hash__);
     py_bindproperty(color32, "r", color32__r, NULL);
     py_bindproperty(color32, "g", color32__g, NULL);
     py_bindproperty(color32, "b", color32__b, NULL);
