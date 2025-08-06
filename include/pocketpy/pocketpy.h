@@ -39,8 +39,6 @@ typedef struct py_TValue {
         char _chars[16];
     };
 } py_TValue;
-
-static_assert(sizeof(py_TValue) == 24, "sizeof(py_TValue) != 24");
 #endif
 
 /// A string view type. It is helpful for passing strings which are not null-terminated.
@@ -753,6 +751,13 @@ PK_API void py_Random_seed(py_Ref self, py_i64 seed);
 PK_API py_f64 py_Random_random(py_Ref self);
 PK_API py_f64 py_Random_uniform(py_Ref self, py_f64 a, py_f64 b);
 PK_API py_i64 py_Random_randint(py_Ref self, py_i64 a, py_i64 b);
+
+/************* array2d module *************/
+PK_API void py_newarray2d(py_OutRef out, int width, int height);
+PK_API int py_array2d_getwidth(py_Ref self);
+PK_API int py_array2d_getheight(py_Ref self);
+PK_API py_ObjectRef py_array2d_getitem(py_Ref self, int x, int y);
+PK_API void py_array2d_setitem(py_Ref self, int x, int y, py_Ref val);
 
 /************* vmath module *************/
 PK_API void py_newvec2(py_OutRef out, c11_vec2);

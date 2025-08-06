@@ -656,7 +656,7 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
             case PKL_ARRAY2D: {
                 int n_cols = pkl__read_int(&p);
                 int n_rows = pkl__read_int(&p);
-                c11_array2d* arr = py_newarray2d(py_pushtmp(), n_cols, n_rows);
+                c11_array2d* arr = c11_newarray2d(py_pushtmp(), n_cols, n_rows);
                 int total_size = arr->header.numel * sizeof(py_TValue);
                 memcpy(arr->data, p, total_size);
                 for(int i = 0; i < arr->header.numel; i++) {

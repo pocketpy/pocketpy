@@ -31,7 +31,7 @@ typedef struct c11_array2d_view {
     c11_vec2i origin;
 } c11_array2d_view;
 
-c11_array2d* py_newarray2d(py_OutRef out, int n_cols, int n_rows);
+c11_array2d* c11_newarray2d(py_OutRef out, int n_cols, int n_rows);
 
 /* chunked_array2d */
 #define SMALLMAP_T__HEADER

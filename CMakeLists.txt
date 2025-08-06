@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 
 project(pocketpy)
 
+if(PK_BUILD_SHARED_LIB)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
@@ -110,6 +114,11 @@ if(PK_BUILD_MODULE_LIBHV)
     add_definitions(-DPK_BUILD_MODULE_LIBHV)
 endif()
 
+if(PK_BUILD_MODULE_CUTE_PNG)
+    add_subdirectory(3rd/cute_png)
+    add_definitions(-DPK_BUILD_MODULE_CUTE_PNG)
+endif()
+
 
 if(PK_BUILD_SHARED_LIB)
     message(">> Building shared library")
@@ -174,6 +183,11 @@ endif()
 if(PK_BUILD_MODULE_LIBHV)
     target_link_libraries(${PROJECT_NAME} libhv_bindings)
 endif()
+
+if(PK_BUILD_MODULE_CUTE_PNG)
+    target_link_libraries(${PROJECT_NAME} cute_png)
+endif()
+
 
 if(PK_ENABLE_MIMALLOC)
     target_link_libraries(${PROJECT_NAME} mimalloc-static)
