@@ -1,7 +1,6 @@
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/common/sstream.h"
 #include <ctype.h>
-#include <stdlib.h>
 #include <string.h>
 
 static void SourceData__ctor(struct SourceData* self,
@@ -25,6 +24,16 @@ static void SourceData__ctor(struct SourceData* self,
         source++;
     }
     self->source = c11_sbuf__submit(&ss);
+    // remove trailing newline
+    int last_index = self->source->size - 1;
+    while(last_index >= 0 && isspace(self->source->data[last_index])) {
+        last_index--;
+    }
+    if(last_index >= 0) {
+        self->source->size = last_index + 1;
+        self->source->data[last_index + 1] = '\0';
+    }
+
     self->is_dynamic = is_dynamic;
     c11_vector__push(const char*, &self->line_starts, self->source->data);
 }

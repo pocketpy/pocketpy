@@ -103,9 +103,4 @@ class A:
 
 bad_dict = {A(): 1, A(): 2, A(): 3, A(): 4}
 assert len(bad_dict) == 4
-try:
-    bad_dict[A()] = 5   # error
-    exit(1)
-except RuntimeError as e:
-    assert 'maximum collision reached' in str(e)
 

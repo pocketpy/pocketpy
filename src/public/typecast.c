@@ -4,7 +4,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
-bool py_istype(py_Ref self, py_Type type) { return self->type == type; }
+PK_INLINE bool py_istype(py_Ref self, py_Type type) { return self->type == type; }
 
 bool py_checktype(py_Ref self, py_Type type) {
     if(self->type == type) return true;

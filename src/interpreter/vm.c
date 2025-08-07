@@ -1,6 +1,5 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/memorypool.h"
-#include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/interpreter/generator.h"
 #include "pocketpy/interpreter/modules.h"
@@ -10,6 +9,7 @@
 #include "pocketpy/common/_generated.h"
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
+#include <assert.h>
 
 static char* pk_default_importfile(const char* path) {
 #if PK_ENABLE_OS
@@ -59,6 +59,7 @@ void VM__ctor(VM* self) {
     self->main = NULL;
 
     self->callbacks.importfile = pk_default_importfile;
+    self->callbacks.lazyimport = NULL;
     self->callbacks.print = pk_default_print;
     self->callbacks.flush = pk_default_flush;
     self->callbacks.getchr = pk_default_getchr;
@@ -109,7 +110,8 @@ void VM__ctor(VM* self) {
 
     validate(tp_list, pk_list__register());
     validate(tp_tuple, pk_tuple__register());
-    validate(tp_array_iterator, pk_array_iterator__register());
+    validate(tp_list_iterator, pk_list_iterator__register());
+    validate(tp_tuple_iterator, pk_tuple_iterator__register());
 
     validate(tp_slice, pk_slice__register());
     validate(tp_range, pk_range__register());
@@ -234,6 +236,7 @@ void VM__ctor(VM* self) {
     pk__add_module_conio();
     pk__add_module_lz4();    // optional
     pk__add_module_libhv();  // optional
+    pk__add_module_cute_png(); // optional
     pk__add_module_pkpy();
 
     // add python builtins

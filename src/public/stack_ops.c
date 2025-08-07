@@ -8,12 +8,12 @@ py_Ref py_getreg(int i) { return pk_current_vm->reg + i; }
 
 void py_setreg(int i, py_Ref val) { pk_current_vm->reg[i] = *val; }
 
-py_Ref py_getdict(py_Ref self, py_Name name) {
+PK_INLINE py_Ref py_getdict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
     return NameDict__try_get(PyObject__dict(self->_obj), name);
 }
 
-void py_setdict(py_Ref self, py_Name name, py_Ref val) {
+PK_INLINE void py_setdict(py_Ref self, py_Name name, py_Ref val) {
     assert(self && self->is_ptr);
     NameDict__set(PyObject__dict(self->_obj), name, val);
 }

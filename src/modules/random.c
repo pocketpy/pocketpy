@@ -145,7 +145,7 @@ static bool Random__init__(int argc, py_Ref argv) {
         // do nothing
     } else if(argc == 2) {
         mt19937* ud = py_touserdata(py_arg(0));
-        if(!py_isnone(&argv[1])){
+        if(!py_isnone(&argv[1])) {
             PY_CHECK_ARG_TYPE(1, tp_int);
             py_i64 seed = py_toint(py_arg(1));
             mt19937__seed(ud, (uint32_t)seed);
@@ -329,3 +329,31 @@ __ERROR:
 #undef UPPER_MASK
 #undef LOWER_MASK
 #undef ADD_INST_BOUNDMETHOD
+
+void py_newRandom(py_OutRef out) {
+    py_Type type = py_gettype("random", py_name("Random"));
+    assert(type != 0);
+    mt19937* ud = py_newobject(out, type, 0, sizeof(mt19937));
+    mt19937__ctor(ud);
+}
+
+void py_Random_seed(py_Ref self, py_i64 seed) {
+    mt19937* ud = py_touserdata(self);
+    mt19937__seed(ud, (uint32_t)seed);
+}
+
+py_f64 py_Random_random(py_Ref self) {
+    mt19937* ud = py_touserdata(self);
+    return mt19937__random(ud);
+}
+
+py_f64 py_Random_uniform(py_Ref self, py_f64 a, py_f64 b) {
+    mt19937* ud = py_touserdata(self);
+    return mt19937__uniform(ud, a, b);
+}
+
+py_i64 py_Random_randint(py_Ref self, py_i64 a, py_i64 b) {
+    mt19937* ud = py_touserdata(self);
+    if(a > b) { c11__abort("randint(a, b): a must be less than or equal to b"); }
+    return mt19937__randint(ud, a, b);
+}

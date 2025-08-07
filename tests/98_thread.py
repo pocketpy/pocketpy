@@ -1,4 +1,11 @@
-from pkpy import ComputeThread
+from pkpy import configmacros
+
+if configmacros['PK_ENABLE_THREADS'] == 1:
+    from pkpy import ComputeThread
+else:
+    print('threads is not enabled, skipping test...')
+    exit()
+
 import time
 
 thread_1 = ComputeThread(1)

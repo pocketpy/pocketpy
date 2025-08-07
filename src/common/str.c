@@ -2,11 +2,10 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 
-#include <assert.h>
-#include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 c11_string* c11_string__new(const char* data) { return c11_string__new2(data, strlen(data)); }
 
@@ -188,6 +187,26 @@ uint64_t c11_sv__hash(c11_sv self) {
         hash = ((hash << 5) + hash) + (unsigned char)self.data[i];
     }
     return hash;
+}
+
+c11_vector /* T=c11_sv */ c11_sv__splitwhitespace(c11_sv self) {
+    c11_vector retval;
+    c11_vector__ctor(&retval, sizeof(c11_sv));
+    const char* data = self.data;
+    int i = 0;
+    for(int j = 0; j < self.size; j++) {
+        if(isspace(data[j])) {
+            assert(j >= i);
+            c11_sv tmp = {data + i, j - i};
+            c11_vector__push(c11_sv, &retval, tmp);
+            i = j + 1;
+        }
+    }
+    if(i <= self.size) {
+        c11_sv tmp = {data + i, self.size - i};
+        c11_vector__push(c11_sv, &retval, tmp);
+    }
+    return retval;
 }
 
 c11_vector /* T=c11_sv */ c11_sv__split(c11_sv self, char sep) {

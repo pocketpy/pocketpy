@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/typeinfo.h"
+#include "pocketpy/interpreter/bindings.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
@@ -77,12 +78,39 @@ bool py_iter(py_Ref val) {
 
 int py_next(py_Ref val) {
     VM* vm = pk_current_vm;
-    py_Ref tmp = py_tpfindmagic(val->type, __next__);
-    if(!tmp) {
-        TypeError("'%t' object is not an iterator", val->type);
-        return -1;
+
+    switch(val->type) {
+        case tp_generator:
+            if(generator__next__(1, val)) return 1;
+            break;
+        case tp_array2d_like_iterator:
+            if(array2d_like_iterator__next__(1, val)) return 1;
+            break;
+        case tp_list_iterator:
+            if(list_iterator__next__(1, val)) return 1;
+            break;
+        case tp_tuple_iterator:
+            if(tuple_iterator__next__(1, val)) return 1;
+            break;
+        case tp_dict_iterator:
+            if(dict_items__next__(1, val)) return 1;
+            break;
+        case tp_range_iterator:
+            if(range_iterator__next__(1, val)) return 1;
+            break;
+        case tp_str_iterator:
+            if(str_iterator__next__(1, val)) return 1;
+            break;
+        default: {
+            py_Ref tmp = py_tpfindmagic(val->type, __next__);
+            if(!tmp) {
+                TypeError("'%t' object is not an iterator", val->type);
+                return -1;
+            }
+            if(py_call(tmp, 1, val)) return 1;
+            break;
+        }
     }
-    if(py_call(tmp, 1, val)) return 1;
     if(vm->curr_exception.type == tp_StopIteration) {
         vm->last_retval = vm->curr_exception;
         py_clearexc(NULL);
@@ -94,6 +122,8 @@ int py_next(py_Ref val) {
 bool py_getattr(py_Ref self, py_Name name) {
     // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
     py_TypeInfo* ti = pk_typeinfo(self->type);
+    if(ti->getattribute) return ti->getattribute(self, name);
+
     py_Ref cls_var = pk_tpfindname(ti, name);
     if(cls_var) {
         // handle descriptor
@@ -184,8 +214,10 @@ bool py_getattr(py_Ref self, py_Name name) {
 }
 
 bool py_setattr(py_Ref self, py_Name name, py_Ref val) {
-    py_Type type = self->type;
-    py_Ref cls_var = py_tpfindname(type, name);
+    py_TypeInfo* ti = pk_typeinfo(self->type);
+    if(ti->setattribute) return ti->setattribute(self, name, val);
+
+    py_Ref cls_var = pk_tpfindname(ti, name);
     if(cls_var) {
         // handle descriptor
         if(py_istype(cls_var, tp_property)) {
@@ -211,6 +243,9 @@ bool py_setattr(py_Ref self, py_Name name, py_Ref val) {
 }
 
 bool py_delattr(py_Ref self, py_Name name) {
+    py_TypeInfo* ti = pk_typeinfo(self->type);
+    if(ti->delattribute) return ti->delattribute(self, name);
+
     if(self->is_ptr && self->_obj->slots == -1) {
         if(py_deldict(self, name)) return true;
         return AttributeError(self, name);

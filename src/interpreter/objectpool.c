@@ -1,12 +1,10 @@
 #include "pocketpy/interpreter/objectpool.h"
 
-#include "pocketpy/config.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 
 #include <assert.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
 
 static PoolArena* PoolArena__new(int block_size) {
@@ -16,7 +14,6 @@ static PoolArena* PoolArena__new(int block_size) {
     self->block_size = block_size;
     self->block_count = block_count;
     self->unused_length = block_count;
-    self->unused = PK_MALLOC(sizeof(int) * block_count);
     for(int i = 0; i < block_count; i++) {
         self->unused[i] = i;
     }
@@ -29,7 +26,6 @@ static void PoolArena__delete(PoolArena* self) {
         PyObject* obj = (PyObject*)(self->data + i * self->block_size);
         if(obj->type != 0) PyObject__dtor(obj);
     }
-    PK_FREE(self->unused);
     PK_FREE(self);
 }
 

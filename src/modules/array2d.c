@@ -16,7 +16,7 @@ static bool c11_array2d__set(c11_array2d* self, int col, int row, py_Ref value) 
     return true;
 }
 
-c11_array2d* py_newarray2d(py_OutRef out, int n_cols, int n_rows) {
+c11_array2d* c11_newarray2d(py_OutRef out, int n_cols, int n_rows) {
     int numel = n_cols * n_rows;
     c11_array2d* ud = py_newobject(out, tp_array2d, numel, sizeof(c11_array2d));
     ud->header.n_cols = n_cols;
@@ -112,7 +112,10 @@ static bool array2d_like_index(int argc, py_Ref argv) {
             int code = py_equal(item, value);
             if(code == -1) return false;
             if(code == 1) {
-                py_newvec2i(py_retval(), (c11_vec2i){{i, j}});
+                py_newvec2i(py_retval(),
+                            (c11_vec2i){
+                                {i, j}
+                });
                 return true;
             }
         }
@@ -176,7 +179,7 @@ static bool array2d_like_map(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_array2d_like* self = py_touserdata(argv);
     py_Ref f = py_arg(1);
-    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
@@ -228,7 +231,7 @@ static bool _array2d_like_broadcasted_zip_with(int argc, py_Ref argv, py_Name op
     } else {
         other = NULL;
     }
-    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref lhs = self->f_get(self, i, j);
@@ -254,7 +257,7 @@ static bool array2d_like_zip_with(int argc, py_Ref argv) {
     c11_array2d_like* other = py_touserdata(py_arg(1));
     py_Ref f = py_arg(2);
     if(!_array2d_like_check_same_shape(self, other)) return false;
-    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_push(f);
@@ -299,7 +302,7 @@ DEF_ARRAY2D_LIKE__MAGIC_ZIP_WITH(__xor__, __xor__, 0)
 static bool array2d_like__invert__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_array2d_like* self = py_touserdata(argv);
-    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
@@ -316,7 +319,7 @@ static bool array2d_like_copy(int argc, py_Ref argv) {
     // def copy(self) -> 'array2d': ...
     PY_CHECK_ARGC(1);
     c11_array2d_like* self = py_touserdata(argv);
-    c11_array2d* res = py_newarray2d(py_retval(), self->n_cols, self->n_rows);
+    c11_array2d* res = c11_newarray2d(py_retval(), self->n_cols, self->n_rows);
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
@@ -637,7 +640,7 @@ static bool array2d_like_get_bounding_rect(int argc, py_Ref argv) {
 static bool array2d_like_count_neighbors(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     c11_array2d_like* self = py_touserdata(argv);
-    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     py_Ref value = py_arg(1);
     const char* neighborhood = py_tostr(py_arg(2));
 
@@ -703,7 +706,7 @@ static bool array2d_like_convolve(int argc, py_Ref argv) {
     int ksize = kernel->n_cols;
     if(ksize % 2 == 0) return ValueError("kernel size must be odd");
     int ksize_half = ksize / 2;
-    c11_array2d* res = py_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_i64 sum = 0;
@@ -800,7 +803,7 @@ static void register_array2d_like(py_Ref mod) {
     }
 }
 
-static bool array2d_like_iterator__next__(int argc, py_Ref argv) {
+bool array2d_like_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_array2d_like_iterator* self = py_touserdata(argv);
     if(self->j >= self->array->n_rows) return StopIteration();
@@ -834,7 +837,7 @@ static bool array2d__new__(int argc, py_Ref argv) {
     int n_cols = argv[1]._i64;
     int n_rows = argv[2]._i64;
     if(n_cols <= 0 || n_rows <= 0) return ValueError("array2d() expected positive dimensions");
-    c11_array2d* ud = py_newarray2d(py_pushtmp(), n_cols, n_rows);
+    c11_array2d* ud = c11_newarray2d(py_pushtmp(), n_cols, n_rows);
     // setup initial values
     if(py_callable(default_)) {
         for(int j = 0; j < n_rows; j++) {
@@ -876,7 +879,7 @@ static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
             return ValueError("fromlist() expected a list of lists with the same length");
         }
     }
-    c11_array2d* res = py_newarray2d(py_retval(), n_cols, n_rows);
+    c11_array2d* res = c11_newarray2d(py_retval(), n_cols, n_rows);
     for(int j = 0; j < n_rows; j++) {
         py_Ref row_j = py_list_getitem(argv, j);
         for(int i = 0; i < n_cols; i++) {
@@ -1359,4 +1362,30 @@ void pk__add_module_array2d() {
     register_array2d(mod);
     register_array2d_view(mod);
     register_chunked_array2d(mod);
+}
+
+void py_newarray2d(py_OutRef out, int width, int height) { c11_newarray2d(out, width, height); }
+
+int py_array2d_getwidth(py_Ref self) {
+    assert(self->type == tp_array2d);
+    c11_array2d* ud = py_touserdata(self);
+    return ud->header.n_cols;
+}
+
+int py_array2d_getheight(py_Ref self) {
+    assert(self->type == tp_array2d);
+    c11_array2d* ud = py_touserdata(self);
+    return ud->header.n_rows;
+}
+
+py_ObjectRef py_array2d_getitem(py_Ref self, int x, int y) {
+    assert(self->type == tp_array2d);
+    c11_array2d* ud = py_touserdata(self);
+    return c11_array2d__get(ud, x, y);
+}
+
+void py_array2d_setitem(py_Ref self, int x, int y, py_Ref value) {
+    assert(self->type == tp_array2d);
+    c11_array2d* ud = py_touserdata(self);
+    c11_array2d__set(ud, x, y, value);
 }

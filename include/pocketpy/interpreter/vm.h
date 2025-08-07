@@ -67,7 +67,7 @@ typedef struct VM {
     NameDict compile_time_funcs;
 
     py_StackRef curr_class;
-    py_StackRef curr_decl_based_function;
+    py_StackRef curr_decl_based_function;   // this is for get current function without frame
     TraceInfo trace_info;
     WatchdogInfo watchdog_info;
     LineProfiler line_profiler;
@@ -92,7 +92,6 @@ bool pk__parse_int_slice(py_Ref slice,
 bool pk__normalize_index(int* index, int length);
 
 bool pk__object_new(int argc, py_Ref argv);
-py_TypeInfo* pk_typeinfo(py_Type type);
 
 bool pk_wrapper__self(int argc, py_Ref argv);
 
@@ -113,7 +112,6 @@ const char* pk_opname(Opcode op);
 
 int pk_arrayview(py_Ref self, py_TValue** p);
 bool pk_wrapper__arrayequal(py_Type type, int argc, py_Ref argv);
-bool pk_arrayiter(py_Ref val);
 bool pk_arraycontains(py_Ref self, py_Ref val);
 
 bool pk_loadmethod(py_StackRef self, py_Name name);
@@ -139,7 +137,8 @@ py_Type pk_dict__register();
 py_Type pk_dict_items__register();
 py_Type pk_list__register();
 py_Type pk_tuple__register();
-py_Type pk_array_iterator__register();
+py_Type pk_list_iterator__register();
+py_Type pk_tuple_iterator__register();
 py_Type pk_slice__register();
 py_Type pk_function__register();
 py_Type pk_nativefunc__register();

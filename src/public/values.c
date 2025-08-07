@@ -13,6 +13,13 @@ void py_newint(py_OutRef out, py_i64 val) {
     out->_i64 = val;
 }
 
+void py_newtrivial(py_OutRef out, py_Type type, void* data, int size) {
+    out->type = type;
+    out->is_ptr = false;
+    assert(size <= 16);
+    memcpy(&out->_chars, data, size);
+}
+
 void py_newfloat(py_OutRef out, py_f64 val) {
     out->type = tp_float;
     out->is_ptr = false;

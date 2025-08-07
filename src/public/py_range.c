@@ -68,9 +68,9 @@ static bool range_iterator__new__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool range_iterator__next__(int argc, py_Ref argv) {
+bool range_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    RangeIterator* ud = py_touserdata(py_arg(0));
+    RangeIterator* ud = py_touserdata(argv);
     if(ud->range.step > 0) {
         if(ud->current >= ud->range.stop) return StopIteration();
     } else {

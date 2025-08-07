@@ -61,3 +61,15 @@
 #else
     #define PK_DEPRECATED
 #endif
+
+#ifdef NDEBUG
+    #if defined(__GNUC__)
+        #define PK_INLINE __attribute__((always_inline)) inline
+    #elif defined(_MSC_VER)
+        #define PK_INLINE __forceinline
+    #else
+        #define PK_INLINE inline
+    #endif
+#else
+    #define PK_INLINE
+#endif

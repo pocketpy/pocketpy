@@ -9,7 +9,7 @@
 void py_newstr(py_OutRef out, const char* data) { py_newstrv(out, (c11_sv){data, strlen(data)}); }
 
 char* py_newstrn(py_OutRef out, int size) {
-    if(size < 8) {
+    if(size < 16) {
         out->type = tp_str;
         out->is_ptr = false;
         c11_string* ud = (c11_string*)(&out->extra);
@@ -327,7 +327,7 @@ static bool str_split(int argc, py_Ref argv) {
     if(argc > 2) return TypeError("split() takes at most 2 arguments");
     if(argc == 1) {
         // sep = None
-        res = c11_sv__split(self, ' ');
+        res = c11_sv__splitwhitespace(self);
         discard_empty = true;
     }
     if(argc == 2) {
@@ -513,7 +513,7 @@ py_Type pk_str__register() {
     return type;
 }
 
-static bool str_iterator__next__(int argc, py_Ref argv) {
+bool str_iterator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     int* ud = py_touserdata(&argv[0]);
     int size;

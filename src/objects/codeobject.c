@@ -2,6 +2,7 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/pocketpy.h"
 #include <stdint.h>
+#include <assert.h>
 
 void Bytecode__set_signed_arg(Bytecode* self, int arg) {
     self->arg = (int16_t)arg;

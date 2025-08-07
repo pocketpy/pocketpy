@@ -4,6 +4,7 @@
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
+#include <assert.h>
 
 void pk_newgenerator(py_Ref out, py_Frame* frame, py_TValue* begin, py_TValue* end) {
     Generator* ud = py_newobject(out, tp_generator, 1, sizeof(Generator));
@@ -20,7 +21,7 @@ void Generator__dtor(Generator* ud) {
     if(ud->frame) Frame__delete(ud->frame);
 }
 
-static bool generator__next__(int argc, py_Ref argv) {
+bool generator__next__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Generator* ud = py_touserdata(argv);
     py_StackRef p0 = py_peek(0);

@@ -3,6 +3,7 @@
 #include "pocketpy/interpreter/objectpool.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
+#include <assert.h>
 
 void ManagedHeap__ctor(ManagedHeap* self) {
     MultiPool__ctor(&self->small_objects);
@@ -33,25 +34,26 @@ void ManagedHeap__dtor(ManagedHeap* self) {
 void ManagedHeap__collect_if_needed(ManagedHeap* self) {
     if(!self->gc_enabled) return;
     if(self->gc_counter < self->gc_threshold) return;
-    self->gc_counter = 0;
     int freed = ManagedHeap__collect(self);
     // adjust `gc_threshold` based on `freed_ma`
     self->freed_ma[0] = self->freed_ma[1];
     self->freed_ma[1] = self->freed_ma[2];
     self->freed_ma[2] = freed;
     int avg_freed = (self->freed_ma[0] + self->freed_ma[1] + self->freed_ma[2]) / 3;
-    const int upper = PK_GC_MIN_THRESHOLD * 8;
+    const int upper = PK_GC_MIN_THRESHOLD * 16;
     const int lower = PK_GC_MIN_THRESHOLD / 2;
     float free_ratio = (float)avg_freed / self->gc_threshold;
-    int new_threshold = self->gc_threshold * (1 / free_ratio);
+    int new_threshold = self->gc_threshold * (1.5f / free_ratio);
     // printf("gc_threshold=%d, avg_freed=%d, new_threshold=%d\n", self->gc_threshold, avg_freed,
     // new_threshold);
     self->gc_threshold = c11__min(c11__max(new_threshold, lower), upper);
 }
 
 int ManagedHeap__collect(ManagedHeap* self) {
+    self->gc_counter = 0;
     ManagedHeap__mark(self);
     int freed = ManagedHeap__sweep(self);
+    // printf("GC: collected %d objects\n", freed);
     return freed;
 }
 

@@ -12,6 +12,8 @@ Developers are able to write Python bindings via C-API or pybind11 compatible in
 
 + [Live Python Demo](https://pocketpy.dev/static/web/): Run Python code in your browser
 + [Live C Examples](https://pocketpy.github.io/examples/): Explore C-APIs in your browser
++ [Godot Extension](https://github.com/pocketpy/godot-pocketpy): Use pocketpy in Godot Engine
++ [Flutter Plugin](https://pub.dev/packages/pocketpy): Use pocketpy in Flutter apps
 
 ## What it looks like
 

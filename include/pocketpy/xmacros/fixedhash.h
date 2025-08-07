@@ -124,3 +124,4 @@ bool METHOD(contains)(NAME* self, K key) {
 #undef less
 #undef partial_less
 #undef equal
+#undef hash

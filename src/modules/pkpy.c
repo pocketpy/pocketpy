@@ -106,6 +106,8 @@ static bool pkpy_watchdog_end(int argc, py_Ref argv) {
 }
 #endif
 
+#if PK_ENABLE_THREADS
+
 typedef struct c11_ComputeThread c11_ComputeThread;
 
 typedef struct {
@@ -456,6 +458,8 @@ static void pk_ComputeThread__register(py_Ref mod) {
     py_bindmethod(type, "eval", ComputeThread_eval);
 }
 
+#endif // PK_ENABLE_THREADS
+
 static void pkpy_configmacros_add(py_Ref dict, const char* key, int val) {
     assert(dict->type == tp_dict);
     py_TValue tmp;
@@ -508,11 +512,14 @@ void pk__add_module_pkpy() {
     py_bindfunc(mod, "watchdog_end", pkpy_watchdog_end);
 #endif
 
+#if PK_ENABLE_THREADS
     pk_ComputeThread__register(mod);
+#endif
 
     py_Ref configmacros = py_emplacedict(mod, py_name("configmacros"));
     py_newdict(configmacros);
     pkpy_configmacros_add(configmacros, "PK_ENABLE_OS", PK_ENABLE_OS);
+    pkpy_configmacros_add(configmacros, "PK_ENABLE_THREADS", PK_ENABLE_THREADS);
     pkpy_configmacros_add(configmacros, "PK_ENABLE_DETERMINISM", PK_ENABLE_DETERMINISM);
     pkpy_configmacros_add(configmacros, "PK_ENABLE_WATCHDOG", PK_ENABLE_WATCHDOG);
     pkpy_configmacros_add(configmacros, "PK_GC_MIN_THRESHOLD", PK_GC_MIN_THRESHOLD);

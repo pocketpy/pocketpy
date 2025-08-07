@@ -30,9 +30,7 @@ void py_initialize() {
     bool is_little_endian = *(char*)&x == 1;
     if(!is_little_endian) c11__abort("is_little_endian != true");
 
-    // check py_TValue; 16 bytes to make py_arg() macro work
-    static_assert(sizeof(py_CFunction) <= 8, "sizeof(py_CFunction) > 8");
-    static_assert(sizeof(py_TValue) == 16, "sizeof(py_TValue) != 16");
+    static_assert(sizeof(py_TValue) == 24, "sizeof(py_TValue) != 24");
     static_assert(offsetof(py_TValue, extra) == 4, "offsetof(py_TValue, extra) != 4");
 
     pk_current_vm = pk_all_vm[0] = &pk_default_vm;
@@ -46,6 +44,12 @@ void py_initialize() {
 
     pk_initialized = true;
 }
+
+void* py_malloc(size_t size) { return PK_MALLOC(size); }
+
+void* py_realloc(void* ptr, size_t size) { return PK_REALLOC(ptr, size); }
+
+void py_free(void* ptr) { PK_FREE(ptr); }
 
 py_GlobalRef py_True() { return &_True; }
 
@@ -178,7 +182,7 @@ bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
     return VM__vectorcall(pk_current_vm, argc, kwargc, false) != RES_ERROR;
 }
 
-py_Ref py_retval() { return &pk_current_vm->last_retval; }
+PK_INLINE py_Ref py_retval() { return &pk_current_vm->last_retval; }
 
 bool py_pushmethod(py_Name name) {
     bool ok = pk_loadmethod(py_peek(-1), name);
@@ -223,7 +227,21 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
         self_bak = *self;
     }
 
-    py_Ref cls_var = py_tpfindname(type, name);
+    py_TypeInfo* ti = pk_typeinfo(type);
+
+    if(ti->getunboundmethod) {
+        bool ok = ti->getunboundmethod(self, name);
+        if(ok) {
+            assert(py_retval()->type == tp_nativefunc || py_retval()->type == tp_function);
+            self[0] = *py_retval();
+            self[1] = self_bak;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    py_Ref cls_var = pk_tpfindname(ti, name);
     if(cls_var != NULL) {
         switch(cls_var->type) {
             case tp_function:
@@ -238,7 +256,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
                 break;
             case tp_classmethod:
                 self[0] = *py_getslot(cls_var, 0);
-                self[1] = pk_typeinfo(type)->self;
+                self[1] = ti->self;
                 break;
             default: c11__unreachable();
         }

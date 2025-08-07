@@ -57,6 +57,9 @@ assert 'aa bb cccc'.split('cc') == ['aa bb ', '', '']
 assert '.a.b.'.split('.') == ['', 'a', 'b', '']
 assert '.a...b.'.split('.') == ['', 'a', '', '', 'b', '']
 
+# https://github.com/pocketpy/pocketpy/issues/378
+assert "a b   \n   c\td".split() == ['a', 'b', 'c', 'd']
+
 try:
     'a'.split('')
     exit(1)
@@ -228,3 +231,7 @@ assert f"{(1, 2, 3)}" == "(1, 2, 3)"
 
 # stack=[1,2,3,4]
 # assert f"{stack[2:]}" == '[3, 4]'
+
+
+assert id('1' * 16) is not None
+assert id('1' * 15) is None

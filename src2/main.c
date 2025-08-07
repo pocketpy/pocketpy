@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 
@@ -20,7 +19,7 @@ static char* read_file(const char* path) {
     fseek(file, 0, SEEK_END);
     long size = ftell(file);
     fseek(file, 0, SEEK_SET);
-    char* buffer = malloc(size + 1);
+    char* buffer = PK_MALLOC(size + 1);
     size = fread(buffer, 1, size, file);
     buffer[size] = 0;
     return buffer;
@@ -86,7 +85,7 @@ int main(int argc, char** argv) {
         char* source = read_file(filename);
         if(source) {
             if(!py_exec(source, filename, EXEC_MODE, NULL)) py_printexc();
-            free(source);
+            PK_FREE(source);
         }
     }
 

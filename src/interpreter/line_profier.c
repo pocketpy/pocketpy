@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/line_profiler.h"
+#include <assert.h>
 
 void LineProfiler__ctor(LineProfiler* self) {
     c11_smallmap_p2i__ctor(&self->records);
