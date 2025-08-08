@@ -159,10 +159,15 @@ static bool Random__init__(int argc, py_Ref argv) {
 
 static bool Random_seed(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    PY_CHECK_ARG_TYPE(1, tp_int);
     mt19937* ud = py_touserdata(py_arg(0));
-    py_i64 seed = py_toint(py_arg(1));
-    mt19937__seed(ud, seed);
+    py_i64 seed;
+    if(py_isnone(&argv[1])) {
+        seed = time_ns();
+    } else {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        seed = py_toint(py_arg(1));
+    }
+    mt19937__seed(ud, (uint32_t)seed);
     py_newnone(py_retval());
     return true;
 }
