@@ -458,13 +458,42 @@ static void pk_ComputeThread__register(py_Ref mod) {
     py_bindmethod(type, "eval", ComputeThread_eval);
 }
 
-#endif // PK_ENABLE_THREADS
+#endif  // PK_ENABLE_THREADS
 
 static void pkpy_configmacros_add(py_Ref dict, const char* key, int val) {
     assert(dict->type == tp_dict);
     py_TValue tmp;
     py_newint(&tmp, val);
     py_dict_setitem_by_str(dict, key, &tmp);
+}
+
+static bool pkpy_profiler_begin(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    LineProfiler__begin(&pk_current_vm->line_profiler);
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool pkpy_profiler_end(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    LineProfiler__end(&pk_current_vm->line_profiler);
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool pkpy_profiler_reset(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    LineProfiler__reset(&pk_current_vm->line_profiler);
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool pkpy_profiler_report(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    c11_string* report = LineProfiler__get_report(&pk_current_vm->line_profiler);
+    bool ok = py_json_loads(report->data);
+    c11_string__delete(report);
+    return ok;
 }
 
 void pk__add_module_pkpy() {
@@ -515,6 +544,11 @@ void pk__add_module_pkpy() {
 #if PK_ENABLE_THREADS
     pk_ComputeThread__register(mod);
 #endif
+
+    py_bindfunc(mod, "profiler_begin", pkpy_profiler_begin);
+    py_bindfunc(mod, "profiler_end", pkpy_profiler_end);
+    py_bindfunc(mod, "profiler_reset", pkpy_profiler_reset);
+    py_bindfunc(mod, "profiler_report", pkpy_profiler_report);
 
     py_Ref configmacros = py_emplacedict(mod, py_name("configmacros"));
     py_newdict(configmacros);

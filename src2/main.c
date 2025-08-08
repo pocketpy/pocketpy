@@ -25,7 +25,6 @@ static char* read_file(const char* path) {
     return buffer;
 }
 
-// void LineProfiler__tracefunc(py_Frame* frame, enum py_TraceEvent event);
 static char buf[2048];
 
 int main(int argc, char** argv) {
@@ -52,8 +51,7 @@ int main(int argc, char** argv) {
     py_initialize();
     py_sys_setargv(argc, argv);
 
-    assert(!profile);  // not implemented yet
-    // if(profile) py_sys_settrace(LineProfiler__tracefunc, true);
+    if(profile) py_sys_settrace(py_LineProfiler_tracefunc, true);
 
     if(filename == NULL) {
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");

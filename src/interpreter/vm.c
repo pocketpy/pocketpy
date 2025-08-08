@@ -34,9 +34,9 @@ static void pk_default_flush() { fflush(stdout); }
 
 static int pk_default_getchr() { return getchar(); }
 
-void LineProfiler__tracefunc(py_Frame* frame, enum py_TraceEvent event) {
+void py_LineProfiler_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     LineProfiler* self = &pk_current_vm->line_profiler;
-    if(self->enabled && event == TRACE_EVENT_LINE) { LineProfiler__tracefunc_line(self, frame); }
+    if(self->enabled && event == TRACE_EVENT_LINE) LineProfiler__tracefunc_line(self, frame);
 }
 
 static int BinTree__cmp_cstr(void* lhs, void* rhs) {
@@ -234,9 +234,9 @@ void VM__ctor(VM* self) {
     pk__add_module_unicodedata();
 
     pk__add_module_conio();
-    pk__add_module_lz4();    // optional
-    pk__add_module_libhv();  // optional
-    pk__add_module_cute_png(); // optional
+    pk__add_module_lz4();       // optional
+    pk__add_module_libhv();     // optional
+    pk__add_module_cute_png();  // optional
     pk__add_module_pkpy();
 
     // add python builtins

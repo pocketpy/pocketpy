@@ -163,6 +163,9 @@ PK_API void py_Frame_newlocals(py_Frame* frame, py_OutRef out);
 /// Returns `NULL` if not available.
 PK_API py_StackRef py_Frame_function(py_Frame* frame);
 
+/// Trace function for the line profiler.
+PK_API void py_LineProfiler_tracefunc(py_Frame* frame, enum py_TraceEvent event);
+
 /// Run a source string.
 /// @param source source string.
 /// @param filename filename (for error messages).

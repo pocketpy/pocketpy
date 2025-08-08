@@ -1,4 +1,6 @@
+#include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/line_profiler.h"
+#include "pocketpy/objects/sourcedata.h"
 #include <assert.h>
 
 void LineProfiler__ctor(LineProfiler* self) {
@@ -59,4 +61,34 @@ void LineProfiler__end(LineProfiler* self) {
 void LineProfiler__reset(LineProfiler* self) {
     LineProfiler__dtor(self);
     LineProfiler__ctor(self);
+}
+
+c11_string* LineProfiler__get_report(LineProfiler* self) {
+    c11_sbuf sbuf;
+    c11_sbuf__ctor(&sbuf);
+    c11_sbuf__write_char(&sbuf, '{');
+    for(int i = 0; i < self->records.length; i++) {
+        c11_smallmap_p2i_KV kv = c11__getitem(c11_smallmap_p2i_KV, &self->records, i);
+        SourceData_ src = (SourceData_)kv.key;
+        int line_record_length = src->line_starts.length + 1;
+        c11_sv src_name = c11_string__sv(src->filename);
+        c11_sbuf__write_quoted(&sbuf, src_name, '"');
+        c11_sbuf__write_cstr(&sbuf, ": [");
+        LineRecord* lines = (LineRecord*)kv.value;
+        for(int j = 1; j < line_record_length; j++) {
+            // [<j>, <hits>, <time>]
+            c11_sbuf__write_cstr(&sbuf, "[");
+            c11_sbuf__write_int(&sbuf, j);
+            c11_sbuf__write_cstr(&sbuf, ", ");
+            c11_sbuf__write_i64(&sbuf, lines[j].hits);
+            c11_sbuf__write_cstr(&sbuf, ", ");
+            c11_sbuf__write_i64(&sbuf, lines[j].time);
+            c11_sbuf__write_cstr(&sbuf, "]");
+            if(j < line_record_length - 1) c11_sbuf__write_cstr(&sbuf, ", ");
+        }
+        c11_sbuf__write_cstr(&sbuf, "]");
+        if(i < self->records.length - 1) c11_sbuf__write_cstr(&sbuf, ", ");
+    }
+    c11_sbuf__write_char(&sbuf, '}');
+    return c11_sbuf__submit(&sbuf);
 }
