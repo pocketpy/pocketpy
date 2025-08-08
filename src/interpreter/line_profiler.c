@@ -89,6 +89,7 @@ c11_string* LineProfiler__get_report(LineProfiler* self) {
         LineRecord* lines = (LineRecord*)kv.value;
         for(int j = 1; j < line_record_length; j++) {
             // [<j>, <hits>, <time>]
+            if(lines[j].hits == 0 && lines[j].time == 0) continue;
             c11_sbuf__write_cstr(&sbuf, "[");
             c11_sbuf__write_int(&sbuf, j);
             c11_sbuf__write_cstr(&sbuf, ", ");
