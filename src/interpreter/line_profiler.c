@@ -87,9 +87,11 @@ c11_string* LineProfiler__get_report(LineProfiler* self) {
         c11_sbuf__write_quoted(&sbuf, src_name, '"');
         c11_sbuf__write_cstr(&sbuf, ": [");
         LineRecord* lines = (LineRecord*)kv.value;
+        bool is_first = true;
         for(int j = 1; j < line_record_length; j++) {
             // [<j>, <hits>, <time>]
             if(lines[j].hits == 0 && lines[j].time == 0) continue;
+            if(!is_first) c11_sbuf__write_cstr(&sbuf, ", ");
             c11_sbuf__write_cstr(&sbuf, "[");
             c11_sbuf__write_int(&sbuf, j);
             c11_sbuf__write_cstr(&sbuf, ", ");
@@ -97,7 +99,7 @@ c11_string* LineProfiler__get_report(LineProfiler* self) {
             c11_sbuf__write_cstr(&sbuf, ", ");
             c11_sbuf__write_i64(&sbuf, lines[j].time);
             c11_sbuf__write_cstr(&sbuf, "]");
-            if(j < line_record_length - 1) c11_sbuf__write_cstr(&sbuf, ", ");
+            is_first = false;
         }
         c11_sbuf__write_cstr(&sbuf, "]");
         if(i < self->records.length - 1) c11_sbuf__write_cstr(&sbuf, ", ");
