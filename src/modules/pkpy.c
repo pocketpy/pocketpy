@@ -493,7 +493,9 @@ static bool pkpy_profiler_reset(int argc, py_Ref argv) {
 
 static bool pkpy_profiler_report(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
-    c11_string* report = LineProfiler__get_report(&pk_current_vm->line_profiler);
+    LineProfiler* lp = &pk_current_vm->line_profiler;
+    if(lp->enabled) LineProfiler__end(lp);
+    c11_string* report = LineProfiler__get_report(lp);
     bool ok = py_json_loads(report->data);
     c11_string__delete(report);
     return ok;

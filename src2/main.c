@@ -51,9 +51,8 @@ int main(int argc, char** argv) {
     py_initialize();
     py_sys_setargv(argc, argv);
 
-    if(profile) py_sys_settrace(py_LineProfiler_tracefunc, true);
-
     if(filename == NULL) {
+        if(profile) printf("Warning: --profile is ignored in REPL mode.\n");
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
         printf("[%d bit] on %s", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
 #ifndef NDEBUG
@@ -79,6 +78,7 @@ int main(int argc, char** argv) {
             }
         }
     } else {
+        if(profile) py_sys_settrace(py_LineProfiler_tracefunc, true);
         char* source = read_file(filename);
         if(source) {
             if(!py_exec(source, filename, EXEC_MODE, NULL)) py_printexc();
