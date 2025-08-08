@@ -11,9 +11,12 @@ void LineProfiler__ctor(LineProfiler* self) {
 }
 
 void LineProfiler__dtor(LineProfiler* self) {
+    if(self->prev_loc.src != NULL) PK_DECREF(self->prev_loc.src);
     for(int i = 0; i < self->records.length; i++) {
-        LineRecord* lines = c11__getitem(LineRecord*, &self->records, i);
-        PK_FREE(lines);
+        c11_smallmap_p2i_KV kv = c11__getitem(c11_smallmap_p2i_KV, &self->records, i);
+        SourceData_ src = (SourceData_)kv.key;
+        PK_DECREF(src);
+        PK_FREE((void*)kv.value);
     }
     c11_smallmap_p2i__dtor(&self->records);
 }
@@ -25,6 +28,7 @@ LineRecord* LineProfiler__get_record(LineProfiler* self, SourceLocation loc) {
         lines = PK_MALLOC(sizeof(LineRecord) * (max_lineno + 1));
         memset(lines, 0, sizeof(LineRecord) * (max_lineno + 1));
         c11_smallmap_p2i__set(&self->records, loc.src, (py_i64)lines);
+        PK_INCREF(loc.src);
     }
     return &lines[loc.lineno];
 }
@@ -43,8 +47,10 @@ void LineProfiler__tracefunc_line(LineProfiler* self, py_Frame* frame) {
         LineRecord* line = LineProfiler__get_record(self, self->prev_loc);
         line->hits++;
         line->time += now - self->prev_time;
+        PK_DECREF(self->prev_loc.src);
     }
     self->prev_loc = Frame__source_location(frame);
+    PK_INCREF(self->prev_loc.src);
     self->prev_time = now;
 }
 
