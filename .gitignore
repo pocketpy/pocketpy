@@ -41,3 +41,4 @@ docs/C-API/functions.md
 
 cmake-build-*
 tmp/
+profiler_report.json

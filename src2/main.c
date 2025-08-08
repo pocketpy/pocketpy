@@ -78,10 +78,23 @@ int main(int argc, char** argv) {
             }
         }
     } else {
-        if(profile) py_sys_settrace(py_LineProfiler_tracefunc, true);
+        if(profile) py_profiler_begin();
         char* source = read_file(filename);
         if(source) {
-            if(!py_exec(source, filename, EXEC_MODE, NULL)) py_printexc();
+            if(!py_exec(source, filename, EXEC_MODE, NULL))
+                py_printexc();
+            else {
+                if(profile) {
+                    char* json_report = py_profiler_report();
+                    FILE* report_file = fopen("profiler_report.json", "w");
+                    if(report_file) {
+                        fprintf(report_file, "%s", json_report);
+                        fclose(report_file);
+                    }
+                    PK_FREE(json_report);
+                }
+            }
+
             PK_FREE(source);
         }
     }

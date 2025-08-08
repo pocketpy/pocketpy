@@ -34,9 +34,36 @@ static void pk_default_flush() { fflush(stdout); }
 
 static int pk_default_getchr() { return getchar(); }
 
-void py_LineProfiler_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
-    LineProfiler* self = &pk_current_vm->line_profiler;
-    if(self->enabled && event == TRACE_EVENT_LINE) LineProfiler__tracefunc_line(self, frame);
+void py_profiler_begin() {
+    LineProfiler* lp = &pk_current_vm->line_profiler;
+    TraceInfo* trace_info = &pk_current_vm->trace_info;
+    if(trace_info->func == NULL) py_sys_settrace(LineProfiler_tracefunc, true);
+    c11__rtassert(trace_info->func == LineProfiler_tracefunc);
+    LineProfiler__begin(lp);
+}
+
+void py_profiler_end() {
+    LineProfiler* lp = &pk_current_vm->line_profiler;
+    LineProfiler__end(lp);
+}
+
+void py_profiler_reset() {
+    LineProfiler* lp = &pk_current_vm->line_profiler;
+    LineProfiler__reset(lp);
+}
+
+char* py_profiler_report() {
+    LineProfiler* lp = &pk_current_vm->line_profiler;
+    if(lp->enabled) LineProfiler__end(lp);
+    c11_string* s = LineProfiler__get_report(lp);
+    char* s_dup = c11_strdup(s->data);
+    c11_string__delete(s);
+    return s_dup;
+}
+
+void LineProfiler_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
+    LineProfiler* lp = &pk_current_vm->line_profiler;
+    if(lp->enabled && event == TRACE_EVENT_LINE) LineProfiler__tracefunc_line(lp, frame);
 }
 
 static int BinTree__cmp_cstr(void* lhs, void* rhs) {

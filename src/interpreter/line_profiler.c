@@ -67,6 +67,12 @@ c11_string* LineProfiler__get_report(LineProfiler* self) {
     c11_sbuf sbuf;
     c11_sbuf__ctor(&sbuf);
     c11_sbuf__write_char(&sbuf, '{');
+    c11_sbuf__write_cstr(&sbuf, "\"version\": 1, ");
+    c11_sbuf__write_cstr(&sbuf, "\"CLOCKS_PER_SEC\": ");
+    c11_sbuf__write_i64(&sbuf, CLOCKS_PER_SEC);
+    c11_sbuf__write_cstr(&sbuf, ", \"records\": ");
+
+    c11_sbuf__write_char(&sbuf, '{');
     for(int i = 0; i < self->records.length; i++) {
         c11_smallmap_p2i_KV kv = c11__getitem(c11_smallmap_p2i_KV, &self->records, i);
         SourceData_ src = (SourceData_)kv.key;
@@ -89,6 +95,7 @@ c11_string* LineProfiler__get_report(LineProfiler* self) {
         c11_sbuf__write_cstr(&sbuf, "]");
         if(i < self->records.length - 1) c11_sbuf__write_cstr(&sbuf, ", ");
     }
+    c11_sbuf__write_char(&sbuf, '}');
     c11_sbuf__write_char(&sbuf, '}');
     return c11_sbuf__submit(&sbuf);
 }

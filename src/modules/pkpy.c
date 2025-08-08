@@ -469,8 +469,10 @@ static void pkpy_configmacros_add(py_Ref dict, const char* key, int val) {
 
 static bool pkpy_profiler_begin(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
-    if(pk_current_vm->trace_info.func != py_LineProfiler_tracefunc) {
-        return RuntimeError("py_LineProfiler_tracefunc() should be set as the trace function");
+    TraceInfo* trace_info = &pk_current_vm->trace_info;
+    if(trace_info->func == NULL) py_sys_settrace(LineProfiler_tracefunc, true);
+    if(trace_info->func != LineProfiler_tracefunc) {
+        return RuntimeError("LineProfiler_tracefunc() should be set as the trace function");
     }
     LineProfiler__begin(&pk_current_vm->line_profiler);
     py_newnone(py_retval());

@@ -163,9 +163,6 @@ PK_API void py_Frame_newlocals(py_Frame* frame, py_OutRef out);
 /// Returns `NULL` if not available.
 PK_API py_StackRef py_Frame_function(py_Frame* frame);
 
-/// Trace function for the line profiler.
-PK_API void py_LineProfiler_tracefunc(py_Frame* frame, enum py_TraceEvent event);
-
 /// Run a source string.
 /// @param source source string.
 /// @param filename filename (for error messages).
@@ -704,6 +701,14 @@ PK_API bool py_json_loads(const char* source) PY_RAISE PY_RETURN;
 PK_API bool py_pickle_dumps(py_Ref val) PY_RAISE PY_RETURN;
 /// Python equivalent to `pickle.loads(val)`.
 PK_API bool py_pickle_loads(const unsigned char* data, int size) PY_RAISE PY_RETURN;
+
+/************* Profiler *************/
+
+PK_API void py_profiler_begin();
+PK_API void py_profiler_end();
+PK_API void py_profiler_reset();
+PK_API char* py_profiler_report();
+
 /************* Unchecked Functions *************/
 
 PK_API py_ObjectRef py_tuple_data(py_Ref self);
