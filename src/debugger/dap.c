@@ -1,9 +1,7 @@
-#include <ctype.h>
 #include <stdbool.h>
 #include "pocketpy/common/socket.h"
 #include "pocketpy/debugger/core.h"
 #include "pocketpy/objects/base.h"
-#include "pocketpy/debugger/dap.h"
 
 #define DAP_COMMAND_LIST(X)                                                                        \
     X(initialize)                                                                                  \
@@ -235,12 +233,6 @@ void c11_dap_send_stop_event() {
                        "{\"reason\":\"breakpoint\",\"threadId\":1,\"allThreadsStopped\":true}");
 }
 
-void c11_dap_send_exited_event(int exitCode) {
-    char body[64];
-    snprintf(body, sizeof(body), "{\"exitCode\":%d}", exitCode);
-    c11_dap_send_event("exited", body);
-}
-
 void c11_dap_send_initialized_event() { c11_dap_send_event("initialized", "{}"); }
 
 int c11_dap_read_content_length(const char* buffer, int* header_length) {
@@ -367,10 +359,16 @@ void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     py_sys_settrace(c11_dap_tracefunc, false);
 }
 
-void wait_for_debugger(const char* hostname, unsigned short port) {
+void py_debugger_waitforattach(const char* hostname, unsigned short port) {
     c11_dap_init_server(hostname, port);
     c11_debugger_init();
     c11_dap_configure_debugger();
     c11_socket_set_block(server.toclient, 0);
     py_sys_settrace(c11_dap_tracefunc, true);
+}
+
+void py_debugger_exit(int exitCode) {
+    char body[64];
+    snprintf(body, sizeof(body), "{\"exitCode\":%d}", exitCode);
+    c11_dap_send_event("exited", body);
 }

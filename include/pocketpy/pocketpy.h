@@ -703,11 +703,14 @@ PK_API bool py_pickle_dumps(py_Ref val) PY_RAISE PY_RETURN;
 PK_API bool py_pickle_loads(const unsigned char* data, int size) PY_RAISE PY_RETURN;
 
 /************* Profiler *************/
-
 PK_API void py_profiler_begin();
 PK_API void py_profiler_end();
 PK_API void py_profiler_reset();
 PK_API char* py_profiler_report();
+
+/************* DAP *************/
+PK_API void py_debugger_waitforattach(const char* hostname, unsigned short port);
+PK_API void py_debugger_exit(int exitCode);
 
 /************* Unchecked Functions *************/
 
