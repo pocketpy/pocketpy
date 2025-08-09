@@ -1,11 +1,10 @@
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 
 #include "pocketpy.h"
-#include "pocketpy/debugger/dap.h"
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -20,13 +19,12 @@ static char* read_file(const char* path) {
     fseek(file, 0, SEEK_END);
     long size = ftell(file);
     fseek(file, 0, SEEK_SET);
-    char* buffer = malloc(size + 1);
+    char* buffer = PK_MALLOC(size + 1);
     size = fread(buffer, 1, size, file);
     buffer[size] = 0;
     return buffer;
 }
 
-// void LineProfiler__tracefunc(py_Frame* frame, enum py_TraceEvent event);
 static char buf[2048];
 
 int main(int argc, char** argv) {
@@ -53,10 +51,8 @@ int main(int argc, char** argv) {
     py_initialize();
     py_sys_setargv(argc, argv);
 
-    assert(!profile);  // not implemented yet
-    // if(profile) py_sys_settrace(LineProfiler__tracefunc, true);
-
     if(filename == NULL) {
+        if(profile) printf("Warning: --profile is ignored in REPL mode.\n");
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
         printf("[%d bit] on %s", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
 #ifndef NDEBUG
@@ -82,11 +78,24 @@ int main(int argc, char** argv) {
             }
         }
     } else {
-        wait_for_debugger("127.0.0.1", 3939);
+        if(profile) py_profiler_begin();
         char* source = read_file(filename);
         if(source) {
-            if(!py_exec(source, filename, EXEC_MODE, NULL)) py_printexc();
-            free(source);
+            if(!py_exec(source, filename, EXEC_MODE, NULL))
+                py_printexc();
+            else {
+                if(profile) {
+                    char* json_report = py_profiler_report();
+                    FILE* report_file = fopen("profiler_report.json", "w");
+                    if(report_file) {
+                        fprintf(report_file, "%s", json_report);
+                        fclose(report_file);
+                    }
+                    PK_FREE(json_report);
+                }
+            }
+
+            PK_FREE(source);
         }
     }
 
