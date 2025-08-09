@@ -34,6 +34,7 @@ int main(int argc, char** argv) {
 #endif
 
     bool profile = false;
+    bool debug = false;
     const char* filename = NULL;
 
     for(int i = 1; i < argc; i++) {
@@ -41,11 +42,20 @@ int main(int argc, char** argv) {
             profile = true;
             continue;
         }
+        if(strcmp(argv[i], "--debug") == 0) {
+            debug = true;
+            continue;
+        }
         if(filename == NULL) {
             filename = argv[i];
             continue;
         }
-        printf("Usage: pocketpy [--profile] filename\n");
+        printf("Usage: pocketpy [--profile] [--debug] filename\n");
+    }
+
+    if(debug && profile) {
+        printf("Error: --debug and --profile cannot be used together.\n");
+        return 1;
     }
 
     py_initialize();
@@ -53,6 +63,8 @@ int main(int argc, char** argv) {
 
     if(filename == NULL) {
         if(profile) printf("Warning: --profile is ignored in REPL mode.\n");
+        if(debug) printf("Warning: --debug is ignored in REPL mode.\n");
+
         printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
         printf("[%d bit] on %s", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
 #ifndef NDEBUG
@@ -79,6 +91,8 @@ int main(int argc, char** argv) {
         }
     } else {
         if(profile) py_profiler_begin();
+        if(debug) py_debugger_waitforattach("127.0.0.1", 6110);
+
         char* source = read_file(filename);
         if(source) {
             if(!py_exec(source, filename, EXEC_MODE, NULL))
@@ -101,5 +115,7 @@ int main(int argc, char** argv) {
 
     int code = py_checkexc(false) ? 1 : 0;
     py_finalize();
+
+    if(debug) py_debugger_exit(code);
     return code;
 }
