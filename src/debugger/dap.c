@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdio.h>
 #include "pocketpy/common/socket.h"
 #include "pocketpy/debugger/core.h"
 #include "pocketpy/objects/base.h"
@@ -54,14 +55,7 @@ void c11_dap_handle_initialize(py_Ref arguments, c11_sbuf* buffer) {
     c11_sbuf__write_char(buffer, ',');
 }
 
-<<<<<<< HEAD
-void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) {
-    server.isatttach = true;
-
-}
-=======
 void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) { server.isatttach = true; }
->>>>>>> 429f2e78 (simplify the workdir process)
 
 void c11_dap_handle_next(py_Ref arguments, c11_sbuf* buffer) {
     c11_debugger_set_step_mode(C11_STEP_OVER);
@@ -237,8 +231,6 @@ void c11_dap_send_stop_event() {
                        "{\"threadId\":1,\"allThreadsStopped\":true}");
 }
 
-<<<<<<< HEAD
-=======
 void c11_dap_send_exited_event(int exitCode) {
     char body[64];
     snprintf(body, sizeof(body), "{\"exitCode\":%d}", exitCode);
@@ -251,7 +243,6 @@ void c11_dap_send_fatal_event(const char* message) {
     c11_dap_send_event("pkpy/fatalError", body);
 }
 
->>>>>>> 429f2e78 (simplify the workdir process)
 void c11_dap_send_initialized_event() { c11_dap_send_event("initialized", "{}"); }
 
 int c11_dap_read_content_length(const char* buffer, int* header_length) {
@@ -365,7 +356,12 @@ void c11_dap_configure_debugger() {
 
 void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     py_sys_settrace(NULL, false);
-    C11_DEBUGGER_FAIL_REASON result = c11_debugger_on_trace(frame, event);
+    C11_DEBUGGER_STATUS result = c11_debugger_on_trace(frame, event);
+    if(result == C11_DEBUGGER_EXIT) {
+        c11_dap_send_exited_event(0);
+        printf("[DEBUGGER INFO] : program exit\n");
+        exit(0);
+    }
     if(result != C11_DEBUGGER_SUCCESS) {
         const char* message = NULL;
         switch(result) {

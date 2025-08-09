@@ -41,11 +41,7 @@ static struct c11_debugger {
     c11_vector py_frames;
     c11_smallmap_d2index scopes_query_cache;
 
-<<<<<<< HEAD
-    #define python_vars py_r7()
-=======
 #define python_vars py_r7()
->>>>>>> 429f2e78 (simplify the workdir process)
 
 } debugger;
 
@@ -69,20 +65,12 @@ inline static py_Ref get_variable(int var_ref) {
     return py_list_getitem(python_vars, var_ref);
 }
 
-
-static inline const char* format_filepath(const char* path) {
-    if (strstr(path, "..")) {
-        return NULL;
-    }
-    if (strstr(path + 1, "./") || strstr(path + 1, ".\\")) {
-        return NULL;
-    }
-    if (path[0] == '.' && (path[1] == '/' || path[1] == '\\')) {
-        return path + 2;
-    }
+const inline static char* format_filepath(const char* path) {
+    if(strstr(path, "..")) { return NULL; }
+    if(strstr(path + 1, "./") || strstr(path + 1, ".\\")) { return NULL; }
+    if(path[0] == '.' && (path[1] == '/' || path[1] == '\\')) { return path + 2; }
     return path;
 }
-
 
 void c11_debugger_init() {
     debugger.curr_stack_depth = 0;
@@ -94,7 +82,7 @@ void c11_debugger_init() {
     init_structures();
 }
 
-C11_DEBUGGER_FAIL_REASON c11_debugger_on_trace(py_Frame* frame, enum py_TraceEvent event) {
+C11_DEBUGGER_STATUS c11_debugger_on_trace(py_Frame* frame, enum py_TraceEvent event) {
     debugger.current_frame = frame;
     debugger.current_event = event;
     const char* source_name = py_Frame_sourceloc(debugger.current_frame, &debugger.current_line);
@@ -106,6 +94,7 @@ C11_DEBUGGER_FAIL_REASON c11_debugger_on_trace(py_Frame* frame, enum py_TraceEve
         case TRACE_EVENT_POP: debugger.curr_stack_depth--; break;
         default: break;
     }
+    if(debugger.curr_stack_depth == 0) return C11_DEBUGGER_EXIT;
     return C11_DEBUGGER_SUCCESS;
 }
 
@@ -123,10 +112,6 @@ void c11_debugger_set_step_mode(C11_STEP_MODE mode) {
     debugger.keep_suspend = false;
 }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 429f2e78 (simplify the workdir process)
 int c11_debugger_setbreakpoint(const char* filename, int lineno) {
     c11_debugger_breakpoint breakpoint = {.sourcename = c11_strdup(filename), .lineno = lineno};
     c11_vector__push(c11_debugger_breakpoint, &debugger.breakpoints, breakpoint);
@@ -184,10 +169,6 @@ int c11_debugger_should_pause() {
 
 int c11_debugger_should_keep_pause(void) { return debugger.keep_suspend; }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 429f2e78 (simplify the workdir process)
 inline static c11_sv sv_from_cstr(const char* str) {
     c11_sv sv = {.data = str, .size = strlen(str)};
     return sv;
@@ -287,12 +268,6 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
 
     // 3. construct DAP JSON and extend python_vars
     py_Ref dap_obj = py_pushtmp();
-<<<<<<< HEAD
-    py_assign(dap_obj, py_retval());
-
-    // 4. extend python_vars
-    if(!py_smartexec("_0.extend([kv[1] for kv in _1])", NULL, python_vars, kv_list)) {
-=======
     py_newdict(dap_obj);  // 先创建字典
     const char* dap_code =
         "_2['variables'] = []\n"
@@ -307,7 +282,6 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
         "    })\n"
         "    if has_children: var_ref += 1\n";
     if(!py_smartexec(dap_code, NULL, kv_list, base_var_ref, dap_obj)) {
->>>>>>> 429f2e78 (simplify the workdir process)
         py_printexc();
         return false;
     }
@@ -337,8 +311,5 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
     py_pop();  // kv_list
     return true;
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> 429f2e78 (simplify the workdir process)
 #undef python_vars

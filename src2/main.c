@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "pocketpy.h"
-#include "pocketpy/debugger/dap.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -90,13 +89,9 @@ int main(int argc, char** argv) {
             }
         }
     } else {
-<<<<<<< HEAD
         if(profile) py_profiler_begin();
         if(debug) py_debugger_waitforattach("127.0.0.1", 6110);
 
-=======
-        wait_for_debugger("127.0.0.1", 3939);
->>>>>>> 429f2e78 (simplify the workdir process)
         char* source = read_file(filename);
         if(source) {
             if(!py_exec(source, filename, EXEC_MODE, NULL))
