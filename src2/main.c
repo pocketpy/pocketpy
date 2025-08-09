@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
         }
     } else {
         if(profile) py_profiler_begin();
-        if(debug) py_debugger_waitforattach("localhost", 6110);
+        if(debug) py_debugger_waitforattach("127.0.0.1", 6110);
 
         char* source = read_file(filename);
         if(source) {
