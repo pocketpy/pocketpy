@@ -94,7 +94,7 @@ void c11_dap_handle_setBreakpoints(py_Ref arguments, c11_sbuf* buffer) {
         py_printexc();
         return;
     }
-    const char* sourcename = py_tostr(py_retval());
+    const char* sourcename = c11_strdup(py_tostr(py_retval()));
     if(!py_smarteval("[bp['line'] for bp in _0['breakpoints']]", NULL, arguments)) {
         py_printexc();
         return;
@@ -110,6 +110,7 @@ void c11_dap_handle_setBreakpoints(py_Ref arguments, c11_sbuf* buffer) {
     }
     c11_sbuf__write_cstr(buffer, "]}");
     c11_sbuf__write_char(buffer, ',');
+    PK_FREE((void*)sourcename);
 }
 
 void c11_dap_handle_stackTrace(py_Ref arguments, c11_sbuf* buffer) {
@@ -330,9 +331,9 @@ void c11_dap_init_server(const char* hostname, unsigned short port) {
 inline static void c11_dap_handle_message() {
     const char* message = c11_dap_read_message();
     if(message == NULL) return;
-    printf("[DEBUGGER INFO] read request %s\n", message);
+    // printf("[DEBUGGER INFO] read request %s\n", message);
     const char* response_content = c11_dap_handle_request(message);
-    if(response_content != NULL) { printf("[DEBUGGER INFO] send response %s\n", response_content); }
+    // if(response_content != NULL) { printf("[DEBUGGER INFO] send response %s\n", response_content); }
     c11_sbuf buffer;
     c11_sbuf__ctor(&buffer);
     pk_sprintf(&buffer, "Content-Length: %d\r\n\r\n%s", strlen(response_content), response_content);
