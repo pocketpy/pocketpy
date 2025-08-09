@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdio.h>
 #include "pocketpy/common/socket.h"
 #include "pocketpy/debugger/core.h"
 #include "pocketpy/objects/base.h"
@@ -54,10 +55,7 @@ void c11_dap_handle_initialize(py_Ref arguments, c11_sbuf* buffer) {
     c11_sbuf__write_char(buffer, ',');
 }
 
-void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) {
-    server.isatttach = true;
-
-}
+void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) { server.isatttach = true; }
 
 void c11_dap_handle_next(py_Ref arguments, c11_sbuf* buffer) {
     c11_debugger_set_step_mode(C11_STEP_OVER);
@@ -96,7 +94,7 @@ void c11_dap_handle_setBreakpoints(py_Ref arguments, c11_sbuf* buffer) {
         py_printexc();
         return;
     }
-    const char* sourcename = py_tostr(py_retval());
+    const char* sourcename = c11_strdup(py_tostr(py_retval()));
     if(!py_smarteval("[bp['line'] for bp in _0['breakpoints']]", NULL, arguments)) {
         py_printexc();
         return;
@@ -112,6 +110,7 @@ void c11_dap_handle_setBreakpoints(py_Ref arguments, c11_sbuf* buffer) {
     }
     c11_sbuf__write_cstr(buffer, "]}");
     c11_sbuf__write_char(buffer, ',');
+    PK_FREE((void*)sourcename);
 }
 
 void c11_dap_handle_stackTrace(py_Ref arguments, c11_sbuf* buffer) {
@@ -230,7 +229,19 @@ void c11_dap_send_event(const char* event_name, const char* body_json) {
 
 void c11_dap_send_stop_event() {
     c11_dap_send_event("stopped",
-                       "{\"reason\":\"breakpoint\",\"threadId\":1,\"allThreadsStopped\":true}");
+                       "{\"threadId\":1,\"allThreadsStopped\":true}");
+}
+
+void c11_dap_send_exited_event(int exitCode) {
+    char body[64];
+    snprintf(body, sizeof(body), "{\"exitCode\":%d}", exitCode);
+    c11_dap_send_event("exited", body);
+}
+
+void c11_dap_send_fatal_event(const char* message) {
+    char body[128];
+    snprintf(body, sizeof(body), "{\"message\":\"%s\"}", message);
+    c11_dap_send_event("pkpy/fatalError", body);
 }
 
 void c11_dap_send_initialized_event() { c11_dap_send_event("initialized", "{}"); }
@@ -320,9 +331,9 @@ void c11_dap_init_server(const char* hostname, unsigned short port) {
 inline static void c11_dap_handle_message() {
     const char* message = c11_dap_read_message();
     if(message == NULL) return;
-    printf("[DEBUGGER INFO] read request %s\n", message);
+    // printf("[DEBUGGER INFO] read request %s\n", message);
     const char* response_content = c11_dap_handle_request(message);
-    if(response_content != NULL) { printf("[DEBUGGER INFO] send response %s\n", response_content); }
+    // if(response_content != NULL) { printf("[DEBUGGER INFO] send response %s\n", response_content); }
     c11_sbuf buffer;
     c11_sbuf__ctor(&buffer);
     pk_sprintf(&buffer, "Content-Length: %d\r\n\r\n%s", strlen(response_content), response_content);
@@ -346,7 +357,25 @@ void c11_dap_configure_debugger() {
 
 void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     py_sys_settrace(NULL, false);
-    c11_debugger_on_trace(frame, event);
+    C11_DEBUGGER_STATUS result = c11_debugger_on_trace(frame, event);
+    if(result == C11_DEBUGGER_EXIT) {
+        c11_dap_send_exited_event(0);
+        printf("[DEBUGGER INFO] : program exit\n");
+        exit(0);
+    }
+    if(result != C11_DEBUGGER_SUCCESS) {
+        const char* message = NULL;
+        switch(result) {
+            case C11_DEBUGGER_FILEPATH_ERROR:
+                message = "Invalid py_file path: '..' forbidden, './' only allowed at start.";
+                break;
+            case C11_DEBUGGER_UNKNOW_ERROR:
+            default: message = "Unknown debugger failure."; break;
+        }
+        if(message) { c11_dap_send_fatal_event(message); }
+        c11_dap_send_exited_event(1);
+        exit(1);
+    }
     c11_dap_handle_message();
     if(!c11_debugger_should_pause()) {
         py_sys_settrace(c11_dap_tracefunc, false);

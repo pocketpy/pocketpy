@@ -34,14 +34,14 @@ static struct c11_debugger {
     int current_line;
     int pause_allowed_depth;
     int step_line;
-    enum C11_STEP_MODE step_mode;
+    C11_STEP_MODE step_mode;
     bool keep_suspend;
 
     c11_vector breakpoints;
     c11_vector py_frames;
     c11_smallmap_d2index scopes_query_cache;
 
-    #define python_vars py_r7()
+#define python_vars py_r7()
 
 } debugger;
 
@@ -65,6 +65,13 @@ inline static py_Ref get_variable(int var_ref) {
     return py_list_getitem(python_vars, var_ref);
 }
 
+const inline static char* format_filepath(const char* path) {
+    if(strstr(path, "..")) { return NULL; }
+    if(strstr(path + 1, "./") || strstr(path + 1, ".\\")) { return NULL; }
+    if(path[0] == '.' && (path[1] == '/' || path[1] == '\\')) { return path + 2; }
+    return path;
+}
+
 void c11_debugger_init() {
     debugger.curr_stack_depth = 0;
     debugger.current_line = -1;
@@ -75,16 +82,23 @@ void c11_debugger_init() {
     init_structures();
 }
 
-void c11_debugger_on_trace(py_Frame* frame, enum py_TraceEvent event) {
+C11_DEBUGGER_STATUS c11_debugger_on_trace(py_Frame* frame, enum py_TraceEvent event) {
     debugger.current_frame = frame;
     debugger.current_event = event;
-    debugger.current_filename = py_Frame_sourceloc(debugger.current_frame, &debugger.current_line);
+    const char* source_name = py_Frame_sourceloc(debugger.current_frame, &debugger.current_line);
+    debugger.current_filename = format_filepath(source_name);
+    if(debugger.current_filename == NULL) { return C11_DEBUGGER_FILEPATH_ERROR; }
     clear_structures();
-    if(event == TRACE_EVENT_LINE) return;
-    event == TRACE_EVENT_PUSH ? debugger.curr_stack_depth++ : debugger.curr_stack_depth--;
+    switch(event) {
+        case TRACE_EVENT_PUSH: debugger.curr_stack_depth++; break;
+        case TRACE_EVENT_POP: debugger.curr_stack_depth--; break;
+        default: break;
+    }
+    if(debugger.curr_stack_depth == 0) return C11_DEBUGGER_EXIT;
+    return C11_DEBUGGER_SUCCESS;
 }
 
-void c11_debugger_set_step_mode(enum C11_STEP_MODE mode) {
+void c11_debugger_set_step_mode(C11_STEP_MODE mode) {
     switch(mode) {
         case C11_STEP_IN: debugger.pause_allowed_depth = INT32_MAX; break;
         case C11_STEP_OVER:
@@ -97,7 +111,6 @@ void c11_debugger_set_step_mode(enum C11_STEP_MODE mode) {
     debugger.step_mode = mode;
     debugger.keep_suspend = false;
 }
-
 
 int c11_debugger_setbreakpoint(const char* filename, int lineno) {
     c11_debugger_breakpoint breakpoint = {.sourcename = c11_strdup(filename), .lineno = lineno};
@@ -156,7 +169,6 @@ int c11_debugger_should_pause() {
 
 int c11_debugger_should_keep_pause(void) { return debugger.keep_suspend; }
 
-
 inline static c11_sv sv_from_cstr(const char* str) {
     c11_sv sv = {.data = str, .size = strlen(str)};
     return sv;
@@ -164,7 +176,7 @@ inline static c11_sv sv_from_cstr(const char* str) {
 
 const inline static char* get_basename(const char* path) {
     const char* last_slash = strrchr(path, '/');
-#ifdef _WIN32
+#if defined(_WIN32) || defined(_WIN64)
     const char* last_backslash = strrchr(path, '\\');
     if(!last_slash || (last_backslash && last_backslash > last_slash)) {
         last_slash = last_backslash;
@@ -254,31 +266,39 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
     py_Ref base_var_ref = py_pushtmp();
     py_newint(base_var_ref, base_index);
 
-    // 3. construct DAP JSON
+    // 3. construct DAP JSON and extend python_vars
+    py_Ref dap_obj = py_pushtmp();
+    py_newdict(dap_obj);  // 先创建字典
     const char* dap_code =
-        "{'variables': ["
-        "  {"
-        "    'name': kv[0],"
-        "    'value': repr(kv[1]),"
-        "    'variablesReference': (_1 + i) if (isinstance(kv[1], (dict, list, tuple)) or kv[1].__dict__ is not None) else 0,"
-        "    'type': type(kv[1]).__name__"
-        "  }"
-        "  for i, kv in enumerate(_0)"
-        "]}";
-    if(!py_smarteval(dap_code, NULL, kv_list, base_var_ref)) {
+        "_2['variables'] = []\n"
+        "var_ref = _1\n"
+        "for k, v in _0:\n"
+        "    has_children = isinstance(v, (dict, list, tuple)) or v.__dict__ is not None\n"
+        "    _2['variables'].append({\n"
+        "        'name': k if type(k) == str else str(k),\n"
+        "        'value': repr(v) if type(v) == str else str(v),\n"
+        "        'variablesReference': var_ref if has_children else 0,\n"
+        "        'type': type(v).__name__\n"
+        "    })\n"
+        "    if has_children: var_ref += 1\n";
+    if(!py_smartexec(dap_code, NULL, kv_list, base_var_ref, dap_obj)) {
         py_printexc();
         return false;
     }
-    py_Ref dap_obj = py_pushtmp();
-    py_assign(dap_obj, py_retval());
 
     // 4. extend python_vars
-    if(!py_smartexec("_0.extend([kv[1] for kv in _1])", NULL, python_vars, kv_list)) {
+    if(!py_smartexec(
+           "_0.extend([v for k, v in _1 if isinstance(v, (dict, list, tuple)) or v.__dict__ is not None])",
+           NULL,
+           python_vars,
+           kv_list)) {
         py_printexc();
         return false;
     }
+
     // 5. dump & write
     if(!py_json_dumps(dap_obj, 0)) {
+        printf("dap_obj: %s\n", py_tpname(py_typeof(dap_obj)));
         py_printexc();
         return false;
     }
@@ -291,4 +311,5 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
     py_pop();  // kv_list
     return true;
 }
+
 #undef python_vars
