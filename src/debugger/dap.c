@@ -339,8 +339,8 @@ inline static void c11_dap_handle_message() {
     pk_sprintf(&buffer, "Content-Length: %d\r\n\r\n%s", strlen(response_content), response_content);
     c11_string* response = c11_sbuf__submit(&buffer);
     c11_socket_send(server.toclient, response->data, response->size);
-    free((void*)message);
-    free((void*)response_content);
+    PK_FREE((void*)message);
+    PK_FREE((void*)response_content);
     c11_string__delete(response);
 }
 
