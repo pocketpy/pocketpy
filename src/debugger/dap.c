@@ -314,7 +314,7 @@ void c11_dap_init_server(const char* hostname, unsigned short port) {
     c11_socket_listen(server.server, 0);
     printf("[DEBUGGER INFO] : listen on %s:%hu\n", hostname, port);
     server.toclient = c11_socket_accept(server.server, NULL, NULL);
-    printf("[DEBUGGER INFO] : connected clinet\n");
+    printf("[DEBUGGER INFO] : connected client\n");
 }
 
 inline static void c11_dap_handle_message() {
