@@ -1,7 +1,6 @@
 #include "pocketpy/common/algorithm.h"
 #include "pocketpy/config.h"
 #include <string.h>
-#include <stdlib.h>
 
 static bool _stable_sort_merge(char* a,
                   char* a_end,

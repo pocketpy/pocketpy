@@ -1,7 +1,6 @@
 #include "pocketpy/common/memorypool.h"
-#include "pocketpy/pocketpy.h"
+#include "pocketpy/config.h"
 
-#include <stdlib.h>
 #include <stdbool.h>
 
 void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int BlockCount) {

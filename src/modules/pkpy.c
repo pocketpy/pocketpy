@@ -106,6 +106,8 @@ static bool pkpy_watchdog_end(int argc, py_Ref argv) {
 }
 #endif
 
+#if PK_ENABLE_THREADS
+
 typedef struct c11_ComputeThread c11_ComputeThread;
 
 typedef struct {
@@ -456,11 +458,49 @@ static void pk_ComputeThread__register(py_Ref mod) {
     py_bindmethod(type, "eval", ComputeThread_eval);
 }
 
+#endif  // PK_ENABLE_THREADS
+
 static void pkpy_configmacros_add(py_Ref dict, const char* key, int val) {
     assert(dict->type == tp_dict);
     py_TValue tmp;
     py_newint(&tmp, val);
     py_dict_setitem_by_str(dict, key, &tmp);
+}
+
+static bool pkpy_profiler_begin(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    TraceInfo* trace_info = &pk_current_vm->trace_info;
+    if(trace_info->func == NULL) py_sys_settrace(LineProfiler_tracefunc, true);
+    if(trace_info->func != LineProfiler_tracefunc) {
+        return RuntimeError("LineProfiler_tracefunc() should be set as the trace function");
+    }
+    LineProfiler__begin(&pk_current_vm->line_profiler);
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool pkpy_profiler_end(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    LineProfiler__end(&pk_current_vm->line_profiler);
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool pkpy_profiler_reset(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    LineProfiler__reset(&pk_current_vm->line_profiler);
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool pkpy_profiler_report(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    LineProfiler* lp = &pk_current_vm->line_profiler;
+    if(lp->enabled) LineProfiler__end(lp);
+    c11_string* report = LineProfiler__get_report(lp);
+    bool ok = py_json_loads(report->data);
+    c11_string__delete(report);
+    return ok;
 }
 
 void pk__add_module_pkpy() {
@@ -508,11 +548,19 @@ void pk__add_module_pkpy() {
     py_bindfunc(mod, "watchdog_end", pkpy_watchdog_end);
 #endif
 
+#if PK_ENABLE_THREADS
     pk_ComputeThread__register(mod);
+#endif
+
+    py_bindfunc(mod, "profiler_begin", pkpy_profiler_begin);
+    py_bindfunc(mod, "profiler_end", pkpy_profiler_end);
+    py_bindfunc(mod, "profiler_reset", pkpy_profiler_reset);
+    py_bindfunc(mod, "profiler_report", pkpy_profiler_report);
 
     py_Ref configmacros = py_emplacedict(mod, py_name("configmacros"));
     py_newdict(configmacros);
     pkpy_configmacros_add(configmacros, "PK_ENABLE_OS", PK_ENABLE_OS);
+    pkpy_configmacros_add(configmacros, "PK_ENABLE_THREADS", PK_ENABLE_THREADS);
     pkpy_configmacros_add(configmacros, "PK_ENABLE_DETERMINISM", PK_ENABLE_DETERMINISM);
     pkpy_configmacros_add(configmacros, "PK_ENABLE_WATCHDOG", PK_ENABLE_WATCHDOG);
     pkpy_configmacros_add(configmacros, "PK_GC_MIN_THRESHOLD", PK_GC_MIN_THRESHOLD);

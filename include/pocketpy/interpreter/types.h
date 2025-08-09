@@ -3,8 +3,6 @@
 #include "pocketpy/common/vector.h"
 #include "pocketpy/objects/base.h"
 
-#define PK_DICT_MAX_COLLISION 4
-
 typedef struct {
     uint64_t hash;
     py_TValue key;
@@ -12,13 +10,11 @@ typedef struct {
 } DictEntry;
 
 typedef struct {
-    int _[PK_DICT_MAX_COLLISION];
-} DictIndex;
-
-typedef struct {
     int length;
     uint32_t capacity;
-    DictIndex* indices;
+    uint32_t null_index_value;
+    bool index_is_short;
+    void* indices;
     c11_vector /*T=DictEntry*/ entries;
 } Dict;
 

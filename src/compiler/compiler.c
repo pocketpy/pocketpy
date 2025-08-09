@@ -28,6 +28,7 @@ typedef struct ExprVt {
     bool is_subscr;   // SubscrExpr
     bool is_starred;  // StarredExpr
     bool is_binary;   // BinaryExpr
+    bool is_ternary;  // TernaryExpr
     void (*dtor)(Expr*);
 } ExprVt;
 
@@ -873,7 +874,11 @@ void TernaryExpr__emit_(Expr* self_, Ctx* ctx) {
 }
 
 TernaryExpr* TernaryExpr__new(int line) {
-    const static ExprVt Vt = {.dtor = TernaryExpr__dtor, .emit_ = TernaryExpr__emit_};
+    const static ExprVt Vt = {
+        .dtor = TernaryExpr__dtor,
+        .emit_ = TernaryExpr__emit_,
+        .is_ternary = true,
+    };
     TernaryExpr* self = PK_MALLOC(sizeof(TernaryExpr));
     self->vt = &Vt;
     self->line = line;
@@ -1681,6 +1686,10 @@ static Error* exprTernary(Compiler* self) {
     e->cond = Ctx__s_popx(ctx());
     e->true_expr = Ctx__s_popx(ctx());
     Ctx__s_push(ctx(), (Expr*)e);
+
+    if(e->cond->vt->is_ternary || e->false_expr->vt->is_ternary || e->true_expr->vt->is_ternary) {
+        return SyntaxError(self, "nested ternary expressions without `()` are ambiguous");
+    }
     return NULL;
 }
 
@@ -2856,13 +2865,14 @@ static Error* compile_stmt(Compiler* self) {
 
             bool is_typed_name = false;  // e.g. x: int
             // eat variable's type hint if it is a single name
-            if(Ctx__s_top(ctx())->vt->is_name) {
+            const ExprVt* top_vt = Ctx__s_top(ctx())->vt;
+            if(top_vt->is_name || top_vt->is_attrib) {
                 if(match(TK_COLON)) {
                     c11_sv type_hint;
                     check(consume_type_hints_sv(self, &type_hint));
                     is_typed_name = true;
 
-                    if(ctx()->is_compiling_class) {
+                    if(ctx()->is_compiling_class && top_vt->is_name) {
                         NameExpr* ne = (NameExpr*)Ctx__s_top(ctx());
                         int index = Ctx__add_const_string(ctx(), type_hint);
                         Ctx__emit_(ctx(), OP_LOAD_CONST, index, BC_KEEPLINE);

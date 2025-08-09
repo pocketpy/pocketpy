@@ -28,15 +28,19 @@ def currentvm() -> int:
 
 
 def watchdog_begin(timeout: int):
-    """
-    Begin the watchdog with `timeout` in milliseconds.
+    """Begin the watchdog with `timeout` in milliseconds.
+
     `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
     You need to call `watchdog_end()` later.
     If `timeout` is reached, `TimeoutError` will be raised.
     """
-def watchdog_end():
-    """Reset the watchdog."""
+def watchdog_end() -> None:
+    """End the watchdog after a call to `watchdog_begin()`."""
 
+def profiler_begin() -> None: ...
+def profiler_end() -> None: ...
+def profiler_reset() -> None: ...
+def profiler_report() -> dict[str, list[list]]: ...
 
 class ComputeThread:
     def __init__(self, vm_index: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]): ...

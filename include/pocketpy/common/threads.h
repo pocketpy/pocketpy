@@ -1,5 +1,9 @@
 #pragma once
 
+#include "pocketpy/config.h"
+
+#if PK_ENABLE_THREADS
+
 #include <stdatomic.h>
 #include <stdbool.h>
 
@@ -17,3 +21,5 @@ typedef int c11_thrd_retval_t;
 
 bool c11_thrd_create(c11_thrd_t* thrd, c11_thrd_retval_t (*func)(void*), void* arg);
 void c11_thrd_yield();
+
+#endif

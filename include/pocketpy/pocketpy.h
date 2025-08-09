@@ -30,7 +30,14 @@ typedef void (*py_Dtor)(void*);
 
 #ifdef PK_IS_PUBLIC_INCLUDE
 typedef struct py_TValue {
-    int64_t _[2];
+    py_Type type;
+    bool is_ptr;
+    int extra;
+
+    union {
+        int64_t _i64;
+        char _chars[16];
+    };
 } py_TValue;
 #endif
 
@@ -70,8 +77,10 @@ typedef void (*py_TraceFunc)(py_Frame* frame, enum py_TraceEvent);
 
 /// A struct contains the callbacks of the VM.
 typedef struct py_Callbacks {
-    /// Used by `__import__` to load source code of a module.
+    /// Used by `__import__` to load a source module.
     char* (*importfile)(const char*);
+    /// Called before `importfile` to lazy-import a C module.
+    py_GlobalRef (*lazyimport)(const char*);
     /// Used by `print` to output a string.
     void (*print)(const char*);
     /// Flush the output buffer of `print`.
@@ -123,6 +132,13 @@ PK_API void py_sys_settrace(py_TraceFunc func, bool reset);
 PK_API int py_gc_collect();
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
+
+/// Wrapper for `PK_MALLOC(size)`.
+PK_API void* py_malloc(size_t size);
+/// Wrapper for `PK_REALLOC(ptr, size)`.
+PK_API void* py_realloc(void* ptr, size_t size);
+/// Wrapper for `PK_FREE(ptr)`.
+PK_API void py_free(void* ptr);
 
 /// Begin the watchdog with `timeout` in milliseconds.
 /// `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
@@ -201,6 +217,8 @@ PK_API py_GlobalRef py_NIL();
 
 /// Create an `int` object.
 PK_API void py_newint(py_OutRef, py_i64);
+/// Create a trivial value object.
+PK_API void py_newtrivial(py_OutRef out, py_Type type, void* data, int size);
 /// Create a `float` object.
 PK_API void py_newfloat(py_OutRef, py_f64);
 /// Create a `bool` object.
@@ -282,6 +300,8 @@ PK_API void* py_newobject(py_OutRef out, py_Type type, int slots, int udsize);
 
 /// Convert an `int` object in python to `int64_t`.
 PK_API py_i64 py_toint(py_Ref);
+/// Get the address of the trivial value object.
+PK_API void* py_totrivial(py_Ref);
 /// Convert a `float` object in python to `double`.
 PK_API py_f64 py_tofloat(py_Ref);
 /// Cast a `int` or `float` object in python to `double`.
@@ -350,6 +370,15 @@ PK_API py_GlobalRef py_tpobject(py_Type type);
 PK_API const char* py_tpname(py_Type type);
 /// Call a type to create a new instance.
 PK_API bool py_tpcall(py_Type type, int argc, py_Ref argv) PY_RAISE PY_RETURN;
+/// Disable the type for subclassing.
+PK_API void py_tpsetfinal(py_Type type);
+/// Set attribute hooks for the given type.
+PK_API void py_tphookattributes(py_Type type,
+                                bool (*getattribute)(py_Ref self, py_Name name) PY_RAISE PY_RETURN,
+                                bool (*setattribute)(py_Ref self, py_Name name, py_Ref val)
+                                    PY_RAISE PY_RETURN,
+                                bool (*delattribute)(py_Ref self, py_Name name) PY_RAISE,
+                                bool (*getunboundmethod)(py_Ref self, py_Name name) PY_RETURN);
 
 /// Check if the object is an instance of the given type exactly.
 /// Raise `TypeError` if the check fails.
@@ -389,6 +418,7 @@ PK_API void py_setglobal(py_Name name, py_Ref val);
 PK_API py_ItemRef py_getbuiltin(py_Name name);
 
 /// Get the last return value.
+/// Please note that `py_retval()` cannot be used as input argument.
 PK_API py_GlobalRef py_retval();
 
 /// Get an item from the object's `__dict__`.
@@ -671,6 +701,14 @@ PK_API bool py_json_loads(const char* source) PY_RAISE PY_RETURN;
 PK_API bool py_pickle_dumps(py_Ref val) PY_RAISE PY_RETURN;
 /// Python equivalent to `pickle.loads(val)`.
 PK_API bool py_pickle_loads(const unsigned char* data, int size) PY_RAISE PY_RETURN;
+
+/************* Profiler *************/
+
+PK_API void py_profiler_begin();
+PK_API void py_profiler_end();
+PK_API void py_profiler_reset();
+PK_API char* py_profiler_report();
+
 /************* Unchecked Functions *************/
 
 PK_API py_ObjectRef py_tuple_data(py_Ref self);
@@ -715,19 +753,33 @@ PK_API bool
 /// noexcept
 PK_API int py_dict_len(py_Ref self);
 
+/************* random module *************/
+PK_API void py_newRandom(py_OutRef out);
+PK_API void py_Random_seed(py_Ref self, py_i64 seed);
+PK_API py_f64 py_Random_random(py_Ref self);
+PK_API py_f64 py_Random_uniform(py_Ref self, py_f64 a, py_f64 b);
+PK_API py_i64 py_Random_randint(py_Ref self, py_i64 a, py_i64 b);
+
+/************* array2d module *************/
+PK_API void py_newarray2d(py_OutRef out, int width, int height);
+PK_API int py_array2d_getwidth(py_Ref self);
+PK_API int py_array2d_getheight(py_Ref self);
+PK_API py_ObjectRef py_array2d_getitem(py_Ref self, int x, int y);
+PK_API void py_array2d_setitem(py_Ref self, int x, int y, py_Ref val);
+
 /************* vmath module *************/
-void py_newvec2(py_OutRef out, c11_vec2);
-void py_newvec3(py_OutRef out, c11_vec3);
-void py_newvec2i(py_OutRef out, c11_vec2i);
-void py_newvec3i(py_OutRef out, c11_vec3i);
-void py_newcolor32(py_OutRef out, c11_color32);
-c11_mat3x3* py_newmat3x3(py_OutRef out);
-c11_vec2 py_tovec2(py_Ref self);
-c11_vec3 py_tovec3(py_Ref self);
-c11_vec2i py_tovec2i(py_Ref self);
-c11_vec3i py_tovec3i(py_Ref self);
-c11_mat3x3* py_tomat3x3(py_Ref self);
-c11_color32 py_tocolor32(py_Ref self);
+PK_API void py_newvec2(py_OutRef out, c11_vec2);
+PK_API void py_newvec3(py_OutRef out, c11_vec3);
+PK_API void py_newvec2i(py_OutRef out, c11_vec2i);
+PK_API void py_newvec3i(py_OutRef out, c11_vec3i);
+PK_API void py_newcolor32(py_OutRef out, c11_color32);
+PK_API c11_mat3x3* py_newmat3x3(py_OutRef out);
+PK_API c11_vec2 py_tovec2(py_Ref self);
+PK_API c11_vec3 py_tovec3(py_Ref self);
+PK_API c11_vec2i py_tovec2i(py_Ref self);
+PK_API c11_vec3i py_tovec3i(py_Ref self);
+PK_API c11_mat3x3* py_tomat3x3(py_Ref self);
+PK_API c11_color32 py_tocolor32(py_Ref self);
 
 /************* Others *************/
 
@@ -755,10 +807,11 @@ enum py_PredefinedType {
     tp_bool,
     tp_str,
     tp_str_iterator,
-    tp_list,   // c11_vector
-    tp_tuple,  // N slots
-    tp_array_iterator,
-    tp_slice,  // 3 slots (start, stop, step)
+    tp_list,            // c11_vector
+    tp_tuple,           // N slots
+    tp_list_iterator,   // 1 slot
+    tp_tuple_iterator,  // 1 slot
+    tp_slice,           // 3 slots (start, stop, step)
     tp_range,
     tp_range_iterator,
     tp_module,

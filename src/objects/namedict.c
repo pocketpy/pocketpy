@@ -4,20 +4,29 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
-#include <stdlib.h>
+
+#define HASH_PROBE_0(__k, ok, i)                                                                   \
+    ok = false;                                                                                    \
+    i = (uintptr_t)(__k)&self->mask;                                                               \
+    do {                                                                                           \
+        if(self->items[i].key == (__k)) {                                                          \
+            ok = true;                                                                             \
+            break;                                                                                 \
+        }                                                                                          \
+        if(self->items[i].key == NULL) break;                                                      \
+        i = (5 * i + 1) & self->mask;                                                              \
+    } while(true);
 
 #define HASH_PROBE_1(__k, ok, i)                                                                   \
     ok = false;                                                                                    \
-    i = (uintptr_t)(__k) & self->mask;                                                             \
+    i = (uintptr_t)(__k)&self->mask;                                                               \
     while(self->items[i].key != NULL) {                                                            \
         if(self->items[i].key == (__k)) {                                                          \
             ok = true;                                                                             \
             break;                                                                                 \
         }                                                                                          \
-        i = (i + 1) & self->mask;                                                                  \
+        i = (5 * i + 1) & self->mask;                                                              \
     }
-
-#define HASH_PROBE_0 HASH_PROBE_1
 
 static void NameDict__set_capacity_and_alloc_items(NameDict* self, int val) {
     self->capacity = val;
@@ -101,18 +110,24 @@ bool NameDict__del(NameDict* self, py_Name key) {
     self->items[i].key = NULL;
     self->items[i].value = *py_NIL();
     self->length--;
-    // tidy
-    uintptr_t pre_z = i;
-    uintptr_t z = (i + 1) & self->mask;
-    while(self->items[z].key != NULL) {
-        uintptr_t h = (uintptr_t)self->items[z].key & self->mask;
-        if(h != i) break;
-        // std::swap(_items[pre_z], _items[z]);
-        NameDict_KV tmp = self->items[pre_z];
-        self->items[pre_z] = self->items[z];
-        self->items[z] = tmp;
-        pre_z = z;
-        z = (z + 1) & self->mask;
+    /* tidy */
+    uint32_t posToRemove = i;
+    uint32_t posToShift = posToRemove;
+    while(true) {
+        posToShift = (5 * posToShift + 1) & self->mask;
+        if(self->items[posToShift].key == NULL) break;
+        uintptr_t hash_z = (uintptr_t)self->items[posToShift].key;
+        uintptr_t insertPos = hash_z & self->mask;
+        bool cond1 = insertPos <= posToRemove;
+        bool cond2 = posToRemove <= posToShift;
+        if((cond1 && cond2) ||
+           // chain wrapped around capacity
+           (posToShift < insertPos && (cond1 || cond2))) {
+            NameDict_KV tmp = self->items[posToRemove];
+            self->items[posToRemove] = self->items[posToShift];
+            self->items[posToShift] = tmp;
+            posToRemove = posToShift;
+        }
     }
     return true;
 }

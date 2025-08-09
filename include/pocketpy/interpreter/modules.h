@@ -32,3 +32,9 @@ void pk__add_module_libhv();
 #else
 #define pk__add_module_libhv()
 #endif
+
+#ifdef PK_BUILD_MODULE_CUTE_PNG
+void pk__add_module_cute_png();
+#else
+#define pk__add_module_cute_png()
+#endif

@@ -1,6 +1,5 @@
 #ifdef PK_BUILD_MODULE_LZ4
 
-#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include "pocketpy/pocketpy.h"

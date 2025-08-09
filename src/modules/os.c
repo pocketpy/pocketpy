@@ -2,7 +2,7 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/interpreter/vm.h"
 
-#if PK_ENABLE_OS == 1
+#if PK_ENABLE_OS
 
 #include <errno.h>
 

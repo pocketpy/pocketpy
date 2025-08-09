@@ -28,32 +28,8 @@ static void py_ModuleInfo__dtor(py_ModuleInfo* mi) {
     c11_string__delete(mi->path);
 }
 
-static bool module__name__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    py_ModuleInfo* mi = py_touserdata(argv);
-    py_newstrv(py_retval(), c11_string__sv(mi->name));
-    return true;
-}
-
-static bool module__package__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    py_ModuleInfo* mi = py_touserdata(argv);
-    py_newstrv(py_retval(), c11_string__sv(mi->package));
-    return true;
-}
-
-static bool module__path__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    py_ModuleInfo* mi = py_touserdata(argv);
-    py_newstrv(py_retval(), c11_string__sv(mi->path));
-    return true;
-}
-
 py_Type pk_module__register() {
     py_Type type = pk_newtype("module", tp_object, NULL, (py_Dtor)py_ModuleInfo__dtor, false, true);
-    py_bindproperty(type, "__name__", module__name__, NULL);
-    py_bindproperty(type, "__package__", module__package__, NULL);
-    py_bindproperty(type, "__path__", module__path__, NULL);
     return type;
 }
 
@@ -85,6 +61,13 @@ py_Ref py_newmodule(const char* path) {
     BinTree__set(&pk_current_vm->modules, (void*)path, py_retval());
     py_GlobalRef retval = py_getmodule(path);
     mi->self = retval;
+
+    // setup __name__
+    py_newstrv(py_emplacedict(retval, __name__), c11_string__sv(mi->name));
+    // setup __package__
+    py_newstrv(py_emplacedict(retval, __package__), c11_string__sv(mi->package));
+    // setup __path__
+    py_newstrv(py_emplacedict(retval, __path__), c11_string__sv(mi->path));
     return retval;
 }
 
@@ -144,6 +127,15 @@ int py_import(const char* path_cstr) {
     if(ext_mod) {
         py_assign(py_retval(), ext_mod);
         return true;
+    }
+
+    if(vm->callbacks.lazyimport) {
+        py_GlobalRef lazymod = vm->callbacks.lazyimport(path_cstr);
+        if(lazymod) {
+            c11__rtassert(py_istype(lazymod, tp_module));
+            py_assign(py_retval(), lazymod);
+            return 1;
+        }
     }
 
     // try import

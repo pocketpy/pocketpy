@@ -58,25 +58,23 @@ c11_vec2i py_tovec2i(py_Ref self) {
 void py_newvec3(py_OutRef out, c11_vec3 v) {
     out->type = tp_vec3;
     out->is_ptr = false;
-    c11_vec3* data = (c11_vec3*)(&out->extra);
-    *data = v;
+    out->_vec3 = v;
 }
 
 c11_vec3 py_tovec3(py_Ref self) {
     assert(self->type == tp_vec3);
-    return *(c11_vec3*)(&self->extra);
+    return self->_vec3;
 }
 
 void py_newvec3i(py_OutRef out, c11_vec3i v) {
     out->type = tp_vec3i;
     out->is_ptr = false;
-    c11_vec3i* data = (c11_vec3i*)(&out->extra);
-    *data = v;
+    out->_vec3i = v;
 }
 
 c11_vec3i py_tovec3i(py_Ref self) {
     assert(self->type == tp_vec3i);
-    return *(c11_vec3i*)(&self->extra);
+    return self->_vec3i;
 }
 
 c11_mat3x3* py_newmat3x3(py_OutRef out) {
@@ -1013,6 +1011,14 @@ static bool color32__repr__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool color32__hash__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_color32 color = py_tocolor32(argv);
+    uint32_t* color_int = (uint32_t*)&color;
+    py_newint(py_retval(), *color_int);
+    return true;
+}
+
 static bool color32_ansi_fg(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_color32 color = py_tocolor32(argv);
@@ -1258,6 +1264,7 @@ void pk__add_module_vmath() {
     py_bindmagic(color32, __repr__, color32__repr__);
     py_bindmagic(color32, __eq__, color32__eq__);
     py_bindmagic(color32, __ne__, color32__ne__);
+    py_bindmagic(color32, __hash__, color32__hash__);
     py_bindproperty(color32, "r", color32__r, NULL);
     py_bindproperty(color32, "g", color32__g, NULL);
     py_bindproperty(color32, "b", color32__b, NULL);

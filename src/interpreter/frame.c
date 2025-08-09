@@ -5,6 +5,7 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
+#include <assert.h>
 
 void ValueStack__ctor(ValueStack* self) {
     self->sp = self->begin;

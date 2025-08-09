@@ -16,7 +16,7 @@ static bool Enum__wrapper_field(py_Name name, py_Ref value, void* ctx) {
 }
 
 static void Enum__on_end_subclass(py_TypeInfo* derived_ti) {
-    derived_ti->is_sealed = true;
+    derived_ti->is_final = true;
     py_applydict(&derived_ti->self, Enum__wrapper_field, &derived_ti->self);
 }
 

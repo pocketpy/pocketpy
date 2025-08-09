@@ -115,30 +115,7 @@ assert a.pop(1) == 2
 
 assert a.pop(1, None) is None
 
-n = 2 ** 17
-a = {}
-for i in range(n):
-    a[str(i)] = i
-
-for i in range(n):
-    y = a[str(i)]
-
-for i in range(n):
-    del a[str(i)]
-
-# namedict delete test
-# class A: pass
-# a = A()
-# b = ['0', '1']
-
-# for i in range(len(data)):
-#     z = data[i]
-#     setattr(a, str(z), i)
-#     b.append(z)
-#     if i % 3 == 0:
-#         y = b.pop()
-#         delattr(a, y)
-
+# test getitem
 d = {}
 for i in range(-1000, 1000):
     d[i] = i
@@ -155,3 +132,37 @@ assert list(d) == ['1', 222, '333']
 assert list(d.keys()) == ['1', 222, '333']
 assert list(d.values()) == [1, 2, 3]
 assert list(d.items()) == [('1', 1), (222, 2), ('333', 3)]
+
+# test del
+n = 2 ** 17
+a = {}
+for i in range(n):
+    a[str(i)] = i
+for i in range(n):
+    del a[str(i)]
+assert len(a) == 0
+
+# test del with int keys
+if 0:
+    n = 2 ** 17
+    a = {}
+    for i in range(n):
+        a[i] = i
+    for i in range(n):
+        del a[i]
+    assert len(a) == 0
+
+#######################
+
+# namedict delete test
+class A: pass
+a = A()
+b = ['0', '1']
+
+for i in range(len(data)):
+    z = data[i]
+    setattr(a, str(z), i)
+    b.append(z)
+    if i % 3 == 0:
+        y = b.pop()
+        delattr(a, y)

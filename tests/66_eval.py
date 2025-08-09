@@ -74,3 +74,5 @@ exec(code, {'x': 42, 'res': res})
 assert res == [42, 42]
 assert x == 33
 
+# test removing trailing newlines
+assert eval('[1, 2, 3]\n  \n') == [1, 2, 3]

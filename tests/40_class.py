@@ -126,7 +126,13 @@ class MyClass:
     b, c = 1, 2
     d = b + c
 
+    def __init__(self, m, n) -> None:
+        self.m: int = m
+        self.n: float = n
+
 assert MyClass.a == (1, 2, 3)
 assert MyClass.b == 1
 assert MyClass.c == 2
 assert MyClass.d == 3
+
+assert MyClass(1, 2).m == 1

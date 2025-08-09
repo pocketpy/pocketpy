@@ -14,7 +14,7 @@ public:
     // get the python  exception object
     object& exception() { return m_exception; }
 
-    ~python_error() { std::free(m_what); }
+    ~python_error() { py_free(m_what); }
 
     bool match(py_Type type) const { return py_isinstance(m_exception.ptr(), type); }
 

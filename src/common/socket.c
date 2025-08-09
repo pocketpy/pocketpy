@@ -1,5 +1,7 @@
 #include "pocketpy/common/socket.h"
 
+#if PK_ENABLE_OS
+
 #include <stddef.h>
 
 #if defined (_WIN32) || defined (_WIN64)
@@ -120,3 +122,5 @@ int c11_socket_get_last_error(){
 
 #undef SOCKET_HANDLERTOFD
 #undef SOCKET_FDTOHANDLER
+
+#endif // PK_ENABLE_OS

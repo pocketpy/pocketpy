@@ -1,6 +1,5 @@
 #include "pocketpy/common/vector.h"
 
-#include <stdlib.h>
 #include <string.h>
 #include "pocketpy/common/utils.h"
 #include "pocketpy/config.h"
@@ -40,7 +39,7 @@ void c11_vector__reserve(c11_vector* self, int capacity) {
 void c11_vector__clear(c11_vector* self) { self->length = 0; }
 
 void* c11_vector__emplace(c11_vector* self) {
-    if(self->length == self->capacity) c11_vector__reserve(self, self->capacity * 2);
+    if(self->length == self->capacity) { c11_vector__reserve(self, c11_vector__nextcap(self)); }
     void* p = (char*)self->data + (size_t)self->elem_size * (size_t)self->length;
     self->length++;
     return p;
@@ -63,8 +62,17 @@ void* c11_vector__submit(c11_vector* self, int* length) {
     return retval;
 }
 
-void c11_vector__swap(c11_vector *self, c11_vector *other){
+void c11_vector__swap(c11_vector* self, c11_vector* other) {
     c11_vector tmp = *self;
     *self = *other;
     *other = tmp;
+}
+
+int c11_vector__nextcap(c11_vector* self) {
+    if(self->capacity < 1024) {
+        return self->capacity * 2;
+    } else {
+        // increase by 25%
+        return self->capacity + (self->capacity >> 2);
+    }
 }

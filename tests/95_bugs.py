@@ -158,3 +158,15 @@ a, b, c = (1, 2, 3) if True else (4, 5, 6)
 assert a == 1
 assert b == 2
 assert c == 3
+
+# https://github.com/pocketpy/pocketpy/issues/376
+xs = [0]
+res = []
+for x in xs:
+    res.append(x)
+    if x == 100:
+        break
+    xs.append(x+1)
+
+assert res == list(range(101))
+assert xs == res

@@ -1,5 +1,4 @@
 #include "pocketpy/pocketpy.h"
-#include <stdlib.h>
 
 #if PY_SYS_PLATFORM == 0
 
