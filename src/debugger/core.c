@@ -1,8 +1,5 @@
-
-
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/pocketpy.h"
-#include <ctype.h>
 
 #include "pocketpy/debugger/core.h"
 
@@ -268,7 +265,7 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
 
     // 3. construct DAP JSON and extend python_vars
     py_Ref dap_obj = py_pushtmp();
-    py_newdict(dap_obj);  // 先创建字典
+    py_newdict(dap_obj);
     const char* dap_code =
         "_2['variables'] = []\n"
         "var_ref = _1\n"
