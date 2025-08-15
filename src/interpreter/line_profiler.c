@@ -111,13 +111,13 @@ c11_string* LineProfiler__get_report(LineProfiler* self) {
             // [<j>, <hits>, <time>]
             if(lines[j].hits == 0 && lines[j].time == 0) continue;
             if(!is_first) c11_sbuf__write_cstr(&sbuf, ", ");
-            c11_sbuf__write_cstr(&sbuf, "[");
+            c11_sbuf__write_char(&sbuf, '[');
             c11_sbuf__write_int(&sbuf, j);
             c11_sbuf__write_cstr(&sbuf, ", ");
             c11_sbuf__write_i64(&sbuf, lines[j].hits);
             c11_sbuf__write_cstr(&sbuf, ", ");
             c11_sbuf__write_i64(&sbuf, lines[j].time);
-            c11_sbuf__write_cstr(&sbuf, "]");
+            c11_sbuf__write_char(&sbuf, ']');
             is_first = false;
         }
         c11_sbuf__write_cstr(&sbuf, "]");
