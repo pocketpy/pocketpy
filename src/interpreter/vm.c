@@ -63,7 +63,7 @@ char* py_profiler_report() {
 
 void LineProfiler_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     LineProfiler* lp = &pk_current_vm->line_profiler;
-    if(lp->enabled && event == TRACE_EVENT_LINE) LineProfiler__tracefunc_line(lp, frame);
+    if(lp->enabled) LineProfiler__tracefunc_internal(lp, frame, event);
 }
 
 static int BinTree__cmp_cstr(void* lhs, void* rhs) {

@@ -1,17 +1,17 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/line_profiler.h"
+#include "pocketpy/interpreter/frame.h"
 #include "pocketpy/objects/sourcedata.h"
+#include "pocketpy/pocketpy.h"
 #include <assert.h>
 
 void LineProfiler__ctor(LineProfiler* self) {
     c11_smallmap_p2i__ctor(&self->records);
-    self->prev_loc.src = NULL;
-    self->prev_time = 0;
+    c11_vector__ctor(&self->frame_records, sizeof(FrameRecord));
     self->enabled = false;
 }
 
 void LineProfiler__dtor(LineProfiler* self) {
-    if(self->prev_loc.src != NULL) PK_DECREF(self->prev_loc.src);
     for(int i = 0; i < self->records.length; i++) {
         c11_smallmap_p2i_KV kv = c11__getitem(c11_smallmap_p2i_KV, &self->records, i);
         SourceData_ src = (SourceData_)kv.key;
@@ -19,6 +19,7 @@ void LineProfiler__dtor(LineProfiler* self) {
         PK_FREE((void*)kv.value);
     }
     c11_smallmap_p2i__dtor(&self->records);
+    c11_vector__dtor(&self->frame_records);
 }
 
 LineRecord* LineProfiler__get_record(LineProfiler* self, SourceLocation loc) {
@@ -35,32 +36,43 @@ LineRecord* LineProfiler__get_record(LineProfiler* self, SourceLocation loc) {
 
 void LineProfiler__begin(LineProfiler* self) {
     assert(!self->enabled);
-    self->prev_loc.src = NULL;
-    self->prev_time = 0;
     self->enabled = true;
 }
 
-void LineProfiler__tracefunc_line(LineProfiler* self, py_Frame* frame) {
+static void LineProfiler__increment_now(LineProfiler* self, clock_t now) {
+    FrameRecord* top_frame_record = &c11_vector__back(FrameRecord, &self->frame_records);
+    LineRecord* prev_line = top_frame_record->prev_line;
+    clock_t delta = now - top_frame_record->prev_time;
+    top_frame_record->prev_time = now;
+    prev_line->hits++;
+    prev_line->time += delta;
+}
+
+void LineProfiler__tracefunc_internal(LineProfiler* self,
+                                      py_Frame* frame,
+                                      enum py_TraceEvent event) {
     assert(self->enabled);
     clock_t now = clock();
-    if(self->prev_loc.src != NULL) {
-        LineRecord* line = LineProfiler__get_record(self, self->prev_loc);
-        line->hits++;
-        line->time += now - self->prev_time;
-        PK_DECREF(self->prev_loc.src);
+
+    if(event == TRACE_EVENT_LINE) {
+        LineProfiler__increment_now(self, now);
+    } else {
+        if(event == TRACE_EVENT_PUSH) {
+            SourceLocation curr_loc = Frame__source_location(frame);
+            LineRecord* line = LineProfiler__get_record(self, curr_loc);
+            FrameRecord f_record = {.frame = frame, .prev_time = now, .prev_line = line};
+            c11_vector__push(FrameRecord, &self->frame_records, f_record);
+        } else if(event == TRACE_EVENT_POP) {
+            LineProfiler__increment_now(self, now);
+            assert(self->frame_records.length > 0);
+            c11_vector__pop(&self->frame_records);
+        }
     }
-    self->prev_loc = Frame__source_location(frame);
-    PK_INCREF(self->prev_loc.src);
-    self->prev_time = now;
 }
 
 void LineProfiler__end(LineProfiler* self) {
     assert(self->enabled);
-    if(self->prev_loc.src != NULL) {
-        LineRecord* line = LineProfiler__get_record(self, self->prev_loc);
-        line->hits++;
-        line->time += clock() - self->prev_time;
-    }
+    if(self->frame_records.length > 0) LineProfiler__increment_now(self, clock());
     self->enabled = false;
 }
 
