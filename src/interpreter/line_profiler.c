@@ -39,13 +39,17 @@ void LineProfiler__begin(LineProfiler* self) {
     self->enabled = true;
 }
 
-static void LineProfiler__increment_now(LineProfiler* self, clock_t now) {
+static void LineProfiler__increment_now(LineProfiler* self, clock_t now, LineRecord* curr_line) {
     FrameRecord* top_frame_record = &c11_vector__back(FrameRecord, &self->frame_records);
     LineRecord* prev_line = top_frame_record->prev_line;
     clock_t delta = now - top_frame_record->prev_time;
     top_frame_record->prev_time = now;
     prev_line->hits++;
     prev_line->time += delta;
+
+    // printf("  ==> increment_now: delta: %ld, hits: %lld\n",
+    //        delta, prev_line->hits);
+    top_frame_record->prev_line = curr_line;
 }
 
 void LineProfiler__tracefunc_internal(LineProfiler* self,
@@ -54,16 +58,20 @@ void LineProfiler__tracefunc_internal(LineProfiler* self,
     assert(self->enabled);
     clock_t now = clock();
 
+    // SourceLocation curr_loc = Frame__source_location(frame);
+    // printf("==> frame: %p:%d, event: %d, now: %ld\n", frame, curr_loc.lineno, event, now);
+
+    SourceLocation curr_loc = Frame__source_location(frame);
+    LineRecord* curr_line = LineProfiler__get_record(self, curr_loc);
+
     if(event == TRACE_EVENT_LINE) {
-        LineProfiler__increment_now(self, now);
+        LineProfiler__increment_now(self, now, curr_line);
     } else {
         if(event == TRACE_EVENT_PUSH) {
-            SourceLocation curr_loc = Frame__source_location(frame);
-            LineRecord* line = LineProfiler__get_record(self, curr_loc);
-            FrameRecord f_record = {.frame = frame, .prev_time = now, .prev_line = line};
+            FrameRecord f_record = {.frame = frame, .prev_time = now, .prev_line = curr_line};
             c11_vector__push(FrameRecord, &self->frame_records, f_record);
         } else if(event == TRACE_EVENT_POP) {
-            LineProfiler__increment_now(self, now);
+            LineProfiler__increment_now(self, now, NULL);
             assert(self->frame_records.length > 0);
             c11_vector__pop(&self->frame_records);
         }
@@ -72,7 +80,7 @@ void LineProfiler__tracefunc_internal(LineProfiler* self,
 
 void LineProfiler__end(LineProfiler* self) {
     assert(self->enabled);
-    if(self->frame_records.length > 0) LineProfiler__increment_now(self, clock());
+    if(self->frame_records.length > 0) LineProfiler__increment_now(self, clock(), NULL);
     self->enabled = false;
 }
 
@@ -85,7 +93,6 @@ c11_string* LineProfiler__get_report(LineProfiler* self) {
     c11_sbuf sbuf;
     c11_sbuf__ctor(&sbuf);
     c11_sbuf__write_char(&sbuf, '{');
-    c11_sbuf__write_cstr(&sbuf, "\"version\": 1, ");
     c11_sbuf__write_cstr(&sbuf, "\"CLOCKS_PER_SEC\": ");
     c11_sbuf__write_i64(&sbuf, CLOCKS_PER_SEC);
     c11_sbuf__write_cstr(&sbuf, ", \"records\": ");
