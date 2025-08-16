@@ -50,7 +50,7 @@ inline static void init_structures() {
     c11_vector__ctor(&debugger.py_frames, sizeof(py_Frame*));
     c11_smallmap_d2index__ctor(&debugger.scopes_query_cache);
     py_newlist(python_vars);
-    py_newnil(py_list_emplace(python_vars));
+    py_newnone(py_list_emplace(python_vars));
 }
 
 inline static void clear_structures() {
@@ -94,7 +94,7 @@ C11_DEBUGGER_STATUS c11_debugger_on_trace(py_Frame* frame, enum py_TraceEvent ev
         case TRACE_EVENT_POP: debugger.curr_stack_depth--; break;
         default: break;
     }
-    if(debugger.curr_stack_depth == 0) return C11_DEBUGGER_EXIT;
+    // if(debugger.curr_stack_depth == 0) return C11_DEBUGGER_EXIT;
     return C11_DEBUGGER_SUCCESS;
 }
 
@@ -268,7 +268,7 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
 
     // 3. construct DAP JSON and extend python_vars
     py_Ref dap_obj = py_pushtmp();
-    py_newdict(dap_obj);  // 先创建字典
+    py_newdict(dap_obj);
     const char* dap_code =
         "_2['variables'] = []\n"
         "var_ref = _1\n"
