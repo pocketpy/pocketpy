@@ -8,6 +8,7 @@
     X(initialize)                                                                                  \
     X(setBreakpoints)                                                                              \
     X(attach)                                                                                      \
+    X(launch)                                                                                      \
     X(next)                                                                                        \
     X(stepIn)                                                                                      \
     X(stepOut)                                                                                     \
@@ -16,7 +17,8 @@
     X(scopes)                                                                                      \
     X(variables)                                                                                   \
     X(threads)                                                                                     \
-    X(configurationDone)
+    X(configurationDone)                                                                           \
+    X(ready)
 
 #define DECLARE_HANDLE_FN(name) void c11_dap_handle_##name(py_Ref arguments, c11_sbuf*);
 DAP_COMMAND_LIST(DECLARE_HANDLE_FN)
@@ -36,9 +38,6 @@ static dap_command_entry dap_command_table[] = {
 
 #undef DAP_ENTRY
 
-// #undef DAP_COMMAND_LIST
-
-// static int dap_next_seq = 1;
 static struct c11_dap_server {
     int dap_next_seq;
     char buffer_data[1024];
@@ -48,6 +47,7 @@ static struct c11_dap_server {
     c11_socket_handler toclient;
     bool isconfiguredone;
     bool isatttach;
+    bool isclientready;
 } server;
 
 void c11_dap_handle_initialize(py_Ref arguments, c11_sbuf* buffer) {
@@ -56,6 +56,10 @@ void c11_dap_handle_initialize(py_Ref arguments, c11_sbuf* buffer) {
 }
 
 void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) { server.isatttach = true; }
+
+void c11_dap_handle_launch(py_Ref arguments, c11_sbuf* buffer) { server.isatttach = true; }
+
+void c11_dap_handle_ready(py_Ref arguments, c11_sbuf* buffer) {server.isclientready = true;}
 
 void c11_dap_handle_next(py_Ref arguments, c11_sbuf* buffer) {
     c11_debugger_set_step_mode(C11_STEP_OVER);
@@ -154,7 +158,7 @@ void c11_dap_handle_variables(py_Ref arguments, c11_sbuf* buffer) {
 const char* c11_dap_handle_request(const char* message) {
     if(!py_json_loads(message)) {
         py_printexc();
-        return NULL;
+        c11__abort("[DEBUGGER ERROR] invalid JSON request");
     }
     py_Ref py_request = py_pushtmp();
     py_Ref py_arguments = py_pushtmp();
@@ -222,14 +226,13 @@ void c11_dap_send_event(const char* event_name, const char* body_json) {
 
     char header[64];
     int header_len = snprintf(header, sizeof(header), "Content-Length: %d\r\n\r\n", json_len);
-
+    // printf("[DEBUGGER INFO] send event %s\n", json);
     c11_socket_send(server.toclient, header, header_len);
     c11_socket_send(server.toclient, json, json_len);
 }
 
 void c11_dap_send_stop_event() {
-    c11_dap_send_event("stopped",
-                       "{\"threadId\":1,\"allThreadsStopped\":true}");
+    c11_dap_send_event("stopped", "{\"threadId\":1,\"allThreadsStopped\":true}");
 }
 
 void c11_dap_send_exited_event(int exitCode) {
@@ -263,7 +266,7 @@ int c11_dap_read_content_length(const char* buffer, int* header_length) {
     char* endptr = NULL;
     long value = strtol(length_begin, &endptr, 10);
     if(endptr == length_begin) {
-        printf("[DEBUGGER EORRO] : the number is empty\n");
+        printf("[DEBUGGER EORRO] : the length field is empty\n");
         *header_length = 0;
         return -1;
     }
@@ -321,16 +324,20 @@ void c11_dap_init_server(const char* hostname, unsigned short port) {
     server.isconfiguredone = false;
     server.buffer_begin = server.buffer_data;
     server.server = c11_socket_create(C11_AF_INET, C11_SOCK_STREAM, 0);
+    server.isclientready = false;
     c11_socket_bind(server.server, hostname, port);
     c11_socket_listen(server.server, 0);
     printf("[DEBUGGER INFO] : listen on %s:%hu\n", hostname, port);
+}
+
+void c11_dap_waitforclient(const char* hostname, unsigned short port) {
     server.toclient = c11_socket_accept(server.server, NULL, NULL);
-    printf("[DEBUGGER INFO] : connected client\n");
+    printf("[DEBUGGER INFO] : connected a client\n");
 }
 
 inline static void c11_dap_handle_message() {
     const char* message = c11_dap_read_message();
-    if(message == NULL) return;
+    if(message == NULL) { return; }
     // printf("[DEBUGGER INFO] read request %s\n", message);
     const char* response_content = c11_dap_handle_request(message);
     // if(response_content != NULL) { printf("[DEBUGGER INFO] send response %s\n", response_content); }
@@ -350,6 +357,9 @@ void c11_dap_configure_debugger() {
         if(server.isatttach) {
             c11_dap_send_initialized_event();
             server.isatttach = false;
+        } else if(server.isclientready) {
+            server.isclientready = false;
+            return;
         }
     }
     printf("[DEBUGGER INFO] : configure done\n");
@@ -389,15 +399,20 @@ void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
 }
 
 void py_debugger_waitforattach(const char* hostname, unsigned short port) {
-    c11_dap_init_server(hostname, port);
     c11_debugger_init();
-    c11_dap_configure_debugger();
+    c11_dap_init_server(hostname, port);
+    while(!server.isconfiguredone) {
+        c11_dap_waitforclient(hostname, port);
+        c11_dap_configure_debugger();
+        if(!server.isconfiguredone) {
+            c11_socket_close(server.toclient);
+            printf("[DEBUGGER INFO] : An clinet is ready\n");
+        }
+    }
     c11_socket_set_block(server.toclient, 0);
     py_sys_settrace(c11_dap_tracefunc, true);
 }
 
 void py_debugger_exit(int exitCode) {
-    char body[64];
-    snprintf(body, sizeof(body), "{\"exitCode\":%d}", exitCode);
-    c11_dap_send_event("exited", body);
+    c11_dap_send_exited_event(exitCode);
 }
