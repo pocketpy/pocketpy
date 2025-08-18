@@ -1,6 +1,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/line_profiler.h"
 #include "pocketpy/interpreter/frame.h"
+#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/pocketpy.h"
 #include <assert.h>
@@ -41,14 +42,14 @@ void LineProfiler__begin(LineProfiler* self) {
 
 static void LineProfiler__increment_now(LineProfiler* self, clock_t now, LineRecord* curr_line) {
     FrameRecord* top_frame_record = &c11_vector__back(FrameRecord, &self->frame_records);
-    LineRecord* prev_line = top_frame_record->prev_line;
-    clock_t delta = now - top_frame_record->prev_time;
-    top_frame_record->prev_time = now;
-    prev_line->hits++;
-    prev_line->time += delta;
-
-    // printf("  ==> increment_now: delta: %ld, hits: %lld\n",
-    //        delta, prev_line->hits);
+    if(!top_frame_record->is_lambda) {
+        LineRecord* prev_line = top_frame_record->prev_line;
+        clock_t delta = now - top_frame_record->prev_time;
+        top_frame_record->prev_time = now;
+        prev_line->hits++;
+        prev_line->time += delta;
+        // printf("  ==> increment_now: delta: %ld, hits: %lld\n", delta, prev_line->hits);
+    }
     top_frame_record->prev_line = curr_line;
 }
 
@@ -68,7 +69,15 @@ void LineProfiler__tracefunc_internal(LineProfiler* self,
         LineProfiler__increment_now(self, now, curr_line);
     } else {
         if(event == TRACE_EVENT_PUSH) {
-            FrameRecord f_record = {.frame = frame, .prev_time = now, .prev_line = curr_line};
+            FrameRecord f_record = {.frame = frame,
+                                    .prev_time = now,
+                                    .prev_line = curr_line,
+                                    .is_lambda = false};
+            if(!frame->is_locals_special && py_istype(frame->p0, tp_function)) {
+                Function* fn = py_touserdata(frame->p0);
+                c11_string* fn_name = fn->decl->code.name;
+                f_record.is_lambda = fn_name->size > 0 && fn_name->data[0] == '<';
+            }
             c11_vector__push(FrameRecord, &self->frame_records, f_record);
         } else if(event == TRACE_EVENT_POP) {
             LineProfiler__increment_now(self, now, NULL);

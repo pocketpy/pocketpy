@@ -60,7 +60,7 @@ void py_setslot(py_Ref self, int i, py_Ref val) {
 
 py_StackRef py_inspect_currentfunction() {
     VM* vm = pk_current_vm;
-    if(vm->curr_decl_based_function) { return vm->curr_decl_based_function; }
+    if(vm->curr_decl_based_function) return vm->curr_decl_based_function;
     py_Frame* frame = vm->top_frame;
     if(!frame || frame->is_locals_special) return NULL;
     return frame->p0;

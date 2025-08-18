@@ -14,6 +14,7 @@ typedef struct FrameRecord {
     py_Frame* frame;
     clock_t prev_time;
     LineRecord* prev_line;
+    bool is_lambda;
 } FrameRecord;
 
 typedef struct LineProfiler {
