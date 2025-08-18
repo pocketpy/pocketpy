@@ -36,7 +36,8 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_initialize');
   late final _py_initialize = _py_initializePtr.asFunction<void Function()>();
 
-  /// Finalize pocketpy and free all VMs.
+  /// Finalize pocketpy and free all VMs. This opearation is irreversible.
+  /// After this call, you cannot use any function from this header anymore.
   void py_finalize() {
     return _py_finalize();
   }
@@ -76,6 +77,15 @@ class PocketpyBindings {
   late final _py_resetvmPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_resetvm');
   late final _py_resetvm = _py_resetvmPtr.asFunction<void Function()>();
+
+  /// Reset All VMs.
+  void py_resetallvm() {
+    return _py_resetallvm();
+  }
+
+  late final _py_resetallvmPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_resetallvm');
+  late final _py_resetallvm = _py_resetallvmPtr.asFunction<void Function()>();
 
   /// Get the current VM context. This is used for user-defined data.
   ffi.Pointer<ffi.Void> py_getvmctx() {
@@ -124,17 +134,28 @@ class PocketpyBindings {
   /// Set the trace function for the current VM.
   void py_sys_settrace(
     py_TraceFunc func,
+    bool reset,
   ) {
     return _py_sys_settrace(
       func,
+      reset,
     );
   }
 
   late final _py_sys_settracePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_TraceFunc)>>(
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_TraceFunc, ffi.Bool)>>(
           'py_sys_settrace');
   late final _py_sys_settrace =
-      _py_sys_settracePtr.asFunction<void Function(py_TraceFunc)>();
+      _py_sys_settracePtr.asFunction<void Function(py_TraceFunc, bool)>();
+
+  /// Invoke the garbage collector.
+  int py_gc_collect() {
+    return _py_gc_collect();
+  }
+
+  late final _py_gc_collectPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function()>>('py_gc_collect');
+  late final _py_gc_collect = _py_gc_collectPtr.asFunction<int Function()>();
 
   /// Setup the callbacks for the current VM.
   ffi.Pointer<py_Callbacks> py_callbacks() {
@@ -146,6 +167,114 @@ class PocketpyBindings {
           'py_callbacks');
   late final _py_callbacks =
       _py_callbacksPtr.asFunction<ffi.Pointer<py_Callbacks> Function()>();
+
+  /// Wrapper for `PK_MALLOC(size)`.
+  ffi.Pointer<ffi.Void> py_malloc(
+    int size,
+  ) {
+    return _py_malloc(
+      size,
+    );
+  }
+
+  late final _py_mallocPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Void> Function(ffi.Size)>>(
+          'py_malloc');
+  late final _py_malloc =
+      _py_mallocPtr.asFunction<ffi.Pointer<ffi.Void> Function(int)>();
+
+  /// Wrapper for `PK_REALLOC(ptr, size)`.
+  ffi.Pointer<ffi.Void> py_realloc(
+    ffi.Pointer<ffi.Void> ptr,
+    int size,
+  ) {
+    return _py_realloc(
+      ptr,
+      size,
+    );
+  }
+
+  late final _py_reallocPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Void> Function(
+              ffi.Pointer<ffi.Void>, ffi.Size)>>('py_realloc');
+  late final _py_realloc = _py_reallocPtr
+      .asFunction<ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>, int)>();
+
+  /// Wrapper for `PK_FREE(ptr)`.
+  void py_free(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _py_free(
+      ptr,
+    );
+  }
+
+  late final _py_freePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+          'py_free');
+  late final _py_free =
+      _py_freePtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  /// Begin the watchdog with `timeout` in milliseconds.
+  /// `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
+  /// You need to call `py_watchdog_end()` later.
+  /// If `timeout` is reached, `TimeoutError` will be raised.
+  void py_watchdog_begin(
+    int timeout,
+  ) {
+    return _py_watchdog_begin(
+      timeout,
+    );
+  }
+
+  late final _py_watchdog_beginPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_i64)>>(
+          'py_watchdog_begin');
+  late final _py_watchdog_begin =
+      _py_watchdog_beginPtr.asFunction<void Function(int)>();
+
+  /// Reset the watchdog.
+  void py_watchdog_end() {
+    return _py_watchdog_end();
+  }
+
+  late final _py_watchdog_endPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_watchdog_end');
+  late final _py_watchdog_end =
+      _py_watchdog_endPtr.asFunction<void Function()>();
+
+  /// Bind a compile-time function via "decl-based" style.
+  void py_macrobind(
+    ffi.Pointer<ffi.Char> sig,
+    py_CFunction f,
+  ) {
+    return _py_macrobind(
+      sig,
+      f,
+    );
+  }
+
+  late final _py_macrobindPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              ffi.Pointer<ffi.Char>, py_CFunction)>>('py_macrobind');
+  late final _py_macrobind = _py_macrobindPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Char>, py_CFunction)>();
+
+  /// Get a compile-time function by name.
+  py_ItemRef py_macroget(
+    py_Name name,
+  ) {
+    return _py_macroget(
+      name,
+    );
+  }
+
+  late final _py_macrogetPtr =
+      _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>('py_macroget');
+  late final _py_macroget =
+      _py_macrogetPtr.asFunction<py_ItemRef Function(py_Name)>();
 
   /// Get the current source location of the frame.
   ffi.Pointer<ffi.Char> py_Frame_sourceloc(
@@ -411,6 +540,28 @@ class PocketpyBindings {
           'py_newint');
   late final _py_newint =
       _py_newintPtr.asFunction<void Function(py_OutRef, int)>();
+
+  /// Create a trivial value object.
+  void py_newtrivial(
+    py_OutRef out,
+    int type,
+    ffi.Pointer<ffi.Void> data,
+    int size,
+  ) {
+    return _py_newtrivial(
+      out,
+      type,
+      data,
+      size,
+    );
+  }
+
+  late final _py_newtrivialPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(py_OutRef, py_Type, ffi.Pointer<ffi.Void>,
+              ffi.Int)>>('py_newtrivial');
+  late final _py_newtrivial = _py_newtrivialPtr
+      .asFunction<void Function(py_OutRef, int, ffi.Pointer<ffi.Void>, int)>();
 
   /// Create a `float` object.
   void py_newfloat(
@@ -687,7 +838,7 @@ class PocketpyBindings {
       _py_newnativefuncPtr.asFunction<void Function(py_OutRef, py_CFunction)>();
 
   /// Create a `function` object.
-  int py_newfunction(
+  py_Name py_newfunction(
     py_OutRef out,
     ffi.Pointer<ffi.Char> sig,
     py_CFunction f,
@@ -708,7 +859,7 @@ class PocketpyBindings {
           py_Name Function(py_OutRef, ffi.Pointer<ffi.Char>, py_CFunction,
               ffi.Pointer<ffi.Char>, ffi.Int)>>('py_newfunction');
   late final _py_newfunction = _py_newfunctionPtr.asFunction<
-      int Function(py_OutRef, ffi.Pointer<ffi.Char>, py_CFunction,
+      py_Name Function(py_OutRef, ffi.Pointer<ffi.Char>, py_CFunction,
           ffi.Pointer<ffi.Char>, int)>();
 
   /// Create a `boundmethod` object.
@@ -731,7 +882,7 @@ class PocketpyBindings {
       .asFunction<void Function(py_OutRef, py_Ref, py_Ref)>();
 
   /// Convert a null-terminated string to a name.
-  int py_name(
+  py_Name py_name(
     ffi.Pointer<ffi.Char> arg0,
   ) {
     return _py_name(
@@ -743,11 +894,11 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_Name Function(ffi.Pointer<ffi.Char>)>>(
           'py_name');
   late final _py_name =
-      _py_namePtr.asFunction<int Function(ffi.Pointer<ffi.Char>)>();
+      _py_namePtr.asFunction<py_Name Function(ffi.Pointer<ffi.Char>)>();
 
   /// Convert a name to a null-terminated string.
   ffi.Pointer<ffi.Char> py_name2str(
-    int arg0,
+    py_Name arg0,
   ) {
     return _py_name2str(
       arg0,
@@ -758,11 +909,11 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(py_Name)>>(
           'py_name2str');
   late final _py_name2str =
-      _py_name2strPtr.asFunction<ffi.Pointer<ffi.Char> Function(int)>();
+      _py_name2strPtr.asFunction<ffi.Pointer<ffi.Char> Function(py_Name)>();
 
   /// Convert a name to a python `str` object with cache.
   py_GlobalRef py_name2ref(
-    int arg0,
+    py_Name arg0,
   ) {
     return _py_name2ref(
       arg0,
@@ -773,10 +924,10 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_GlobalRef Function(py_Name)>>(
           'py_name2ref');
   late final _py_name2ref =
-      _py_name2refPtr.asFunction<py_GlobalRef Function(int)>();
+      _py_name2refPtr.asFunction<py_GlobalRef Function(py_Name)>();
 
   /// Convert a `c11_sv` to a name.
-  int py_namev(
+  py_Name py_namev(
     c11_sv arg0,
   ) {
     return _py_namev(
@@ -786,11 +937,11 @@ class PocketpyBindings {
 
   late final _py_namevPtr =
       _lookup<ffi.NativeFunction<py_Name Function(c11_sv)>>('py_namev');
-  late final _py_namev = _py_namevPtr.asFunction<int Function(c11_sv)>();
+  late final _py_namev = _py_namevPtr.asFunction<py_Name Function(c11_sv)>();
 
   /// Convert a name to a `c11_sv`.
   c11_sv py_name2sv(
-    int arg0,
+    py_Name arg0,
   ) {
     return _py_name2sv(
       arg0,
@@ -799,7 +950,8 @@ class PocketpyBindings {
 
   late final _py_name2svPtr =
       _lookup<ffi.NativeFunction<c11_sv Function(py_Name)>>('py_name2sv');
-  late final _py_name2sv = _py_name2svPtr.asFunction<c11_sv Function(int)>();
+  late final _py_name2sv =
+      _py_name2svPtr.asFunction<c11_sv Function(py_Name)>();
 
   /// Create a new type.
   /// @param name name of the type.
@@ -866,6 +1018,21 @@ class PocketpyBindings {
   late final _py_tointPtr =
       _lookup<ffi.NativeFunction<py_i64 Function(py_Ref)>>('py_toint');
   late final _py_toint = _py_tointPtr.asFunction<int Function(py_Ref)>();
+
+  /// Get the address of the trivial value object.
+  ffi.Pointer<ffi.Void> py_totrivial(
+    py_Ref arg0,
+  ) {
+    return _py_totrivial(
+      arg0,
+    );
+  }
+
+  late final _py_totrivialPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Void> Function(py_Ref)>>(
+          'py_totrivial');
+  late final _py_totrivial =
+      _py_totrivialPtr.asFunction<ffi.Pointer<ffi.Void> Function(py_Ref)>();
 
   /// Convert a `float` object in python to `double`.
   double py_tofloat(
@@ -1072,7 +1239,7 @@ class PocketpyBindings {
   /// Return `0` if not found.
   int py_gettype(
     ffi.Pointer<ffi.Char> module,
-    int name,
+    py_Name name,
   ) {
     return _py_gettype(
       module,
@@ -1084,7 +1251,7 @@ class PocketpyBindings {
           ffi.NativeFunction<py_Type Function(ffi.Pointer<ffi.Char>, py_Name)>>(
       'py_gettype');
   late final _py_gettype =
-      _py_gettypePtr.asFunction<int Function(ffi.Pointer<ffi.Char>, int)>();
+      _py_gettypePtr.asFunction<int Function(ffi.Pointer<ffi.Char>, py_Name)>();
 
   /// Check if the object is exactly the given type.
   bool py_istype(
@@ -1138,10 +1305,10 @@ class PocketpyBindings {
       _py_issubclassPtr.asFunction<bool Function(int, int)>();
 
   /// Get the magic method from the given type only.
-  /// The returned reference is always valid. However, its value may be `nil`.
+  /// Return `nil` if not found.
   py_GlobalRef py_tpgetmagic(
     int type,
-    int name,
+    py_Name name,
   ) {
     return _py_tpgetmagic(
       type,
@@ -1153,13 +1320,13 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_GlobalRef Function(py_Type, py_Name)>>(
           'py_tpgetmagic');
   late final _py_tpgetmagic =
-      _py_tpgetmagicPtr.asFunction<py_GlobalRef Function(int, int)>();
+      _py_tpgetmagicPtr.asFunction<py_GlobalRef Function(int, py_Name)>();
 
   /// Search the magic method from the given type to the base type.
   /// Return `NULL` if not found.
   py_GlobalRef py_tpfindmagic(
     int arg0,
-    int name,
+    py_Name name,
   ) {
     return _py_tpfindmagic(
       arg0,
@@ -1171,13 +1338,13 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_GlobalRef Function(py_Type, py_Name)>>(
           'py_tpfindmagic');
   late final _py_tpfindmagic =
-      _py_tpfindmagicPtr.asFunction<py_GlobalRef Function(int, int)>();
+      _py_tpfindmagicPtr.asFunction<py_GlobalRef Function(int, py_Name)>();
 
   /// Search the name from the given type to the base type.
   /// Return `NULL` if not found.
   py_ItemRef py_tpfindname(
     int arg0,
-    int name,
+    py_Name name,
   ) {
     return _py_tpfindname(
       arg0,
@@ -1189,7 +1356,20 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_ItemRef Function(py_Type, py_Name)>>(
           'py_tpfindname');
   late final _py_tpfindname =
-      _py_tpfindnamePtr.asFunction<py_ItemRef Function(int, int)>();
+      _py_tpfindnamePtr.asFunction<py_ItemRef Function(int, py_Name)>();
+
+  /// Get the base type of the given type.
+  int py_tpbase(
+    int type,
+  ) {
+    return _py_tpbase(
+      type,
+    );
+  }
+
+  late final _py_tpbasePtr =
+      _lookup<ffi.NativeFunction<py_Type Function(py_Type)>>('py_tpbase');
+  late final _py_tpbase = _py_tpbasePtr.asFunction<int Function(int)>();
 
   /// Get the type object of the given type.
   py_GlobalRef py_tpobject(
@@ -1239,6 +1419,78 @@ class PocketpyBindings {
           'py_tpcall');
   late final _py_tpcall =
       _py_tpcallPtr.asFunction<bool Function(int, int, py_Ref)>();
+
+  /// Disable the type for subclassing.
+  void py_tpsetfinal(
+    int type,
+  ) {
+    return _py_tpsetfinal(
+      type,
+    );
+  }
+
+  late final _py_tpsetfinalPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_Type)>>('py_tpsetfinal');
+  late final _py_tpsetfinal =
+      _py_tpsetfinalPtr.asFunction<void Function(int)>();
+
+  /// Set attribute hooks for the given type.
+  void py_tphookattributes(
+    int type,
+    ffi.Pointer<
+            ffi.NativeFunction<ffi.Bool Function(py_Ref self, py_Name name)>>
+        getattribute,
+    ffi.Pointer<
+            ffi.NativeFunction<
+                ffi.Bool Function(py_Ref self, py_Name name, py_Ref val)>>
+        setattribute,
+    ffi.Pointer<
+            ffi.NativeFunction<ffi.Bool Function(py_Ref self, py_Name name)>>
+        delattribute,
+    ffi.Pointer<
+            ffi.NativeFunction<ffi.Bool Function(py_Ref self, py_Name name)>>
+        getunboundmethod,
+  ) {
+    return _py_tphookattributes(
+      type,
+      getattribute,
+      setattribute,
+      delattribute,
+      getunboundmethod,
+    );
+  }
+
+  late final _py_tphookattributesPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              py_Type,
+              ffi.Pointer<
+                  ffi.NativeFunction<
+                      ffi.Bool Function(py_Ref self, py_Name name)>>,
+              ffi.Pointer<
+                  ffi.NativeFunction<
+                      ffi.Bool Function(
+                          py_Ref self, py_Name name, py_Ref val)>>,
+              ffi.Pointer<
+                  ffi.NativeFunction<
+                      ffi.Bool Function(py_Ref self, py_Name name)>>,
+              ffi.Pointer<
+                  ffi.NativeFunction<
+                      ffi.Bool Function(py_Ref self,
+                          py_Name name)>>)>>('py_tphookattributes');
+  late final _py_tphookattributes = _py_tphookattributesPtr.asFunction<
+      void Function(
+          int,
+          ffi.Pointer<
+              ffi.NativeFunction<ffi.Bool Function(py_Ref self, py_Name name)>>,
+          ffi.Pointer<
+              ffi.NativeFunction<
+                  ffi.Bool Function(py_Ref self, py_Name name, py_Ref val)>>,
+          ffi.Pointer<
+              ffi.NativeFunction<ffi.Bool Function(py_Ref self, py_Name name)>>,
+          ffi.Pointer<
+              ffi.NativeFunction<
+                  ffi.Bool Function(py_Ref self, py_Name name)>>)>();
 
   /// Check if the object is an instance of the given type exactly.
   /// Raise `TypeError` if the check fails.
@@ -1310,7 +1562,7 @@ class PocketpyBindings {
 
   /// Get variable in the `__main__` module.
   py_ItemRef py_getglobal(
-    int name,
+    py_Name name,
   ) {
     return _py_getglobal(
       name,
@@ -1320,11 +1572,11 @@ class PocketpyBindings {
   late final _py_getglobalPtr =
       _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>('py_getglobal');
   late final _py_getglobal =
-      _py_getglobalPtr.asFunction<py_ItemRef Function(int)>();
+      _py_getglobalPtr.asFunction<py_ItemRef Function(py_Name)>();
 
   /// Set variable in the `__main__` module.
   void py_setglobal(
-    int name,
+    py_Name name,
     py_Ref val,
   ) {
     return _py_setglobal(
@@ -1337,11 +1589,11 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Void Function(py_Name, py_Ref)>>(
           'py_setglobal');
   late final _py_setglobal =
-      _py_setglobalPtr.asFunction<void Function(int, py_Ref)>();
+      _py_setglobalPtr.asFunction<void Function(py_Name, py_Ref)>();
 
   /// Get variable in the `builtins` module.
   py_ItemRef py_getbuiltin(
-    int name,
+    py_Name name,
   ) {
     return _py_getbuiltin(
       name,
@@ -1352,26 +1604,10 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>(
           'py_getbuiltin');
   late final _py_getbuiltin =
-      _py_getbuiltinPtr.asFunction<py_ItemRef Function(int)>();
-
-  /// Equivalent to `*dst = *src`.
-  void py_assign(
-    py_Ref dst,
-    py_Ref src,
-  ) {
-    return _py_assign(
-      dst,
-      src,
-    );
-  }
-
-  late final _py_assignPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_Ref, py_Ref)>>(
-          'py_assign');
-  late final _py_assign =
-      _py_assignPtr.asFunction<void Function(py_Ref, py_Ref)>();
+      _py_getbuiltinPtr.asFunction<py_ItemRef Function(py_Name)>();
 
   /// Get the last return value.
+  /// Please note that `py_retval()` cannot be used as input argument.
   py_GlobalRef py_retval() {
     return _py_retval();
   }
@@ -1384,7 +1620,7 @@ class PocketpyBindings {
   /// Return `NULL` if not found.
   py_ItemRef py_getdict(
     py_Ref self,
-    int name,
+    py_Name name,
   ) {
     return _py_getdict(
       self,
@@ -1396,12 +1632,12 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_ItemRef Function(py_Ref, py_Name)>>(
           'py_getdict');
   late final _py_getdict =
-      _py_getdictPtr.asFunction<py_ItemRef Function(py_Ref, int)>();
+      _py_getdictPtr.asFunction<py_ItemRef Function(py_Ref, py_Name)>();
 
   /// Set an item to the object's `__dict__`.
   void py_setdict(
     py_Ref self,
-    int name,
+    py_Name name,
     py_Ref val,
   ) {
     return _py_setdict(
@@ -1415,13 +1651,13 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Void Function(py_Ref, py_Name, py_Ref)>>(
           'py_setdict');
   late final _py_setdict =
-      _py_setdictPtr.asFunction<void Function(py_Ref, int, py_Ref)>();
+      _py_setdictPtr.asFunction<void Function(py_Ref, py_Name, py_Ref)>();
 
   /// Delete an item from the object's `__dict__`.
   /// Return `true` if the deletion is successful.
   bool py_deldict(
     py_Ref self,
-    int name,
+    py_Name name,
   ) {
     return _py_deldict(
       self,
@@ -1433,12 +1669,12 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name)>>(
           'py_deldict');
   late final _py_deldict =
-      _py_deldictPtr.asFunction<bool Function(py_Ref, int)>();
+      _py_deldictPtr.asFunction<bool Function(py_Ref, py_Name)>();
 
   /// Prepare an insertion to the object's `__dict__`.
   py_ItemRef py_emplacedict(
     py_Ref self,
-    int name,
+    py_Name name,
   ) {
     return _py_emplacedict(
       self,
@@ -1450,7 +1686,7 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_ItemRef Function(py_Ref, py_Name)>>(
           'py_emplacedict');
   late final _py_emplacedict =
-      _py_emplacedictPtr.asFunction<py_ItemRef Function(py_Ref, int)>();
+      _py_emplacedictPtr.asFunction<py_ItemRef Function(py_Ref, py_Name)>();
 
   /// Apply a function to all items in the object's `__dict__`.
   /// Return `true` if the function is successful for all items.
@@ -1488,6 +1724,20 @@ class PocketpyBindings {
                   ffi.Bool Function(
                       py_Name name, py_Ref val, ffi.Pointer<ffi.Void> ctx)>>,
           ffi.Pointer<ffi.Void>)>();
+
+  /// Clear the object's `__dict__`. This function is dangerous.
+  void py_cleardict(
+    py_Ref self,
+  ) {
+    return _py_cleardict(
+      self,
+    );
+  }
+
+  late final _py_cleardictPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_Ref)>>('py_cleardict');
+  late final _py_cleardict =
+      _py_cleardictPtr.asFunction<void Function(py_Ref)>();
 
   /// Get the i-th slot of the object.
   /// The object must have slots and `i` must be in valid range.
@@ -1681,10 +1931,29 @@ class PocketpyBindings {
   late final _py_bindproperty = _py_bindpropertyPtr.asFunction<
       void Function(int, ffi.Pointer<ffi.Char>, py_CFunction, py_CFunction)>();
 
+  /// Bind a magic method to type.
+  void py_bindmagic(
+    int type,
+    py_Name name,
+    py_CFunction f,
+  ) {
+    return _py_bindmagic(
+      type,
+      name,
+      f,
+    );
+  }
+
+  late final _py_bindmagicPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(py_Type, py_Name, py_CFunction)>>('py_bindmagic');
+  late final _py_bindmagic =
+      _py_bindmagicPtr.asFunction<void Function(int, py_Name, py_CFunction)>();
+
   /// Python equivalent to `getattr(self, name)`.
   bool py_getattr(
     py_Ref self,
-    int name,
+    py_Name name,
   ) {
     return _py_getattr(
       self,
@@ -1696,12 +1965,12 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name)>>(
           'py_getattr');
   late final _py_getattr =
-      _py_getattrPtr.asFunction<bool Function(py_Ref, int)>();
+      _py_getattrPtr.asFunction<bool Function(py_Ref, py_Name)>();
 
   /// Python equivalent to `setattr(self, name, val)`.
   bool py_setattr(
     py_Ref self,
-    int name,
+    py_Name name,
     py_Ref val,
   ) {
     return _py_setattr(
@@ -1715,12 +1984,12 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name, py_Ref)>>(
           'py_setattr');
   late final _py_setattr =
-      _py_setattrPtr.asFunction<bool Function(py_Ref, int, py_Ref)>();
+      _py_setattrPtr.asFunction<bool Function(py_Ref, py_Name, py_Ref)>();
 
   /// Python equivalent to `delattr(self, name)`.
   bool py_delattr(
     py_Ref self,
-    int name,
+    py_Name name,
   ) {
     return _py_delattr(
       self,
@@ -1732,7 +2001,7 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name)>>(
           'py_delattr');
   late final _py_delattr =
-      _py_delattrPtr.asFunction<bool Function(py_Ref, int)>();
+      _py_delattrPtr.asFunction<bool Function(py_Ref, py_Name)>();
 
   /// Python equivalent to `self[key]`.
   bool py_getitem(
@@ -1793,8 +2062,8 @@ class PocketpyBindings {
   bool py_binaryop(
     py_Ref lhs,
     py_Ref rhs,
-    int op,
-    int rop,
+    py_Name op,
+    py_Name rop,
   ) {
     return _py_binaryop(
       lhs,
@@ -1807,8 +2076,229 @@ class PocketpyBindings {
   late final _py_binaryopPtr = _lookup<
       ffi.NativeFunction<
           ffi.Bool Function(py_Ref, py_Ref, py_Name, py_Name)>>('py_binaryop');
-  late final _py_binaryop =
-      _py_binaryopPtr.asFunction<bool Function(py_Ref, py_Ref, int, int)>();
+  late final _py_binaryop = _py_binaryopPtr
+      .asFunction<bool Function(py_Ref, py_Ref, py_Name, py_Name)>();
+
+  /// lhs + rhs
+  bool py_binaryadd(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binaryadd(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binaryaddPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binaryadd');
+  late final _py_binaryadd =
+      _py_binaryaddPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs - rhs
+  bool py_binarysub(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binarysub(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binarysubPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binarysub');
+  late final _py_binarysub =
+      _py_binarysubPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs * rhs
+  bool py_binarymul(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binarymul(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binarymulPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binarymul');
+  late final _py_binarymul =
+      _py_binarymulPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs / rhs
+  bool py_binarytruediv(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binarytruediv(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binarytruedivPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binarytruediv');
+  late final _py_binarytruediv =
+      _py_binarytruedivPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs // rhs
+  bool py_binaryfloordiv(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binaryfloordiv(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binaryfloordivPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binaryfloordiv');
+  late final _py_binaryfloordiv =
+      _py_binaryfloordivPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs % rhs
+  bool py_binarymod(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binarymod(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binarymodPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binarymod');
+  late final _py_binarymod =
+      _py_binarymodPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs ** rhs
+  bool py_binarypow(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binarypow(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binarypowPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binarypow');
+  late final _py_binarypow =
+      _py_binarypowPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs << rhs
+  bool py_binarylshift(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binarylshift(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binarylshiftPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binarylshift');
+  late final _py_binarylshift =
+      _py_binarylshiftPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs >> rhs
+  bool py_binaryrshift(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binaryrshift(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binaryrshiftPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binaryrshift');
+  late final _py_binaryrshift =
+      _py_binaryrshiftPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs & rhs
+  bool py_binaryand(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binaryand(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binaryandPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binaryand');
+  late final _py_binaryand =
+      _py_binaryandPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs | rhs
+  bool py_binaryor(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binaryor(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binaryorPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binaryor');
+  late final _py_binaryor =
+      _py_binaryorPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs ^ rhs
+  bool py_binaryxor(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binaryxor(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binaryxorPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binaryxor');
+  late final _py_binaryxor =
+      _py_binaryxorPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs @ rhs
+  bool py_binarymatmul(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_binarymatmul(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_binarymatmulPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_binarymatmul');
+  late final _py_binarymatmul =
+      _py_binarymatmulPtr.asFunction<bool Function(py_Ref, py_Ref)>();
 
   /// Get the i-th object from the top of the stack.
   /// `i` should be negative, e.g. (-1) means TOS.
@@ -1857,7 +2347,7 @@ class PocketpyBindings {
 
   /// Push a `py_Name` to the stack. This is used for keyword arguments.
   void py_pushname(
-    int name,
+    py_Name name,
   ) {
     return _py_pushname(
       name,
@@ -1866,7 +2356,8 @@ class PocketpyBindings {
 
   late final _py_pushnamePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(py_Name)>>('py_pushname');
-  late final _py_pushname = _py_pushnamePtr.asFunction<void Function(int)>();
+  late final _py_pushname =
+      _py_pushnamePtr.asFunction<void Function(py_Name)>();
 
   /// Pop an object from the stack.
   void py_pop() {
@@ -1904,7 +2395,7 @@ class PocketpyBindings {
   /// If return true:  `[self] -> [unbound, self]`.
   /// If return false: `[self] -> [self]` (no change).
   bool py_pushmethod(
-    int name,
+    py_Name name,
   ) {
     return _py_pushmethod(
       name,
@@ -1914,7 +2405,7 @@ class PocketpyBindings {
   late final _py_pushmethodPtr =
       _lookup<ffi.NativeFunction<ffi.Bool Function(py_Name)>>('py_pushmethod');
   late final _py_pushmethod =
-      _py_pushmethodPtr.asFunction<bool Function(int)>();
+      _py_pushmethodPtr.asFunction<bool Function(py_Name)>();
 
   /// Call a callable object via pocketpy's calling convention.
   /// You need to prepare the stack using the following format:
@@ -1990,7 +2481,7 @@ class PocketpyBindings {
 
   /// Reload an existing module.
   bool py_importlib_reload(
-    py_GlobalRef module,
+    py_Ref module,
   ) {
     return _py_importlib_reload(
       module,
@@ -1998,10 +2489,10 @@ class PocketpyBindings {
   }
 
   late final _py_importlib_reloadPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_GlobalRef)>>(
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>(
           'py_importlib_reload');
   late final _py_importlib_reload =
-      _py_importlib_reloadPtr.asFunction<bool Function(py_GlobalRef)>();
+      _py_importlib_reloadPtr.asFunction<bool Function(py_Ref)>();
 
   /// Import a module.
   /// The result will be set to `py_retval()`.
@@ -2183,6 +2674,96 @@ class PocketpyBindings {
   late final _py_lessPtr =
       _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref, py_Ref)>>('py_less');
   late final _py_less = _py_lessPtr.asFunction<int Function(py_Ref, py_Ref)>();
+
+  /// lhs == rhs
+  bool py_eq(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_eq(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_eqPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>('py_eq');
+  late final _py_eq = _py_eqPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs != rhs
+  bool py_ne(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_ne(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_nePtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>('py_ne');
+  late final _py_ne = _py_nePtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs < rhs
+  bool py_lt(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_lt(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_ltPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>('py_lt');
+  late final _py_lt = _py_ltPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs <= rhs
+  bool py_le(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_le(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_lePtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>('py_le');
+  late final _py_le = _py_lePtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs > rhs
+  bool py_gt(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_gt(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_gtPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>('py_gt');
+  late final _py_gt = _py_gtPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// lhs >= rhs
+  bool py_ge(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_ge(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_gePtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>('py_ge');
+  late final _py_ge = _py_gePtr.asFunction<bool Function(py_Ref, py_Ref)>();
 
   /// Python equivalent to `callable(val)`.
   bool py_callable(
@@ -2402,6 +2983,100 @@ class PocketpyBindings {
               ffi.Pointer<ffi.UnsignedChar>, ffi.Int)>>('py_pickle_loads');
   late final _py_pickle_loads = _py_pickle_loadsPtr
       .asFunction<bool Function(ffi.Pointer<ffi.UnsignedChar>, int)>();
+
+  /// Profiler
+  void py_profiler_begin() {
+    return _py_profiler_begin();
+  }
+
+  late final _py_profiler_beginPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_profiler_begin');
+  late final _py_profiler_begin =
+      _py_profiler_beginPtr.asFunction<void Function()>();
+
+  void py_profiler_end() {
+    return _py_profiler_end();
+  }
+
+  late final _py_profiler_endPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_profiler_end');
+  late final _py_profiler_end =
+      _py_profiler_endPtr.asFunction<void Function()>();
+
+  void py_profiler_reset() {
+    return _py_profiler_reset();
+  }
+
+  late final _py_profiler_resetPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_profiler_reset');
+  late final _py_profiler_reset =
+      _py_profiler_resetPtr.asFunction<void Function()>();
+
+  ffi.Pointer<ffi.Char> py_profiler_report() {
+    return _py_profiler_report();
+  }
+
+  late final _py_profiler_reportPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function()>>(
+          'py_profiler_report');
+  late final _py_profiler_report =
+      _py_profiler_reportPtr.asFunction<ffi.Pointer<ffi.Char> Function()>();
+
+  /// DAP
+  void py_debugger_waitforattach(
+    ffi.Pointer<ffi.Char> hostname,
+    int port,
+  ) {
+    return _py_debugger_waitforattach(
+      hostname,
+      port,
+    );
+  }
+
+  late final _py_debugger_waitforattachPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Char>,
+              ffi.UnsignedShort)>>('py_debugger_waitforattach');
+  late final _py_debugger_waitforattach = _py_debugger_waitforattachPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Char>, int)>();
+
+  bool py_debugger_isattached() {
+    return _py_debugger_isattached();
+  }
+
+  late final _py_debugger_isattachedPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function()>>(
+          'py_debugger_isattached');
+  late final _py_debugger_isattached =
+      _py_debugger_isattachedPtr.asFunction<bool Function()>();
+
+  void py_debugger_exceptionbreakpoint(
+    py_Ref exc,
+  ) {
+    return _py_debugger_exceptionbreakpoint(
+      exc,
+    );
+  }
+
+  late final _py_debugger_exceptionbreakpointPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_Ref)>>(
+          'py_debugger_exceptionbreakpoint');
+  late final _py_debugger_exceptionbreakpoint =
+      _py_debugger_exceptionbreakpointPtr.asFunction<void Function(py_Ref)>();
+
+  void py_debugger_exit(
+    int exitCode,
+  ) {
+    return _py_debugger_exit(
+      exitCode,
+    );
+  }
+
+  late final _py_debugger_exitPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>(
+          'py_debugger_exit');
+  late final _py_debugger_exit =
+      _py_debugger_exitPtr.asFunction<void Function(int)>();
 
   /// Unchecked Functions
   py_ObjectRef py_tuple_data(
@@ -2827,7 +3502,172 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref)>>('py_dict_len');
   late final _py_dict_len = _py_dict_lenPtr.asFunction<int Function(py_Ref)>();
 
-  /// linalg module
+  /// random module
+  void py_newRandom(
+    py_OutRef out,
+  ) {
+    return _py_newRandom(
+      out,
+    );
+  }
+
+  late final _py_newRandomPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>('py_newRandom');
+  late final _py_newRandom =
+      _py_newRandomPtr.asFunction<void Function(py_OutRef)>();
+
+  void py_Random_seed(
+    py_Ref self,
+    int seed,
+  ) {
+    return _py_Random_seed(
+      self,
+      seed,
+    );
+  }
+
+  late final _py_Random_seedPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_Ref, py_i64)>>(
+          'py_Random_seed');
+  late final _py_Random_seed =
+      _py_Random_seedPtr.asFunction<void Function(py_Ref, int)>();
+
+  double py_Random_random(
+    py_Ref self,
+  ) {
+    return _py_Random_random(
+      self,
+    );
+  }
+
+  late final _py_Random_randomPtr =
+      _lookup<ffi.NativeFunction<py_f64 Function(py_Ref)>>('py_Random_random');
+  late final _py_Random_random =
+      _py_Random_randomPtr.asFunction<double Function(py_Ref)>();
+
+  double py_Random_uniform(
+    py_Ref self,
+    double a,
+    double b,
+  ) {
+    return _py_Random_uniform(
+      self,
+      a,
+      b,
+    );
+  }
+
+  late final _py_Random_uniformPtr =
+      _lookup<ffi.NativeFunction<py_f64 Function(py_Ref, py_f64, py_f64)>>(
+          'py_Random_uniform');
+  late final _py_Random_uniform = _py_Random_uniformPtr
+      .asFunction<double Function(py_Ref, double, double)>();
+
+  int py_Random_randint(
+    py_Ref self,
+    int a,
+    int b,
+  ) {
+    return _py_Random_randint(
+      self,
+      a,
+      b,
+    );
+  }
+
+  late final _py_Random_randintPtr =
+      _lookup<ffi.NativeFunction<py_i64 Function(py_Ref, py_i64, py_i64)>>(
+          'py_Random_randint');
+  late final _py_Random_randint =
+      _py_Random_randintPtr.asFunction<int Function(py_Ref, int, int)>();
+
+  /// array2d module
+  void py_newarray2d(
+    py_OutRef out,
+    int width,
+    int height,
+  ) {
+    return _py_newarray2d(
+      out,
+      width,
+      height,
+    );
+  }
+
+  late final _py_newarray2dPtr = _lookup<
+          ffi.NativeFunction<ffi.Void Function(py_OutRef, ffi.Int, ffi.Int)>>(
+      'py_newarray2d');
+  late final _py_newarray2d =
+      _py_newarray2dPtr.asFunction<void Function(py_OutRef, int, int)>();
+
+  int py_array2d_getwidth(
+    py_Ref self,
+  ) {
+    return _py_array2d_getwidth(
+      self,
+    );
+  }
+
+  late final _py_array2d_getwidthPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref)>>(
+          'py_array2d_getwidth');
+  late final _py_array2d_getwidth =
+      _py_array2d_getwidthPtr.asFunction<int Function(py_Ref)>();
+
+  int py_array2d_getheight(
+    py_Ref self,
+  ) {
+    return _py_array2d_getheight(
+      self,
+    );
+  }
+
+  late final _py_array2d_getheightPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref)>>(
+          'py_array2d_getheight');
+  late final _py_array2d_getheight =
+      _py_array2d_getheightPtr.asFunction<int Function(py_Ref)>();
+
+  py_ObjectRef py_array2d_getitem(
+    py_Ref self,
+    int x,
+    int y,
+  ) {
+    return _py_array2d_getitem(
+      self,
+      x,
+      y,
+    );
+  }
+
+  late final _py_array2d_getitemPtr = _lookup<
+          ffi.NativeFunction<py_ObjectRef Function(py_Ref, ffi.Int, ffi.Int)>>(
+      'py_array2d_getitem');
+  late final _py_array2d_getitem = _py_array2d_getitemPtr
+      .asFunction<py_ObjectRef Function(py_Ref, int, int)>();
+
+  void py_array2d_setitem(
+    py_Ref self,
+    int x,
+    int y,
+    py_Ref val,
+  ) {
+    return _py_array2d_setitem(
+      self,
+      x,
+      y,
+      val,
+    );
+  }
+
+  late final _py_array2d_setitemPtr = _lookup<
+          ffi
+          .NativeFunction<ffi.Void Function(py_Ref, ffi.Int, ffi.Int, py_Ref)>>(
+      'py_array2d_setitem');
+  late final _py_array2d_setitem = _py_array2d_setitemPtr
+      .asFunction<void Function(py_Ref, int, int, py_Ref)>();
+
+  /// vmath module
   void py_newvec2(
     py_OutRef out,
     c11_vec2 arg1,
@@ -2891,6 +3731,22 @@ class PocketpyBindings {
           'py_newvec3i');
   late final _py_newvec3i =
       _py_newvec3iPtr.asFunction<void Function(py_OutRef, c11_vec3i)>();
+
+  void py_newcolor32(
+    py_OutRef out,
+    c11_color32 arg1,
+  ) {
+    return _py_newcolor32(
+      out,
+      arg1,
+    );
+  }
+
+  late final _py_newcolor32Ptr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef, c11_color32)>>(
+          'py_newcolor32');
+  late final _py_newcolor32 =
+      _py_newcolor32Ptr.asFunction<void Function(py_OutRef, c11_color32)>();
 
   ffi.Pointer<c11_mat3x3> py_newmat3x3(
     py_OutRef out,
@@ -2969,6 +3825,19 @@ class PocketpyBindings {
           'py_tomat3x3');
   late final _py_tomat3x3 =
       _py_tomat3x3Ptr.asFunction<ffi.Pointer<c11_mat3x3> Function(py_Ref)>();
+
+  c11_color32 py_tocolor32(
+    py_Ref self,
+  ) {
+    return _py_tocolor32(
+      self,
+    );
+  }
+
+  late final _py_tocolor32Ptr =
+      _lookup<ffi.NativeFunction<c11_color32 Function(py_Ref)>>('py_tocolor32');
+  late final _py_tocolor32 =
+      _py_tocolor32Ptr.asFunction<c11_color32 Function(py_Ref)>();
 
   /// An utility function to read a line from stdin for REPL.
   int py_replinput(
@@ -3096,6 +3965,29 @@ final class UnnamedStruct5 extends ffi.Struct {
   external double _33;
 }
 
+final class c11_color32 extends ffi.Union {
+  external UnnamedStruct6 unnamed;
+
+  @ffi.Array.multi([4])
+  external ffi.Array<ffi.UnsignedChar> data;
+}
+
+final class UnnamedStruct6 extends ffi.Struct {
+  @ffi.UnsignedChar()
+  external int r;
+
+  @ffi.UnsignedChar()
+  external int g;
+
+  @ffi.UnsignedChar()
+  external int b;
+
+  @ffi.UnsignedChar()
+  external int a;
+}
+
+final class py_OpaqueName extends ffi.Opaque {}
+
 final class py_TValue extends ffi.Opaque {}
 
 /// A string view type. It is helpful for passing strings which are not null-terminated.
@@ -3111,60 +4003,68 @@ final class py_Frame extends ffi.Opaque {}
 /// An enum for tracing events.
 abstract class py_TraceEvent {
   static const int TRACE_EVENT_LINE = 0;
-  static const int TRACE_EVENT_EXCEPTION = 1;
-  static const int TRACE_EVENT_PUSH = 2;
-  static const int TRACE_EVENT_POP = 3;
+  static const int TRACE_EVENT_PUSH = 1;
+  static const int TRACE_EVENT_POP = 2;
 }
 
 /// A struct contains the callbacks of the VM.
 final class py_Callbacks extends ffi.Struct {
-  /// Used by `__import__` to load source code of a module.
+  /// Used by `__import__` to load a source module.
   external ffi.Pointer<
       ffi.NativeFunction<
           ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>)>> importfile;
+
+  /// Called before `importfile` to lazy-import a C module.
+  external ffi
+      .Pointer<ffi.NativeFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>>
+      lazyimport;
 
   /// Used by `print` to output a string.
   external ffi
       .Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Char>)>>
       print;
 
+  /// Flush the output buffer of `print`.
+  external ffi.Pointer<ffi.NativeFunction<ffi.Void Function()>> flush;
+
   /// Used by `input` to get a character.
-  external ffi.Pointer<ffi.NativeFunction<ffi.Int Function()>> getchar;
+  external ffi.Pointer<ffi.NativeFunction<ffi.Int Function()>> getchr;
+
+  /// Used by `gc.collect()` to mark extra objects for garbage collection.
+  external ffi.Pointer<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              ffi.Pointer<
+                      ffi.NativeFunction<
+                          ffi.Void Function(
+                              py_Ref val, ffi.Pointer<ffi.Void> ctx)>>
+                  f,
+              ffi.Pointer<ffi.Void> ctx)>> gc_mark;
 }
+
+/// A global reference which has the same lifespan as the VM.
+typedef py_GlobalRef = ffi.Pointer<py_TValue>;
+
+/// A generic reference to a python object.
+typedef py_Ref = ffi.Pointer<py_TValue>;
 
 /// Python compiler modes.
 /// + `EXEC_MODE`: for statements.
 /// + `EVAL_MODE`: for expressions.
 /// + `SINGLE_MODE`: for REPL or jupyter notebook execution.
+/// + `RELOAD_MODE`: for reloading a module without allocating new types if possible.
 abstract class py_CompileMode {
   static const int EXEC_MODE = 0;
   static const int EVAL_MODE = 1;
   static const int SINGLE_MODE = 2;
+  static const int RELOAD_MODE = 3;
 }
 
 typedef py_TraceFunc = ffi.Pointer<
     ffi.NativeFunction<ffi.Void Function(ffi.Pointer<py_Frame>, ffi.Int32)>>;
 
-/// An output reference for returning a value.
-typedef py_OutRef = ffi.Pointer<py_TValue>;
-
-/// A specific location in the value stack of the VM.
-typedef py_StackRef = ffi.Pointer<py_TValue>;
-
-/// A generic reference to a python object.
-typedef py_Ref = ffi.Pointer<py_TValue>;
-
-/// A global reference which has the same lifespan as the VM.
-typedef py_GlobalRef = ffi.Pointer<py_TValue>;
-
 /// A 64-bit integer type. Corresponds to `int` in python.
 typedef py_i64 = ffi.Int64;
-
-/// A 64-bit floating-point type. Corresponds to `float` in python.
-typedef py_f64 = ffi.Double;
-
-/// A reference which has the same lifespan as the python object.
-typedef py_ObjectRef = ffi.Pointer<py_TValue>;
 
 /// Native function signature.
 /// @param argc number of arguments.
@@ -3173,19 +4073,30 @@ typedef py_ObjectRef = ffi.Pointer<py_TValue>;
 typedef py_CFunction = ffi.Pointer<
     ffi.NativeFunction<ffi.Bool Function(ffi.Int argc, py_StackRef argv)>>;
 
-/// An integer that represents a python identifier. This is to achieve string pooling and fast name
-/// resolution.
-typedef py_Name = ffi.Uint16;
+/// A specific location in the value stack of the VM.
+typedef py_StackRef = ffi.Pointer<py_TValue>;
+
+/// An item reference to a container object. It invalidates when the container is modified.
+typedef py_ItemRef = ffi.Pointer<py_TValue>;
+
+/// A pointer that represents a python identifier. For fast name resolution.
+typedef py_Name = ffi.Pointer<py_OpaqueName>;
+
+/// An output reference for returning a value. Only use this for function arguments.
+typedef py_OutRef = ffi.Pointer<py_TValue>;
 
 /// An integer that represents a python type. `0` is invalid.
 typedef py_Type = ffi.Int16;
 
+/// A 64-bit floating-point type. Corresponds to `float` in python.
+typedef py_f64 = ffi.Double;
+
+/// A reference which has the same lifespan as the python object.
+typedef py_ObjectRef = ffi.Pointer<py_TValue>;
+
 /// A generic destructor function.
 typedef py_Dtor
     = ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>;
-
-/// An item reference to a container object. It invalidates when the container is modified.
-typedef py_ItemRef = ffi.Pointer<py_TValue>;
 
 /// Python favored string formatting.
 /// %d: int
@@ -3198,80 +4109,6 @@ typedef py_ItemRef = ffi.Pointer<py_TValue>;
 /// %p: void*
 /// %t: py_Type
 /// %n: py_Name
-abstract class py_MagicName {
-  /// 0 is reserved
-  static const int py_MagicName__NULL = 0;
-
-  /// math operators
-  static const int __lt__ = 1;
-  static const int __le__ = 2;
-  static const int __gt__ = 3;
-  static const int __ge__ = 4;
-
-  /// //////////////////////////
-  static const int __neg__ = 5;
-  static const int __abs__ = 6;
-  static const int __round__ = 7;
-  static const int __divmod__ = 8;
-
-  /// //////////////////////////
-  static const int __add__ = 9;
-  static const int __radd__ = 10;
-  static const int __sub__ = 11;
-  static const int __rsub__ = 12;
-  static const int __mul__ = 13;
-  static const int __rmul__ = 14;
-  static const int __truediv__ = 15;
-  static const int __rtruediv__ = 16;
-  static const int __floordiv__ = 17;
-  static const int __rfloordiv__ = 18;
-  static const int __mod__ = 19;
-  static const int __rmod__ = 20;
-  static const int __pow__ = 21;
-  static const int __rpow__ = 22;
-  static const int __matmul__ = 23;
-  static const int __lshift__ = 24;
-  static const int __rshift__ = 25;
-  static const int __and__ = 26;
-  static const int __or__ = 27;
-  static const int __xor__ = 28;
-
-  /// //////////////////////////
-  static const int __repr__ = 29;
-  static const int __str__ = 30;
-  static const int __hash__ = 31;
-  static const int __len__ = 32;
-  static const int __iter__ = 33;
-  static const int __next__ = 34;
-  static const int __contains__ = 35;
-  static const int __bool__ = 36;
-  static const int __invert__ = 37;
-
-  /// //////////////////////////
-  static const int __eq__ = 38;
-  static const int __ne__ = 39;
-
-  /// indexer
-  static const int __getitem__ = 40;
-  static const int __setitem__ = 41;
-  static const int __delitem__ = 42;
-
-  /// specials
-  static const int __new__ = 43;
-  static const int __init__ = 44;
-  static const int __call__ = 45;
-  static const int __enter__ = 46;
-  static const int __exit__ = 47;
-  static const int __name__ = 48;
-  static const int __all__ = 49;
-  static const int __package__ = 50;
-  static const int __path__ = 51;
-  static const int __class__ = 52;
-  static const int __getattr__ = 53;
-  static const int __reduce__ = 54;
-  static const int __missing__ = 55;
-}
-
 abstract class py_PredefinedType {
   static const int tp_nil = 0;
   static const int tp_object = 1;
@@ -3289,96 +4126,109 @@ abstract class py_PredefinedType {
 
   /// N slots
   static const int tp_tuple = 9;
-  static const int tp_array_iterator = 10;
+
+  /// 1 slot
+  static const int tp_list_iterator = 10;
+
+  /// 1 slot
+  static const int tp_tuple_iterator = 11;
 
   /// 3 slots (start, stop, step)
-  static const int tp_slice = 11;
-  static const int tp_range = 12;
-  static const int tp_range_iterator = 13;
-  static const int tp_module = 14;
-  static const int tp_function = 15;
-  static const int tp_nativefunc = 16;
+  static const int tp_slice = 12;
+  static const int tp_range = 13;
+  static const int tp_range_iterator = 14;
+  static const int tp_module = 15;
+  static const int tp_function = 16;
+  static const int tp_nativefunc = 17;
 
   /// 2 slots (self, func)
-  static const int tp_boundmethod = 17;
+  static const int tp_boundmethod = 18;
 
   /// 1 slot + py_Type
-  static const int tp_super = 18;
-
-  /// 2 slots (arg + inner_exc)
-  static const int tp_BaseException = 19;
-  static const int tp_Exception = 20;
-  static const int tp_bytes = 21;
-  static const int tp_namedict = 22;
-  static const int tp_locals = 23;
-  static const int tp_code = 24;
-  static const int tp_dict = 25;
+  static const int tp_super = 19;
+  static const int tp_BaseException = 20;
+  static const int tp_Exception = 21;
+  static const int tp_bytes = 22;
+  static const int tp_namedict = 23;
+  static const int tp_locals = 24;
+  static const int tp_code = 25;
+  static const int tp_dict = 26;
 
   /// 1 slot
-  static const int tp_dict_items = 26;
+  static const int tp_dict_iterator = 27;
 
   /// 2 slots (getter + setter)
-  static const int tp_property = 27;
+  static const int tp_property = 28;
 
   /// 1 slot + int level
-  static const int tp_star_wrapper = 28;
+  static const int tp_star_wrapper = 29;
 
   /// 1 slot
-  static const int tp_staticmethod = 29;
+  static const int tp_staticmethod = 30;
 
   /// 1 slot
-  static const int tp_classmethod = 30;
-  static const int tp_NoneType = 31;
-  static const int tp_NotImplementedType = 32;
-  static const int tp_ellipsis = 33;
-  static const int tp_generator = 34;
+  static const int tp_classmethod = 31;
+  static const int tp_NoneType = 32;
+  static const int tp_NotImplementedType = 33;
+  static const int tp_ellipsis = 34;
+  static const int tp_generator = 35;
 
   /// builtin exceptions
-  static const int tp_SystemExit = 35;
-  static const int tp_KeyboardInterrupt = 36;
-  static const int tp_StopIteration = 37;
-  static const int tp_SyntaxError = 38;
-  static const int tp_RecursionError = 39;
-  static const int tp_OSError = 40;
-  static const int tp_NotImplementedError = 41;
-  static const int tp_TypeError = 42;
-  static const int tp_IndexError = 43;
-  static const int tp_ValueError = 44;
-  static const int tp_RuntimeError = 45;
-  static const int tp_ZeroDivisionError = 46;
-  static const int tp_NameError = 47;
-  static const int tp_UnboundLocalError = 48;
-  static const int tp_AttributeError = 49;
-  static const int tp_ImportError = 50;
-  static const int tp_AssertionError = 51;
-  static const int tp_KeyError = 52;
+  static const int tp_SystemExit = 36;
+  static const int tp_KeyboardInterrupt = 37;
+  static const int tp_StopIteration = 38;
+  static const int tp_SyntaxError = 39;
+  static const int tp_RecursionError = 40;
+  static const int tp_OSError = 41;
+  static const int tp_NotImplementedError = 42;
+  static const int tp_TypeError = 43;
+  static const int tp_IndexError = 44;
+  static const int tp_ValueError = 45;
+  static const int tp_RuntimeError = 46;
+  static const int tp_TimeoutError = 47;
+  static const int tp_ZeroDivisionError = 48;
+  static const int tp_NameError = 49;
+  static const int tp_UnboundLocalError = 50;
+  static const int tp_AttributeError = 51;
+  static const int tp_ImportError = 52;
+  static const int tp_AssertionError = 53;
+  static const int tp_KeyError = 54;
 
-  /// linalg
-  static const int tp_vec2 = 53;
-  static const int tp_vec3 = 54;
-  static const int tp_vec2i = 55;
-  static const int tp_vec3i = 56;
-  static const int tp_mat3x3 = 57;
+  /// vmath
+  static const int tp_vec2 = 55;
+  static const int tp_vec3 = 56;
+  static const int tp_vec2i = 57;
+  static const int tp_vec3i = 58;
+  static const int tp_mat3x3 = 59;
+  static const int tp_color32 = 60;
 
   /// array2d
-  static const int tp_array2d_like = 58;
-  static const int tp_array2d_like_iterator = 59;
-  static const int tp_array2d = 60;
-  static const int tp_array2d_view = 61;
-  static const int tp_chunked_array2d = 62;
+  static const int tp_array2d_like = 61;
+  static const int tp_array2d_like_iterator = 62;
+  static const int tp_array2d = 63;
+  static const int tp_array2d_view = 64;
+  static const int tp_chunked_array2d = 65;
 }
 
-const String PK_VERSION = '2.0.8';
+const String PK_VERSION = '2.1.1';
 
 const int PK_VERSION_MAJOR = 2;
 
-const int PK_VERSION_MINOR = 0;
+const int PK_VERSION_MINOR = 1;
 
-const int PK_VERSION_PATCH = 8;
-
-const int PK_LOW_MEMORY_MODE = 0;
+const int PK_VERSION_PATCH = 1;
 
 const int PK_ENABLE_OS = 1;
+
+const int PK_ENABLE_THREADS = 1;
+
+const int PK_ENABLE_DETERMINISM = 0;
+
+const int PK_ENABLE_WATCHDOG = 0;
+
+const int PK_ENABLE_CUSTOM_SNAME = 0;
+
+const int PK_ENABLE_MIMALLOC = 0;
 
 const int PK_GC_MIN_THRESHOLD = 32768;
 
@@ -3395,6 +4245,10 @@ const double PK_M_E = 2.718281828459045;
 const double PK_M_DEG2RAD = 0.017453292519943295;
 
 const double PK_M_RAD2DEG = 57.29577951308232;
+
+const double PK_INST_ATTR_LOAD_FACTOR = 0.6700000166893005;
+
+const double PK_TYPE_ATTR_LOAD_FACTOR = 0.5;
 
 const int PK_PLATFORM_SEP = 47;
 
