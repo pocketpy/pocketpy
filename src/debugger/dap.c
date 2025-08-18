@@ -3,6 +3,8 @@
 #include "pocketpy/common/socket.h"
 #include "pocketpy/debugger/core.h"
 #include "pocketpy/objects/base.h"
+#include "pocketpy/objects/exception.h"
+#include "pocketpy/pocketpy.h"
 
 #define DAP_COMMAND_LIST(X)                                                                        \
     X(initialize)                                                                                  \
@@ -59,7 +61,7 @@ void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) { server.isatttac
 
 void c11_dap_handle_launch(py_Ref arguments, c11_sbuf* buffer) { server.isatttach = true; }
 
-void c11_dap_handle_ready(py_Ref arguments, c11_sbuf* buffer) {server.isclientready = true;}
+void c11_dap_handle_ready(py_Ref arguments, c11_sbuf* buffer) { server.isclientready = true; }
 
 void c11_dap_handle_next(py_Ref arguments, c11_sbuf* buffer) {
     c11_debugger_set_step_mode(C11_STEP_OVER);
@@ -340,7 +342,8 @@ inline static void c11_dap_handle_message() {
     if(message == NULL) { return; }
     // printf("[DEBUGGER INFO] read request %s\n", message);
     const char* response_content = c11_dap_handle_request(message);
-    // if(response_content != NULL) { printf("[DEBUGGER INFO] send response %s\n", response_content); }
+    // if(response_content != NULL) { printf("[DEBUGGER INFO] send response %s\n",
+    // response_content); }
     c11_sbuf buffer;
     c11_sbuf__ctor(&buffer);
     pk_sprintf(&buffer, "Content-Length: %d\r\n\r\n%s", strlen(response_content), response_content);
@@ -413,6 +416,15 @@ void py_debugger_waitforattach(const char* hostname, unsigned short port) {
     py_sys_settrace(c11_dap_tracefunc, true);
 }
 
-void py_debugger_exit(int exitCode) {
-    c11_dap_send_exited_event(exitCode);
+void py_debugger_exit(int exitCode) { c11_dap_send_exited_event(exitCode); }
+
+bool py_debugger_isattached() {
+    return false;  // TODO: implement this function
+}
+
+void py_debugger_exceptionbreakpoint(py_Ref exc) {
+    assert(py_isinstance(exc, tp_BaseException));
+    // BaseException* ud = py_touserdata(exc);
+    // c11_vector* stacktrace = &ud->stacktrace;
+    // TODO: implement this function
 }

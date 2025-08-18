@@ -7,6 +7,7 @@
 #include "pocketpy/objects/base.h"
 #include "pocketpy/interpreter/types.h"
 #include "pocketpy/common/_generated.h"
+#include "pocketpy/objects/exception.h"
 #include "pocketpy/pocketpy.h"
 #include <stdbool.h>
 #include <assert.h>
@@ -717,6 +718,16 @@ void ManagedHeap__mark(ManagedHeap* self) {
             }
             case tp_function: {
                 function__gc_mark(ud, p_stack);
+                break;
+            }
+            case tp_BaseException: {
+                BaseException* self = ud;
+                pk__mark_value(&self->args);
+                pk__mark_value(&self->inner_exc);
+                c11__foreach(BaseExceptionFrame, &self->stacktrace, frame) {
+                    pk__mark_value(&frame->locals);
+                    pk__mark_value(&frame->globals);
+                }
                 break;
             }
             case tp_code: {

@@ -68,7 +68,6 @@ typedef struct py_Frame py_Frame;
 // An enum for tracing events.
 enum py_TraceEvent {
     TRACE_EVENT_LINE,
-    TRACE_EVENT_EXCEPTION,
     TRACE_EVENT_PUSH,
     TRACE_EVENT_POP,
 };
@@ -710,6 +709,8 @@ PK_API char* py_profiler_report();
 
 /************* DAP *************/
 PK_API void py_debugger_waitforattach(const char* hostname, unsigned short port);
+PK_API bool py_debugger_isattached();
+PK_API void py_debugger_exceptionbreakpoint(py_Ref exc);
 PK_API void py_debugger_exit(int exitCode);
 
 /************* Unchecked Functions *************/
@@ -820,9 +821,9 @@ enum py_PredefinedType {
     tp_module,
     tp_function,
     tp_nativefunc,
-    tp_boundmethod,    // 2 slots (self, func)
-    tp_super,          // 1 slot + py_Type
-    tp_BaseException,  // 2 slots (arg + inner_exc)
+    tp_boundmethod,  // 2 slots (self, func)
+    tp_super,        // 1 slot + py_Type
+    tp_BaseException,
     tp_Exception,
     tp_bytes,
     tp_namedict,

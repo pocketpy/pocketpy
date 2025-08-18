@@ -9,4 +9,4 @@ typedef struct{
     char msg[512];
 } Error;
 
-void py_BaseException__stpush(py_Ref, SourceData_ src, int lineno, const char* func_name);
+void py_BaseException__stpush(py_Frame* frame, py_Ref, SourceData_ src, int lineno, const char* func_name);

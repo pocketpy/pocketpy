@@ -1,30 +1,29 @@
-#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/objects/error.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
-#include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
+#include "pocketpy/objects/exception.h"
 
-typedef struct BaseExceptionFrame {
-    SourceData_ src;
-    int lineno;
-    c11_string* name;
-} BaseExceptionFrame;
-
-typedef struct BaseException {
-    c11_vector /*T=BaseExceptionFrame*/ stacktrace;
-} BaseException;
-
-void py_BaseException__stpush(py_Ref self, SourceData_ src, int lineno, const char* func_name) {
+void py_BaseException__stpush(py_Frame* frame,
+                              py_Ref self,
+                              SourceData_ src,
+                              int lineno,
+                              const char* func_name) {
     BaseException* ud = py_touserdata(self);
-    if(ud->stacktrace.length >= 7) return;
-    BaseExceptionFrame* frame = c11_vector__emplace(&ud->stacktrace);
+    int max_frame_dumps = py_debugger_isattached() ? 31 : 7;
+    if(ud->stacktrace.length >= max_frame_dumps) return;
+    BaseExceptionFrame* frame_dump = c11_vector__emplace(&ud->stacktrace);
     PK_INCREF(src);
-    frame->src = src;
-    frame->lineno = lineno;
-    frame->name = func_name ? c11_string__new(func_name) : NULL;
+    frame_dump->src = src;
+    frame_dump->lineno = lineno;
+    frame_dump->name = func_name ? c11_string__new(func_name) : NULL;
+
+    if(py_debugger_isattached() && frame != NULL) {
+        py_Frame_newlocals(frame, &frame_dump->locals);
+        py_Frame_newglobals(frame, &frame_dump->globals);
+    }
 }
 
 static void BaseException__dtor(void* ud) {
@@ -38,28 +37,33 @@ static void BaseException__dtor(void* ud) {
 
 static bool _py_BaseException__new__(int argc, py_Ref argv) {
     py_Type cls = py_totype(argv);
-    BaseException* ud = py_newobject(py_retval(), cls, 2, sizeof(BaseException));
+    BaseException* ud = py_newobject(py_retval(), cls, 0, sizeof(BaseException));
+    py_newnil(&ud->args);
+    py_newnil(&ud->inner_exc);
     c11_vector__ctor(&ud->stacktrace, sizeof(BaseExceptionFrame));
     return true;
 }
 
 static bool _py_BaseException__init__(int argc, py_Ref argv) {
+    BaseException* ud = py_touserdata(argv);
     py_newnone(py_retval());
     if(argc == 1 + 0) return true;
     if(argc == 1 + 1) {
-        py_setslot(py_arg(0), 0, py_arg(1));
+        py_assign(&ud->args, &argv[1]);
         return true;
     }
     return TypeError("__init__() takes at most 1 arguments but %d were given", argc - 1);
 }
 
 static bool _py_BaseException__repr__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    BaseException* ud = py_touserdata(argv);
     c11_sbuf ss;
     c11_sbuf__ctor(&ss);
     pk_sprintf(&ss, "%t(", argv->type);
-    py_Ref arg = py_getslot(argv, 0);
-    if(!py_isnil(arg)) {
-        if(!py_repr(arg)) return false;
+    py_Ref args = &ud->args;
+    if(!py_isnil(args)) {
+        if(!py_repr(args)) return false;
         c11_sbuf__write_sv(&ss, py_tosv(py_retval()));
     }
     c11_sbuf__write_char(&ss, ')');
@@ -68,14 +72,16 @@ static bool _py_BaseException__repr__(int argc, py_Ref argv) {
 }
 
 static bool _py_BaseException__str__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    BaseException* ud = py_touserdata(argv);
     c11_sbuf ss;
     c11_sbuf__ctor(&ss);
-    py_Ref arg = py_getslot(argv, 0);
-    if(!py_isnil(arg)) {
+    py_Ref args = &ud->args;
+    if(!py_isnil(args)) {
         if(argv->type == tp_KeyError) {
-            if(!py_repr(arg)) return false;
+            if(!py_repr(args)) return false;
         } else {
-            if(!py_str(arg)) return false;
+            if(!py_str(args)) return false;
         }
         c11_sbuf__write_sv(&ss, py_tosv(py_retval()));
     }
@@ -84,11 +90,12 @@ static bool _py_BaseException__str__(int argc, py_Ref argv) {
 }
 
 static bool BaseException_args(int argc, py_Ref argv) {
+    BaseException* ud = py_touserdata(argv);
     PY_CHECK_ARGC(1);
-    py_Ref arg = py_getslot(argv, 0);
-    if(!py_isnil(arg)) {
+    py_Ref args = &ud->args;
+    if(!py_isnil(args)) {
         py_Ref p = py_newtuple(py_retval(), 1);
-        p[0] = *arg;
+        p[0] = *args;
     } else {
         py_newtuple(py_retval(), 0);
     }
@@ -96,12 +103,13 @@ static bool BaseException_args(int argc, py_Ref argv) {
 }
 
 static bool StopIteration_value(int argc, py_Ref argv) {
+    BaseException* ud = py_touserdata(argv);
     PY_CHECK_ARGC(1);
-    py_Ref arg = py_getslot(argv, 0);
-    if(py_isnil(arg)) {
+    py_Ref args = &ud->args;
+    if(py_isnil(args)) {
         py_newnone(py_retval());
     } else {
-        py_assign(py_retval(), arg);
+        py_assign(py_retval(), args);
     }
     return true;
 }
@@ -158,14 +166,6 @@ void py_clearexc(py_StackRef p0) {
     if(p0) vm->stack.sp = p0;
 }
 
-void py_printexc() {
-    char* msg = py_formatexc();
-    if(!msg) return;
-    pk_current_vm->callbacks.print(msg);
-    pk_current_vm->callbacks.print("\n");
-    PK_FREE(msg);
-}
-
 static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
     if(true) { c11_sbuf__write_cstr(self, "Traceback (most recent call last):\n"); }
 
@@ -195,6 +195,14 @@ static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
     c11_sbuf__write_cstr(self, message);
 }
 
+void py_printexc() {
+    char* msg = py_formatexc();
+    if(!msg) return;
+    pk_current_vm->callbacks.print(msg);
+    pk_current_vm->callbacks.print("\n");
+    PK_FREE(msg);
+}
+
 char* py_formatexc() {
     VM* vm = pk_current_vm;
     if(py_isnil(&vm->curr_exception)) return NULL;
@@ -205,7 +213,8 @@ char* py_formatexc() {
     c11_sbuf ss;
     c11_sbuf__ctor(&ss);
 
-    py_Ref inner = py_getslot(&vm->curr_exception, 1);
+    BaseException* ud = py_touserdata(&vm->curr_exception);
+    py_Ref inner = &ud->inner_exc;
     if(py_isnil(inner)) {
         c11_sbuf__write_exc(&ss, &vm->curr_exception);
     } else {
@@ -221,6 +230,8 @@ char* py_formatexc() {
     memcpy(dup, res->data, res->size);
     dup[res->size] = '\0';
     c11_string__delete(res);
+
+    if(py_debugger_isattached()) py_debugger_exceptionbreakpoint(&vm->curr_exception);
     return dup;
 }
 
@@ -253,16 +264,11 @@ bool py_raise(py_Ref exc) {
     assert(py_isinstance(exc, tp_BaseException));
     VM* vm = pk_current_vm;
     if(!py_isnil(&vm->curr_exception)) {
-        // inner exception
-        py_setslot(exc, 1, &vm->curr_exception);
+        BaseException* ud = py_touserdata(&vm->curr_exception);
+        ud->inner_exc = vm->curr_exception;
     }
     vm->curr_exception = *exc;
     vm->is_curr_exc_handled = false;
-    
-    if(vm->trace_info.func && !py_istype(exc, tp_StopIteration)) {
-        py_Frame* frame = vm->top_frame;
-        vm->trace_info.func(frame, TRACE_EVENT_EXCEPTION);
-    }
     return false;
 }
 

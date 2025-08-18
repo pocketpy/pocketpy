@@ -1219,7 +1219,7 @@ __NEXT_STEP:
     c11__unreachable();
 
 __ERROR:
-    py_BaseException__stpush(&self->curr_exception,
+    py_BaseException__stpush(frame, &self->curr_exception,
                              frame->co->src,
                              Frame__lineno(frame),
                              !frame->is_locals_special ? frame->co->name->data : NULL);
