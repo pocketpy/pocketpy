@@ -20,7 +20,8 @@
     X(variables)                                                                                   \
     X(threads)                                                                                     \
     X(configurationDone)                                                                           \
-    X(ready)
+    X(ready)                                                                                       \
+    X(evaluate)
 
 #define DECLARE_HANDLE_FN(name) void c11_dap_handle_##name(py_Ref arguments, c11_sbuf*);
 DAP_COMMAND_LIST(DECLARE_HANDLE_FN)
@@ -125,13 +126,48 @@ void c11_dap_handle_stackTrace(py_Ref arguments, c11_sbuf* buffer) {
     c11_sbuf__write_char(buffer, ',');
 }
 
+void c11_dap_handle_evaluate(py_Ref arguments, c11_sbuf* buffer) {
+    int res = py_dict_getitem_by_str(arguments, "expression");
+    if(res <= 0) {
+        py_printexc();
+        c11__abort("[DEBUGGER ERROR] no expression found in evaluate request");
+    }
+
+    // [eval, nil, expression,  globals, locals]
+    // vectorcall would pop the above 5 items
+    // so we don't need to pop them manually
+    py_Ref py_eval = py_pushtmp();
+    py_pushnil();
+    py_Ref expression = py_pushtmp();
+    py_assign(expression, py_retval());
+    py_assign(py_eval, py_getbuiltin(py_name("eval")));
+    py_newglobals(py_pushtmp());
+    py_newlocals(py_pushtmp());
+    bool ok = py_vectorcall(3, 0);
+
+    char* result = NULL;
+    c11_sbuf__write_cstr(buffer, "\"body\":");
+    if(!ok) {
+        result = py_formatexc();
+    } else {
+        py_str(py_retval());
+        result = c11_strdup(py_tostr(py_retval()));
+    }
+    
+    c11_sv result_sv = {.data = result, .size = strlen(result)};
+    pk_sprintf(buffer, "{\"result\":%Q,\"variablesReference\":0}", result_sv);
+    PK_FREE((void*)result);
+    c11_sbuf__write_char(buffer, ',');
+}
+
 void c11_dap_handle_scopes(py_Ref arguments, c11_sbuf* buffer) {
     int res = py_dict_getitem_by_str(arguments, "frameId");
     if(res <= 0) {
         if(res == 0) {
-            printf("[DEBUGGER ERROR] no frameID found\n");
+            c11__abort("[DEBUGGER ERROR] no frameID found in scopes request");
         } else {
             py_printexc();
+            c11__abort("[DEBUGGER ERROR] an error occurred while parsing request frameId");
         }
         return;
     }
@@ -340,10 +376,13 @@ void c11_dap_waitforclient(const char* hostname, unsigned short port) {
 inline static void c11_dap_handle_message() {
     const char* message = c11_dap_read_message();
     if(message == NULL) { return; }
-    // printf("[DEBUGGER INFO] read request %s\n", message);
+    // c11_dap_send_output_event("console", "[DEBUGGER LOG] : read request %s\n", message);
     const char* response_content = c11_dap_handle_request(message);
-    // if(response_content != NULL) { printf("[DEBUGGER INFO] send response %s\n",
-    // response_content); }
+    if(response_content != NULL) {
+        // c11_dap_send_output_event("console",
+        //                           "[DEBUGGER LOG] : send response %s\n",
+        //                           response_content);
+    }
     c11_sbuf buffer;
     c11_sbuf__ctor(&buffer);
     pk_sprintf(&buffer, "Content-Length: %d\r\n\r\n%s", strlen(response_content), response_content);
