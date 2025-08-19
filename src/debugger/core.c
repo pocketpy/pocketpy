@@ -1,5 +1,6 @@
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/pocketpy.h"
+#include <ctype.h>
 
 #include "pocketpy/debugger/core.h"
 
@@ -109,8 +110,7 @@ void c11_debugger_set_step_mode(C11_STEP_MODE mode) {
     debugger.keep_suspend = false;
 }
 
-=======
->>>>>>> 429f2e78 (simplify the workdir process)
+
 int c11_debugger_setbreakpoint(const char* filename, int lineno) {
     c11_debugger_breakpoint breakpoint = {.sourcename = c11_strdup(filename), .lineno = lineno};
     c11_vector__push(c11_debugger_breakpoint, &debugger.breakpoints, breakpoint);
@@ -183,8 +183,7 @@ int c11_debugger_should_pause() {
 
 int c11_debugger_should_keep_pause(void) { return debugger.keep_suspend; }
 
-=======
->>>>>>> 429f2e78 (simplify the workdir process)
+
 inline static c11_sv sv_from_cstr(const char* str) {
     c11_sv sv = {.data = str, .size = strlen(str)};
     return sv;
