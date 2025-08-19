@@ -1,5 +1,6 @@
 #include "pocketpy/interpreter/frame.h"
 #include "pocketpy/pocketpy.h"
+#include <ctype.h>
 
 #include "pocketpy/debugger/core.h"
 
@@ -109,6 +110,7 @@ void c11_debugger_set_step_mode(C11_STEP_MODE mode) {
     debugger.keep_suspend = false;
 }
 
+
 int c11_debugger_setbreakpoint(const char* filename, int lineno) {
     c11_debugger_breakpoint breakpoint = {.sourcename = c11_strdup(filename), .lineno = lineno};
     c11_vector__push(c11_debugger_breakpoint, &debugger.breakpoints, breakpoint);
@@ -134,6 +136,21 @@ int c11_debugger_reset_breakpoints_by_source(const char* sourcesname) {
     return debugger.breakpoints.length;
 }
 
+bool c11_debugger_path_equal(const char* path1, const char* path2) {
+    if (path1 == NULL || path2 == NULL) return false;
+    while (*path1 && *path2) {
+        char c1 = (*path1 == '\\') ? '/' : *path1;
+        char c2 = (*path2 == '\\') ? '/' : *path2;
+        c1 = (char)tolower((unsigned char)c1);
+        c2 = (char)tolower((unsigned char)c2);
+        if (c1 != c2) return false;
+        path1++;
+        path2++;
+    }
+    return *path1 == *path2;
+}
+
+
 int c11_debugger_should_pause() {
     if(debugger.current_event == TRACE_EVENT_POP) return false;
     bool should_pause = false;
@@ -153,7 +170,7 @@ int c11_debugger_should_pause() {
     }
     if(debugger.step_mode == C11_STEP_CONTINUE) {
         c11__foreach(c11_debugger_breakpoint, &debugger.breakpoints, bp) {
-            if(strcmp(debugger.current_filename, bp->sourcename) == 0 &&
+            if(c11_debugger_path_equal(debugger.current_filename, bp->sourcename) &&
                debugger.current_line == bp->lineno) {
                 should_pause = true;
                 break;
@@ -165,6 +182,7 @@ int c11_debugger_should_pause() {
 }
 
 int c11_debugger_should_keep_pause(void) { return debugger.keep_suspend; }
+
 
 inline static c11_sv sv_from_cstr(const char* str) {
     c11_sv sv = {.data = str, .size = strlen(str)};
@@ -295,7 +313,7 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
 
     // 5. dump & write
     if(!py_json_dumps(dap_obj, 0)) {
-        printf("dap_obj: %s\n", py_tpname(py_typeof(dap_obj)));
+        // printf("dap_obj: %s\n", py_tpname(py_typeof(dap_obj)));
         py_printexc();
         return false;
     }

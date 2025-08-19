@@ -20,7 +20,8 @@
     X(variables)                                                                                   \
     X(threads)                                                                                     \
     X(configurationDone)                                                                           \
-    X(ready)
+    X(ready)                                                                                       \
+    X(evaluate)
 
 #define DECLARE_HANDLE_FN(name) void c11_dap_handle_##name(py_Ref arguments, c11_sbuf*);
 DAP_COMMAND_LIST(DECLARE_HANDLE_FN)
@@ -125,13 +126,48 @@ void c11_dap_handle_stackTrace(py_Ref arguments, c11_sbuf* buffer) {
     c11_sbuf__write_char(buffer, ',');
 }
 
+void c11_dap_handle_evaluate(py_Ref arguments, c11_sbuf* buffer) {
+    int res = py_dict_getitem_by_str(arguments, "expression");
+    if(res <= 0) {
+        py_printexc();
+        c11__abort("[DEBUGGER ERROR] no expression found in evaluate request");
+    }
+
+    // [eval, nil, expression,  globals, locals]
+    // vectorcall would pop the above 5 items
+    // so we don't need to pop them manually
+    py_Ref py_eval = py_pushtmp();
+    py_pushnil();
+    py_Ref expression = py_pushtmp();
+    py_assign(expression, py_retval());
+    py_assign(py_eval, py_getbuiltin(py_name("eval")));
+    py_newglobals(py_pushtmp());
+    py_newlocals(py_pushtmp());
+    bool ok = py_vectorcall(3, 0);
+
+    char* result = NULL;
+    c11_sbuf__write_cstr(buffer, "\"body\":");
+    if(!ok) {
+        result = py_formatexc();
+    } else {
+        py_str(py_retval());
+        result = c11_strdup(py_tostr(py_retval()));
+    }
+    
+    c11_sv result_sv = {.data = result, .size = strlen(result)};
+    pk_sprintf(buffer, "{\"result\":%Q,\"variablesReference\":0}", result_sv);
+    PK_FREE((void*)result);
+    c11_sbuf__write_char(buffer, ',');
+}
+
 void c11_dap_handle_scopes(py_Ref arguments, c11_sbuf* buffer) {
     int res = py_dict_getitem_by_str(arguments, "frameId");
     if(res <= 0) {
         if(res == 0) {
-            printf("[DEBUGGER ERROR] no frameID found\n");
+            c11__abort("[DEBUGGER ERROR] no frameID found in scopes request");
         } else {
             py_printexc();
+            c11__abort("[DEBUGGER ERROR] an error occurred while parsing request frameId");
         }
         return;
     }
@@ -170,9 +206,9 @@ const char* c11_dap_handle_request(const char* message) {
     int res = py_dict_getitem_by_str(py_request, "command");
     if(res == -1) {
         py_printexc();
-        return NULL;
+        c11__abort("[DEBUGGER ERROR] an error occurred while parsing request");
     } else if(res == 0) {
-        return "cannot find attribute command";
+        c11__abort("[DEBUGGER ERROR] no command found in request");
     }
     py_assign(py_command, py_retval());
     const char* command = py_tostr(py_command);
@@ -180,14 +216,14 @@ const char* c11_dap_handle_request(const char* message) {
     res = py_dict_getitem_by_str(py_request, "arguments");
     if(res == -1) {
         py_printexc();
-        return NULL;
+        c11__abort("[DEBUGGER ERROR] an error occurred while parsing request arguments");
     }
     py_assign(py_arguments, py_retval());
 
     res = py_dict_getitem_by_str(py_request, "seq");
     if(res == -1) {
         py_printexc();
-        return NULL;
+        c11__abort("[DEBUGGER ERROR] an error occurred while parsing request sequence number");
     }
     int request_seq = (res == 1) ? py_toint(py_retval()) : 0;
 
@@ -218,24 +254,46 @@ const char* c11_dap_handle_request(const char* message) {
 }
 
 void c11_dap_send_event(const char* event_name, const char* body_json) {
-    char json[256];
-    int json_len = snprintf(json,
-                            sizeof(json),
-                            "{\"seq\":%d,\"type\":\"event\",\"event\":\"%s\",\"body\":%s}",
-                            server.dap_next_seq++,
-                            event_name,
-                            body_json);
-
+    c11_sbuf buffer;
     char header[64];
+    c11_sbuf__ctor(&buffer);
+    pk_sprintf(&buffer,
+               "{\"seq\":%d,\"type\":\"event\",\"event\":\"%s\",\"body\":%s}",
+               server.dap_next_seq++,
+               event_name,
+               body_json);
+    c11_string* json = c11_sbuf__submit(&buffer);
+    int json_len = json->size;
     int header_len = snprintf(header, sizeof(header), "Content-Length: %d\r\n\r\n", json_len);
-    // printf("[DEBUGGER INFO] send event %s\n", json);
     c11_socket_send(server.toclient, header, header_len);
-    c11_socket_send(server.toclient, json, json_len);
+    c11_socket_send(server.toclient, json->data, json_len);
+    c11_string__delete(json);
+}
+
+void c11_dap_send_output_event(const char* category, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    c11_sbuf output;
+    c11_sbuf__ctor(&output);
+    pk_vsprintf(&output, fmt, args);
+    va_end(args);
+
+    c11_sbuf buffer;
+    c11_string* output_json = c11_sbuf__submit(&output);
+    c11_sv sv_output = {.data = output_json->data, .size = output_json->size};
+    c11_sbuf__ctor(&buffer);
+    pk_sprintf(&buffer, "{\"category\":\"%s\",\"output\":%Q}", category, sv_output);
+    c11_string* body_json = c11_sbuf__submit(&buffer);
+    c11_dap_send_event("output", body_json->data);
+    c11_string__delete(body_json);
+    c11_string__delete(output_json);
 }
 
 void c11_dap_send_stop_event() {
     c11_dap_send_event("stopped", "{\"threadId\":1,\"allThreadsStopped\":true}");
 }
+
+
 
 void c11_dap_send_exited_event(int exitCode) {
     char body[64];
@@ -329,21 +387,24 @@ void c11_dap_init_server(const char* hostname, unsigned short port) {
     server.isclientready = false;
     c11_socket_bind(server.server, hostname, port);
     c11_socket_listen(server.server, 0);
+    // c11_dap_send_output_event("console", "[DEBUGGER INFO] : listen on %s:%hu\n",hostname,port);
     printf("[DEBUGGER INFO] : listen on %s:%hu\n", hostname, port);
 }
 
 void c11_dap_waitforclient(const char* hostname, unsigned short port) {
     server.toclient = c11_socket_accept(server.server, NULL, NULL);
-    printf("[DEBUGGER INFO] : connected a client\n");
 }
 
 inline static void c11_dap_handle_message() {
     const char* message = c11_dap_read_message();
     if(message == NULL) { return; }
-    // printf("[DEBUGGER INFO] read request %s\n", message);
+    // c11_dap_send_output_event("console", "[DEBUGGER LOG] : read request %s\n", message);
     const char* response_content = c11_dap_handle_request(message);
-    // if(response_content != NULL) { printf("[DEBUGGER INFO] send response %s\n",
-    // response_content); }
+    if(response_content != NULL) {
+        // c11_dap_send_output_event("console",
+        //                           "[DEBUGGER LOG] : send response %s\n",
+        //                           response_content);
+    }
     c11_sbuf buffer;
     c11_sbuf__ctor(&buffer);
     pk_sprintf(&buffer, "Content-Length: %d\r\n\r\n%s", strlen(response_content), response_content);
@@ -365,15 +426,15 @@ void c11_dap_configure_debugger() {
             return;
         }
     }
-    printf("[DEBUGGER INFO] : configure done\n");
+    // c11_dap_send_output_event("console", "[DEBUGGER INFO] : client configure done\n");
 }
 
 void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     py_sys_settrace(NULL, false);
     C11_DEBUGGER_STATUS result = c11_debugger_on_trace(frame, event);
     if(result == C11_DEBUGGER_EXIT) {
+        // c11_dap_send_output_event("console", "[DEBUGGER INFO] : program exit\n");
         c11_dap_send_exited_event(0);
-        printf("[DEBUGGER INFO] : program exit\n");
         exit(0);
     }
     if(result != C11_DEBUGGER_SUCCESS) {
@@ -409,7 +470,7 @@ void py_debugger_waitforattach(const char* hostname, unsigned short port) {
         c11_dap_configure_debugger();
         if(!server.isconfiguredone) {
             c11_socket_close(server.toclient);
-            printf("[DEBUGGER INFO] : An clinet is ready\n");
+            // c11_dap_send_output_event("console", "[DEBUGGER INFO] : An clinet is ready\n");
         }
     }
     c11_socket_set_block(server.toclient, 0);
