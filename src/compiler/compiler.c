@@ -76,7 +76,6 @@ static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break);
 static int Ctx__enter_block(Ctx* self, CodeBlockType type);
 static void Ctx__exit_block(Ctx* self);
 static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
-static int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool virtual);
 // static void Ctx__revert_last_emit_(Ctx* self);
 static int Ctx__emit_int(Ctx* self, int64_t value, int line);
 static void Ctx__patch_jump(Ctx* self, int index);
@@ -1177,19 +1176,15 @@ static void Ctx__s_emit_decorators(Ctx* self, int count) {
     }
 }
 
-static int Ctx__emit_virtual(Ctx* self, Opcode opcode, uint16_t arg, int line, bool is_virtual) {
+static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line) {
     Bytecode bc = {(uint8_t)opcode, arg};
-    BytecodeEx bcx = {line, is_virtual, self->curr_iblock};
+    BytecodeEx bcx = {line, self->curr_iblock};
     c11_vector__push(Bytecode, &self->co->codes, bc);
     c11_vector__push(BytecodeEx, &self->co->codes_ex, bcx);
     int i = self->co->codes.length - 1;
     BytecodeEx* codes_ex = (BytecodeEx*)self->co->codes_ex.data;
     if(line == BC_KEEPLINE) { codes_ex[i].lineno = i >= 1 ? codes_ex[i - 1].lineno : 1; }
     return i;
-}
-
-static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line) {
-    return Ctx__emit_virtual(self, opcode, arg, line, false);
 }
 
 // static void Ctx__revert_last_emit_(Ctx* self) {
@@ -1512,7 +1507,7 @@ static Error* pop_context(Compiler* self) {
     // previously, we only do this if the last opcode is not a return
     // however, this is buggy...since there may be a jump to the end (out of bound) even if the last
     // opcode is a return
-    Ctx__emit_virtual(ctx(), OP_RETURN_VALUE, 1, BC_KEEPLINE, true);
+    Ctx__emit_(ctx(), OP_RETURN_VALUE, BC_RETURN_VIRTUAL, BC_KEEPLINE);
 
     CodeObject* co = ctx()->co;
     // find the last valid token

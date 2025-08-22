@@ -12,6 +12,7 @@
 
 #define BC_NOARG 0
 #define BC_KEEPLINE -1
+#define BC_RETURN_VIRTUAL 5
 
 typedef enum FuncType {
     FuncType_UNSET,
@@ -62,7 +63,6 @@ typedef struct CodeBlock {
 
 typedef struct BytecodeEx {
     int lineno;       // line number for each bytecode
-    bool is_virtual;  // whether this bytecode is virtual (not in source code)
     int iblock;       // block index
 } BytecodeEx;
 
