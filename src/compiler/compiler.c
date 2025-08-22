@@ -2416,6 +2416,7 @@ static Error* consume_pep695_py312(Compiler* self) {
 
 static Error* compile_function(Compiler* self, int decorators) {
     Error* err;
+    int def_line = prev()->line;
     consume(TK_ID);
     c11_sv decl_name_sv = Token__sv(prev());
     int decl_index;
@@ -2445,7 +2446,7 @@ static Error* compile_function(Compiler* self, int decorators) {
         }
     }
 
-    Ctx__emit_(ctx(), OP_LOAD_FUNCTION, decl_index, prev()->line);
+    Ctx__emit_(ctx(), OP_LOAD_FUNCTION, decl_index, def_line);
     Ctx__s_emit_decorators(ctx(), decorators);
 
     py_Name decl_name = py_namev(decl_name_sv);
@@ -2458,9 +2459,9 @@ static Error* compile_function(Compiler* self, int decorators) {
             }
         }
 
-        Ctx__emit_(ctx(), OP_STORE_CLASS_ATTR, Ctx__add_name(ctx(), decl_name), prev()->line);
+        Ctx__emit_(ctx(), OP_STORE_CLASS_ATTR, Ctx__add_name(ctx(), decl_name), def_line);
     } else {
-        NameExpr* e = NameExpr__new(prev()->line, decl_name, name_scope(self));
+        NameExpr* e = NameExpr__new(def_line, decl_name, name_scope(self));
         vtemit_store((Expr*)e, ctx());
         vtdelete((Expr*)e);
     }
