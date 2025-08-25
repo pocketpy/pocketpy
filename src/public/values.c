@@ -47,7 +47,10 @@ void py_newellipsis(py_OutRef out) {
     out->is_ptr = false;
 }
 
-void py_newnil(py_OutRef out) { out->type = 0; }
+void py_newnil(py_OutRef out) {
+    out->type = tp_nil;
+    out->is_ptr = false;
+}
 
 void py_newnativefunc(py_OutRef out, py_CFunction f) {
     out->type = tp_nativefunc;

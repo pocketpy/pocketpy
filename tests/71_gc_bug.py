@@ -40,7 +40,7 @@ a = []
 del a
 assert gc.collect() == 1
 
-# a = []
-# a.append(a)
-# del a
-# assert gc.collect() == 1
+a = []
+a.append(a)
+del a
+assert gc.collect() == 1
