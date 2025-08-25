@@ -4,6 +4,7 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/objects/codeobject.h"
+#include "pocketpy/objects/exception.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/objects/error.h"
 #include <stdbool.h>
@@ -820,7 +821,8 @@ __NEXT_STEP:
                 return RES_YIELD;
             } else {
                 assert(self->last_retval.type == tp_StopIteration);
-                py_ObjectRef value = py_getslot(&self->last_retval, 0);
+                BaseException* ud = py_touserdata(py_retval());
+                py_ObjectRef value = &ud->args;
                 if(py_isnil(value)) value = py_None();
                 *TOP() = *value;  // [iter] -> [retval]
                 DISPATCH_JUMP((int16_t)byte.arg);
