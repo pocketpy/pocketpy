@@ -3,7 +3,7 @@
 
 void pk_print_stack(VM* self, py_Frame* frame, Bytecode byte) {
     return;
-    if(frame == NULL || py_isnil(self->main)) return;
+    if(frame == NULL || !self->main || py_isnil(self->main)) return;
 
     py_TValue* sp = self->stack.sp;
     c11_sbuf buf;

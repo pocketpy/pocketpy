@@ -16,7 +16,6 @@ d.__path__ = '__main__'
 d.a = []
 d.gc = 1
 
-print('-' * 100)
 assert d.gc == 1
 del d.a
 
@@ -33,3 +32,15 @@ assert d.gc == 1
 # 5 nil
 # 6 __path__      [2]
 # 7 a             [3]
+
+import gc
+gc.collect()
+
+a = []
+del a
+assert gc.collect() == 1
+
+# a = []
+# a.append(a)
+# del a
+# assert gc.collect() == 1
