@@ -637,7 +637,6 @@ void ManagedHeap__mark(ManagedHeap* self) {
     // mark value stack
     for(py_TValue* p = vm->stack.begin; p < vm->stack.sp; p++) {
         // assert(p->type != tp_nil);
-        if(py_isnil(p)) continue;
         pk__mark_value(p);
     }
     // mark modules
