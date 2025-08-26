@@ -21,7 +21,8 @@
     X(threads)                                                                                     \
     X(configurationDone)                                                                           \
     X(ready)                                                                                       \
-    X(evaluate)
+    X(evaluate)                                                                                    \
+    X(exceptionInfo)
 
 #define DECLARE_HANDLE_FN(name) void c11_dap_handle_##name(py_Ref arguments, c11_sbuf*);
 DAP_COMMAND_LIST(DECLARE_HANDLE_FN)
@@ -49,18 +50,23 @@ static struct c11_dap_server {
     c11_socket_handler server;
     c11_socket_handler toclient;
     bool isconfiguredone;
-    bool isatttach;
+    bool isfirstatttach;
+    bool isattach;
     bool isclientready;
 } server;
 
 void c11_dap_handle_initialize(py_Ref arguments, c11_sbuf* buffer) {
-    c11_sbuf__write_cstr(buffer, "\"body\":{\"supportsConfigurationDoneRequest\":true}");
+    c11_sbuf__write_cstr(buffer,
+                         "\"body\":{"
+                         "\"supportsConfigurationDoneRequest\":true,"
+                         "\"supportsExceptionInfoRequest\":true"
+                         "}");
     c11_sbuf__write_char(buffer, ',');
 }
 
-void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) { server.isatttach = true; }
+void c11_dap_handle_attach(py_Ref arguments, c11_sbuf* buffer) { server.isfirstatttach = true; }
 
-void c11_dap_handle_launch(py_Ref arguments, c11_sbuf* buffer) { server.isatttach = true; }
+void c11_dap_handle_launch(py_Ref arguments, c11_sbuf* buffer) { server.isfirstatttach = true; }
 
 void c11_dap_handle_ready(py_Ref arguments, c11_sbuf* buffer) { server.isclientready = true; }
 
@@ -120,6 +126,38 @@ void c11_dap_handle_setBreakpoints(py_Ref arguments, c11_sbuf* buffer) {
     PK_FREE((void*)sourcename);
 }
 
+inline static void c11_dap_build_ExceptionInfo(const char* exc_type, const char* exc_message, c11_sbuf* buffer) {
+    const char* safe_type = exc_type ? exc_type : "UnknownException";
+    const char* safe_message = exc_message ? exc_message : "No additional details available";
+
+    c11_sv type_sv = {.data = safe_type, .size = strlen(safe_type)};
+    c11_sv message_sv = {.data = safe_message, .size = strlen(safe_message)};
+
+    c11_sbuf combined_buffer;
+    c11_sbuf__ctor(&combined_buffer);
+    pk_sprintf(&combined_buffer, "%s: %s", safe_type, safe_message);
+    c11_string* combined_details = c11_sbuf__submit(&combined_buffer);
+
+    pk_sprintf(buffer, 
+        "{\"exceptionId\":%Q,"
+        "\"description\":%Q,"
+        "\"breakMode\":\"unhandled\"}",
+        type_sv,
+        (c11_sv){.data = combined_details->data, .size = combined_details->size}
+    );
+
+    c11_string__delete(combined_details);
+}
+
+void c11_dap_handle_exceptionInfo(py_Ref arguments, c11_sbuf* buffer) {
+    const char* message;
+    const char* name = c11_debugger_excinfo(&message);
+    c11_sbuf__write_cstr(buffer, "\"body\":");
+    c11_dap_build_ExceptionInfo(name, message, buffer);
+    c11_sbuf__write_char(buffer, ',');
+}
+
+
 void c11_dap_handle_stackTrace(py_Ref arguments, c11_sbuf* buffer) {
     c11_sbuf__write_cstr(buffer, "\"body\":");
     c11_debugger_frames(buffer);
@@ -132,7 +170,6 @@ void c11_dap_handle_evaluate(py_Ref arguments, c11_sbuf* buffer) {
         py_printexc();
         c11__abort("[DEBUGGER ERROR] no expression found in evaluate request");
     }
-
     // [eval, nil, expression,  globals, locals]
     // vectorcall would pop the above 5 items
     // so we don't need to pop them manually
@@ -153,7 +190,7 @@ void c11_dap_handle_evaluate(py_Ref arguments, c11_sbuf* buffer) {
         py_str(py_retval());
         result = c11_strdup(py_tostr(py_retval()));
     }
-    
+
     c11_sv result_sv = {.data = result, .size = strlen(result)};
     pk_sprintf(buffer, "{\"result\":%Q,\"variablesReference\":0}", result_sv);
     PK_FREE((void*)result);
@@ -289,11 +326,23 @@ void c11_dap_send_output_event(const char* category, const char* fmt, ...) {
     c11_string__delete(output_json);
 }
 
-void c11_dap_send_stop_event() {
-    c11_dap_send_event("stopped", "{\"threadId\":1,\"allThreadsStopped\":true}");
+void c11_dap_send_stop_event(C11_STOP_REASON reason) {
+    if(reason == C11_DEBUGGER_NOSTOP) return;
+    const char* reason_str = "unknown";
+    switch(reason) {
+        case C11_DEBUGGER_STEP: reason_str = "step"; break;
+        case C11_DEBUGGER_EXCEPTION: reason_str = "exception"; break;
+        case C11_DEBUGGER_BP: reason_str = "breakpoint"; break;
+        default: break;
+    }
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    pk_sprintf(&buf, "{\"reason\":\"%s\",\"threadId\":1,\"allThreadsStopped\":true", reason_str);
+    c11_sbuf__write_char(&buf, '}');
+    c11_string* body_json = c11_sbuf__submit(&buf);
+    c11_dap_send_event("stopped", body_json->data);
+    c11_string__delete(body_json);
 }
-
-
 
 void c11_dap_send_exited_event(int exitCode) {
     char body[64];
@@ -382,9 +431,11 @@ const char* c11_dap_read_message() {
 void c11_dap_init_server(const char* hostname, unsigned short port) {
     server.dap_next_seq = 1;
     server.isconfiguredone = false;
+    server.isclientready = false;
+    server.isfirstatttach = false;
+    server.isattach = false;
     server.buffer_begin = server.buffer_data;
     server.server = c11_socket_create(C11_AF_INET, C11_SOCK_STREAM, 0);
-    server.isclientready = false;
     c11_socket_bind(server.server, hostname, port);
     c11_socket_listen(server.server, 0);
     // c11_dap_send_output_event("console", "[DEBUGGER INFO] : listen on %s:%hu\n",hostname,port);
@@ -418,9 +469,10 @@ inline static void c11_dap_handle_message() {
 void c11_dap_configure_debugger() {
     while(server.isconfiguredone == false) {
         c11_dap_handle_message();
-        if(server.isatttach) {
+        if(server.isfirstatttach) {
             c11_dap_send_initialized_event();
-            server.isatttach = false;
+            server.isfirstatttach = false;
+            server.isattach = true;
         } else if(server.isclientready) {
             server.isclientready = false;
             return;
@@ -431,6 +483,7 @@ void c11_dap_configure_debugger() {
 
 void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     py_sys_settrace(NULL, false);
+    server.isattach = false;
     C11_DEBUGGER_STATUS result = c11_debugger_on_trace(frame, event);
     if(result == C11_DEBUGGER_EXIT) {
         // c11_dap_send_output_event("console", "[DEBUGGER INFO] : program exit\n");
@@ -451,14 +504,16 @@ void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
         exit(1);
     }
     c11_dap_handle_message();
-    if(!c11_debugger_should_pause()) {
+    C11_STOP_REASON reason = c11_debugger_should_pause();
+    if(reason != C11_DEBUGGER_NOSTOP) {
         py_sys_settrace(c11_dap_tracefunc, false);
         return;
     }
-    c11_dap_send_stop_event();
+    c11_dap_send_stop_event(reason);
     while(c11_debugger_should_keep_pause()) {
         c11_dap_handle_message();
     }
+    server.isattach = true;
     py_sys_settrace(c11_dap_tracefunc, false);
 }
 
@@ -479,13 +534,20 @@ void py_debugger_waitforattach(const char* hostname, unsigned short port) {
 
 void py_debugger_exit(int exitCode) { c11_dap_send_exited_event(exitCode); }
 
-bool py_debugger_isattached() {
-    return false;  // TODO: implement this function
-}
+bool py_debugger_isattached() { return server.isattach; }
 
 void py_debugger_exceptionbreakpoint(py_Ref exc) {
     assert(py_isinstance(exc, tp_BaseException));
-    // BaseException* ud = py_touserdata(exc);
-    // c11_vector* stacktrace = &ud->stacktrace;
-    // TODO: implement this function
+
+    py_sys_settrace(NULL, true);
+    server.isattach = false;
+
+    c11_debugger_exception_on_trace(exc);
+    for(;;) {
+        C11_STOP_REASON reason = c11_debugger_should_pause();
+        c11_dap_send_stop_event(reason);
+        while(c11_debugger_should_keep_pause()) {
+            c11_dap_handle_message();
+        }
+    }
 }

@@ -26,7 +26,7 @@ static void SourceData__ctor(struct SourceData* self,
     self->source = c11_sbuf__submit(&ss);
     // remove trailing newline
     int last_index = self->source->size - 1;
-    while(last_index >= 0 && isspace(self->source->data[last_index])) {
+    while(last_index >= 0 && isspace((unsigned char)self->source->data[last_index])) {
         last_index--;
     }
     if(last_index >= 0) {
