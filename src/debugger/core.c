@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/frame.h"
+#include "pocketpy/objects/exception.h"
 #include "pocketpy/pocketpy.h"
 #include <ctype.h>
 
@@ -26,6 +27,8 @@ typedef struct c11_debugger_scope_index {
 static struct c11_debugger {
     py_Frame* current_frame;
     const char* current_filename;
+    const char* current_excname;
+    const char* current_excmessage;
     enum py_TraceEvent current_event;
 
     int curr_stack_depth;
@@ -34,7 +37,9 @@ static struct c11_debugger {
     int step_line;
     C11_STEP_MODE step_mode;
     bool keep_suspend;
+    bool isexceptionmode;
 
+    c11_vector* exception_stacktrace;
     c11_vector breakpoints;
     c11_vector py_frames;
     c11_smallmap_d2index scopes_query_cache;
@@ -76,6 +81,7 @@ void c11_debugger_init() {
     debugger.pause_allowed_depth = -1;
     debugger.step_line = -1;
     debugger.keep_suspend = false;
+    debugger.isexceptionmode = false;
     debugger.step_mode = C11_STEP_CONTINUE;
     init_structures();
 }
@@ -96,6 +102,30 @@ C11_DEBUGGER_STATUS c11_debugger_on_trace(py_Frame* frame, enum py_TraceEvent ev
     return C11_DEBUGGER_SUCCESS;
 }
 
+void c11_debugger_exception_on_trace(py_Ref exc) {
+    BaseException* ud = py_touserdata(exc);
+    c11_vector* stacktrace = &ud->stacktrace;
+    const char* name = py_tpname(exc->type);
+    const char* message;
+    bool ok = py_str(exc);
+    if(!ok || !py_isstr(py_retval())) {
+        message = "<exception str() failed>";
+    } else {
+        message = c11_strdup(py_tostr(py_retval()));
+    }
+    debugger.exception_stacktrace = stacktrace;
+    debugger.isexceptionmode = true;
+    debugger.current_excname = name;
+    debugger.current_excmessage = message;
+    clear_structures();
+
+}
+
+const char* c11_debugger_excinfo(const char ** message){
+    *message = debugger.current_excmessage;
+    return debugger.current_excname;
+}
+
 void c11_debugger_set_step_mode(C11_STEP_MODE mode) {
     switch(mode) {
         case C11_STEP_IN: debugger.pause_allowed_depth = INT32_MAX; break;
@@ -105,11 +135,11 @@ void c11_debugger_set_step_mode(C11_STEP_MODE mode) {
             break;
         case C11_STEP_OUT: debugger.pause_allowed_depth = debugger.curr_stack_depth - 1; break;
         case C11_STEP_CONTINUE: debugger.pause_allowed_depth = -1; break;
+        default: break;
     }
     debugger.step_mode = mode;
     debugger.keep_suspend = false;
 }
-
 
 int c11_debugger_setbreakpoint(const char* filename, int lineno) {
     c11_debugger_breakpoint breakpoint = {.sourcename = c11_strdup(filename), .lineno = lineno};
@@ -137,33 +167,31 @@ int c11_debugger_reset_breakpoints_by_source(const char* sourcesname) {
 }
 
 bool c11_debugger_path_equal(const char* path1, const char* path2) {
-    if (path1 == NULL || path2 == NULL) return false;
-    while (*path1 && *path2) {
+    if(path1 == NULL || path2 == NULL) return false;
+    while(*path1 && *path2) {
         char c1 = (*path1 == '\\') ? '/' : *path1;
         char c2 = (*path2 == '\\') ? '/' : *path2;
         c1 = (char)tolower((unsigned char)c1);
         c2 = (char)tolower((unsigned char)c2);
-        if (c1 != c2) return false;
+        if(c1 != c2) return false;
         path1++;
         path2++;
     }
     return *path1 == *path2;
 }
 
-
-int c11_debugger_should_pause() {
-    if(debugger.current_event == TRACE_EVENT_POP) return false;
-    bool should_pause = false;
+C11_STOP_REASON c11_debugger_should_pause() {
+    if(debugger.current_event == TRACE_EVENT_POP && !debugger.isexceptionmode) return C11_DEBUGGER_NOSTOP;
+    C11_STOP_REASON pause_resaon = C11_DEBUGGER_NOSTOP;
     int is_out = debugger.curr_stack_depth <= debugger.pause_allowed_depth;
     int is_new_line = debugger.current_line != debugger.step_line;
     switch(debugger.step_mode) {
-        case C11_STEP_IN: should_pause = true; break;
-
+        case C11_STEP_IN: pause_resaon = C11_DEBUGGER_STEP; break;
         case C11_STEP_OVER:
-            if(is_new_line && is_out) should_pause = true;
+            if(is_new_line && is_out) pause_resaon = C11_DEBUGGER_STEP;
             break;
         case C11_STEP_OUT:
-            if(is_out) should_pause = true;
+            if(is_out) pause_resaon = C11_DEBUGGER_STEP;
             break;
         case C11_STEP_CONTINUE:
         default: break;
@@ -172,17 +200,17 @@ int c11_debugger_should_pause() {
         c11__foreach(c11_debugger_breakpoint, &debugger.breakpoints, bp) {
             if(c11_debugger_path_equal(debugger.current_filename, bp->sourcename) &&
                debugger.current_line == bp->lineno) {
-                should_pause = true;
+                pause_resaon = C11_DEBUGGER_BP;
                 break;
             }
         }
     }
-    if(should_pause) { debugger.keep_suspend = true; }
-    return should_pause;
+    if(debugger.isexceptionmode) pause_resaon = C11_DEBUGGER_EXCEPTION;
+    if(pause_resaon != C11_DEBUGGER_NOSTOP) { debugger.keep_suspend = true; }
+    return pause_resaon;
 }
 
 int c11_debugger_should_keep_pause(void) { return debugger.keep_suspend; }
-
 
 inline static c11_sv sv_from_cstr(const char* str) {
     c11_sv sv = {.data = str, .size = strlen(str)};
@@ -200,7 +228,7 @@ const inline static char* get_basename(const char* path) {
     return last_slash ? last_slash + 1 : path;
 }
 
-void c11_debugger_frames(c11_sbuf* buffer) {
+void c11_debugger_normal_frames(c11_sbuf* buffer) {
     c11_sbuf__write_cstr(buffer, "{\"stackFrames\": [");
     int idx = 0;
     py_Frame* now_frame = debugger.current_frame;
@@ -226,6 +254,33 @@ void c11_debugger_frames(c11_sbuf* buffer) {
     pk_sprintf(buffer, "], \"totalFrames\": %d}", idx);
 }
 
+void c11_debugger_exception_frames(c11_sbuf* buffer) {
+    c11_sbuf__write_cstr(buffer, "{\"stackFrames\": [");
+    int idx = 0;
+    c11__foreach(BaseExceptionFrame, debugger.exception_stacktrace, it) {
+        if(idx > 0) c11_sbuf__write_char(buffer, ',');
+        int line = it->lineno;
+        const char* filename = it->src->filename->data;
+        const char* basename = get_basename(filename);
+        const char* modname = it->name == NULL ? basename : it->name->data;
+        pk_sprintf(
+            buffer,
+            "{\"id\": %d, \"name\": %Q, \"line\": %d, \"column\": 1, \"source\": {\"name\": %Q, \"path\": %Q}}",
+            idx,
+            sv_from_cstr(modname),
+            line,
+            sv_from_cstr(basename),
+            sv_from_cstr(filename));
+        idx++;
+    }
+    pk_sprintf(buffer, "], \"totalFrames\": %d}", idx);
+}
+
+void c11_debugger_frames(c11_sbuf* buffer) {
+    debugger.isexceptionmode ? c11_debugger_exception_frames(buffer)
+                             : c11_debugger_normal_frames(buffer);
+}
+
 inline static c11_debugger_scope_index append_new_scope(int frameid) {
     assert(frameid < debugger.py_frames.length);
     py_Frame* requested_frame = c11__getitem(py_Frame*, &debugger.py_frames, frameid);
@@ -234,6 +289,17 @@ inline static c11_debugger_scope_index append_new_scope(int frameid) {
     py_Ref new_globals = py_list_emplace(python_vars);
     py_Frame_newlocals(requested_frame, new_locals);
     py_Frame_newglobals(requested_frame, new_globals);
+    c11_debugger_scope_index result = {.locals_ref = base_index, .globals_ref = base_index + 1};
+    return result;
+}
+
+inline static c11_debugger_scope_index append_new_exception_scope(int frameid) {
+    assert(frameid < debugger.exception_stacktrace->length);
+    BaseExceptionFrame* requested_frame =
+        c11__at(BaseExceptionFrame, debugger.exception_stacktrace, frameid);
+    int base_index = py_list_len(python_vars);
+    py_list_append(python_vars, &requested_frame->locals);
+    py_list_append(python_vars, &requested_frame->globals);
     c11_debugger_scope_index result = {.locals_ref = base_index, .globals_ref = base_index + 1};
     return result;
 }
@@ -250,7 +316,9 @@ void c11_debugger_scopes(int frameid, c11_sbuf* buffer) {
     if(result != NULL) {
         pk_sprintf(buffer, scopes_fmt, result->locals_ref, result->globals_ref);
     } else {
-        c11_debugger_scope_index new_record = append_new_scope(frameid);
+        c11_debugger_scope_index new_record = debugger.isexceptionmode
+                                                  ? append_new_exception_scope(frameid)
+                                                  : append_new_scope(frameid);
         c11_smallmap_d2index__set(&debugger.scopes_query_cache, frameid, new_record);
         pk_sprintf(buffer, scopes_fmt, new_record.locals_ref, new_record.globals_ref);
     }
