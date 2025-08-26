@@ -44,7 +44,7 @@ static bool disassemble(CodeObject* co) {
         c11_sbuf__write_cstr(&ss, buf);
 
         c11_sbuf__write_cstr(&ss, pk_opname(byte.op));
-        c11_sbuf__write_char(&ss, ex.is_virtual ? '*' : ' ');
+        c11_sbuf__write_char(&ss, ' ');
         int padding = 24 - strlen(pk_opname(byte.op));
         for(int j = 0; j < padding; j++)
             c11_sbuf__write_char(&ss, ' ');

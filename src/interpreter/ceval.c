@@ -4,6 +4,7 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/objects/codeobject.h"
+#include "pocketpy/objects/exception.h"
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/objects/error.h"
 #include <stdbool.h>
@@ -105,13 +106,16 @@ __NEXT_STEP:
     byte = co_codes[frame->ip];
 
     if(self->trace_info.func) {
-        SourceLocation loc = Frame__source_location(frame);
-        SourceLocation prev_loc = self->trace_info.prev_loc;
-        if(loc.lineno != prev_loc.lineno || loc.src != prev_loc.src) {
-            if(prev_loc.src) PK_DECREF(prev_loc.src);
-            PK_INCREF(loc.src);
-            self->trace_info.prev_loc = loc;
-            self->trace_info.func(frame, TRACE_EVENT_LINE);
+        bool is_virtual = byte.op == OP_RETURN_VALUE && byte.arg == BC_RETURN_VIRTUAL;
+        if(!is_virtual) {
+            SourceLocation loc = Frame__source_location(frame);
+            SourceLocation prev_loc = self->trace_info.prev_loc;
+            if(loc.lineno != prev_loc.lineno || loc.src != prev_loc.src) {
+                if(prev_loc.src) PK_DECREF(prev_loc.src);
+                PK_INCREF(loc.src);
+                self->trace_info.prev_loc = loc;
+                self->trace_info.func(frame, TRACE_EVENT_LINE);
+            }
         }
     }
 
@@ -817,7 +821,8 @@ __NEXT_STEP:
                 return RES_YIELD;
             } else {
                 assert(self->last_retval.type == tp_StopIteration);
-                py_ObjectRef value = py_getslot(&self->last_retval, 0);
+                BaseException* ud = py_touserdata(py_retval());
+                py_ObjectRef value = &ud->args;
                 if(py_isnil(value)) value = py_None();
                 *TOP() = *value;  // [iter] -> [retval]
                 DISPATCH_JUMP((int16_t)byte.arg);
@@ -1219,14 +1224,15 @@ __NEXT_STEP:
     c11__unreachable();
 
 __ERROR:
-    py_BaseException__stpush(frame, &self->curr_exception,
+    py_BaseException__stpush(frame,
+                             &self->curr_exception,
                              frame->co->src,
                              Frame__lineno(frame),
                              !frame->is_locals_special ? frame->co->name->data : NULL);
 __ERROR_RE_RAISE:
     do {
     } while(0);
-    
+
     int target = Frame__prepare_jump_exception_handler(frame, &self->stack);
     if(target >= 0) {
         // 1. Exception can be handled inside the current frame
@@ -1306,7 +1312,10 @@ bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
 
     py_Type lhs_t = rop ? TOP()->type : SECOND()->type;
     py_Type rhs_t = rop ? SECOND()->type : TOP()->type;
-    return TypeError("unsupported operand type(s) for '%s': '%t' and '%t'", pk_op2str(op), lhs_t, rhs_t);
+    return TypeError("unsupported operand type(s) for '%s': '%t' and '%t'",
+                     pk_op2str(op),
+                     lhs_t,
+                     rhs_t);
 }
 
 bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {

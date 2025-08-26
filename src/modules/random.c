@@ -270,9 +270,9 @@ static bool Random_choices(int argc, py_Ref argv) {
     }
 
     py_f64 total = cum_weights[length - 1];
-    if(total <= 0) {
+    if(total <= 1e-6) {
         PK_FREE(cum_weights);
-        return ValueError("total of weights must be greater than zero");
+        return ValueError("total of weights must be greater than 1e-6");
     }
 
     py_newlistn(py_retval(), k);

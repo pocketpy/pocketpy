@@ -20,9 +20,14 @@ void py_BaseException__stpush(py_Frame* frame,
     frame_dump->lineno = lineno;
     frame_dump->name = func_name ? c11_string__new(func_name) : NULL;
 
-    if(py_debugger_isattached() && frame != NULL) {
-        py_Frame_newlocals(frame, &frame_dump->locals);
-        py_Frame_newglobals(frame, &frame_dump->globals);
+    if(py_debugger_isattached()) {
+        if(frame != NULL) {
+            py_Frame_newlocals(frame, &frame_dump->locals);
+            py_Frame_newglobals(frame, &frame_dump->globals);
+        } else {
+            py_newdict(&frame_dump->locals);
+            py_newdict(&frame_dump->globals);
+        }
     }
 }
 
