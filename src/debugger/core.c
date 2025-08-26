@@ -3,6 +3,8 @@
 #include "pocketpy/pocketpy.h"
 #include <ctype.h>
 
+#if PK_ENABLE_OS
+
 #include "pocketpy/debugger/core.h"
 
 typedef struct c11_debugger_breakpoint {
@@ -396,3 +398,5 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
 }
 
 #undef python_vars
+
+#endif // PK_ENABLE_OS

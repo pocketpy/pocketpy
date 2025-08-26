@@ -6,6 +6,8 @@
 #include "pocketpy/objects/exception.h"
 #include "pocketpy/pocketpy.h"
 
+#if PK_ENABLE_OS
+
 #define DAP_COMMAND_LIST(X)                                                                        \
     X(initialize)                                                                                  \
     X(setBreakpoints)                                                                              \
@@ -551,3 +553,5 @@ void py_debugger_exceptionbreakpoint(py_Ref exc) {
         }
     }
 }
+
+#endif // PK_ENABLE_OS

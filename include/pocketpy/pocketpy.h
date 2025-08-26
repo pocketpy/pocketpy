@@ -708,10 +708,17 @@ PK_API void py_profiler_reset();
 PK_API char* py_profiler_report();
 
 /************* DAP *************/
+#if PK_ENABLE_OS
 PK_API void py_debugger_waitforattach(const char* hostname, unsigned short port);
 PK_API bool py_debugger_isattached();
 PK_API void py_debugger_exceptionbreakpoint(py_Ref exc);
 PK_API void py_debugger_exit(int exitCode);
+#else
+#define py_debugger_waitforattach(hostname, port)
+#define py_debugger_isattached() (false)
+#define py_debugger_exceptionbreakpoint(exc)
+#define py_debugger_exit(exitCode)
+#endif
 
 /************* Unchecked Functions *************/
 

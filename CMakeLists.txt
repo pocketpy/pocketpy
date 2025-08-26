@@ -17,7 +17,7 @@ endif()
 
 if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /jumptablerdata")
-    add_compile_options(/wd4267 /wd4244 /wd4146 /experimental:c11atomics)
+    add_compile_options(/wd4267 /wd4244 /wd4146 /wd4819 /experimental:c11atomics)
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Ox")

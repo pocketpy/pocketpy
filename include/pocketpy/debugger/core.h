@@ -5,6 +5,8 @@
 #include "pocketpy/common/vector.h"
 #include "pocketpy/pocketpy.h"
 
+#if PK_ENABLE_OS
+
 typedef enum { C11_STEP_IN, C11_STEP_OVER, C11_STEP_OUT, C11_STEP_CONTINUE } C11_STEP_MODE;
 typedef enum { C11_DEBUGGER_NOSTOP, C11_DEBUGGER_STEP, C11_DEBUGGER_EXCEPTION, C11_DEBUGGER_BP} C11_STOP_REASON;
 typedef enum {
@@ -26,3 +28,5 @@ int c11_debugger_setbreakpoint(const char* filename, int lineno);
 int c11_debugger_reset_breakpoints_by_source(const char* sourcesname);
 C11_STOP_REASON c11_debugger_should_pause(void);
 int c11_debugger_should_keep_pause(void);
+
+#endif // PK_ENABLE_OS
