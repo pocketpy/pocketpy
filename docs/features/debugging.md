@@ -1,24 +1,11 @@
 ---
 icon: dot
 title: Debugging
+order: 80
 ---
 
-!!!
-This feature is not available in `v2.0` yet.
-!!!
+## VSCode Extension
 
-You can invoke `breakpoint()` in your python code to start a PDB-like session.
+You can install our VSCode extension to debug pocketpy scripts.
 
-The following commands are supported:
-
-+ `h, help`: show this help message
-+ `q, quit`: exit the debugger
-+ `n, next`: execute next line
-+ `s, step`: step into
-+ `w, where`: show current stack frame
-+ `c, continue`: continue execution
-+ `a, args`: show local variables
-+ `l, list`: show lines around current line
-+ `ll, longlist`: show all lines
-+ `p, print <expr>`: evaluate expression
-+ `!, execute statement`: execute statement
+https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy
