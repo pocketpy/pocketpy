@@ -4,7 +4,7 @@ title: Profiling
 order: 79
 ---
 
-To profile your pocketpy scripts, you can run `main.exe` with `--profile` flag.
+To profile your pocketpy program, you can run `main.exe` with `--profile` flag.
 
 For example, to profile `test/test_math.py`, run
 
@@ -18,6 +18,6 @@ which records the time spent for each line. To visualize the report, please inst
 https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy
 
 With pocketpy VSCode extension, press `F1` and type `pocketpy: Load Line Profiler Report`,
-select `profile_report.json` and you will see a nice visualization of the profiling result.
+select **1. the `profile_report.json` file; 2. the source root of the program**. Then you will see a nice visualization of the profiling result.
 
 ![lp](../static/profiler_demo.png)
