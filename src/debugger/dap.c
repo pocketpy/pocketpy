@@ -507,8 +507,9 @@ void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     }
     c11_dap_handle_message();
     C11_STOP_REASON reason = c11_debugger_should_pause();
-    if(reason != C11_DEBUGGER_NOSTOP) {
+    if(reason == C11_DEBUGGER_NOSTOP) {
         py_sys_settrace(c11_dap_tracefunc, false);
+        server.isattach = true;
         return;
     }
     c11_dap_send_stop_event(reason);
