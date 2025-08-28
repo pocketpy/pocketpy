@@ -78,3 +78,7 @@ After the program starts, VSCode attempts to attach to the debug server automati
     "cwd": "${workspaceFolder}"
 }
 ```
+
+## Showcase
+
+![debugger_demo](../static/debugger/debugger_demo.png)
