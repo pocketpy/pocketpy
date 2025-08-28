@@ -226,3 +226,15 @@ def finally_return():
 assert finally_return() == 1
 
 
+# nested try
+def g():
+    try:
+        raise KeyError
+    except KeyError:
+        pass
+
+try:
+    raise IndexError
+except IndexError:
+    g()
+
