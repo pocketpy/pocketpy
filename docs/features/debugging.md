@@ -10,6 +10,10 @@ To debug a pocketpy program, you need to install our VSCode extension first:
 
 https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy
 
+!!!
+The VSCode extension requires pocketpy version >= `2.1.1`
+!!!
+
 ## Create a `launch.json` file
 
 Navigate to the Debug view in VSCode, and click on "create a launch.json file" link.
