@@ -5,7 +5,20 @@
 #include <string.h>
 #include <assert.h>
 
-#define HASH_KEY(__k) ((uintptr_t)(__k) >> 3U)
+// https://jfdube.wordpress.com/2011/10/12/hashing-strings-and-pointers-avoiding-common-pitfalls/
+uintptr_t ThomasWangInt32Hash(void* Ptr) {
+    // Here we think only the lower 32 bits are useful
+    uint32_t Value = (uint32_t)(uintptr_t)Ptr;
+    Value = ~Value + (Value << 15);
+    Value = Value ^ (Value >> 12);
+    Value = Value + (Value << 2);
+    Value = Value ^ (Value >> 4);
+    Value = Value * 2057;
+    Value = Value ^ (Value >> 16);
+    return Value;
+}
+
+#define HASH_KEY(__k) ThomasWangInt32Hash(__k)
 
 #define HASH_PROBE_0(__k, ok, i)                                                                   \
     ok = false;                                                                                    \
