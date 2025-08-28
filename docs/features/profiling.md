@@ -20,4 +20,6 @@ https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy
 With pocketpy VSCode extension, press `F1` and type `pocketpy: Load Line Profiler Report`,
 select **1. the `profile_report.json` file; 2. the source root of the program**. Then you will see a nice visualization of the profiling result.
 
-![lp](../static/profiler_demo.png)
+![profiler_report](../static/profiler_demo.png)
+
+Press `ESC` to exit the report view.
