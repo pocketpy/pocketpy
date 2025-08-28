@@ -282,8 +282,8 @@ inline static c11_debugger_scope_index append_new_scope(int frameid) {
     py_Frame* requested_frame = c11__getitem(py_Frame*, &debugger.py_frames, frameid);
     int base_index = py_list_len(python_vars);
     py_Ref new_locals = py_list_emplace(python_vars);
-    py_Ref new_globals = py_list_emplace(python_vars);
     py_Frame_newlocals(requested_frame, new_locals);
+    py_Ref new_globals = py_list_emplace(python_vars);
     py_Frame_newglobals(requested_frame, new_globals);
     c11_debugger_scope_index result = {.locals_ref = base_index, .globals_ref = base_index + 1};
     return result;
