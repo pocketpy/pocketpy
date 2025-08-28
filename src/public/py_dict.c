@@ -363,11 +363,12 @@ void py_newdict(py_OutRef out) {
 }
 
 static bool dict__init__(int argc, py_Ref argv) {
-    py_newnone(py_retval());
     if(argc > 2) return TypeError("dict.__init__() takes at most 2 arguments (%d given)", argc);
-    if(argc == 1) return true;
+    if(argc == 1) {
+        py_newnone(py_retval());
+        return true;
+    }
     assert(argc == 2);
-
     py_TValue* p;
     int length = pk_arrayview(py_arg(1), &p);
     if(length == -1) { return TypeError("dict.__init__() expects a list or tuple"); }
@@ -382,6 +383,7 @@ static bool dict__init__(int argc, py_Ref argv) {
         py_Ref val = py_tuple_getitem(tuple, 1);
         if(!Dict__set(self, key, val)) return false;
     }
+    py_newnone(py_retval());
     return true;
 }
 
@@ -403,7 +405,9 @@ static bool dict__getitem__(int argc, py_Ref argv) {
 static bool dict__setitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     Dict* self = py_touserdata(argv);
-    return Dict__set(self, py_arg(1), py_arg(2));
+    bool ok = Dict__set(self, py_arg(1), py_arg(2));
+    if(ok) py_newnone(py_retval());
+    return ok;
 }
 
 static bool dict__delitem__(int argc, py_Ref argv) {
