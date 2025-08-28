@@ -136,16 +136,17 @@ static void Dict__set_index(Dict* self, uint32_t index, uint32_t value) {
     }
 }
 
+// Dict__probe won't raise exception for string keys
 static bool Dict__probe(Dict* self,
                         py_TValue* key,
                         uint64_t* p_hash,
                         uint32_t* p_idx,
                         DictEntry** p_entry) {
-    py_i64 h_user;
-    if(!py_hash(key, &h_user)) return false;
     if(py_isstr(key)) {
-        *p_hash = (uint64_t)h_user;
+        *p_hash = c11_sv__hash(py_tosv(key));
     } else {
+        py_i64 h_user;
+        if(!py_hash(key, &h_user)) return false;
         *p_hash = Dict__hash_2nd((uint64_t)h_user);
     }
     uint32_t mask = self->capacity - 1;
@@ -155,13 +156,23 @@ static bool Dict__probe(Dict* self,
         if(idx2 == self->null_index_value) break;
         DictEntry* entry = c11__at(DictEntry, &self->entries, idx2);
         if(entry->hash == (*p_hash)) {
-            int res = py_equal(&entry->key, key);
-            if(res == 1) {
-                *p_idx = idx;
-                *p_entry = entry;
-                return true;
+            if(py_isstr(&entry->key) && py_isstr(key)) {
+                c11_sv lhs = py_tosv(&entry->key);
+                c11_sv rhs = py_tosv(key);
+                if(c11__sveq(lhs, rhs)) {
+                    *p_idx = idx;
+                    *p_entry = entry;
+                    return true;
+                }
+            } else {
+                int res = py_equal(&entry->key, key);
+                if(res == 1) {
+                    *p_idx = idx;
+                    *p_entry = entry;
+                    return true;
+                }
+                if(res == -1) return false;  // error
             }
-            if(res == -1) return false;  // error
         }
         // try next index
         idx = Dict__step(idx);
