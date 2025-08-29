@@ -7,16 +7,52 @@
 #include <stdbool.h>
 #include <string.h>
 
+void UsedBlockList__ctor(UsedBlockList* self, int capacity) {
+    capacity += 2;
+    self->nodes = PK_MALLOC(sizeof(UsedBlockListNode) * capacity);
+    self->head_idx = capacity - 1;
+    for(int i = 0; i < capacity - 1; i++) {
+        self->nodes[i].next = (PoolBlockIndex)(i + 1);
+        self->nodes[i].data = (PoolBlockIndex)-1;
+    }
+    self->nodes[self->head_idx - 1].next = (PoolBlockIndex)-1;
+    self->nodes[self->head_idx].next = (PoolBlockIndex)-1;
+    self->nodes[self->head_idx].data = (PoolBlockIndex)-1;
+}
+
+void UsedBlockList__dtor(UsedBlockList* self) { PK_FREE(self->nodes); }
+
+void UsedBlockList__insert(UsedBlockList* self, PoolBlockIndex data) {
+    PoolBlockIndex idx = self->nodes[0].next;
+    assert(idx != (PoolBlockIndex)-1);
+    self->nodes[0].next = self->nodes[idx].next;
+    self->nodes[idx].data = data;
+    self->nodes[idx].next = self->nodes[self->head_idx].next;
+    self->nodes[self->head_idx].next = idx;
+}
+
+void UsedBlockList__remove(UsedBlockList* self, PoolBlockIndex prev_idx, PoolBlockIndex idx) {
+    self->nodes[prev_idx].next = self->nodes[idx].next;
+    self->nodes[idx].next = self->nodes[0].next;
+#ifndef NDEBUG
+    self->nodes[idx].data = (PoolBlockIndex)-1;
+#endif
+    self->nodes[0].next = idx;
+}
+
 static PoolArena* PoolArena__new(int block_size) {
     assert(kPoolArenaSize % block_size == 0);
     int block_count = kPoolArenaSize / block_size;
-    PoolArena* self = PK_MALLOC(sizeof(PoolArena) + sizeof(int) * block_count);
+    assert(block_count < (PoolBlockIndex)-1);
+    PoolArena* self = PK_MALLOC(sizeof(PoolArena));
     self->block_size = block_size;
     self->block_count = block_count;
     self->unused_length = block_count;
-    for(int i = 0; i < block_count; i++) {
+    self->unused = PK_MALLOC(sizeof(PoolBlockIndex) * block_count);
+    for(PoolBlockIndex i = 0; i < block_count; i++) {
         self->unused[i] = i;
     }
+    UsedBlockList__ctor(&self->used_blocks, block_count);
     memset(self->data, 0, kPoolArenaSize);
     return self;
 }
@@ -26,37 +62,44 @@ static void PoolArena__delete(PoolArena* self) {
         PyObject* obj = (PyObject*)(self->data + i * self->block_size);
         if(obj->type != 0) PyObject__dtor(obj);
     }
+    PK_FREE(self->unused);
+    UsedBlockList__dtor(&self->used_blocks);
     PK_FREE(self);
 }
 
 static void* PoolArena__alloc(PoolArena* self) {
     assert(self->unused_length > 0);
-    int index = self->unused[self->unused_length - 1];
+    PoolBlockIndex index = self->unused[self->unused_length - 1];
     self->unused_length--;
+    UsedBlockList__insert(&self->used_blocks, index);
     return self->data + index * self->block_size;
 }
 
 static int PoolArena__sweep_dealloc(PoolArena* self) {
     int freed = 0;
-    self->unused_length = 0;
-    for(int i = 0; i < self->block_count; i++) {
-        PyObject* obj = (PyObject*)(self->data + i * self->block_size);
-        if(obj->type == 0) {
-            // free slot
-            self->unused[self->unused_length] = i;
-            self->unused_length++;
+    UsedBlockListNode* nodes = self->used_blocks.nodes;
+    PoolBlockIndex prev_idx = self->used_blocks.head_idx;
+    PoolBlockIndex idx = nodes[prev_idx].next;
+    while(idx != (PoolBlockIndex)-1) {
+        PoolBlockIndex data_idx = nodes[idx].data;
+        assert(data_idx != (PoolBlockIndex)-1);
+        PyObject* obj = (PyObject*)(self->data + data_idx * self->block_size);
+        assert(obj->type != 0);
+        if(obj->gc_marked) {
+            obj->gc_marked = false;
+            prev_idx = idx;
+            idx = nodes[idx].next;
         } else {
-            if(!obj->gc_marked) {
-                // not marked, need to free
-                PyObject__dtor(obj);
-                obj->type = 0;
-                freed++;
-                self->unused[self->unused_length] = i;
-                self->unused_length++;
-            } else {
-                // marked, clear mark
-                obj->gc_marked = false;
-            }
+            PyObject__dtor(obj);
+            obj->type = 0;
+            freed++;
+            // add into unused
+            self->unused[self->unused_length] = data_idx;
+            self->unused_length++;
+            // remove from used_blocks
+            PoolBlockIndex next_idx = nodes[idx].next;
+            UsedBlockList__remove(&self->used_blocks, prev_idx, idx);
+            idx = next_idx;
         }
     }
     return freed;
