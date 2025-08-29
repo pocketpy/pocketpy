@@ -233,8 +233,9 @@ def g():
     except KeyError:
         pass
 
-try:
-    raise IndexError
-except IndexError:
-    g()
+if 0:
+    try:
+        raise IndexError
+    except IndexError:
+        g()
 
