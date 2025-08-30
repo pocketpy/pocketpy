@@ -61,10 +61,16 @@ void Frame__delete(py_Frame* self) {
 }
 
 int Frame__goto_exception_handler(py_Frame* self, ValueStack* value_stack, py_Ref exc) {
-    if(self->exc_stack.length == 0) return -1;
-    FrameExcInfo* info = &c11_vector__back(FrameExcInfo, &self->exc_stack);
-    value_stack->sp = (self->p0 + info->offset);  // unwind the stack
-    return c11__at(CodeBlock, &self->co->blocks, info->iblock)->end;
+    FrameExcInfo* p = self->exc_stack.data;
+    for(int i = self->exc_stack.length - 1; i >= 0; i--) {
+        if(py_isnil(&p[i].exc)) {
+            value_stack->sp = (self->p0 + p[i].offset);  // unwind the stack
+            return c11__at(CodeBlock, &self->co->blocks, p[i].iblock)->end;
+        } else {
+            self->exc_stack.length--;
+        }
+    }
+    return -1;
 }
 
 void Frame__begin_try(py_Frame* self, py_TValue* sp) {

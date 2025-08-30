@@ -179,6 +179,17 @@ for i in range(10):
         assert e.args[0] == i
 assert a == list(range(10))
 
+# inner exc
+x = 0
+try:
+    try:
+        [][1]
+    except:
+        raise KeyError
+except KeyError:
+    x = 5
+assert x == 5
+
 """
 # finally, only
 def finally_only():
