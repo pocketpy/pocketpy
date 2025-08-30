@@ -190,6 +190,17 @@ except KeyError:
     x = 5
 assert x == 5
 
+a = []
+for i in range(6):
+    try:
+        [][1]
+    except IndexError:
+        if i == 2:
+            continue
+        else:
+            a.append(i)
+assert a == [0, 1, 3, 4, 5]
+
 """
 # finally, only
 def finally_only():
