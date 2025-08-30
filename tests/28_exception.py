@@ -158,7 +158,26 @@ try:
 except IndexError:
     g()
 
-a = 1 + 2
+a = []
+for i in range(10):
+    a.append(i)
+    try:
+        try:
+            if i % 2 == 0:
+                raise KeyError(i)
+            else:
+                raise IndexError(i)
+        except KeyError as e:
+            assert i % 2 == 0
+            assert e.args[0] == i
+            raise
+        except IndexError as e:
+            assert i % 2 == 1
+            assert e.args[0] == i
+            raise
+    except Exception as e:
+        assert e.args[0] == i
+assert a == list(range(10))
 
 """
 # finally, only
