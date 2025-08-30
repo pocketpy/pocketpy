@@ -22,7 +22,7 @@ bool _py_compile(CodeObject* out,
     Error* err = pk_compile(src, out);
     if(err) {
         py_exception(tp_SyntaxError, err->msg);
-        py_BaseException__stpush(NULL, &vm->curr_exception, err->src, err->lineno, NULL);
+        py_BaseException__stpush(NULL, &vm->unhandled_exc, err->src, err->lineno, NULL);
         PK_DECREF(src);
 
         PK_DECREF(err->src);

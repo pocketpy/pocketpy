@@ -142,32 +142,22 @@ py_Type pk_StopIteration__register() {
 }
 
 //////////////////////////////////////////////////
-bool py_checkexc(bool ignore_handled) {
+bool py_checkexc() {
     VM* vm = pk_current_vm;
-    if(ignore_handled && vm->is_curr_exc_handled) return false;
-    return !py_isnil(&vm->curr_exception);
+    return !py_isnil(&vm->unhandled_exc);
 }
 
 bool py_matchexc(py_Type type) {
     VM* vm = pk_current_vm;
-    if(vm->is_curr_exc_handled) return false;
-    if(py_isnil(&vm->curr_exception)) return false;
-    bool ok = py_issubclass(vm->curr_exception.type, type);
-    if(ok) {
-        // if match, then the exception is handled
-        vm->is_curr_exc_handled = true;
-        vm->last_retval = vm->curr_exception;
-    }
+    if(py_isnil(&vm->unhandled_exc)) return false;
+    bool ok = py_issubclass(vm->unhandled_exc.type, type);
+    if(ok) vm->last_retval = vm->unhandled_exc;
     return ok;
 }
 
 void py_clearexc(py_StackRef p0) {
     VM* vm = pk_current_vm;
-    vm->curr_exception = *py_NIL();
-    vm->is_curr_exc_handled = false;
-    /* Don't clear this, because StopIteration() may corrupt the class definition */
-    // vm->curr_class = NULL;
-    vm->curr_decl_based_function = NULL;
+    py_newnil(&vm->unhandled_exc);
     if(p0) vm->stack.sp = p0;
 }
 
@@ -187,17 +177,37 @@ static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
     }
 
     const char* name = py_tpname(exc->type);
-    const char* message;
-    bool ok = py_str(exc);
-    if(!ok || !py_isstr(py_retval())) {
-        message = "<exception str() failed>";
-    } else {
-        message = py_tostr(py_retval());
-    }
+    char* message = safe_stringify_exception(exc);
 
     c11_sbuf__write_cstr(self, name);
     c11_sbuf__write_cstr(self, ": ");
     c11_sbuf__write_cstr(self, message);
+
+    PK_FREE(message);
+}
+
+char* safe_stringify_exception(py_Ref exc) {
+    VM* vm = pk_current_vm;
+
+    const char* message = "<exception str() failed>";
+
+    py_Ref tmp = py_pushtmp();
+    py_Ref old_unhandled_exc = py_pushtmp();
+    *tmp = *exc;
+    *old_unhandled_exc = vm->unhandled_exc;
+    py_newnil(&vm->unhandled_exc);
+
+    py_StackRef p0 = py_peek(0);
+    bool ok = py_str(tmp);
+    if(ok) {
+        if(py_isstr(py_retval())) message = py_tostr(py_retval());
+    } else {
+        py_clearexc(p0);
+    }
+
+    vm->unhandled_exc = *old_unhandled_exc;
+    py_shrink(2);
+    return c11_strdup(message);
 }
 
 void py_printexc() {
@@ -210,24 +220,29 @@ void py_printexc() {
 
 char* py_formatexc() {
     VM* vm = pk_current_vm;
-    if(py_isnil(&vm->curr_exception)) return NULL;
+    if(py_isnil(&vm->unhandled_exc)) return NULL;
+    char* res = formatexc_internal(&vm->unhandled_exc);
+    if(py_debugger_isattached()) py_debugger_exceptionbreakpoint(&vm->unhandled_exc);
+    return res;
+}
 
-    // when you call `py_formatexc()`, you are handling the exception
-    vm->is_curr_exc_handled = true;
+char* formatexc_internal(py_Ref exc) {
+    c11__rtassert(exc != NULL);
+    c11__rtassert(py_issubclass(exc->type, tp_BaseException));
 
     c11_sbuf ss;
     c11_sbuf__ctor(&ss);
 
-    BaseException* ud = py_touserdata(&vm->curr_exception);
+    BaseException* ud = py_touserdata(exc);
     py_Ref inner = &ud->inner_exc;
     if(py_isnil(inner)) {
-        c11_sbuf__write_exc(&ss, &vm->curr_exception);
+        c11_sbuf__write_exc(&ss, exc);
     } else {
         c11_sbuf__write_exc(&ss, inner);
         c11_sbuf__write_cstr(
             &ss,
             "\n\nDuring handling of the above exception, another exception occurred:\n\n");
-        c11_sbuf__write_exc(&ss, &vm->curr_exception);
+        c11_sbuf__write_exc(&ss, exc);
     }
 
     c11_string* res = c11_sbuf__submit(&ss);
@@ -235,15 +250,13 @@ char* py_formatexc() {
     memcpy(dup, res->data, res->size);
     dup[res->size] = '\0';
     c11_string__delete(res);
-
-    if(py_debugger_isattached()) py_debugger_exceptionbreakpoint(&vm->curr_exception);
     return dup;
 }
 
 bool py_exception(py_Type type, const char* fmt, ...) {
 #ifndef NDEBUG
-    if(py_checkexc(true)) {
-        const char* name = py_tpname(pk_current_vm->curr_exception.type);
+    if(py_checkexc()) {
+        const char* name = py_tpname(pk_current_vm->unhandled_exc.type);
         c11__abort("py_exception(): `%s` was already set!", name);
     }
 #endif
@@ -268,12 +281,15 @@ bool py_exception(py_Type type, const char* fmt, ...) {
 bool py_raise(py_Ref exc) {
     assert(py_isinstance(exc, tp_BaseException));
     VM* vm = pk_current_vm;
-    if(!py_isnil(&vm->curr_exception)) {
-        BaseException* ud = py_touserdata(&vm->curr_exception);
-        ud->inner_exc = vm->curr_exception;
+    if(vm->top_frame) {
+        FrameExcInfo* info = Frame__top_exc_info(vm->top_frame);
+        if(info && !py_isnil(&info->exc)) {
+            BaseException* ud = py_touserdata(exc);
+            ud->inner_exc = info->exc;
+        }
     }
-    vm->curr_exception = *exc;
-    vm->is_curr_exc_handled = false;
+    assert(py_isnil(&vm->unhandled_exc));
+    vm->unhandled_exc = *exc;
     return false;
 }
 

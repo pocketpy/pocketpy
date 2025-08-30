@@ -57,7 +57,6 @@ static bool disassemble(CodeObject* co) {
 
             c11_sbuf__write_int(&ss, byte.arg);
             switch(byte.op) {
-                // TODO: see `dis.py` there is a memory issue
                 case OP_LOAD_CONST: {
                     py_Ref value = c11__at(py_TValue, &co->consts, byte.arg);
                     if(py_repr(value)) {

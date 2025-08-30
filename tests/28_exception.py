@@ -153,11 +153,12 @@ def g():
     except KeyError:
         pass
 
-if 0:
-    try:
-        raise IndexError
-    except IndexError:
-        g()
+try:
+    raise IndexError
+except IndexError:
+    g()
+
+a = 1 + 2
 
 """
 # finally, only

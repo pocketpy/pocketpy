@@ -152,15 +152,17 @@ bool py_call(py_Ref f, int argc, py_Ref argv) {
 
 #ifndef NDEBUG
 bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
+    if(py_checkexc()) {
+        const char* name = py_tpname(pk_current_vm->unhandled_exc.type);
+        c11__abort("unhandled exception `%s` was set!", name);
+    }
     py_StackRef p0 = py_peek(0);
     // NOTE: sometimes users are using `py_retval()` to pass `argv`
     // It will be reset to `nil` and cause an exception
     py_newnil(py_retval());
     bool ok = f(argc, argv);
     if(!ok) {
-        if(!py_checkexc(true)) {
-            c11__abort("py_CFunction returns `false` but no exception is set!");
-        }
+        if(!py_checkexc()) { c11__abort("py_CFunction returns `false` but no exception is set!"); }
         return false;
     }
     if(py_peek(0) != p0) {
@@ -170,8 +172,8 @@ bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
         c11__abort(
             "py_CFunction returns nothing! Did you forget to call `py_newnone(py_retval())`?");
     }
-    if(py_checkexc(true)) {
-        const char* name = py_tpname(pk_current_vm->curr_exception.type);
+    if(py_checkexc()) {
+        const char* name = py_tpname(pk_current_vm->unhandled_exc.type);
         c11__abort("py_CFunction returns `true`, but `%s` was set!", name);
     }
     return true;

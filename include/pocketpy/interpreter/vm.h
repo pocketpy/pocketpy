@@ -53,12 +53,10 @@ typedef struct VM {
     py_Callbacks callbacks;
 
     py_TValue last_retval;
-    py_TValue curr_exception;
+    py_TValue unhandled_exc;
 
     int recursion_depth;
     int max_recursion_depth;
-
-    bool is_curr_exc_handled;  // handled by try-except block but not cleared yet
 
     py_TValue reg[8];  // users' registers
     void* ctx;         // user-defined context

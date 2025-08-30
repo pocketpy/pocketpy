@@ -1,14 +1,20 @@
 #include "pocketpy/pocketpy.h"
+#include "pocketpy/objects/exception.h"
+#include "pocketpy/interpreter/vm.h"
 
 static bool traceback_format_exc(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
-    char* s = py_formatexc();
-    if(!s) {
-        py_newnone(py_retval());
-    } else {
-        py_newstr(py_retval(), s);
-        PK_FREE(s);
+    VM* vm = pk_current_vm;
+    if(vm->top_frame) {
+        FrameExcInfo* info = Frame__top_exc_info(vm->top_frame);
+        if(info && !py_isnil(&info->exc)) {
+            char* res = formatexc_internal(&info->exc);
+            py_newstr(py_retval(), res);
+            PK_FREE(res);
+            return true;
+        }
     }
+    py_newnone(py_retval());
     return true;
 }
 

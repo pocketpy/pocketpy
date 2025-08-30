@@ -93,12 +93,10 @@ void VM__ctor(VM* self) {
     self->callbacks.getchr = pk_default_getchr;
 
     self->last_retval = *py_NIL();
-    self->curr_exception = *py_NIL();
+    self->unhandled_exc = *py_NIL();
 
     self->recursion_depth = 0;
     self->max_recursion_depth = 1000;
-
-    self->is_curr_exc_handled = false;
 
     self->ctx = NULL;
     self->curr_class = NULL;
@@ -463,6 +461,11 @@ static bool
 FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall) {
 #ifndef NDEBUG
     pk_print_stack(self, self->top_frame, (Bytecode){0});
+
+    if(py_checkexc()) {
+        const char* name = py_tpname(self->unhandled_exc.type);
+        c11__abort("unhandled exception `%s` was set!", name);
+    }
 #endif
 
     py_Ref p1 = self->stack.sp - kwargc * 2;
@@ -667,7 +670,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
     }
     // mark vm's registers
     pk__mark_value(&vm->last_retval);
-    pk__mark_value(&vm->curr_exception);
+    pk__mark_value(&vm->unhandled_exc);
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
         pk__mark_value(&vm->reg[i]);
     }
