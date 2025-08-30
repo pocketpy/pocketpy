@@ -1136,10 +1136,6 @@ static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break) {
                 Ctx__emit_(self, OP_END_EXC_HANDLING, 1, line);
                 break;
             }
-            case CodeBlockType_FINALLY: {
-                Ctx__emit_(self, OP_END_FINALLY, 1, line);
-                break;
-            }
             default: break;
         }
         index = block->parent;
@@ -2000,7 +1996,7 @@ static Error* exprSlice0(Compiler* self) {
             check(EXPR(self));
             slice->step = Ctx__s_popx(ctx());
         }  // else ::
-    }      // else :
+    }  // else :
     return NULL;
 }
 
@@ -2646,21 +2642,11 @@ static Error* compile_try_except(Compiler* self) {
     bool has_finally = curr()->type == TK_FINALLY;
     if(!has_finally) {
         patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
+    } else {
+        return SyntaxError(self, "finally clause is not supported yet");
     }
-    Ctx__exit_block(ctx());
 
-    if(has_finally) {
-        consume(TK_FINALLY);
-        Ctx__emit_(ctx(), OP_BEGIN_FINALLY, BC_NOARG, prev()->line);
-        // finally only, no except block
-        Ctx__enter_block(ctx(), CodeBlockType_FINALLY);
-        check(compile_block_body(self));
-        Ctx__exit_block(ctx());
-        Ctx__emit_(ctx(), OP_END_FINALLY, BC_NOARG, BC_KEEPLINE);
-        // re-raise if needed
-        Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
-        return NULL;
-    }
+    Ctx__exit_block(ctx());
 
     do {
         if(patches_length == 8) {
@@ -2701,16 +2687,12 @@ static Error* compile_try_except(Compiler* self) {
     // ...
 
     // match one & handled, jump to the end
-    for(int i = 0; i < patches_length; i++)
+    for(int i = 0; i < patches_length; i++) {
         Ctx__patch_jump(ctx(), patches[i]);
-
-    if(match(TK_FINALLY)) {
-        Ctx__emit_(ctx(), OP_BEGIN_FINALLY, BC_NOARG, prev()->line);
-        Ctx__enter_block(ctx(), CodeBlockType_FINALLY);
-        check(compile_block_body(self));
-        Ctx__exit_block(ctx());
-        Ctx__emit_(ctx(), OP_END_FINALLY, BC_NOARG, BC_KEEPLINE);
     }
+
+    if(match(TK_FINALLY)) { return SyntaxError(self, "finally clause is not supported yet"); }
+
     // re-raise if needed
     Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
     return NULL;

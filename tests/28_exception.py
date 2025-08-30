@@ -146,7 +146,20 @@ except SyntaxError as e:
     ok = True
 assert ok
 
+# nested try
+def g():
+    try:
+        raise KeyError
+    except KeyError:
+        pass
 
+if 0:
+    try:
+        raise IndexError
+    except IndexError:
+        g()
+
+"""
 # finally, only
 def finally_only():
     try:
@@ -224,18 +237,4 @@ def finally_return():
         return 1
     
 assert finally_return() == 1
-
-
-# nested try
-def g():
-    try:
-        raise KeyError
-    except KeyError:
-        pass
-
-if 0:
-    try:
-        raise IndexError
-    except IndexError:
-        g()
-
+"""

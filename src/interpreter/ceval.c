@@ -1190,27 +1190,6 @@ __NEXT_STEP:
             py_clearexc(NULL);
             DISPATCH();
         }
-        case OP_BEGIN_FINALLY: {
-            if(self->curr_exception.type) {
-                assert(!self->is_curr_exc_handled);
-                // temporarily handle the exception if any
-                self->is_curr_exc_handled = true;
-            }
-            DISPATCH();
-        }
-        case OP_END_FINALLY: {
-            if(byte.arg == BC_NOARG) {
-                if(self->curr_exception.type) {
-                    assert(self->is_curr_exc_handled);
-                    // revert the exception handling if needed
-                    self->is_curr_exc_handled = false;
-                }
-            } else {
-                // break or continue inside finally block
-                py_clearexc(NULL);
-            }
-            DISPATCH();
-        }
         //////////////////
         case OP_FORMAT_STRING: {
             py_Ref spec = c11__at(py_TValue, &frame->co->consts, byte.arg);
