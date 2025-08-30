@@ -110,7 +110,8 @@ void VM__ctor(VM* self) {
     FixedMemoryPool__ctor(&self->pool_frame, sizeof(py_Frame), 32);
 
     ManagedHeap__ctor(&self->heap);
-    ValueStack__ctor(&self->stack);
+    self->stack.sp = self->stack.begin;
+    self->stack.end = self->stack.begin + PK_VM_STACK_SIZE;
 
     CachedNames__ctor(&self->cached_names);
     NameDict__ctor(&self->compile_time_funcs, PK_TYPE_ATTR_LOAD_FACTOR);
@@ -288,11 +289,11 @@ void VM__dtor(VM* self) {
     // destroy all objects
     ManagedHeap__dtor(&self->heap);
     // clear frames
-    while(self->top_frame)
+    while(self->top_frame) {
         VM__pop_frame(self);
+    }
     BinTree__dtor(&self->modules);
     FixedMemoryPool__dtor(&self->pool_frame);
-    ValueStack__dtor(&self->stack);
     CachedNames__dtor(&self->cached_names);
     NameDict__dtor(&self->compile_time_funcs);
     c11_vector__dtor(&self->types);

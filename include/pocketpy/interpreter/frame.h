@@ -11,11 +11,8 @@ typedef struct ValueStack {
     py_TValue* sp;
     py_TValue* end;
     // We allocate extra places to keep `_sp` valid to detect stack overflow
-    py_TValue begin[PK_VM_STACK_SIZE + PK_MAX_CO_VARNAMES * 2];
+    py_TValue begin[PK_VM_STACK_SIZE + PK_MAX_CO_VARNAMES];
 } ValueStack;
-
-void ValueStack__ctor(ValueStack* self);
-void ValueStack__dtor(ValueStack* self);
 
 typedef struct UnwindTarget {
     struct UnwindTarget* next;

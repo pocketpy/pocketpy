@@ -7,12 +7,6 @@
 #include <stdbool.h>
 #include <assert.h>
 
-void ValueStack__ctor(ValueStack* self) {
-    self->sp = self->begin;
-    self->end = self->begin + PK_VM_STACK_SIZE;
-}
-
-void ValueStack__dtor(ValueStack* self) { self->sp = self->begin; }
 
 void FastLocals__to_dict(py_TValue* locals, const CodeObject* co) {
     py_StackRef dict = py_pushtmp();
