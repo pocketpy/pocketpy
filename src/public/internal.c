@@ -260,7 +260,7 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
                 self[0] = *py_getslot(cls_var, 0);
                 self[1] = ti->self;
                 break;
-            default: c11__unreachable();
+            default: return false;
         }
         return true;
     }
