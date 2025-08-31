@@ -114,6 +114,8 @@ void c11_debugger_exception_on_trace(py_Ref exc) {
     debugger.current_excname = name;
     debugger.current_excmessage = message;
     clear_structures();
+    py_assign(py_list_getitem(python_vars, 0), exc);
+    py_clearexc(NULL);
 }
 
 const char* c11_debugger_excinfo(const char** message) {
@@ -177,6 +179,8 @@ bool c11_debugger_path_equal(const char* path1, const char* path2) {
 
 C11_STOP_REASON c11_debugger_should_pause() {
     if(debugger.current_event == TRACE_EVENT_POP && !debugger.isexceptionmode)
+        return C11_DEBUGGER_NOSTOP;
+    if(py_checkexc() && debugger.isexceptionmode == false)
         return C11_DEBUGGER_NOSTOP;
     C11_STOP_REASON pause_resaon = C11_DEBUGGER_NOSTOP;
     int is_out = debugger.curr_stack_depth <= debugger.pause_allowed_depth;
