@@ -170,3 +170,13 @@ for x in xs:
 
 assert res == list(range(101))
 assert xs == res
+
+# call property
+from vmath import vec2
+
+a = vec2(1, 2)
+try:
+    x = a.x()
+    exit(1)
+except TypeError:
+    pass

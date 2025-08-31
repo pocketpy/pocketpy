@@ -600,20 +600,17 @@ PK_API int py_import(const char* path) PY_RAISE PY_RETURN;
 PK_API bool py_exception(py_Type type, const char* fmt, ...) PY_RAISE;
 /// Raise an exception object. Always return false.
 PK_API bool py_raise(py_Ref) PY_RAISE;
-/// Print the current exception.
-/// The exception will be set as handled.
+/// Print the unhandled exception.
 PK_API void py_printexc();
-/// Format the current exception and return a null-terminated string.
-/// The result should be freed by the caller.
-/// The exception will be set as handled.
+/// Format the unhandled exception and return a null-terminated string.
+/// The returned string should be freed by the caller.
 PK_API char* py_formatexc();
-/// Check if an exception is raised.
-PK_API bool py_checkexc(bool ignore_handled);
-/// Check if the exception is an instance of the given type.
-/// This function is roughly equivalent to python's `except <T> as e:` block.
-/// If match, the exception will be stored in `py_retval()` as handled.
+/// Check if there is an unhandled exception.
+PK_API bool py_checkexc();
+/// Check if the unhandled exception is an instance of the given type.
+/// If match, the exception will be stored in `py_retval()`.
 PK_API bool py_matchexc(py_Type type) PY_RETURN;
-/// Clear the current exception.
+/// Clear the unhandled exception.
 /// @param p0 the unwinding point. Use `NULL` if not needed.
 PK_API void py_clearexc(py_StackRef p0);
 

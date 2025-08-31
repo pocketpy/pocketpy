@@ -17,3 +17,5 @@ typedef struct BaseException {
     c11_vector /*T=BaseExceptionFrame*/ stacktrace;
 } BaseException;
 
+char* safe_stringify_exception(py_Ref exc);
+char* formatexc_internal(py_Ref exc);

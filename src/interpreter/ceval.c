@@ -13,9 +13,6 @@
 
 static bool stack_format_object(VM* self, c11_sv spec);
 
-#define CHECK_RETURN_FROM_EXCEPT_OR_FINALLY()                                                      \
-    if(self->is_curr_exc_handled) py_clearexc(NULL)
-
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
@@ -787,7 +784,6 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_RETURN_VALUE: {
-            CHECK_RETURN_FROM_EXCEPT_OR_FINALLY();
             if(byte.arg == BC_NOARG) {
                 self->last_retval = POPX();
             } else {
@@ -804,7 +800,6 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_YIELD_VALUE: {
-            CHECK_RETURN_FROM_EXCEPT_OR_FINALLY();
             if(byte.arg == 1) {
                 py_newnone(py_retval());
             } else {
@@ -814,7 +809,6 @@ __NEXT_STEP:
             return RES_YIELD;
         }
         case OP_FOR_ITER_YIELD_VALUE: {
-            CHECK_RETURN_FROM_EXCEPT_OR_FINALLY();
             int res = py_next(TOP());
             if(res == -1) goto __ERROR;
             if(res) {
@@ -1135,14 +1129,25 @@ __NEXT_STEP:
             DISPATCH();
         }
         ///////////
-        case OP_TRY_ENTER: {
-            Frame__set_unwind_target(frame, SP());
+        case OP_BEGIN_TRY: {
+            Frame__begin_try(frame, SP());
+            DISPATCH();
+        }
+        case OP_END_TRY: {
+            c11_vector__pop(&frame->exc_stack);
             DISPATCH();
         }
         case OP_EXCEPTION_MATCH: {
             if(!py_checktype(TOP(), tp_type)) goto __ERROR;
-            bool ok = py_isinstance(&self->curr_exception, py_totype(TOP()));
+            bool ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
             py_newbool(TOP(), ok);
+            DISPATCH();
+        }
+        case OP_HANDLE_EXCEPTION: {
+            FrameExcInfo* info = Frame__top_exc_info(frame);
+            assert(info != NULL && py_isnil(&info->exc));
+            info->exc = self->unhandled_exc;
+            py_newnil(&self->unhandled_exc);
             DISPATCH();
         }
         case OP_RAISE: {
@@ -1169,46 +1174,18 @@ __NEXT_STEP:
             goto __ERROR;
         }
         case OP_RE_RAISE: {
-            if(self->curr_exception.type) {
-                assert(!self->is_curr_exc_handled);
-                goto __ERROR_RE_RAISE;
+            if(py_isnil(&self->unhandled_exc)) {
+                FrameExcInfo* info = Frame__top_exc_info(frame);
+                assert(info != NULL && !py_isnil(&info->exc));
+                self->unhandled_exc = info->exc;
             }
-            DISPATCH();
+            c11_vector__pop(&frame->exc_stack);
+            goto __ERROR_RE_RAISE;
         }
         case OP_PUSH_EXCEPTION: {
-            assert(self->curr_exception.type);
-            PUSH(&self->curr_exception);
-            DISPATCH();
-        }
-        case OP_BEGIN_EXC_HANDLING: {
-            assert(self->curr_exception.type);
-            self->is_curr_exc_handled = true;
-            DISPATCH();
-        }
-        case OP_END_EXC_HANDLING: {
-            assert(self->curr_exception.type);
-            py_clearexc(NULL);
-            DISPATCH();
-        }
-        case OP_BEGIN_FINALLY: {
-            if(self->curr_exception.type) {
-                assert(!self->is_curr_exc_handled);
-                // temporarily handle the exception if any
-                self->is_curr_exc_handled = true;
-            }
-            DISPATCH();
-        }
-        case OP_END_FINALLY: {
-            if(byte.arg == BC_NOARG) {
-                if(self->curr_exception.type) {
-                    assert(self->is_curr_exc_handled);
-                    // revert the exception handling if needed
-                    self->is_curr_exc_handled = false;
-                }
-            } else {
-                // break or continue inside finally block
-                py_clearexc(NULL);
-            }
+            FrameExcInfo* info = Frame__top_exc_info(frame);
+            assert(info != NULL && !py_isnil(&info->exc));
+            PUSH(&info->exc);
             DISPATCH();
         }
         //////////////////
@@ -1224,16 +1201,19 @@ __NEXT_STEP:
     c11__unreachable();
 
 __ERROR:
+    assert(!py_isnil(&self->unhandled_exc));
     py_BaseException__stpush(frame,
-                             &self->curr_exception,
+                             &self->unhandled_exc,
                              frame->co->src,
                              Frame__lineno(frame),
                              !frame->is_locals_special ? frame->co->name->data : NULL);
 __ERROR_RE_RAISE:
     do {
+        self->curr_class = NULL;
+        self->curr_decl_based_function = NULL;
     } while(0);
 
-    int target = Frame__prepare_jump_exception_handler(frame, &self->stack);
+    int target = Frame__goto_exception_handler(frame, &self->stack, &self->unhandled_exc);
     if(target >= 0) {
         // 1. Exception can be handled inside the current frame
         DISPATCH_JUMP_ABSOLUTE(target);

@@ -35,7 +35,6 @@ typedef enum CodeBlockType {
     CodeBlockType_WITH,
     /* context blocks (flag-based) */
     CodeBlockType_EXCEPT,
-    CodeBlockType_FINALLY,
 } CodeBlockType;
 
 typedef enum Opcode {

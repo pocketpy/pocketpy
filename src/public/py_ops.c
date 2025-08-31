@@ -111,8 +111,8 @@ int py_next(py_Ref val) {
             break;
         }
     }
-    if(vm->curr_exception.type == tp_StopIteration) {
-        vm->last_retval = vm->curr_exception;
+    if(vm->unhandled_exc.type == tp_StopIteration) {
+        vm->last_retval = vm->unhandled_exc;
         py_clearexc(NULL);
         return 0;
     }

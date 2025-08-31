@@ -7,13 +7,6 @@
 #include <stdbool.h>
 #include <assert.h>
 
-void ValueStack__ctor(ValueStack* self) {
-    self->sp = self->begin;
-    self->end = self->begin + PK_VM_STACK_SIZE;
-}
-
-void ValueStack__dtor(ValueStack* self) { self->sp = self->begin; }
-
 void FastLocals__to_dict(py_TValue* locals, const CodeObject* co) {
     py_StackRef dict = py_pushtmp();
     py_newdict(dict);
@@ -38,16 +31,6 @@ NameDict* FastLocals__to_namedict(py_TValue* locals, const CodeObject* co) {
     return dict;
 }
 
-UnwindTarget* UnwindTarget__new(UnwindTarget* next, int iblock, int offset) {
-    UnwindTarget* self = PK_MALLOC(sizeof(UnwindTarget));
-    self->next = next;
-    self->iblock = iblock;
-    self->offset = offset;
-    return self;
-}
-
-void UnwindTarget__delete(UnwindTarget* self) { PK_FREE(self); }
-
 py_Frame* Frame__new(const CodeObject* co,
                      py_StackRef p0,
                      py_GlobalRef module,
@@ -68,57 +51,47 @@ py_Frame* Frame__new(const CodeObject* co,
     self->locals = locals;
     self->is_locals_special = is_locals_special;
     self->ip = -1;
-    self->uw_list = NULL;
+    c11_vector__ctor(&self->exc_stack, sizeof(FrameExcInfo));
     return self;
 }
 
 void Frame__delete(py_Frame* self) {
-    while(self->uw_list) {
-        UnwindTarget* p = self->uw_list;
-        self->uw_list = p->next;
-        UnwindTarget__delete(p);
-    }
+    c11_vector__dtor(&self->exc_stack);
     FixedMemoryPool__dealloc(&pk_current_vm->pool_frame, self);
 }
 
-int Frame__prepare_jump_exception_handler(py_Frame* self, ValueStack* _s) {
-    // try to find a parent try block
-    int iblock = Frame__iblock(self);
-    while(iblock >= 0) {
-        CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, iblock);
-        if(block->type == CodeBlockType_TRY) break;
-        iblock = block->parent;
+int Frame__goto_exception_handler(py_Frame* self, ValueStack* value_stack, py_Ref exc) {
+    FrameExcInfo* p = self->exc_stack.data;
+    for(int i = self->exc_stack.length - 1; i >= 0; i--) {
+        if(py_isnil(&p[i].exc)) {
+            value_stack->sp = (self->p0 + p[i].offset);  // unwind the stack
+            return c11__at(CodeBlock, &self->co->blocks, p[i].iblock)->end;
+        } else {
+            self->exc_stack.length--;
+        }
     }
-    if(iblock < 0) return -1;
-    UnwindTarget* uw = Frame__find_unwind_target(self, iblock);
-    _s->sp = (self->p0 + uw->offset);  // unwind the stack
-    return c11__at(CodeBlock, &self->co->blocks, iblock)->end;
+    return -1;
 }
 
-UnwindTarget* Frame__find_unwind_target(py_Frame* self, int iblock) {
-    UnwindTarget* uw;
-    for(uw = self->uw_list; uw; uw = uw->next) {
-        if(uw->iblock == iblock) return uw;
-    }
-    return NULL;
-}
-
-void Frame__set_unwind_target(py_Frame* self, py_TValue* sp) {
+void Frame__begin_try(py_Frame* self, py_TValue* sp) {
     int iblock = Frame__iblock(self);
     assert(iblock >= 0);
-    UnwindTarget* existing = Frame__find_unwind_target(self, iblock);
-    if(existing) {
-        existing->offset = sp - self->p0;
-    } else {
-        UnwindTarget* prev = self->uw_list;
-        self->uw_list = UnwindTarget__new(prev, iblock, sp - self->p0);
-    }
+    FrameExcInfo* info = c11_vector__emplace(&self->exc_stack);
+    info->iblock = iblock;
+    info->offset = (int)(sp - self->p0);
+    py_newnil(&info->exc);
+}
+
+FrameExcInfo* Frame__top_exc_info(py_Frame* self) {
+    if(self->exc_stack.length == 0) return NULL;
+    return &c11_vector__back(FrameExcInfo, &self->exc_stack);
 }
 
 void Frame__gc_mark(py_Frame* self, c11_vector* p_stack) {
     pk__mark_value(self->globals);
     if(self->is_locals_special) pk__mark_value(self->locals);
     CodeObject__gc_mark(self->co, p_stack);
+    c11__foreach(FrameExcInfo, &self->exc_stack, info) { pk__mark_value(&info->exc); }
 }
 
 int Frame__lineno(const py_Frame* self) {

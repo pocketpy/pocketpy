@@ -108,22 +108,15 @@ void c11_debugger_exception_on_trace(py_Ref exc) {
     BaseException* ud = py_touserdata(exc);
     c11_vector* stacktrace = &ud->stacktrace;
     const char* name = py_tpname(exc->type);
-    const char* message;
-    bool ok = py_str(exc);
-    if(!ok || !py_isstr(py_retval())) {
-        message = "<exception str() failed>";
-    } else {
-        message = c11_strdup(py_tostr(py_retval()));
-    }
+    const char* message = safe_stringify_exception(exc);
     debugger.exception_stacktrace = stacktrace;
     debugger.isexceptionmode = true;
     debugger.current_excname = name;
     debugger.current_excmessage = message;
     clear_structures();
-
 }
 
-const char* c11_debugger_excinfo(const char ** message){
+const char* c11_debugger_excinfo(const char** message) {
     *message = debugger.current_excmessage;
     return debugger.current_excname;
 }
@@ -183,7 +176,8 @@ bool c11_debugger_path_equal(const char* path1, const char* path2) {
 }
 
 C11_STOP_REASON c11_debugger_should_pause() {
-    if(debugger.current_event == TRACE_EVENT_POP && !debugger.isexceptionmode) return C11_DEBUGGER_NOSTOP;
+    if(debugger.current_event == TRACE_EVENT_POP && !debugger.isexceptionmode)
+        return C11_DEBUGGER_NOSTOP;
     C11_STOP_REASON pause_resaon = C11_DEBUGGER_NOSTOP;
     int is_out = debugger.curr_stack_depth <= debugger.pause_allowed_depth;
     int is_new_line = debugger.current_line != debugger.step_line;
@@ -399,4 +393,4 @@ bool c11_debugger_unfold_var(int var_id, c11_sbuf* buffer) {
 
 #undef python_vars
 
-#endif // PK_ENABLE_OS
+#endif  // PK_ENABLE_OS

@@ -159,7 +159,7 @@ __ERROR:
 | F-String        | `f'value is {x}'`               | ✅       |
 | Unpacking       | `a, b = 1, 2`                   | ✅       |
 | Star Unpacking  | `a, *b = [1, 2, 3]`             | ✅       |
-| Exception       | `raise/try..catch..finally`     | ✅       |
+| Exception       | `raise/try..except..`           | ✅       |
 | Dynamic Code    | `eval()/exec()`                 | ✅       |
 | Reflection      | `hasattr()/getattr()/setattr()` | ✅       |
 | Import          | `import/from..import`           | ✅       |

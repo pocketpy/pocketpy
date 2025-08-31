@@ -93,12 +93,10 @@ void VM__ctor(VM* self) {
     self->callbacks.getchr = pk_default_getchr;
 
     self->last_retval = *py_NIL();
-    self->curr_exception = *py_NIL();
+    self->unhandled_exc = *py_NIL();
 
     self->recursion_depth = 0;
     self->max_recursion_depth = 1000;
-
-    self->is_curr_exc_handled = false;
 
     self->ctx = NULL;
     self->curr_class = NULL;
@@ -110,7 +108,8 @@ void VM__ctor(VM* self) {
     FixedMemoryPool__ctor(&self->pool_frame, sizeof(py_Frame), 32);
 
     ManagedHeap__ctor(&self->heap);
-    ValueStack__ctor(&self->stack);
+    self->stack.sp = self->stack.begin;
+    self->stack.end = self->stack.begin + PK_VM_STACK_SIZE;
 
     CachedNames__ctor(&self->cached_names);
     NameDict__ctor(&self->compile_time_funcs, PK_TYPE_ATTR_LOAD_FACTOR);
@@ -288,11 +287,11 @@ void VM__dtor(VM* self) {
     // destroy all objects
     ManagedHeap__dtor(&self->heap);
     // clear frames
-    while(self->top_frame)
+    while(self->top_frame) {
         VM__pop_frame(self);
+    }
     BinTree__dtor(&self->modules);
     FixedMemoryPool__dtor(&self->pool_frame);
-    ValueStack__dtor(&self->stack);
     CachedNames__dtor(&self->cached_names);
     NameDict__dtor(&self->compile_time_funcs);
     c11_vector__dtor(&self->types);
@@ -462,6 +461,11 @@ static bool
 FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall) {
 #ifndef NDEBUG
     pk_print_stack(self, self->top_frame, (Bytecode){0});
+
+    if(py_checkexc()) {
+        const char* name = py_tpname(self->unhandled_exc.type);
+        c11__abort("unhandled exception `%s` was set!", name);
+    }
 #endif
 
     py_Ref p1 = self->stack.sp - kwargc * 2;
@@ -666,7 +670,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
     }
     // mark vm's registers
     pk__mark_value(&vm->last_retval);
-    pk__mark_value(&vm->curr_exception);
+    pk__mark_value(&vm->unhandled_exc);
     for(int i = 0; i < c11__count_array(vm->reg); i++) {
         pk__mark_value(&vm->reg[i]);
     }

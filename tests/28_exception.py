@@ -146,7 +146,62 @@ except SyntaxError as e:
     ok = True
 assert ok
 
+# nested try
+def g():
+    try:
+        raise KeyError
+    except KeyError:
+        pass
 
+try:
+    raise IndexError
+except IndexError:
+    g()
+
+a = []
+for i in range(10):
+    a.append(i)
+    try:
+        try:
+            if i % 2 == 0:
+                raise KeyError(i)
+            else:
+                raise IndexError(i)
+        except KeyError as e:
+            assert i % 2 == 0
+            assert e.args[0] == i
+            raise
+        except IndexError as e:
+            assert i % 2 == 1
+            assert e.args[0] == i
+            raise
+    except Exception as e:
+        assert e.args[0] == i
+assert a == list(range(10))
+
+# inner exc
+x = 0
+try:
+    try:
+        [][1]
+    except:
+        raise KeyError
+except KeyError:
+    x = 5
+assert x == 5
+
+a = []
+for i in range(6):
+    try:
+        [][1]
+    except IndexError:
+        if i == 2:
+            continue
+        else:
+            a.append(i)
+assert a == [0, 1, 3, 4, 5]
+
+"""
 # finally, only
 def finally_only():
     try:
@@ -224,5 +279,4 @@ def finally_return():
         return 1
     
 assert finally_return() == 1
-
-
+"""

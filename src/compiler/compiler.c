@@ -1132,12 +1132,12 @@ static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break) {
                 Ctx__emit_(self, OP_POP_TOP, BC_NOARG, line);
                 break;
             }
-            case CodeBlockType_EXCEPT: {
-                Ctx__emit_(self, OP_END_EXC_HANDLING, 1, line);
+            case CodeBlockType_TRY: {
+                Ctx__emit_(self, OP_END_TRY, BC_NOARG, line);
                 break;
             }
-            case CodeBlockType_FINALLY: {
-                Ctx__emit_(self, OP_END_FINALLY, 1, line);
+            case CodeBlockType_EXCEPT: {
+                Ctx__emit_(self, OP_END_TRY, BC_NOARG, line);
                 break;
             }
             default: break;
@@ -1919,9 +1919,11 @@ static Error* exprCompileTimeCall(Compiler* self, py_ItemRef func, int line) {
     } while(match(TK_COMMA));
     consume(TK_RPAREN);
 
+    py_StackRef p0 = py_peek(0);
     bool ok = py_vectorcall(argc, kwargc);
     if(!ok) {
         char* msg = py_formatexc();
+        py_clearexc(p0);
         err = SyntaxError(self, "compile-time call error:\n%s", msg);
         PK_FREE(msg);
         return err;
@@ -2000,7 +2002,7 @@ static Error* exprSlice0(Compiler* self) {
             check(EXPR(self));
             slice->step = Ctx__s_popx(ctx());
         }  // else ::
-    }      // else :
+    }  // else :
     return NULL;
 }
 
@@ -2627,8 +2629,9 @@ static Error* compile_try_except(Compiler* self) {
     int patches_length = 0;
 
     Ctx__enter_block(ctx(), CodeBlockType_TRY);
-    Ctx__emit_(ctx(), OP_TRY_ENTER, BC_NOARG, prev()->line);
+    Ctx__emit_(ctx(), OP_BEGIN_TRY, BC_NOARG, prev()->line);
     check(compile_block_body(self));
+    Ctx__emit_(ctx(), OP_END_TRY, BC_NOARG, BC_KEEPLINE);
 
     // https://docs.python.org/3/reference/compound_stmts.html#finally-clause
     /* If finally is present, it specifies a ‘cleanup’ handler. The try clause is executed,
@@ -2644,23 +2647,10 @@ static Error* compile_try_except(Compiler* self) {
     // A return, break, continue in try/except block will make the finally block not executed
 
     bool has_finally = curr()->type == TK_FINALLY;
-    if(!has_finally) {
-        patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
-    }
-    Ctx__exit_block(ctx());
+    if(has_finally) return SyntaxError(self, "finally clause is not supported yet");
 
-    if(has_finally) {
-        consume(TK_FINALLY);
-        Ctx__emit_(ctx(), OP_BEGIN_FINALLY, BC_NOARG, prev()->line);
-        // finally only, no except block
-        Ctx__enter_block(ctx(), CodeBlockType_FINALLY);
-        check(compile_block_body(self));
-        Ctx__exit_block(ctx());
-        Ctx__emit_(ctx(), OP_END_FINALLY, BC_NOARG, BC_KEEPLINE);
-        // re-raise if needed
-        Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
-        return NULL;
-    }
+    patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
+    Ctx__exit_block(ctx());
 
     do {
         if(patches_length == 8) {
@@ -2684,7 +2674,7 @@ static Error* compile_try_except(Compiler* self) {
         }
         int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
         // on match
-        Ctx__emit_(ctx(), OP_BEGIN_EXC_HANDLING, BC_NOARG, BC_KEEPLINE);
+        Ctx__emit_(ctx(), OP_HANDLE_EXCEPTION, BC_NOARG, BC_KEEPLINE);
         if(as_name) {
             Ctx__emit_(ctx(), OP_PUSH_EXCEPTION, BC_NOARG, BC_KEEPLINE);
             Ctx__emit_store_name(ctx(), name_scope(self), as_name, BC_KEEPLINE);
@@ -2692,27 +2682,20 @@ static Error* compile_try_except(Compiler* self) {
         Ctx__enter_block(ctx(), CodeBlockType_EXCEPT);
         check(compile_block_body(self));
         Ctx__exit_block(ctx());
-        Ctx__emit_(ctx(), OP_END_EXC_HANDLING, BC_NOARG, BC_KEEPLINE);
+        Ctx__emit_(ctx(), OP_END_TRY, BC_NOARG, BC_KEEPLINE);
         patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
         Ctx__patch_jump(ctx(), patch);
     } while(curr()->type == TK_EXCEPT);
 
     // no match, re-raise
-    // ...
+    Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
 
     // match one & handled, jump to the end
-    for(int i = 0; i < patches_length; i++)
+    for(int i = 0; i < patches_length; i++) {
         Ctx__patch_jump(ctx(), patches[i]);
-
-    if(match(TK_FINALLY)) {
-        Ctx__emit_(ctx(), OP_BEGIN_FINALLY, BC_NOARG, prev()->line);
-        Ctx__enter_block(ctx(), CodeBlockType_FINALLY);
-        check(compile_block_body(self));
-        Ctx__exit_block(ctx());
-        Ctx__emit_(ctx(), OP_END_FINALLY, BC_NOARG, BC_KEEPLINE);
     }
-    // re-raise if needed
-    Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
+
+    if(match(TK_FINALLY)) return SyntaxError(self, "finally clause is not supported yet");
     return NULL;
 }
 
@@ -2815,9 +2798,19 @@ static Error* compile_stmt(Compiler* self) {
             consume_end_stmt();
             break;
         case TK_RAISE: {
-            check(EXPR(self));
-            Ctx__s_emit_top(ctx());
-            Ctx__emit_(ctx(), OP_RAISE, BC_NOARG, kw_line);
+            if(is_expression(self, false)) {
+                check(EXPR(self));
+                Ctx__s_emit_top(ctx());
+                Ctx__emit_(ctx(), OP_RAISE, BC_NOARG, kw_line);
+            } else {
+                int iblock = ctx()->curr_iblock;
+                CodeBlock* blocks = (CodeBlock*)ctx()->co->blocks.data;
+                if(blocks[iblock].type != CodeBlockType_EXCEPT) {
+                    return SyntaxError(self,
+                                       "raise without exception is only allowed in except block");
+                }
+                Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, kw_line);
+            }
             consume_end_stmt();
         } break;
         case TK_DEL: {
