@@ -158,12 +158,14 @@ bool py_matchexc(py_Type type) {
 void py_clearexc(py_StackRef p0) {
     VM* vm = pk_current_vm;
     py_newnil(&vm->unhandled_exc);
-    if(p0) vm->stack.sp = p0;
+    if(p0) {
+        c11__rtassert(p0 >= vm->stack.begin && p0 <= vm->stack.sp);
+        vm->stack.sp = p0;
+    }
 }
 
 static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
-    if(true) { c11_sbuf__write_cstr(self, "Traceback (most recent call last):\n"); }
-
+    c11_sbuf__write_cstr(self, "Traceback (most recent call last):\n");
     BaseException* ud = py_touserdata(exc);
 
     for(int i = ud->stacktrace.length - 1; i >= 0; i--) {
