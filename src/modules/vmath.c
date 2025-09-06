@@ -1089,7 +1089,7 @@ static bool color32_alpha_blend_STATIC(int argc, py_Ref argv) {
     res.r = (unsigned char)(src.r * alpha + dst.r * (1 - alpha));
     res.g = (unsigned char)(src.g * alpha + dst.g * (1 - alpha));
     res.b = (unsigned char)(src.b * alpha + dst.b * (1 - alpha));
-    res.a = (unsigned char)(src.a * alpha + dst.a * (1 - alpha));
+    res.a = (unsigned char)(src.a + dst.a * (1 - alpha));
     py_newcolor32(py_retval(), res);
     return true;
 }
