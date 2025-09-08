@@ -1,58 +1,9 @@
 #include "pocketpy/common/str.h"
 #include "pocketpy/pocketpy.h"
 
-#include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
-
-void py_newstr(py_OutRef out, const char* data) { py_newstrv(out, (c11_sv){data, strlen(data)}); }
-
-char* py_newstrn(py_OutRef out, int size) {
-    if(size < 16) {
-        out->type = tp_str;
-        out->is_ptr = false;
-        c11_string* ud = (c11_string*)(&out->extra);
-        c11_string__ctor3(ud, size);
-        return ud->data;
-    }
-    ManagedHeap* heap = &pk_current_vm->heap;
-    int total_size = sizeof(c11_string) + size + 1;
-    PyObject* obj = ManagedHeap__gcnew(heap, tp_str, 0, total_size);
-    c11_string* ud = PyObject__userdata(obj);
-    c11_string__ctor3(ud, size);
-    out->type = tp_str;
-    out->is_ptr = true;
-    out->_obj = obj;
-    return ud->data;
-}
-
-void py_newstrv(py_OutRef out, c11_sv sv) {
-    char* data = py_newstrn(out, sv.size);
-    memcpy(data, sv.data, sv.size);
-}
-
-void py_newfstr(py_OutRef out, const char* fmt, ...) {
-    c11_sbuf buf;
-    c11_sbuf__ctor(&buf);
-    va_list args;
-    va_start(args, fmt);
-    pk_vsprintf(&buf, fmt, args);
-    va_end(args);
-    c11_sbuf__py_submit(&buf, out);
-}
-
-unsigned char* py_newbytes(py_OutRef out, int size) {
-    ManagedHeap* heap = &pk_current_vm->heap;
-    // 4 bytes size + data
-    PyObject* obj = ManagedHeap__gcnew(heap, tp_bytes, 0, sizeof(c11_bytes) + size);
-    c11_bytes* ud = PyObject__userdata(obj);
-    ud->size = size;
-    out->type = tp_bytes;
-    out->is_ptr = true;
-    out->_obj = obj;
-    return ud->data;
-}
 
 c11_string* pk_tostr(py_Ref self) {
     assert(self->type == tp_str);
@@ -61,33 +12,6 @@ c11_string* pk_tostr(py_Ref self) {
     } else {
         return PyObject__userdata(self->_obj);
     }
-}
-
-const char* py_tostr(py_Ref self) { return pk_tostr(self)->data; }
-
-const char* py_tostrn(py_Ref self, int* size) {
-    c11_string* ud = pk_tostr(self);
-    *size = ud->size;
-    return ud->data;
-}
-
-c11_sv py_tosv(py_Ref self) {
-    c11_string* ud = pk_tostr(self);
-    return c11_string__sv(ud);
-}
-
-unsigned char* py_tobytes(py_Ref self, int* size) {
-    assert(self->type == tp_bytes);
-    c11_bytes* ud = PyObject__userdata(self->_obj);
-    *size = ud->size;
-    return ud->data;
-}
-
-void py_bytes_resize(py_Ref self, int size) {
-    assert(self->type == tp_bytes);
-    c11_bytes* ud = PyObject__userdata(self->_obj);
-    if(size > ud->size) c11__abort("bytes can only be resized down: %d > %d", ud->size, size);
-    ud->size = size;
 }
 
 ////////////////////////////////
@@ -672,19 +596,5 @@ py_Type pk_bytes__register() {
     py_bindmethod(tp_bytes, "decode", bytes_decode);
     return type;
 }
-
-bool py_str(py_Ref val) {
-    if(val->type == tp_str) {
-        py_assign(py_retval(), val);
-        return true;
-    }
-    py_Ref tmp = py_tpfindmagic(val->type, __str__);
-    if(!tmp) return py_repr(val);
-    return py_call(tmp, 1, val);
-}
-
-bool py_repr(py_Ref val) { return pk_callmagic(__repr__, 1, val); }
-
-bool py_len(py_Ref val) { return pk_callmagic(__len__, 1, val); }
 
 #undef DEF_STR_CMP_OP

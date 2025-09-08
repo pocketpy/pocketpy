@@ -1,140 +1,61 @@
-#include "pocketpy/interpreter/typeinfo.h"
-#include "pocketpy/objects/codeobject.h"
 #include "pocketpy/pocketpy.h"
-
-#include "pocketpy/common/utils.h"
-#include "pocketpy/common/name.h"
 #include "pocketpy/interpreter/vm.h"
 
-_Thread_local VM* pk_current_vm;
-
-static bool pk_initialized;
-static bool pk_finalized;
-
-static VM pk_default_vm;
-static VM* pk_all_vm[16];
-static py_TValue _True, _False, _None, _NIL;
-
-void py_initialize() {
-    c11__rtassert(!pk_finalized);
-
-    if(pk_initialized) {
-        // c11__abort("py_initialize() can only be called once!");
-        return;
-    }
-
-    pk_names_initialize();
-
-    // check endianness
-    int x = 1;
-    bool is_little_endian = *(char*)&x == 1;
-    if(!is_little_endian) c11__abort("is_little_endian != true");
-
-    static_assert(sizeof(py_TValue) == 24, "sizeof(py_TValue) != 24");
-    static_assert(offsetof(py_TValue, extra) == 4, "offsetof(py_TValue, extra) != 4");
-
-    pk_current_vm = pk_all_vm[0] = &pk_default_vm;
-
-    // initialize some convenient references
-    py_newbool(&_True, true);
-    py_newbool(&_False, false);
-    py_newnone(&_None);
-    py_newnil(&_NIL);
-    VM__ctor(&pk_default_vm);
-
-    pk_initialized = true;
+PK_INLINE py_Ref py_peek(int i) {
+    assert(i <= 0);
+    return pk_current_vm->stack.sp + i;
 }
 
-void* py_malloc(size_t size) { return PK_MALLOC(size); }
-
-void* py_realloc(void* ptr, size_t size) { return PK_REALLOC(ptr, size); }
-
-void py_free(void* ptr) { PK_FREE(ptr); }
-
-py_GlobalRef py_True() { return &_True; }
-
-py_GlobalRef py_False() { return &_False; }
-
-py_GlobalRef py_None() { return &_None; }
-
-py_GlobalRef py_NIL() { return &_NIL; }
-
-void py_finalize() {
-    if(pk_finalized) c11__abort("py_finalize() can only be called once!");
-    pk_finalized = true;
-
-    for(int i = 1; i < 16; i++) {
-        VM* vm = pk_all_vm[i];
-        if(vm) {
-            // temp fix https://github.com/pocketpy/pocketpy/issues/315
-            // TODO: refactor VM__ctor and VM__dtor
-            pk_current_vm = vm;
-            VM__dtor(vm);
-            PK_FREE(vm);
-        }
-    }
-    pk_current_vm = &pk_default_vm;
-    VM__dtor(&pk_default_vm);
-    pk_current_vm = NULL;
-
-    pk_names_finalize();
-}
-
-void py_switchvm(int index) {
-    if(index < 0 || index >= 16) c11__abort("invalid vm index");
-    if(!pk_all_vm[index]) {
-        pk_current_vm = pk_all_vm[index] = PK_MALLOC(sizeof(VM));
-        memset(pk_current_vm, 0, sizeof(VM));
-        VM__ctor(pk_all_vm[index]);
-    } else {
-        pk_current_vm = pk_all_vm[index];
-    }
-}
-
-void py_resetvm() {
+PK_INLINE void py_push(py_Ref src) {
     VM* vm = pk_current_vm;
-    VM__dtor(vm);
-    memset(vm, 0, sizeof(VM));
-    VM__ctor(vm);
+    *vm->stack.sp++ = *src;
 }
 
-void py_resetallvm() {
-    for(int i = 0; i < 16; i++) {
-        py_switchvm(i);
-        py_resetvm();
-    }
-    py_switchvm(0);
+PK_INLINE void py_pushnil() {
+    VM* vm = pk_current_vm;
+    py_newnil(vm->stack.sp++);
 }
 
-int py_currentvm() {
-    for(int i = 0; i < 16; i++) {
-        if(pk_all_vm[i] == pk_current_vm) return i;
-    }
-    return -1;
+PK_INLINE void py_pushnone() {
+    VM* vm = pk_current_vm;
+    py_newnone(vm->stack.sp++);
 }
 
-void* py_getvmctx() { return pk_current_vm->ctx; }
-
-void py_setvmctx(void* ctx) { pk_current_vm->ctx = ctx; }
-
-void py_sys_setargv(int argc, char** argv) {
-    py_GlobalRef sys = py_getmodule("sys");
-    py_Ref argv_list = py_getdict(sys, py_name("argv"));
-    py_list_clear(argv_list);
-    for(int i = 0; i < argc; i++) {
-        py_newstr(py_list_emplace(argv_list), argv[i]);
-    }
+PK_INLINE void py_pushname(py_Name name) {
+    VM* vm = pk_current_vm;
+    py_newint(vm->stack.sp++, (uintptr_t)name);
 }
 
-py_Callbacks* py_callbacks() { return &pk_current_vm->callbacks; }
+PK_INLINE void py_pop() {
+    VM* vm = pk_current_vm;
+    vm->stack.sp--;
+}
 
-const char* pk_opname(Opcode op) {
-    const static char* OP_NAMES[] = {
-#define OPCODE(name) #name,
-#include "pocketpy/xmacros/opcodes.h"
-#undef OPCODE
-    };
-    return OP_NAMES[op];
+PK_INLINE void py_shrink(int n) {
+    VM* vm = pk_current_vm;
+    vm->stack.sp -= n;
+}
+
+PK_INLINE py_Ref py_pushtmp() {
+    VM* vm = pk_current_vm;
+    return vm->stack.sp++;
+}
+
+PK_INLINE bool py_pushmethod(py_Name name) {
+    bool ok = pk_loadmethod(py_peek(-1), name);
+    if(ok) pk_current_vm->stack.sp++;
+    return ok;
+}
+
+bool py_pusheval(const char* expr, py_GlobalRef module) {
+    bool ok = py_exec(expr, "<string>", EVAL_MODE, module);
+    if(!ok) return false;
+    py_push(py_retval());
+    return true;
+}
+
+PK_INLINE bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
+    return VM__vectorcall(pk_current_vm, argc, kwargc, false) != RES_ERROR;
 }
 
 bool py_call(py_Ref f, int argc, py_Ref argv) {
@@ -180,15 +101,15 @@ bool py_callcfunc(py_CFunction f, int argc, py_Ref argv) {
 }
 #endif
 
-bool py_vectorcall(uint16_t argc, uint16_t kwargc) {
-    return VM__vectorcall(pk_current_vm, argc, kwargc, false) != RES_ERROR;
+bool py_tpcall(py_Type type, int argc, py_Ref argv) {
+    return py_call(py_tpobject(type), argc, argv);
 }
 
-PK_INLINE py_Ref py_retval() { return &pk_current_vm->last_retval; }
-
-bool py_pushmethod(py_Name name) {
-    bool ok = pk_loadmethod(py_peek(-1), name);
-    if(ok) pk_current_vm->stack.sp++;
+bool py_binaryop(py_Ref lhs, py_Ref rhs, py_Name op, py_Name rop) {
+    py_push(lhs);
+    py_push(rhs);
+    bool ok = pk_stack_binaryop(pk_current_vm, op, rop);
+    py_shrink(2);
     return ok;
 }
 
@@ -267,20 +188,10 @@ bool pk_loadmethod(py_StackRef self, py_Name name) {
     return false;
 }
 
-bool py_tpcall(py_Type type, int argc, py_Ref argv) {
-    return py_call(py_tpobject(type), argc, argv);
-}
-
 bool pk_callmagic(py_Name name, int argc, py_Ref argv) {
     assert(argc >= 1);
     // assert(py_ismagicname(name));
     py_Ref tmp = py_tpfindmagic(argv->type, name);
     if(!tmp) return AttributeError(argv, name);
     return py_call(tmp, argc, argv);
-}
-
-bool StopIteration() {
-    bool ok = py_tpcall(tp_StopIteration, 0, NULL);
-    if(!ok) return false;
-    return py_raise(py_retval());
 }

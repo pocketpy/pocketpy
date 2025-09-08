@@ -189,9 +189,3 @@ bool py_json_loads(const char* source) {
     return py_exec(source, "<json>", EVAL_MODE, mod);
 }
 
-bool py_pusheval(const char* expr, py_GlobalRef module) {
-    bool ok = py_exec(expr, "<string>", EVAL_MODE, module);
-    if(!ok) return false;
-    py_push(py_retval());
-    return true;
-}
