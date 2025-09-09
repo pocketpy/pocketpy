@@ -175,6 +175,7 @@ void c11_dap_handle_evaluate(py_Ref arguments, c11_sbuf* buffer) {
     // [eval, nil, expression,  globals, locals]
     // vectorcall would pop the above 5 items
     // so we don't need to pop them manually
+    py_StackRef p0 = py_peek(0);
     py_Ref py_eval = py_pushtmp();
     py_pushnil();
     py_Ref expression = py_pushtmp();
@@ -188,9 +189,14 @@ void c11_dap_handle_evaluate(py_Ref arguments, c11_sbuf* buffer) {
     c11_sbuf__write_cstr(buffer, "\"body\":");
     if(!ok) {
         result = py_formatexc();
+        py_clearexc(p0);
     } else {
-        py_str(py_retval());
-        result = c11_strdup(py_tostr(py_retval()));
+        py_Ref py_result = py_pushtmp();
+        py_assign(py_result, py_retval());
+        py_str(py_result);
+        py_assign(py_result, py_retval());
+        result = c11_strdup(py_tostr(py_result));
+        py_pop();
     }
 
     c11_sv result_sv = {.data = result, .size = strlen(result)};
