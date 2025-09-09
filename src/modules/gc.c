@@ -40,8 +40,3 @@ void pk__add_module_gc() {
     py_bindfunc(mod, "disable", gc_disable);
     py_bindfunc(mod, "isenabled", gc_isenabled);
 }
-
-int py_gc_collect() {
-    ManagedHeap* heap = &pk_current_vm->heap;
-    return ManagedHeap__collect(heap);
-}

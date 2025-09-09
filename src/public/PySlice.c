@@ -4,12 +4,20 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 
-void py_newslice(py_OutRef out) {
+py_ObjectRef py_newslice(py_OutRef out) {
     VM* vm = pk_current_vm;
     PyObject* obj = ManagedHeap__gcnew(&vm->heap, tp_slice, 3, 0);
     out->type = tp_slice;
     out->is_ptr = true;
     out->_obj = obj;
+    return PyObject__slots(obj);
+}
+
+void py_newsliceint(py_OutRef out, py_i64 start, py_i64 stop, py_i64 step) {
+    py_Ref slots = py_newslice(out);
+    py_newint(&slots[0], start);
+    py_newint(&slots[1], stop);
+    py_newint(&slots[2], step);
 }
 
 static bool slice__new__(int argc, py_Ref argv) {

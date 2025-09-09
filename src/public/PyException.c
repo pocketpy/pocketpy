@@ -141,29 +141,9 @@ py_Type pk_StopIteration__register() {
     return type;
 }
 
-//////////////////////////////////////////////////
-bool py_checkexc() {
-    VM* vm = pk_current_vm;
-    return !py_isnil(&vm->unhandled_exc);
-}
-
-bool py_matchexc(py_Type type) {
-    VM* vm = pk_current_vm;
-    if(py_isnil(&vm->unhandled_exc)) return false;
-    bool ok = py_issubclass(vm->unhandled_exc.type, type);
-    if(ok) vm->last_retval = vm->unhandled_exc;
-    return ok;
-}
-
-void py_clearexc(py_StackRef p0) {
-    VM* vm = pk_current_vm;
-    py_newnil(&vm->unhandled_exc);
-    if(p0) vm->stack.sp = p0;
-}
 
 static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
-    if(true) { c11_sbuf__write_cstr(self, "Traceback (most recent call last):\n"); }
-
+    c11_sbuf__write_cstr(self, "Traceback (most recent call last):\n");
     BaseException* ud = py_touserdata(exc);
 
     for(int i = ud->stacktrace.length - 1; i >= 0; i--) {
@@ -208,6 +188,29 @@ char* safe_stringify_exception(py_Ref exc) {
     vm->unhandled_exc = *old_unhandled_exc;
     py_shrink(2);
     return c11_strdup(message);
+}
+
+//////////////////////////////////////////////////
+bool py_checkexc() {
+    VM* vm = pk_current_vm;
+    return !py_isnil(&vm->unhandled_exc);
+}
+
+bool py_matchexc(py_Type type) {
+    VM* vm = pk_current_vm;
+    if(py_isnil(&vm->unhandled_exc)) return false;
+    bool ok = py_issubclass(vm->unhandled_exc.type, type);
+    if(ok) vm->last_retval = vm->unhandled_exc;
+    return ok;
+}
+
+void py_clearexc(py_StackRef p0) {
+    VM* vm = pk_current_vm;
+    py_newnil(&vm->unhandled_exc);
+    if(p0) {
+        c11__rtassert(p0 >= vm->stack.begin && p0 <= vm->stack.sp);
+        vm->stack.sp = p0;
+    }
 }
 
 void py_printexc() {
@@ -295,6 +298,12 @@ bool py_raise(py_Ref exc) {
 
 bool KeyError(py_Ref key) {
     bool ok = py_tpcall(tp_KeyError, 1, key);
+    if(!ok) return false;
+    return py_raise(py_retval());
+}
+
+bool StopIteration() {
+    bool ok = py_tpcall(tp_StopIteration, 0, NULL);
     if(!ok) return false;
     return py_raise(py_retval());
 }

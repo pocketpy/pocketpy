@@ -27,19 +27,28 @@ class defaultdict(dict):
 
 
 class deque[T]:
-    _data: list[T]
     _head: int
     _tail: int
+    _maxlen: int | None
     _capacity: int
+    _data: list[T]
 
-    def __init__(self, iterable: Iterable[T] = None):
-        self._data = [None] * 8 # type: ignore
+    def __init__(self, iterable: Iterable[T] = None, maxlen: int | None = None):
+        if maxlen is not None:
+            assert maxlen > 0
+
         self._head = 0
         self._tail = 0
-        self._capacity = len(self._data)
+        self._maxlen = maxlen
+        self._capacity = 8 if maxlen is None else maxlen + 1
+        self._data = [None] * self._capacity # type: ignore
 
         if iterable is not None:
             self.extend(iterable)
+
+    @property
+    def maxlen(self) -> int | None:
+        return self._maxlen
 
     def __resize_2x(self):
         backup = list(self)
@@ -51,19 +60,25 @@ class deque[T]:
         self._data.extend([None] * (self._capacity - len(backup)))
 
     def append(self, x: T):
+        if (self._tail + 1) % self._capacity == self._head:
+            if self._maxlen is None:
+                self.__resize_2x()
+            else:
+                self.popleft()
         self._data[self._tail] = x
         self._tail = (self._tail + 1) % self._capacity
-        if (self._tail + 1) % self._capacity == self._head:
-            self.__resize_2x()
 
     def appendleft(self, x: T):
+        if (self._tail + 1) % self._capacity == self._head:
+            if self._maxlen is None:
+                self.__resize_2x()
+            else:
+                self.pop()
         self._head = (self._head - 1) % self._capacity
         self._data[self._head] = x
-        if (self._tail + 1) % self._capacity == self._head:
-            self.__resize_2x()
 
     def copy(self):
-        return deque(self)
+        return deque(self, maxlen=self.maxlen)
     
     def count(self, x: T) -> int:
         n = 0
@@ -84,12 +99,15 @@ class deque[T]:
         if self._head == self._tail:
             raise IndexError("pop from an empty deque")
         self._tail = (self._tail - 1) % self._capacity
-        return self._data[self._tail]
+        x = self._data[self._tail]
+        self._data[self._tail] = None
+        return x
     
     def popleft(self) -> T:
         if self._head == self._tail:
             raise IndexError("pop from an empty deque")
         x = self._data[self._head]
+        self._data[self._head] = None
         self._head = (self._head + 1) % self._capacity
         return x
     
@@ -144,5 +162,7 @@ class deque[T]:
         return not self == other
     
     def __repr__(self) -> str:
-        return f"deque({list(self)!r})"
+        if self.maxlen is None:
+            return f"deque({list(self)!r})"
+        return f"deque({list(self)!r}, maxlen={self.maxlen})"
 

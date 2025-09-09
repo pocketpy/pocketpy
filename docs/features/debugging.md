@@ -30,7 +30,7 @@ pocketpy provides a C-API `py_debugger_waitforattach`,
 which starts a debug server and waits for the VSCode extension to attach.
 When the debugger is attached, the program will continue to run.
 
-+ If you are using pocketpy's standalone executable `main.exe`, you can pass `--debug` flag to it. This will automatically call `py_debugger_waitforattach("localhost", 6110)` before running your program.
++ If you are using pocketpy's standalone executable `main.exe`, you can pass `--debug` flag to it. This will automatically call `py_debugger_waitforattach("127.0.0.1", 6110)` before running your program.
 + If you are embedding pocketpy as a library, you need to call `py_debugger_waitforattach` manually in your C/C++ code.
 
 ## Configuration
