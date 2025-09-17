@@ -11,8 +11,6 @@
 #include <assert.h>
 #include <time.h>
 
-static bool format_object(VM* self, py_Ref val, c11_sv spec);
-
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
@@ -1191,7 +1189,7 @@ __NEXT_STEP:
         //////////////////
         case OP_FORMAT_STRING: {
             py_Ref spec = c11__at(py_TValue, &frame->co->consts, byte.arg);
-            bool ok = format_object(self, TOP(), py_tosv(spec));
+            bool ok = pk_format_object(self, TOP(), py_tosv(spec));
             if(!ok) goto __ERROR;
             DISPATCH();
         }
@@ -1298,9 +1296,9 @@ bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
                      rhs_t);
 }
 
-static bool format_object(VM* self, py_Ref val, c11_sv spec) {
+bool pk_format_object(VM* self, py_Ref val, c11_sv spec) {
     // format TOS via `spec` inplace
-    // spec: '!r:.2f', '.2f'
+    // spec: '!r:.2f', ':.2f', '.2f'
     if(spec.size == 0) return py_str(val);
 
     if(spec.data[0] == '!') {

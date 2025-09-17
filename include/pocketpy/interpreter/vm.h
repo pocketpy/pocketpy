@@ -125,6 +125,8 @@ bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop);
 
 void pk_print_stack(VM* self, py_Frame* frame, Bytecode byte);
 
+bool pk_format_object(VM* self, py_Ref val, c11_sv spec);
+
 // type registration
 void pk_object__register();
 void pk_number__register();
