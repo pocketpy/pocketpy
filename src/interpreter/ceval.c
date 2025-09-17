@@ -1191,6 +1191,7 @@ __NEXT_STEP:
             py_Ref spec = c11__at(py_TValue, &frame->co->consts, byte.arg);
             bool ok = pk_format_object(self, TOP(), py_tosv(spec));
             if(!ok) goto __ERROR;
+            py_assign(TOP(), py_retval());
             DISPATCH();
         }
         default: c11__unreachable();
@@ -1439,7 +1440,7 @@ bool pk_format_object(VM* self, py_Ref val, c11_sv spec) {
 
     c11_string__delete(body);
     // inplace update
-    c11_sbuf__py_submit(&buf, val);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 
