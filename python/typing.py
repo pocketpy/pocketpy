@@ -54,3 +54,4 @@ final = lambda x: x
 assert_never = lambda x: x
 
 TypedDict = dict
+NotRequired = _PLACEHOLDER
