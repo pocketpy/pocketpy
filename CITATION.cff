@@ -1,0 +1,21 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: pocketpy
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - name: blueloveTH
+    website: 'https://pocketpy.dev'
+repository-code: 'https://github.com/pocketpy/pocketpy'
+url: 'https://pocketpy.dev'
+abstract: >-
+  A portable python 3.x interpreter in modern C for game scripting.
+keywords:
+  - python
+  - c
+  - interpreter
+license: MIT
