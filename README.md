@@ -21,6 +21,8 @@
 <img src="https://img.shields.io/discord/1048978026131640390.svg" /></a>
 <!-- HelloGithub -->
 <a href="https://hellogithub.com/repository/dd9c509d72a64caca03d99d5b1991a33" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=dd9c509d72a64caca03d99d5b1991a33&claim_uid=jhOYmWGE75AL0Bp&theme=small" alt="Featured｜HelloGitHub" /></a>
+<!-- DeepWiki -->
+<a href="https://deepwiki.com/pocketpy/pocketpy"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
 pocketpy is a portable Python 3.x interpreter, written in C11.
