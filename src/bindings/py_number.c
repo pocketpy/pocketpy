@@ -175,6 +175,20 @@ static bool int__mod__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool float__floordiv__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_f64 lhs = py_tofloat(&argv[0]);
+    py_f64 rhs;
+    if(try_castfloat(&argv[1], &rhs)) {
+        if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
+        py_f64 r = fmod(lhs, rhs);
+        py_newfloat(py_retval(), trunc((lhs - r) / rhs));
+        return true;
+    }
+    py_newnotimplemented(py_retval());
+    return true;
+}
+
 static bool float__mod__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_f64 lhs = py_tofloat(&argv[0]);
@@ -199,6 +213,21 @@ static bool float__rmod__(int argc, py_Ref argv) {
     }
     py_newnotimplemented(py_retval());
     return true;
+}
+
+static bool float__divmod__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_f64 lhs = py_tofloat(&argv[0]);
+    py_f64 rhs;
+    if(try_castfloat(&argv[1], &rhs)) {
+        if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
+        py_f64 r = fmod(lhs, rhs);
+        py_Ref p = py_newtuple(py_retval(), 2);
+        py_newfloat(&p[0], trunc((lhs - r) / rhs));
+        py_newfloat(&p[1], r);
+        return true;
+    }
+    return TypeError("divmod() expects int or float as divisor");
 }
 
 static bool int__divmod__(int argc, py_Ref argv) {
@@ -535,8 +564,10 @@ void pk_number__register() {
     py_bindmagic(tp_int, __divmod__, int__divmod__);
 
     // fmod
+    py_bindmagic(tp_float, __floordiv__, float__floordiv__);
     py_bindmagic(tp_float, __mod__, float__mod__);
     py_bindmagic(tp_float, __rmod__, float__rmod__);
+    py_bindmagic(tp_float, __divmod__, float__divmod__);
 
     // int.__invert__ & int.<BITWISE OP>
     py_bindmagic(tp_int, __invert__, int__invert__);
