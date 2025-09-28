@@ -29,8 +29,8 @@ void py_initialize() {
     bool is_little_endian = *(char*)&x == 1;
     if(!is_little_endian) c11__abort("is_little_endian != true");
 
-    static_assert(sizeof(py_TValue) == 24, "sizeof(py_TValue) != 24");
-    static_assert(offsetof(py_TValue, extra) == 4, "offsetof(py_TValue, extra) != 4");
+    _Static_assert(sizeof(py_TValue) == 24, "sizeof(py_TValue) != 24");
+    _Static_assert(offsetof(py_TValue, extra) == 4, "offsetof(py_TValue, extra) != 4");
 
     pk_current_vm = pk_all_vm[0] = &pk_default_vm;
 
