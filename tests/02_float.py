@@ -120,3 +120,10 @@ assert eq(10.5 // 4.5, 2.0)
 _0, _1 = divmod(10.5, 4)
 assert eq(_0, 2.0)
 assert eq(_1, 2.5)
+
+assert eq(3.4 % -2, -0.6)
+assert eq(-2 % 3.4, 1.4)
+assert eq(-3.4 % -2, -1.4)
+assert eq(-6 // 3.4, -2.0)
+assert eq(-6 % 3.4, 0.8)
+
