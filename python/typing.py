@@ -52,3 +52,6 @@ final = lambda x: x
 
 # exhaustiveness checking
 assert_never = lambda x: x
+
+TypedDict = dict
+NotRequired = _PLACEHOLDER

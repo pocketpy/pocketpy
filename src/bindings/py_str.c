@@ -1,9 +1,11 @@
 #include "pocketpy/common/str.h"
+#include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
+#include <stdbool.h>
 
 c11_string* pk_tostr(py_Ref self) {
     assert(self->type == tp_str);
@@ -394,6 +396,99 @@ static bool str_encode(int argc, py_Ref argv) {
     return true;
 }
 
+static bool str_format(int argc, py_Ref argv) {
+    c11_sv self = py_tosv(argv);
+    py_Ref args = argv + 1;
+    int64_t auto_field_index = -1;
+    bool manual_field_used = false;
+    const char* p_begin = self.data;
+    const char* p_end = self.data + self.size;
+    const char* p = p_begin;
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    while(p < p_end) {
+        if(*p == '{') {
+            if((p + 1) < p_end && p[1] == '{') {
+                // '{{' -> '{'
+                c11_sbuf__write_char(&buf, '{');
+                p += 2;
+            } else {
+                if((p + 1) >= p_end) {
+                    return ValueError("single '{' encountered in format string");
+                }
+                p++;
+                // parse field
+                c11_sv field = {p, 0};
+                while(p < p_end && *p != '}' && *p != ':') {
+                    p++;
+                }
+                if(p < p_end) field.size = p - field.data;
+                // parse spec
+                c11_sv spec = {p, 0};
+                if(*p == ':') {
+                    while(p < p_end && *p != '}') {
+                        p++;
+                    }
+                    if(p < p_end) spec.size = p - spec.data;
+                }
+                if(p < p_end) {
+                    c11__rtassert(*p == '}');
+                } else {
+                    return ValueError("expected '}' before end of string");
+                }
+                // parse auto field
+                int64_t arg_index;
+                if(field.size > 0) {  // {0}
+                    if(auto_field_index >= 0) {
+                        return ValueError(
+                            "cannot switch from automatic field numbering to manual field specification");
+                    }
+                    IntParsingResult res = c11__parse_uint(field, &arg_index, 10);
+                    if(res != IntParsing_SUCCESS) {
+                        return ValueError("only integer field name is supported");
+                    }
+                    manual_field_used = true;
+                } else {  // {}
+                    if(manual_field_used) {
+                        return ValueError(
+                            "cannot switch from manual field specification to automatic field numbering");
+                    }
+                    auto_field_index++;
+                    arg_index = auto_field_index;
+                }
+                // do format
+                if(arg_index < 0 || arg_index >= (argc - 1)) {
+                    return IndexError("replacement index %i out of range for positional args tuple",
+                                      arg_index);
+                }
+                bool ok = pk_format_object(pk_current_vm, &args[arg_index], spec);
+                if(!ok) {
+                    c11_sbuf__dtor(&buf);
+                    return false;
+                }
+                // append to buf
+                c11__rtassert(py_isstr(py_retval()));
+                c11_sv formatted = py_tosv(py_retval());
+                c11_sbuf__write_sv(&buf, formatted);
+                p++;  // skip '}'
+            }
+        } else if(*p == '}') {
+            if((p + 1) < p_end && p[1] == '}') {
+                // '}}' -> '}'
+                c11_sbuf__write_char(&buf, '}');
+                p += 2;
+            } else {
+                return ValueError("single '}' encountered in format string");
+            }
+        } else {
+            c11_sbuf__write_char(&buf, *p);
+            p++;
+        }
+    }
+    c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
 py_Type pk_str__register() {
     py_Type type = pk_newtype("str", tp_object, NULL, NULL, false, true);
     // no need to dtor because the memory is controlled by the object
@@ -434,6 +529,7 @@ py_Type pk_str__register() {
     py_bindmethod(tp_str, "find", str_find);
     py_bindmethod(tp_str, "index", str_index);
     py_bindmethod(tp_str, "encode", str_encode);
+    py_bindmethod(tp_str, "format", str_format);
     return type;
 }
 

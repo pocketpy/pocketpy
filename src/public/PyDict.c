@@ -651,10 +651,18 @@ bool dict_items__next__(int argc, py_Ref argv) {
     return StopIteration();
 }
 
+bool dict_items__len__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    DictIterator* iter = py_touserdata(py_arg(0));
+    py_newint(py_retval(), iter->dict->length);
+    return true;
+}
+
 py_Type pk_dict_items__register() {
     py_Type type = pk_newtype("dict_iterator", tp_object, NULL, NULL, false, true);
     py_bindmagic(type, __iter__, pk_wrapper__self);
     py_bindmagic(type, __next__, dict_items__next__);
+    py_bindmagic(type, __len__, dict_items__len__);
     return type;
 }
 

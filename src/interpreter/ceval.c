@@ -11,8 +11,6 @@
 #include <assert.h>
 #include <time.h>
 
-static bool stack_format_object(VM* self, c11_sv spec);
-
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
         frame->ip++;                                                                               \
@@ -118,8 +116,7 @@ __NEXT_STEP:
 
 #if PK_ENABLE_WATCHDOG
     if(self->watchdog_info.max_reset_time > 0) {
-        clock_t now = clock();
-        if(now > self->watchdog_info.max_reset_time) {
+        if(!py_debugger_isattached() && clock() > self->watchdog_info.max_reset_time) {
             self->watchdog_info.max_reset_time = 0;
             TimeoutError("watchdog timeout");
             goto __ERROR;
@@ -1191,8 +1188,9 @@ __NEXT_STEP:
         //////////////////
         case OP_FORMAT_STRING: {
             py_Ref spec = c11__at(py_TValue, &frame->co->consts, byte.arg);
-            bool ok = stack_format_object(self, py_tosv(spec));
+            bool ok = pk_format_object(self, TOP(), py_tosv(spec));
             if(!ok) goto __ERROR;
+            py_assign(TOP(), py_retval());
             DISPATCH();
         }
         default: c11__unreachable();
@@ -1298,10 +1296,9 @@ bool pk_stack_binaryop(VM* self, py_Name op, py_Name rop) {
                      rhs_t);
 }
 
-static bool stack_format_object(VM* self, c11_sv spec) {
+bool pk_format_object(VM* self, py_Ref val, c11_sv spec) {
     // format TOS via `spec` inplace
-    // spec: '!r:.2f', '.2f'
-    py_StackRef val = TOP();
+    // spec: '!r:.2f', ':.2f', '.2f'
     if(spec.size == 0) return py_str(val);
 
     if(spec.data[0] == '!') {
@@ -1442,7 +1439,7 @@ static bool stack_format_object(VM* self, c11_sv spec) {
 
     c11_string__delete(body);
     // inplace update
-    c11_sbuf__py_submit(&buf, val);
+    c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
 

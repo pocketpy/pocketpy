@@ -133,6 +133,7 @@ static bool math_radians(int argc, py_Ref argv) {
 }
 
 TWO_ARG_FUNC(fmod, fmod)
+TWO_ARG_FUNC(copysign, copysign)
 
 static bool math_modf(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -200,6 +201,7 @@ void pk__add_module_math() {
 
     py_bindfunc(mod, "fmod", math_fmod);
     py_bindfunc(mod, "modf", math_modf);
+    py_bindfunc(mod, "copysign", math_copysign);
     py_bindfunc(mod, "factorial", math_factorial);
 }
 

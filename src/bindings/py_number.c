@@ -149,6 +149,44 @@ static py_i64 cpy11__fast_mod(py_i64 a, py_i64 b) {
     return b < 0 ? -res : res;
 }
 
+// https://github.com/python/cpython/blob/3.11/Objects/floatobject.c#L677
+static void cpy11__float_div_mod(double vx, double wx, double *floordiv, double *mod)
+{
+    double div;
+    *mod = fmod(vx, wx);
+    /* fmod is typically exact, so vx-mod is *mathematically* an
+       exact multiple of wx.  But this is fp arithmetic, and fp
+       vx - mod is an approximation; the result is that div may
+       not be an exact integral value after the division, although
+       it will always be very close to one.
+    */
+    div = (vx - *mod) / wx;
+    if (*mod) {
+        /* ensure the remainder has the same sign as the denominator */
+        if ((wx < 0) != (*mod < 0)) {
+            *mod += wx;
+            div -= 1.0;
+        }
+    }
+    else {
+        /* the remainder is zero, and in the presence of signed zeroes
+           fmod returns different results across platforms; ensure
+           it has the same sign as the denominator. */
+        *mod = copysign(0.0, wx);
+    }
+    /* snap quotient to nearest integral value */
+    if (div) {
+        *floordiv = floor(div);
+        if (div - *floordiv > 0.5) {
+            *floordiv += 1.0;
+        }
+    }
+    else {
+        /* div is zero - get the same sign as the true quotient */
+        *floordiv = copysign(0.0, vx / wx); /* zero w/ sign of vx/wx */
+    }
+}
+
 static bool int__floordiv__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_toint(&argv[0]);
@@ -175,13 +213,45 @@ static bool int__mod__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool float__floordiv__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_f64 lhs = py_tofloat(&argv[0]);
+    py_f64 rhs;
+    if(try_castfloat(&argv[1], &rhs)) {
+        if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
+        double q, r;
+        cpy11__float_div_mod(lhs, rhs, &q, &r);
+        py_newfloat(py_retval(), q);
+        return true;
+    }
+    py_newnotimplemented(py_retval());
+    return true;
+}
+
+static bool float__rfloordiv__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_f64 rhs = py_tofloat(&argv[0]);
+    py_f64 lhs;
+    if(try_castfloat(&argv[1], &lhs)) {
+        if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
+        double q, r;
+        cpy11__float_div_mod(lhs, rhs, &q, &r);
+        py_newfloat(py_retval(), q);
+        return true;
+    }
+    py_newnotimplemented(py_retval());
+    return true;
+}
+
 static bool float__mod__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_f64 lhs = py_tofloat(&argv[0]);
     py_f64 rhs;
     if(try_castfloat(&argv[1], &rhs)) {
         if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
-        py_newfloat(py_retval(), fmod(lhs, rhs));
+        double q, r;
+        cpy11__float_div_mod(lhs, rhs, &q, &r);
+        py_newfloat(py_retval(), r);
         return true;
     }
     py_newnotimplemented(py_retval());
@@ -194,11 +264,29 @@ static bool float__rmod__(int argc, py_Ref argv) {
     py_f64 lhs;
     if(try_castfloat(&argv[1], &lhs)) {
         if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
-        py_newfloat(py_retval(), fmod(lhs, rhs));
+        double q, r;
+        cpy11__float_div_mod(lhs, rhs, &q, &r);
+        py_newfloat(py_retval(), r);
         return true;
     }
     py_newnotimplemented(py_retval());
     return true;
+}
+
+static bool float__divmod__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_f64 lhs = py_tofloat(&argv[0]);
+    py_f64 rhs;
+    if(try_castfloat(&argv[1], &rhs)) {
+        if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
+        double q, r;
+        cpy11__float_div_mod(lhs, rhs, &q, &r);
+        py_Ref p = py_newtuple(py_retval(), 2);
+        py_newfloat(&p[0], q);
+        py_newfloat(&p[1], r);
+        return true;
+    }
+    return TypeError("divmod() expects int or float as divisor");
 }
 
 static bool int__divmod__(int argc, py_Ref argv) {
@@ -535,8 +623,11 @@ void pk_number__register() {
     py_bindmagic(tp_int, __divmod__, int__divmod__);
 
     // fmod
+    py_bindmagic(tp_float, __floordiv__, float__floordiv__);
+    py_bindmagic(tp_float, __rfloordiv__, float__rfloordiv__);
     py_bindmagic(tp_float, __mod__, float__mod__);
     py_bindmagic(tp_float, __rmod__, float__rmod__);
+    py_bindmagic(tp_float, __divmod__, float__divmod__);
 
     // int.__invert__ & int.<BITWISE OP>
     py_bindmagic(tp_int, __invert__, int__invert__);

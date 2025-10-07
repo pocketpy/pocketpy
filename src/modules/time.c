@@ -5,24 +5,22 @@
 #define NANOS_PER_SEC 1000000000
 
 #ifndef __circle__
-    int64_t time_ns() {
-        struct timespec tms;
-    #ifdef CLOCK_REALTIME
-        clock_gettime(CLOCK_REALTIME, &tms);
-    #else
-        /* The C11 way */
-        timespec_get(&tms, TIME_UTC);
-    #endif
-        /* seconds, multiplied with 1 billion */
-        int64_t nanos = tms.tv_sec * (int64_t)NANOS_PER_SEC;
-        /* Add full nanoseconds */
-        nanos += tms.tv_nsec;
-        return nanos;
-    }
+int64_t time_ns() {
+    struct timespec tms;
+#ifdef CLOCK_REALTIME
+    clock_gettime(CLOCK_REALTIME, &tms);
 #else
-    int64_t time_ns() {
-        return 0;
-    }
+    /* The C11 way */
+    timespec_get(&tms, TIME_UTC);
+#endif
+    /* seconds, multiplied with 1 billion */
+    int64_t nanos = tms.tv_sec * (int64_t)NANOS_PER_SEC;
+    /* Add full nanoseconds */
+    nanos += tms.tv_nsec;
+    return nanos;
+}
+#else
+int64_t time_ns() { return 0; }
 #endif
 
 static bool time_time(int argc, py_Ref argv) {
@@ -39,15 +37,21 @@ static bool time_time_ns(int argc, py_Ref argv) {
     return true;
 }
 
+static bool time_perf_counter(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    py_newfloat(py_retval(), (double)clock() / CLOCKS_PER_SEC);
+    return true;
+}
+
 static bool time_sleep(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 secs;
     if(!py_castfloat(argv, &secs)) return false;
 
-    int64_t start = time_ns();
-    const int64_t end = start + secs * 1000000000;
+    clock_t start = clock();
+    const clock_t end = start + (clock_t)(secs * CLOCKS_PER_SEC);
     while(true) {
-        int64_t now = time_ns();
+        clock_t now = clock();
         if(now >= end) break;
     }
     py_newnone(py_retval());
@@ -101,6 +105,7 @@ void pk__add_module_time() {
 
     py_bindfunc(mod, "time", time_time);
     py_bindfunc(mod, "time_ns", time_time_ns);
+    py_bindfunc(mod, "perf_counter", time_perf_counter);
     py_bindfunc(mod, "sleep", time_sleep);
     py_bindfunc(mod, "localtime", time_localtime);
 }

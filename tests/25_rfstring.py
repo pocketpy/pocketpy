@@ -43,8 +43,17 @@ assert f'{a:<10}' == '10        '
 assert f'{a:<10.2f}' == '10.00     '
 assert f'{a:>10.2f}' == '     10.00'
 
+assert '{}'.format(a) == '10'
+assert '{:>10}'.format(a) == '        10'
+assert '{:<10}'.format(a) == '10        '
+assert '{:<10.2f}'.format(a) == '10.00     '
+assert '{:>10.2f}'.format(a) == '     10.00'
+
 assert f'{a:^10}' == '    10    '
 assert f'{a:^10.2f}' == '  10.00   '
+
+assert '{:^10}'.format(a) == '    10    '
+assert '{:^10.2f}'.format(a) == '  10.00   '
 
 assert f'{a:3d}' == ' 10'
 assert f'{a:10d}' == '        10'
