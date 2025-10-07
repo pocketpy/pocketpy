@@ -12,7 +12,7 @@ void py_BaseException__stpush(py_Frame* frame,
                               int lineno,
                               const char* func_name) {
     BaseException* ud = py_touserdata(self);
-    int max_frame_dumps = py_debugger_isattached() ? 31 : 7;
+    int max_frame_dumps = py_debugger_status() == 1 ? 31 : 7;
     if(ud->stacktrace.length >= max_frame_dumps) return;
     BaseExceptionFrame* frame_dump = c11_vector__emplace(&ud->stacktrace);
     PK_INCREF(src);
@@ -20,7 +20,7 @@ void py_BaseException__stpush(py_Frame* frame,
     frame_dump->lineno = lineno;
     frame_dump->name = func_name ? c11_string__new(func_name) : NULL;
 
-    if(py_debugger_isattached()) {
+    if(py_debugger_status() == 1) {
         if(frame != NULL) {
             py_Frame_newlocals(frame, &frame_dump->locals);
             py_Frame_newglobals(frame, &frame_dump->globals);
@@ -225,7 +225,7 @@ char* py_formatexc() {
     VM* vm = pk_current_vm;
     if(py_isnil(&vm->unhandled_exc)) return NULL;
     char* res = formatexc_internal(&vm->unhandled_exc);
-    if(py_debugger_isattached()) py_debugger_exceptionbreakpoint(&vm->unhandled_exc);
+    if(py_debugger_status() == 1) py_debugger_exceptionbreakpoint(&vm->unhandled_exc);
     return res;
 }
 
