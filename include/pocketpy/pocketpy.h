@@ -664,7 +664,7 @@ PK_API void py_debugger_exceptionbreakpoint(py_Ref exc);
 PK_API void py_debugger_exit(int code);
 #else
 #define py_debugger_waitforattach(hostname, port)
-#define py_debugger_isattached() (false)
+#define py_debugger_status() 0
 #define py_debugger_exceptionbreakpoint(exc)
 #define py_debugger_exit(code)
 #endif
