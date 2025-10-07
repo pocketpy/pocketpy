@@ -659,7 +659,7 @@ PK_API bool StopIteration() PY_RAISE;
 
 #if PK_ENABLE_OS
 PK_API void py_debugger_waitforattach(const char* hostname, unsigned short port);
-PK_API bool py_debugger_isattached();
+PK_API int py_debugger_status();
 PK_API void py_debugger_exceptionbreakpoint(py_Ref exc);
 PK_API void py_debugger_exit(int code);
 #else
