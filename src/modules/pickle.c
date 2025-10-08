@@ -26,6 +26,8 @@ typedef enum {
     PKL_VEC2I, PKL_VEC3I,
     PKL_TYPE,
     PKL_ARRAY2D,
+    PKL_IMPORT_PATH,
+    PKL_GETATTR,
     PKL_TVALUE,
     PKL_CALL,
     PKL_OBJECT,
@@ -94,6 +96,16 @@ static void pkl__emit_int(PickleObject* buf, py_i64 val) {
         pkl__emit_op(buf, PKL_INT64);
         PickleObject__write_bytes(buf, &val, 8);
     }
+}
+
+static void pkl__emit_cstr(PickleObject* buf, const char* s) {
+    PickleObject__write_bytes(buf, s, strlen(s) + 1);
+}
+
+const static char* pkl__read_cstr(const unsigned char** p) {
+    const char* s = (const char*)*p;
+    (*p) += strlen(s) + 1;
+    return s;
 }
 
 #define UNALIGNED_READ(p_val, p_buf)                                                               \
@@ -192,6 +204,16 @@ static void pkl__store_memo(PickleObject* buf, PyObject* memo_key) {
     pkl__emit_int(buf, index);
 }
 
+static bool _check_function(Function* f) {
+    if(!f->module) return ValueError("cannot pickle function (!f->module)");
+    if(f->closure) return ValueError("cannot pickle function with closure");
+    if(f->decl->nested) return ValueError("cannot pickle nested function");
+    c11_string* name = f->decl->code.name;
+    if(name->size == 0) return ValueError("cannot pickle function with empty name");
+    if(name->data[0] == '<') return ValueError("cannot pickle anonymous function");
+    return true;
+}
+
 static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
     switch(obj->type) {
         case tp_nil: {
@@ -228,61 +250,44 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
             return true;
         }
         case tp_str: {
-            if(pkl__try_memo(buf, obj->_obj))
-                return true;
-            else {
-                pkl__emit_op(buf, PKL_STRING);
-                c11_sv sv = py_tosv(obj);
-                pkl__emit_int(buf, sv.size);
-                PickleObject__write_bytes(buf, sv.data, sv.size);
-            }
-            pkl__store_memo(buf, obj->_obj);
+            if(obj->is_ptr && pkl__try_memo(buf, obj->_obj)) return true;
+            pkl__emit_op(buf, PKL_STRING);
+            c11_sv sv = py_tosv(obj);
+            pkl__emit_int(buf, sv.size);
+            PickleObject__write_bytes(buf, sv.data, sv.size);
+            if(obj->is_ptr) pkl__store_memo(buf, obj->_obj);
             return true;
         }
         case tp_bytes: {
-            if(pkl__try_memo(buf, obj->_obj))
-                return true;
-            else {
-                pkl__emit_op(buf, PKL_BYTES);
-                int size;
-                unsigned char* data = py_tobytes(obj, &size);
-                pkl__emit_int(buf, size);
-                PickleObject__write_bytes(buf, data, size);
-            }
+            if(pkl__try_memo(buf, obj->_obj)) return true;
+            pkl__emit_op(buf, PKL_BYTES);
+            int size;
+            unsigned char* data = py_tobytes(obj, &size);
+            pkl__emit_int(buf, size);
+            PickleObject__write_bytes(buf, data, size);
             pkl__store_memo(buf, obj->_obj);
             return true;
         }
         case tp_list: {
-            if(pkl__try_memo(buf, obj->_obj))
-                return true;
-            else {
-                bool ok =
-                    pkl__write_array(buf, PKL_BUILD_LIST, py_list_data(obj), py_list_len(obj));
-                if(!ok) return false;
-            }
+            if(pkl__try_memo(buf, obj->_obj)) return true;
+            bool ok = pkl__write_array(buf, PKL_BUILD_LIST, py_list_data(obj), py_list_len(obj));
+            if(!ok) return false;
             pkl__store_memo(buf, obj->_obj);
             return true;
         }
         case tp_tuple: {
-            if(pkl__try_memo(buf, obj->_obj))
-                return true;
-            else {
-                bool ok =
-                    pkl__write_array(buf, PKL_BUILD_TUPLE, py_tuple_data(obj), py_tuple_len(obj));
-                if(!ok) return false;
-            }
+            if(pkl__try_memo(buf, obj->_obj)) return true;
+            bool ok = pkl__write_array(buf, PKL_BUILD_TUPLE, py_tuple_data(obj), py_tuple_len(obj));
+            if(!ok) return false;
             pkl__store_memo(buf, obj->_obj);
             return true;
         }
         case tp_dict: {
-            if(pkl__try_memo(buf, obj->_obj))
-                return true;
-            else {
-                bool ok = py_dict_apply(obj, pkl__write_dict_kv, (void*)buf);
-                if(!ok) return false;
-                pkl__emit_op(buf, PKL_BUILD_DICT);
-                pkl__emit_int(buf, py_dict_len(obj));
-            }
+            if(pkl__try_memo(buf, obj->_obj)) return true;
+            bool ok = py_dict_apply(obj, pkl__write_dict_kv, (void*)buf);
+            if(!ok) return false;
+            pkl__emit_op(buf, PKL_BUILD_DICT);
+            pkl__emit_int(buf, py_dict_len(obj));
             pkl__store_memo(buf, obj->_obj);
             return true;
         }
@@ -320,22 +325,71 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
             pkl__emit_int(buf, type);
             return true;
         }
-        case tp_array2d: {
-            if(pkl__try_memo(buf, obj->_obj))
-                return true;
-            else {
-                c11_array2d* arr = py_touserdata(obj);
-                for(int i = 0; i < arr->header.numel; i++) {
-                    if(arr->data[i].is_ptr)
-                        return TypeError(
-                            "'array2d' object is not picklable because it contains heap-allocated objects");
-                    buf->used_types[arr->data[i].type] = true;
-                }
-                pkl__emit_op(buf, PKL_ARRAY2D);
-                pkl__emit_int(buf, arr->header.n_cols);
-                pkl__emit_int(buf, arr->header.n_rows);
-                PickleObject__write_bytes(buf, arr->data, arr->header.numel * sizeof(py_TValue));
+        case tp_module: {
+            if(pkl__try_memo(buf, obj->_obj)) return true;
+            py_ModuleInfo* mi = py_touserdata(obj);
+            pkl__emit_op(buf, PKL_IMPORT_PATH);
+            pkl__emit_cstr(buf, mi->path->data);
+            pkl__store_memo(buf, obj->_obj);
+            return true;
+        }
+        case tp_function: {
+            if(pkl__try_memo(buf, obj->_obj)) return true;
+            Function* f = py_touserdata(obj);
+            if(!_check_function(f)) return false;
+            c11_string* name = f->decl->code.name;
+            if(f->clazz) {
+                // NOTE: copied from logic of `case tp_type:`
+                pkl__emit_op(buf, PKL_TYPE);
+                py_TypeInfo* ti = PyObject__userdata(f->clazz);
+                py_Type type = ti->index;
+                buf->used_types[type] = true;
+                pkl__emit_int(buf, type);
+            } else {
+                if(!pkl__write_object(buf, f->module)) return false;
             }
+            pkl__emit_op(buf, PKL_GETATTR);
+            pkl__emit_cstr(buf, name->data);
+            pkl__store_memo(buf, obj->_obj);
+            return true;
+        }
+        case tp_boundmethod: {
+            py_Ref self = py_getslot(obj, 0);
+            if(!py_istype(self, tp_type)) {
+                return ValueError("tp_boundmethod: !py_istype(self, tp_type)");
+            }
+            py_Ref func = py_getslot(obj, 1);
+            if(!py_istype(func, tp_function)) {
+                return ValueError("tp_boundmethod: !py_istype(func, tp_function)");
+            }
+
+            Function* f = py_touserdata(func);
+            if(!_check_function(f)) return false;
+
+            c11_string* name = f->decl->code.name;
+            // NOTE: copied from logic of `case tp_type:`
+            pkl__emit_op(buf, PKL_TYPE);
+            py_Type type = py_totype(self);
+            buf->used_types[type] = true;
+            pkl__emit_int(buf, type);
+
+            pkl__emit_op(buf, PKL_GETATTR);
+            pkl__emit_cstr(buf, name->data);
+            return true;
+        }
+        case tp_array2d: {
+            if(pkl__try_memo(buf, obj->_obj)) return true;
+            c11_array2d* arr = py_touserdata(obj);
+            for(int i = 0; i < arr->header.numel; i++) {
+                if(arr->data[i].is_ptr)
+                    return TypeError(
+                        "'array2d' object is not picklable because it contains heap-allocated objects");
+                buf->used_types[arr->data[i].type] = true;
+            }
+            pkl__emit_op(buf, PKL_ARRAY2D);
+            pkl__emit_int(buf, arr->header.n_cols);
+            pkl__emit_int(buf, arr->header.n_rows);
+            PickleObject__write_bytes(buf, arr->data, arr->header.numel * sizeof(py_TValue));
             pkl__store_memo(buf, obj->_obj);
             return true;
         }
@@ -663,6 +717,22 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                     arr->data[i].type = pkl__fix_type(arr->data[i].type, type_mapping);
                 }
                 p += total_size;
+                break;
+            }
+            case PKL_IMPORT_PATH: {
+                const char* path = pkl__read_cstr(&p);
+                int res = py_import(path);
+                if(res == -1) return false;
+                if(res == 0) return ImportError("No module named '%s'", path);
+                py_push(py_retval());
+                break;
+            }
+            case PKL_GETATTR: {
+                const char* name = pkl__read_cstr(&p);
+                py_Ref obj = py_peek(-1);
+                if(!py_getattr(obj, py_name(name))) return false;
+                py_pop();
+                py_push(py_retval());
                 break;
             }
             case PKL_TVALUE: {

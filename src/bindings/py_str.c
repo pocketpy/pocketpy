@@ -414,6 +414,7 @@ static bool str_format(int argc, py_Ref argv) {
                 p += 2;
             } else {
                 if((p + 1) >= p_end) {
+                    c11_sbuf__dtor(&buf);
                     return ValueError("single '{' encountered in format string");
                 }
                 p++;
@@ -434,22 +435,26 @@ static bool str_format(int argc, py_Ref argv) {
                 if(p < p_end) {
                     c11__rtassert(*p == '}');
                 } else {
+                    c11_sbuf__dtor(&buf);
                     return ValueError("expected '}' before end of string");
                 }
                 // parse auto field
                 int64_t arg_index;
                 if(field.size > 0) {  // {0}
                     if(auto_field_index >= 0) {
+                        c11_sbuf__dtor(&buf);
                         return ValueError(
                             "cannot switch from automatic field numbering to manual field specification");
                     }
                     IntParsingResult res = c11__parse_uint(field, &arg_index, 10);
                     if(res != IntParsing_SUCCESS) {
+                        c11_sbuf__dtor(&buf);
                         return ValueError("only integer field name is supported");
                     }
                     manual_field_used = true;
                 } else {  // {}
                     if(manual_field_used) {
+                        c11_sbuf__dtor(&buf);
                         return ValueError(
                             "cannot switch from manual field specification to automatic field numbering");
                     }
@@ -458,6 +463,7 @@ static bool str_format(int argc, py_Ref argv) {
                 }
                 // do format
                 if(arg_index < 0 || arg_index >= (argc - 1)) {
+                    c11_sbuf__dtor(&buf);
                     return IndexError("replacement index %i out of range for positional args tuple",
                                       arg_index);
                 }
@@ -478,6 +484,7 @@ static bool str_format(int argc, py_Ref argv) {
                 c11_sbuf__write_char(&buf, '}');
                 p += 2;
             } else {
+                c11_sbuf__dtor(&buf);
                 return ValueError("single '}' encountered in format string");
             }
         } else {

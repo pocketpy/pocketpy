@@ -201,6 +201,8 @@ __NEXT_STEP:
                 py_Name name = py_name(decl->code.name->data);
                 // capture itself to allow recursion
                 NameDict__set(ud->closure, name, SP());
+            } else {
+                if(self->curr_class) ud->clazz = self->curr_class->_obj;
             }
             SP()++;
             DISPATCH();
@@ -1082,12 +1084,6 @@ __NEXT_STEP:
             assert(self->curr_class);
             py_Name name = co_names[byte.arg];
             // TOP() can be a function, classmethod or custom decorator
-            py_Ref actual_func = TOP();
-            if(actual_func->type == tp_classmethod) { actual_func = py_getslot(actual_func, 0); }
-            if(actual_func->type == tp_function) {
-                Function* ud = py_touserdata(actual_func);
-                ud->clazz = self->curr_class->_obj;
-            }
             py_setdict(self->curr_class, name, TOP());
             POP();
             DISPATCH();

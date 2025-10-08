@@ -20,7 +20,7 @@ The following types can be pickled:
 - [x] integers, floating-point numbers;
 - [x] strings, bytes;
 - [x] tuples, lists, sets, and dictionaries containing only picklable objects;
-- [ ] functions (built-in and user-defined) accessible from the top level of a module (using def, not lambda);
+- [x] functions (user-defined) accessible from the top level of a module (using def, not lambda);
 - [x] classes accessible from the top level of a module;
 - [x] instances of such classes
 

@@ -211,3 +211,25 @@ test(a)
 
 a = [int, float, Foo]
 test(a)
+
+# test function
+def f(x, y):
+    return x + y
+test(f)
+
+# test @staticmethod
+class B:
+    @staticmethod
+    def f(x, y):
+        return x * y
+    @classmethod
+    def g(cls):
+        return cls
+
+class C(B):
+    pass
+
+test(B.f)
+test(C.f)
+test(B.g)
+test(C.g)
