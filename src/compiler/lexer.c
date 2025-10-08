@@ -269,13 +269,20 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
         }
         if(!is_raw && c == '\\') {
             switch(eatchar_include_newline(self)) {
+                // For the list of available escape sequences see
+                // https://docs.python.org/3/reference/lexical_analysis.html#escape-sequences
                 case '"': c11_sbuf__write_char(buff, '"'); break;
                 case '\'': c11_sbuf__write_char(buff, '\''); break;
                 case '\\': c11_sbuf__write_char(buff, '\\'); break;
                 case 'n': c11_sbuf__write_char(buff, '\n'); break;
                 case 'r': c11_sbuf__write_char(buff, '\r'); break;
                 case 't': c11_sbuf__write_char(buff, '\t'); break;
+                case 'a': c11_sbuf__write_char(buff, '\a'); break;
                 case 'b': c11_sbuf__write_char(buff, '\b'); break;
+                case 'f': c11_sbuf__write_char(buff, '\f'); break;
+                case 'v': c11_sbuf__write_char(buff, '\v'); break;
+                // Special case for the often used \0 while we don't have full support for octal literals.
+                case '0': c11_sbuf__write_char(buff, '\0'); break;
                 case 'x': {
                     char hex[3] = {eatchar(self), eatchar(self), '\0'};
                     int code;

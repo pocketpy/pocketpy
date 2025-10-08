@@ -155,6 +155,12 @@ assert '\x30\x31\x32' == '012'
 assert '\b\b\b' == '\x08\x08\x08'
 assert repr('\x1f\x1e\x1f') == '\'\\x1f\\x1e\\x1f\''
 
+assert '\a' == '\x07'
+assert '\b' == '\x08'
+assert '\f' == '\x0c'
+assert '\v' == '\x0b'
+assert '\0' == '\x00'
+
 a = '123'
 assert a.index('2') == 1
 assert a.index('1') == 0
