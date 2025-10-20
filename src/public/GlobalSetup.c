@@ -65,12 +65,14 @@ void py_finalize() {
     pk_names_finalize();
 }
 
-int py_currentvm() {
+int VM__index(VM* self) {
     for(int i = 0; i < 16; i++) {
-        if(pk_all_vm[i] == pk_current_vm) return i;
+        if(pk_all_vm[i] == self) return i;
     }
     return -1;
 }
+
+int py_currentvm() { return VM__index(pk_current_vm); }
 
 void py_switchvm(int index) {
     if(index < 0 || index >= 16) c11__abort("invalid vm index");
@@ -103,6 +105,11 @@ void* py_getvmctx() { return pk_current_vm->ctx; }
 void py_setvmctx(void* ctx) { pk_current_vm->ctx = ctx; }
 
 py_Callbacks* py_callbacks() { return &pk_current_vm->callbacks; }
+
+py_AppCallbacks* py_appcallbacks() {
+    static py_AppCallbacks _callbacks = {0};
+    return &_callbacks;
+}
 
 /////////////////////////////
 

@@ -278,9 +278,19 @@ void VM__ctor(VM* self) {
     } while(0);
 
     self->main = py_newmodule("__main__");
+
+    if(py_appcallbacks()->on_vm_ctor) {
+        int index = VM__index(self);
+        py_appcallbacks()->on_vm_ctor(index);
+    }
 }
 
 void VM__dtor(VM* self) {
+    if(py_appcallbacks()->on_vm_dtor) {
+        int index = VM__index(self);
+        py_appcallbacks()->on_vm_dtor(index);
+    }
+
     // reset traceinfo
     py_sys_settrace(NULL, true);
     LineProfiler__dtor(&self->line_profiler);

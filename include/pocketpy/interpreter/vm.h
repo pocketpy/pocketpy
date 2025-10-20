@@ -78,6 +78,7 @@ typedef struct VM {
 
 void VM__ctor(VM* self);
 void VM__dtor(VM* self);
+int VM__index(VM* self);
 
 void VM__push_frame(VM* self, py_Frame* frame);
 void VM__pop_frame(VM* self);

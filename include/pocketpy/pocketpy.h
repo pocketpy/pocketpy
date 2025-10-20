@@ -90,6 +90,12 @@ typedef struct py_Callbacks {
     void (*gc_mark)(void (*f)(py_Ref val, void* ctx), void* ctx);
 } py_Callbacks;
 
+/// A struct contains the application-level callbacks.
+typedef struct py_AppCallbacks {
+    void (*on_vm_ctor)(int index);
+    void (*on_vm_dtor)(int index);
+} py_AppCallbacks;
+
 /// Native function signature.
 /// @param argc number of arguments.
 /// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
@@ -125,6 +131,8 @@ PK_API void* py_getvmctx();
 PK_API void py_setvmctx(void* ctx);
 /// Setup the callbacks for the current VM.
 PK_API py_Callbacks* py_callbacks();
+/// Setup the application callbacks
+PK_API py_AppCallbacks* py_appcallbacks();
 
 /// Set `sys.argv`. Used for storing command-line arguments.
 PK_API void py_sys_setargv(int argc, char** argv);
