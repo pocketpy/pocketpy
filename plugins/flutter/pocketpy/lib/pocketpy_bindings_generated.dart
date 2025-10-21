@@ -113,6 +113,28 @@ class PocketpyBindings {
   late final _py_setvmctx =
       _py_setvmctxPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
+  /// Setup the callbacks for the current VM.
+  ffi.Pointer<py_Callbacks> py_callbacks() {
+    return _py_callbacks();
+  }
+
+  late final _py_callbacksPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<py_Callbacks> Function()>>(
+          'py_callbacks');
+  late final _py_callbacks =
+      _py_callbacksPtr.asFunction<ffi.Pointer<py_Callbacks> Function()>();
+
+  /// Setup the application callbacks
+  ffi.Pointer<py_AppCallbacks> py_appcallbacks() {
+    return _py_appcallbacks();
+  }
+
+  late final _py_appcallbacksPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<py_AppCallbacks> Function()>>(
+          'py_appcallbacks');
+  late final _py_appcallbacks =
+      _py_appcallbacksPtr.asFunction<ffi.Pointer<py_AppCallbacks> Function()>();
+
   /// Set `sys.argv`. Used for storing command-line arguments.
   void py_sys_setargv(
     int argc,
@@ -156,17 +178,6 @@ class PocketpyBindings {
   late final _py_gc_collectPtr =
       _lookup<ffi.NativeFunction<ffi.Int Function()>>('py_gc_collect');
   late final _py_gc_collect = _py_gc_collectPtr.asFunction<int Function()>();
-
-  /// Setup the callbacks for the current VM.
-  ffi.Pointer<py_Callbacks> py_callbacks() {
-    return _py_callbacks();
-  }
-
-  late final _py_callbacksPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<py_Callbacks> Function()>>(
-          'py_callbacks');
-  late final _py_callbacks =
-      _py_callbacksPtr.asFunction<ffi.Pointer<py_Callbacks> Function()>();
 
   /// Wrapper for `PK_MALLOC(size)`.
   ffi.Pointer<ffi.Void> py_malloc(
@@ -216,65 +227,41 @@ class PocketpyBindings {
   late final _py_free =
       _py_freePtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
-  /// Begin the watchdog with `timeout` in milliseconds.
-  /// `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
-  /// You need to call `py_watchdog_end()` later.
-  /// If `timeout` is reached, `TimeoutError` will be raised.
-  void py_watchdog_begin(
-    int timeout,
-  ) {
-    return _py_watchdog_begin(
-      timeout,
-    );
+  /// A shorthand for `True`.
+  py_GlobalRef py_True() {
+    return _py_True();
   }
 
-  late final _py_watchdog_beginPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_i64)>>(
-          'py_watchdog_begin');
-  late final _py_watchdog_begin =
-      _py_watchdog_beginPtr.asFunction<void Function(int)>();
+  late final _py_TruePtr =
+      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>('py_True');
+  late final _py_True = _py_TruePtr.asFunction<py_GlobalRef Function()>();
 
-  /// Reset the watchdog.
-  void py_watchdog_end() {
-    return _py_watchdog_end();
+  /// A shorthand for `False`.
+  py_GlobalRef py_False() {
+    return _py_False();
   }
 
-  late final _py_watchdog_endPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_watchdog_end');
-  late final _py_watchdog_end =
-      _py_watchdog_endPtr.asFunction<void Function()>();
+  late final _py_FalsePtr =
+      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>('py_False');
+  late final _py_False = _py_FalsePtr.asFunction<py_GlobalRef Function()>();
 
-  /// Bind a compile-time function via "decl-based" style.
-  void py_macrobind(
-    ffi.Pointer<ffi.Char> sig,
-    py_CFunction f,
-  ) {
-    return _py_macrobind(
-      sig,
-      f,
-    );
+  /// A shorthand for `None`.
+  py_GlobalRef py_None() {
+    return _py_None();
   }
 
-  late final _py_macrobindPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(
-              ffi.Pointer<ffi.Char>, py_CFunction)>>('py_macrobind');
-  late final _py_macrobind = _py_macrobindPtr
-      .asFunction<void Function(ffi.Pointer<ffi.Char>, py_CFunction)>();
+  late final _py_NonePtr =
+      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>('py_None');
+  late final _py_None = _py_NonePtr.asFunction<py_GlobalRef Function()>();
 
-  /// Get a compile-time function by name.
-  py_ItemRef py_macroget(
-    py_Name name,
-  ) {
-    return _py_macroget(
-      name,
-    );
+  /// A shorthand for `nil`. `nil` is not a valid python object.
+  py_GlobalRef py_NIL() {
+    return _py_NIL();
   }
 
-  late final _py_macrogetPtr =
-      _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>('py_macroget');
-  late final _py_macroget =
-      _py_macrogetPtr.asFunction<py_ItemRef Function(py_Name)>();
+  late final _py_NILPtr =
+      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>('py_NIL');
+  late final _py_NIL = _py_NILPtr.asFunction<py_GlobalRef Function()>();
 
   /// Get the current source location of the frame.
   ffi.Pointer<ffi.Char> py_Frame_sourceloc(
@@ -346,6 +333,29 @@ class PocketpyBindings {
           'py_Frame_function');
   late final _py_Frame_function = _py_Frame_functionPtr
       .asFunction<py_StackRef Function(ffi.Pointer<py_Frame>)>();
+
+  /// Compile a source string into a code object.
+  /// Use python's `exec()` or `eval()` to execute it.
+  bool py_compile(
+    ffi.Pointer<ffi.Char> source,
+    ffi.Pointer<ffi.Char> filename,
+    int mode,
+    bool is_dynamic,
+  ) {
+    return _py_compile(
+      source,
+      filename,
+      mode,
+      is_dynamic,
+    );
+  }
+
+  late final _py_compilePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>,
+              ffi.Int32, ffi.Bool)>>('py_compile');
+  late final _py_compile = _py_compilePtr.asFunction<
+      bool Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>, int, bool)>();
 
   /// Run a source string.
   /// @param source source string.
@@ -435,94 +445,6 @@ class PocketpyBindings {
       'py_smarteval');
   late final _py_smarteval = _py_smartevalPtr
       .asFunction<bool Function(ffi.Pointer<ffi.Char>, py_Ref)>();
-
-  /// Compile a source string into a code object.
-  /// Use python's `exec()` or `eval()` to execute it.
-  bool py_compile(
-    ffi.Pointer<ffi.Char> source,
-    ffi.Pointer<ffi.Char> filename,
-    int mode,
-    bool is_dynamic,
-  ) {
-    return _py_compile(
-      source,
-      filename,
-      mode,
-      is_dynamic,
-    );
-  }
-
-  late final _py_compilePtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Bool Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>,
-              ffi.Int32, ffi.Bool)>>('py_compile');
-  late final _py_compile = _py_compilePtr.asFunction<
-      bool Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>, int, bool)>();
-
-  /// Python equivalent to `globals()`.
-  void py_newglobals(
-    py_OutRef arg0,
-  ) {
-    return _py_newglobals(
-      arg0,
-    );
-  }
-
-  late final _py_newglobalsPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>(
-          'py_newglobals');
-  late final _py_newglobals =
-      _py_newglobalsPtr.asFunction<void Function(py_OutRef)>();
-
-  /// Python equivalent to `locals()`.
-  void py_newlocals(
-    py_OutRef arg0,
-  ) {
-    return _py_newlocals(
-      arg0,
-    );
-  }
-
-  late final _py_newlocalsPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>('py_newlocals');
-  late final _py_newlocals =
-      _py_newlocalsPtr.asFunction<void Function(py_OutRef)>();
-
-  /// A shorthand for `True`.
-  py_GlobalRef py_True() {
-    return _py_True();
-  }
-
-  late final _py_TruePtr =
-      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>('py_True');
-  late final _py_True = _py_TruePtr.asFunction<py_GlobalRef Function()>();
-
-  /// A shorthand for `False`.
-  py_GlobalRef py_False() {
-    return _py_False();
-  }
-
-  late final _py_FalsePtr =
-      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>('py_False');
-  late final _py_False = _py_FalsePtr.asFunction<py_GlobalRef Function()>();
-
-  /// A shorthand for `None`.
-  py_GlobalRef py_None() {
-    return _py_None();
-  }
-
-  late final _py_NonePtr =
-      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>('py_None');
-  late final _py_None = _py_NonePtr.asFunction<py_GlobalRef Function()>();
-
-  /// A shorthand for `nil`. `nil` is not a valid python object.
-  py_GlobalRef py_NIL() {
-    return _py_NIL();
-  }
-
-  late final _py_NILPtr =
-      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>('py_NIL');
-  late final _py_NIL = _py_NILPtr.asFunction<py_GlobalRef Function()>();
 
   /// Create an `int` object.
   void py_newint(
@@ -741,85 +663,6 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>('py_newnil');
   late final _py_newnil = _py_newnilPtr.asFunction<void Function(py_OutRef)>();
 
-  /// Create a `tuple` with `n` UNINITIALIZED elements.
-  /// You should initialize all elements before using it.
-  py_ObjectRef py_newtuple(
-    py_OutRef arg0,
-    int n,
-  ) {
-    return _py_newtuple(
-      arg0,
-      n,
-    );
-  }
-
-  late final _py_newtuplePtr =
-      _lookup<ffi.NativeFunction<py_ObjectRef Function(py_OutRef, ffi.Int)>>(
-          'py_newtuple');
-  late final _py_newtuple =
-      _py_newtuplePtr.asFunction<py_ObjectRef Function(py_OutRef, int)>();
-
-  /// Create an empty `list`.
-  void py_newlist(
-    py_OutRef arg0,
-  ) {
-    return _py_newlist(
-      arg0,
-    );
-  }
-
-  late final _py_newlistPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>('py_newlist');
-  late final _py_newlist =
-      _py_newlistPtr.asFunction<void Function(py_OutRef)>();
-
-  /// Create a `list` with `n` UNINITIALIZED elements.
-  /// You should initialize all elements before using it.
-  void py_newlistn(
-    py_OutRef arg0,
-    int n,
-  ) {
-    return _py_newlistn(
-      arg0,
-      n,
-    );
-  }
-
-  late final _py_newlistnPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef, ffi.Int)>>(
-          'py_newlistn');
-  late final _py_newlistn =
-      _py_newlistnPtr.asFunction<void Function(py_OutRef, int)>();
-
-  /// Create an empty `dict`.
-  void py_newdict(
-    py_OutRef arg0,
-  ) {
-    return _py_newdict(
-      arg0,
-    );
-  }
-
-  late final _py_newdictPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>('py_newdict');
-  late final _py_newdict =
-      _py_newdictPtr.asFunction<void Function(py_OutRef)>();
-
-  /// Create an UNINITIALIZED `slice` object.
-  /// You should use `py_setslot()` to set `start`, `stop`, and `step`.
-  void py_newslice(
-    py_OutRef arg0,
-  ) {
-    return _py_newslice(
-      arg0,
-    );
-  }
-
-  late final _py_newslicePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>('py_newslice');
-  late final _py_newslice =
-      _py_newslicePtr.asFunction<void Function(py_OutRef)>();
-
   /// Create a `nativefunc` object.
   void py_newnativefunc(
     py_OutRef arg0,
@@ -880,6 +723,33 @@ class PocketpyBindings {
           'py_newboundmethod');
   late final _py_newboundmethod = _py_newboundmethodPtr
       .asFunction<void Function(py_OutRef, py_Ref, py_Ref)>();
+
+  /// Create a new object.
+  /// @param out output reference.
+  /// @param type type of the object.
+  /// @param slots number of slots. Use `-1` to create a `__dict__`.
+  /// @param udsize size of your userdata.
+  /// @return pointer to the userdata.
+  ffi.Pointer<ffi.Void> py_newobject(
+    py_OutRef out,
+    int type,
+    int slots,
+    int udsize,
+  ) {
+    return _py_newobject(
+      out,
+      type,
+      slots,
+      udsize,
+    );
+  }
+
+  late final _py_newobjectPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Void> Function(
+              py_OutRef, py_Type, ffi.Int, ffi.Int)>>('py_newobject');
+  late final _py_newobject = _py_newobjectPtr
+      .asFunction<ffi.Pointer<ffi.Void> Function(py_OutRef, int, int, int)>();
 
   /// Convert a null-terminated string to a name.
   py_Name py_name(
@@ -953,58 +823,174 @@ class PocketpyBindings {
   late final _py_name2sv =
       _py_name2svPtr.asFunction<c11_sv Function(py_Name)>();
 
-  /// Create a new type.
-  /// @param name name of the type.
-  /// @param base base type.
-  /// @param module module where the type is defined. Use `NULL` for built-in types.
-  /// @param dtor destructor function. Use `NULL` if not needed.
-  int py_newtype(
-    ffi.Pointer<ffi.Char> name,
-    int base,
-    py_GlobalRef module,
-    py_Dtor dtor,
+  /// Bind a function to the object via "decl-based" style.
+  /// @param obj the target object.
+  /// @param sig signature of the function. e.g. `add(x, y)`.
+  /// @param f function to bind.
+  void py_bind(
+    py_Ref obj,
+    ffi.Pointer<ffi.Char> sig,
+    py_CFunction f,
   ) {
-    return _py_newtype(
-      name,
-      base,
-      module,
-      dtor,
+    return _py_bind(
+      obj,
+      sig,
+      f,
     );
   }
 
-  late final _py_newtypePtr = _lookup<
+  late final _py_bindPtr = _lookup<
       ffi.NativeFunction<
-          py_Type Function(ffi.Pointer<ffi.Char>, py_Type, py_GlobalRef,
-              py_Dtor)>>('py_newtype');
-  late final _py_newtype = _py_newtypePtr.asFunction<
-      int Function(ffi.Pointer<ffi.Char>, int, py_GlobalRef, py_Dtor)>();
+          ffi.Void Function(
+              py_Ref, ffi.Pointer<ffi.Char>, py_CFunction)>>('py_bind');
+  late final _py_bind = _py_bindPtr
+      .asFunction<void Function(py_Ref, ffi.Pointer<ffi.Char>, py_CFunction)>();
 
-  /// Create a new object.
-  /// @param out output reference.
-  /// @param type type of the object.
-  /// @param slots number of slots. Use `-1` to create a `__dict__`.
-  /// @param udsize size of your userdata.
-  /// @return pointer to the userdata.
-  ffi.Pointer<ffi.Void> py_newobject(
-    py_OutRef out,
+  /// Bind a method to type via "argc-based" style.
+  /// @param type the target type.
+  /// @param name name of the method.
+  /// @param f function to bind.
+  void py_bindmethod(
     int type,
-    int slots,
-    int udsize,
+    ffi.Pointer<ffi.Char> name,
+    py_CFunction f,
   ) {
-    return _py_newobject(
-      out,
+    return _py_bindmethod(
       type,
-      slots,
-      udsize,
+      name,
+      f,
     );
   }
 
-  late final _py_newobjectPtr = _lookup<
+  late final _py_bindmethodPtr = _lookup<
       ffi.NativeFunction<
-          ffi.Pointer<ffi.Void> Function(
-              py_OutRef, py_Type, ffi.Int, ffi.Int)>>('py_newobject');
-  late final _py_newobject = _py_newobjectPtr
-      .asFunction<ffi.Pointer<ffi.Void> Function(py_OutRef, int, int, int)>();
+          ffi.Void Function(
+              py_Type, ffi.Pointer<ffi.Char>, py_CFunction)>>('py_bindmethod');
+  late final _py_bindmethod = _py_bindmethodPtr
+      .asFunction<void Function(int, ffi.Pointer<ffi.Char>, py_CFunction)>();
+
+  /// Bind a static method to type via "argc-based" style.
+  /// @param type the target type.
+  /// @param name name of the method.
+  /// @param f function to bind.
+  void py_bindstaticmethod(
+    int type,
+    ffi.Pointer<ffi.Char> name,
+    py_CFunction f,
+  ) {
+    return _py_bindstaticmethod(
+      type,
+      name,
+      f,
+    );
+  }
+
+  late final _py_bindstaticmethodPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(py_Type, ffi.Pointer<ffi.Char>,
+              py_CFunction)>>('py_bindstaticmethod');
+  late final _py_bindstaticmethod = _py_bindstaticmethodPtr
+      .asFunction<void Function(int, ffi.Pointer<ffi.Char>, py_CFunction)>();
+
+  /// Bind a function to the object via "argc-based" style.
+  /// @param obj the target object.
+  /// @param name name of the function.
+  /// @param f function to bind.
+  void py_bindfunc(
+    py_Ref obj,
+    ffi.Pointer<ffi.Char> name,
+    py_CFunction f,
+  ) {
+    return _py_bindfunc(
+      obj,
+      name,
+      f,
+    );
+  }
+
+  late final _py_bindfuncPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              py_Ref, ffi.Pointer<ffi.Char>, py_CFunction)>>('py_bindfunc');
+  late final _py_bindfunc = _py_bindfuncPtr
+      .asFunction<void Function(py_Ref, ffi.Pointer<ffi.Char>, py_CFunction)>();
+
+  /// Bind a property to type.
+  /// @param type the target type.
+  /// @param name name of the property.
+  /// @param getter getter function.
+  /// @param setter setter function. Use `NULL` if not needed.
+  void py_bindproperty(
+    int type,
+    ffi.Pointer<ffi.Char> name,
+    py_CFunction getter,
+    py_CFunction setter,
+  ) {
+    return _py_bindproperty(
+      type,
+      name,
+      getter,
+      setter,
+    );
+  }
+
+  late final _py_bindpropertyPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(py_Type, ffi.Pointer<ffi.Char>, py_CFunction,
+              py_CFunction)>>('py_bindproperty');
+  late final _py_bindproperty = _py_bindpropertyPtr.asFunction<
+      void Function(int, ffi.Pointer<ffi.Char>, py_CFunction, py_CFunction)>();
+
+  /// Bind a magic method to type.
+  void py_bindmagic(
+    int type,
+    py_Name name,
+    py_CFunction f,
+  ) {
+    return _py_bindmagic(
+      type,
+      name,
+      f,
+    );
+  }
+
+  late final _py_bindmagicPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(py_Type, py_Name, py_CFunction)>>('py_bindmagic');
+  late final _py_bindmagic =
+      _py_bindmagicPtr.asFunction<void Function(int, py_Name, py_CFunction)>();
+
+  /// Bind a compile-time function via "decl-based" style.
+  void py_macrobind(
+    ffi.Pointer<ffi.Char> sig,
+    py_CFunction f,
+  ) {
+    return _py_macrobind(
+      sig,
+      f,
+    );
+  }
+
+  late final _py_macrobindPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              ffi.Pointer<ffi.Char>, py_CFunction)>>('py_macrobind');
+  late final _py_macrobind = _py_macrobindPtr
+      .asFunction<void Function(ffi.Pointer<ffi.Char>, py_CFunction)>();
+
+  /// Get a compile-time function by name.
+  py_ItemRef py_macroget(
+    py_Name name,
+  ) {
+    return _py_macroget(
+      name,
+    );
+  }
+
+  late final _py_macrogetPtr =
+      _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>('py_macroget');
+  late final _py_macroget =
+      _py_macrogetPtr.asFunction<py_ItemRef Function(py_Name)>();
 
   /// Convert an `int` object in python to `int64_t`.
   int py_toint(
@@ -1019,7 +1005,7 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_i64 Function(py_Ref)>>('py_toint');
   late final _py_toint = _py_tointPtr.asFunction<int Function(py_Ref)>();
 
-  /// Get the address of the trivial value object.
+  /// Get the address of the trivial value object (16 bytes).
   ffi.Pointer<ffi.Void> py_totrivial(
     py_Ref arg0,
   ) {
@@ -1126,6 +1112,21 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<py_Type Function(py_Ref)>>('py_totype');
   late final _py_totype = _py_totypePtr.asFunction<int Function(py_Ref)>();
 
+  /// Convert a user-defined object to its userdata.
+  ffi.Pointer<ffi.Void> py_touserdata(
+    py_Ref arg0,
+  ) {
+    return _py_touserdata(
+      arg0,
+    );
+  }
+
+  late final _py_touserdataPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Void> Function(py_Ref)>>(
+          'py_touserdata');
+  late final _py_touserdata =
+      _py_touserdataPtr.asFunction<ffi.Pointer<ffi.Void> Function(py_Ref)>();
+
   /// Convert a `str` object in python to null-terminated string.
   ffi.Pointer<ffi.Char> py_tostr(
     py_Ref arg0,
@@ -1207,51 +1208,31 @@ class PocketpyBindings {
   late final _py_bytes_resize =
       _py_bytes_resizePtr.asFunction<void Function(py_Ref, int)>();
 
-  /// Convert a user-defined object to its userdata.
-  ffi.Pointer<ffi.Void> py_touserdata(
-    py_Ref arg0,
+  /// Create a new type.
+  /// @param name name of the type.
+  /// @param base base type.
+  /// @param module module where the type is defined. Use `NULL` for built-in types.
+  /// @param dtor destructor function. Use `NULL` if not needed.
+  int py_newtype(
+    ffi.Pointer<ffi.Char> name,
+    int base,
+    py_GlobalRef module,
+    py_Dtor dtor,
   ) {
-    return _py_touserdata(
-      arg0,
-    );
-  }
-
-  late final _py_touserdataPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Void> Function(py_Ref)>>(
-          'py_touserdata');
-  late final _py_touserdata =
-      _py_touserdataPtr.asFunction<ffi.Pointer<ffi.Void> Function(py_Ref)>();
-
-  /// Get the type of the object.
-  int py_typeof(
-    py_Ref self,
-  ) {
-    return _py_typeof(
-      self,
-    );
-  }
-
-  late final _py_typeofPtr =
-      _lookup<ffi.NativeFunction<py_Type Function(py_Ref)>>('py_typeof');
-  late final _py_typeof = _py_typeofPtr.asFunction<int Function(py_Ref)>();
-
-  /// Get type by module and name. e.g. `py_gettype("time", py_name("struct_time"))`.
-  /// Return `0` if not found.
-  int py_gettype(
-    ffi.Pointer<ffi.Char> module,
-    py_Name name,
-  ) {
-    return _py_gettype(
-      module,
+    return _py_newtype(
       name,
+      base,
+      module,
+      dtor,
     );
   }
 
-  late final _py_gettypePtr = _lookup<
-          ffi.NativeFunction<py_Type Function(ffi.Pointer<ffi.Char>, py_Name)>>(
-      'py_gettype');
-  late final _py_gettype =
-      _py_gettypePtr.asFunction<int Function(ffi.Pointer<ffi.Char>, py_Name)>();
+  late final _py_newtypePtr = _lookup<
+      ffi.NativeFunction<
+          py_Type Function(ffi.Pointer<ffi.Char>, py_Type, py_GlobalRef,
+              py_Dtor)>>('py_newtype');
+  late final _py_newtype = _py_newtypePtr.asFunction<
+      int Function(ffi.Pointer<ffi.Char>, int, py_GlobalRef, py_Dtor)>();
 
   /// Check if the object is exactly the given type.
   bool py_istype(
@@ -1269,6 +1250,19 @@ class PocketpyBindings {
           'py_istype');
   late final _py_istype =
       _py_istypePtr.asFunction<bool Function(py_Ref, int)>();
+
+  /// Get the type of the object.
+  int py_typeof(
+    py_Ref self,
+  ) {
+    return _py_typeof(
+      self,
+    );
+  }
+
+  late final _py_typeofPtr =
+      _lookup<ffi.NativeFunction<py_Type Function(py_Ref)>>('py_typeof');
+  late final _py_typeof = _py_typeofPtr.asFunction<int Function(py_Ref)>();
 
   /// Check if the object is an instance of the given type.
   bool py_isinstance(
@@ -1303,6 +1297,60 @@ class PocketpyBindings {
           'py_issubclass');
   late final _py_issubclass =
       _py_issubclassPtr.asFunction<bool Function(int, int)>();
+
+  /// Get type by module and name. e.g. `py_gettype("time", py_name("struct_time"))`.
+  /// Return `0` if not found.
+  int py_gettype(
+    ffi.Pointer<ffi.Char> module,
+    py_Name name,
+  ) {
+    return _py_gettype(
+      module,
+      name,
+    );
+  }
+
+  late final _py_gettypePtr = _lookup<
+          ffi.NativeFunction<py_Type Function(ffi.Pointer<ffi.Char>, py_Name)>>(
+      'py_gettype');
+  late final _py_gettype =
+      _py_gettypePtr.asFunction<int Function(ffi.Pointer<ffi.Char>, py_Name)>();
+
+  /// Check if the object is an instance of the given type exactly.
+  /// Raise `TypeError` if the check fails.
+  bool py_checktype(
+    py_Ref self,
+    int type,
+  ) {
+    return _py_checktype(
+      self,
+      type,
+    );
+  }
+
+  late final _py_checktypePtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Type)>>(
+          'py_checktype');
+  late final _py_checktype =
+      _py_checktypePtr.asFunction<bool Function(py_Ref, int)>();
+
+  /// Check if the object is an instance of the given type or its subclass.
+  /// Raise `TypeError` if the check fails.
+  bool py_checkinstance(
+    py_Ref self,
+    int type,
+  ) {
+    return _py_checkinstance(
+      self,
+      type,
+    );
+  }
+
+  late final _py_checkinstancePtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Type)>>(
+          'py_checkinstance');
+  late final _py_checkinstance =
+      _py_checkinstancePtr.asFunction<bool Function(py_Ref, int)>();
 
   /// Get the magic method from the given type only.
   /// Return `nil` if not found.
@@ -1401,25 +1449,6 @@ class PocketpyBindings {
   late final _py_tpname =
       _py_tpnamePtr.asFunction<ffi.Pointer<ffi.Char> Function(int)>();
 
-  /// Call a type to create a new instance.
-  bool py_tpcall(
-    int type,
-    int argc,
-    py_Ref argv,
-  ) {
-    return _py_tpcall(
-      type,
-      argc,
-      argv,
-    );
-  }
-
-  late final _py_tpcallPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Type, ffi.Int, py_Ref)>>(
-          'py_tpcall');
-  late final _py_tpcall =
-      _py_tpcallPtr.asFunction<bool Function(int, int, py_Ref)>();
-
   /// Disable the type for subclassing.
   void py_tpsetfinal(
     int type,
@@ -1492,41 +1521,71 @@ class PocketpyBindings {
               ffi.NativeFunction<
                   ffi.Bool Function(py_Ref self, py_Name name)>>)>();
 
-  /// Check if the object is an instance of the given type exactly.
-  /// Raise `TypeError` if the check fails.
-  bool py_checktype(
-    py_Ref self,
-    int type,
+  /// Get the current `function` object on the stack.
+  /// Return `NULL` if not available.
+  /// NOTE: This function should be placed at the beginning of your decl-based bindings.
+  py_StackRef py_inspect_currentfunction() {
+    return _py_inspect_currentfunction();
+  }
+
+  late final _py_inspect_currentfunctionPtr =
+      _lookup<ffi.NativeFunction<py_StackRef Function()>>(
+          'py_inspect_currentfunction');
+  late final _py_inspect_currentfunction =
+      _py_inspect_currentfunctionPtr.asFunction<py_StackRef Function()>();
+
+  /// Get the current `module` object where the code is executed.
+  /// Return `NULL` if not available.
+  py_GlobalRef py_inspect_currentmodule() {
+    return _py_inspect_currentmodule();
+  }
+
+  late final _py_inspect_currentmodulePtr =
+      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>(
+          'py_inspect_currentmodule');
+  late final _py_inspect_currentmodule =
+      _py_inspect_currentmodulePtr.asFunction<py_GlobalRef Function()>();
+
+  /// Get the current frame object.
+  /// Return `NULL` if not available.
+  ffi.Pointer<py_Frame> py_inspect_currentframe() {
+    return _py_inspect_currentframe();
+  }
+
+  late final _py_inspect_currentframePtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<py_Frame> Function()>>(
+          'py_inspect_currentframe');
+  late final _py_inspect_currentframe = _py_inspect_currentframePtr
+      .asFunction<ffi.Pointer<py_Frame> Function()>();
+
+  /// Python equivalent to `globals()`.
+  void py_newglobals(
+    py_OutRef arg0,
   ) {
-    return _py_checktype(
-      self,
-      type,
+    return _py_newglobals(
+      arg0,
     );
   }
 
-  late final _py_checktypePtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Type)>>(
-          'py_checktype');
-  late final _py_checktype =
-      _py_checktypePtr.asFunction<bool Function(py_Ref, int)>();
+  late final _py_newglobalsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>(
+          'py_newglobals');
+  late final _py_newglobals =
+      _py_newglobalsPtr.asFunction<void Function(py_OutRef)>();
 
-  /// Check if the object is an instance of the given type or its subclass.
-  /// Raise `TypeError` if the check fails.
-  bool py_checkinstance(
-    py_Ref self,
-    int type,
+  /// Python equivalent to `locals()`.
+  void py_newlocals(
+    py_OutRef arg0,
   ) {
-    return _py_checkinstance(
-      self,
-      type,
+    return _py_newlocals(
+      arg0,
     );
   }
 
-  late final _py_checkinstancePtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Type)>>(
-          'py_checkinstance');
-  late final _py_checkinstance =
-      _py_checkinstancePtr.asFunction<bool Function(py_Ref, int)>();
+  late final _py_newlocalsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>('py_newlocals');
+  late final _py_newlocals =
+      _py_newlocalsPtr.asFunction<void Function(py_OutRef)>();
 
   /// Get the i-th register.
   /// All registers are located in a contiguous memory.
@@ -1559,52 +1618,6 @@ class PocketpyBindings {
           'py_setreg');
   late final _py_setreg =
       _py_setregPtr.asFunction<void Function(int, py_Ref)>();
-
-  /// Get variable in the `__main__` module.
-  py_ItemRef py_getglobal(
-    py_Name name,
-  ) {
-    return _py_getglobal(
-      name,
-    );
-  }
-
-  late final _py_getglobalPtr =
-      _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>('py_getglobal');
-  late final _py_getglobal =
-      _py_getglobalPtr.asFunction<py_ItemRef Function(py_Name)>();
-
-  /// Set variable in the `__main__` module.
-  void py_setglobal(
-    py_Name name,
-    py_Ref val,
-  ) {
-    return _py_setglobal(
-      name,
-      val,
-    );
-  }
-
-  late final _py_setglobalPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_Name, py_Ref)>>(
-          'py_setglobal');
-  late final _py_setglobal =
-      _py_setglobalPtr.asFunction<void Function(py_Name, py_Ref)>();
-
-  /// Get variable in the `builtins` module.
-  py_ItemRef py_getbuiltin(
-    py_Name name,
-  ) {
-    return _py_getbuiltin(
-      name,
-    );
-  }
-
-  late final _py_getbuiltinPtr =
-      _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>(
-          'py_getbuiltin');
-  late final _py_getbuiltin =
-      _py_getbuiltinPtr.asFunction<py_ItemRef Function(py_Name)>();
 
   /// Get the last return value.
   /// Please note that `py_retval()` cannot be used as input argument.
@@ -1776,285 +1789,261 @@ class PocketpyBindings {
   late final _py_setslot =
       _py_setslotPtr.asFunction<void Function(py_Ref, int, py_Ref)>();
 
-  /// Get the current `function` object on the stack.
-  /// Return `NULL` if not available.
-  /// NOTE: This function should be placed at the beginning of your decl-based bindings.
-  py_StackRef py_inspect_currentfunction() {
-    return _py_inspect_currentfunction();
-  }
-
-  late final _py_inspect_currentfunctionPtr =
-      _lookup<ffi.NativeFunction<py_StackRef Function()>>(
-          'py_inspect_currentfunction');
-  late final _py_inspect_currentfunction =
-      _py_inspect_currentfunctionPtr.asFunction<py_StackRef Function()>();
-
-  /// Get the current `module` object where the code is executed.
-  /// Return `NULL` if not available.
-  py_GlobalRef py_inspect_currentmodule() {
-    return _py_inspect_currentmodule();
-  }
-
-  late final _py_inspect_currentmodulePtr =
-      _lookup<ffi.NativeFunction<py_GlobalRef Function()>>(
-          'py_inspect_currentmodule');
-  late final _py_inspect_currentmodule =
-      _py_inspect_currentmodulePtr.asFunction<py_GlobalRef Function()>();
-
-  /// Get the current frame object.
-  /// Return `NULL` if not available.
-  ffi.Pointer<py_Frame> py_inspect_currentframe() {
-    return _py_inspect_currentframe();
-  }
-
-  late final _py_inspect_currentframePtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<py_Frame> Function()>>(
-          'py_inspect_currentframe');
-  late final _py_inspect_currentframe = _py_inspect_currentframePtr
-      .asFunction<ffi.Pointer<py_Frame> Function()>();
-
-  /// Bind a function to the object via "decl-based" style.
-  /// @param obj the target object.
-  /// @param sig signature of the function. e.g. `add(x, y)`.
-  /// @param f function to bind.
-  void py_bind(
-    py_Ref obj,
-    ffi.Pointer<ffi.Char> sig,
-    py_CFunction f,
-  ) {
-    return _py_bind(
-      obj,
-      sig,
-      f,
-    );
-  }
-
-  late final _py_bindPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(
-              py_Ref, ffi.Pointer<ffi.Char>, py_CFunction)>>('py_bind');
-  late final _py_bind = _py_bindPtr
-      .asFunction<void Function(py_Ref, ffi.Pointer<ffi.Char>, py_CFunction)>();
-
-  /// Bind a method to type via "argc-based" style.
-  /// @param type the target type.
-  /// @param name name of the method.
-  /// @param f function to bind.
-  void py_bindmethod(
-    int type,
-    ffi.Pointer<ffi.Char> name,
-    py_CFunction f,
-  ) {
-    return _py_bindmethod(
-      type,
-      name,
-      f,
-    );
-  }
-
-  late final _py_bindmethodPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(
-              py_Type, ffi.Pointer<ffi.Char>, py_CFunction)>>('py_bindmethod');
-  late final _py_bindmethod = _py_bindmethodPtr
-      .asFunction<void Function(int, ffi.Pointer<ffi.Char>, py_CFunction)>();
-
-  /// Bind a static method to type via "argc-based" style.
-  /// @param type the target type.
-  /// @param name name of the method.
-  /// @param f function to bind.
-  void py_bindstaticmethod(
-    int type,
-    ffi.Pointer<ffi.Char> name,
-    py_CFunction f,
-  ) {
-    return _py_bindstaticmethod(
-      type,
-      name,
-      f,
-    );
-  }
-
-  late final _py_bindstaticmethodPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(py_Type, ffi.Pointer<ffi.Char>,
-              py_CFunction)>>('py_bindstaticmethod');
-  late final _py_bindstaticmethod = _py_bindstaticmethodPtr
-      .asFunction<void Function(int, ffi.Pointer<ffi.Char>, py_CFunction)>();
-
-  /// Bind a function to the object via "argc-based" style.
-  /// @param obj the target object.
-  /// @param name name of the function.
-  /// @param f function to bind.
-  void py_bindfunc(
-    py_Ref obj,
-    ffi.Pointer<ffi.Char> name,
-    py_CFunction f,
-  ) {
-    return _py_bindfunc(
-      obj,
-      name,
-      f,
-    );
-  }
-
-  late final _py_bindfuncPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(
-              py_Ref, ffi.Pointer<ffi.Char>, py_CFunction)>>('py_bindfunc');
-  late final _py_bindfunc = _py_bindfuncPtr
-      .asFunction<void Function(py_Ref, ffi.Pointer<ffi.Char>, py_CFunction)>();
-
-  /// Bind a property to type.
-  /// @param type the target type.
-  /// @param name name of the property.
-  /// @param getter getter function.
-  /// @param setter setter function. Use `NULL` if not needed.
-  void py_bindproperty(
-    int type,
-    ffi.Pointer<ffi.Char> name,
-    py_CFunction getter,
-    py_CFunction setter,
-  ) {
-    return _py_bindproperty(
-      type,
-      name,
-      getter,
-      setter,
-    );
-  }
-
-  late final _py_bindpropertyPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(py_Type, ffi.Pointer<ffi.Char>, py_CFunction,
-              py_CFunction)>>('py_bindproperty');
-  late final _py_bindproperty = _py_bindpropertyPtr.asFunction<
-      void Function(int, ffi.Pointer<ffi.Char>, py_CFunction, py_CFunction)>();
-
-  /// Bind a magic method to type.
-  void py_bindmagic(
-    int type,
-    py_Name name,
-    py_CFunction f,
-  ) {
-    return _py_bindmagic(
-      type,
-      name,
-      f,
-    );
-  }
-
-  late final _py_bindmagicPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(py_Type, py_Name, py_CFunction)>>('py_bindmagic');
-  late final _py_bindmagic =
-      _py_bindmagicPtr.asFunction<void Function(int, py_Name, py_CFunction)>();
-
-  /// Python equivalent to `getattr(self, name)`.
-  bool py_getattr(
-    py_Ref self,
+  /// Get variable in the `builtins` module.
+  py_ItemRef py_getbuiltin(
     py_Name name,
   ) {
-    return _py_getattr(
-      self,
+    return _py_getbuiltin(
       name,
     );
   }
 
-  late final _py_getattrPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name)>>(
-          'py_getattr');
-  late final _py_getattr =
-      _py_getattrPtr.asFunction<bool Function(py_Ref, py_Name)>();
+  late final _py_getbuiltinPtr =
+      _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>(
+          'py_getbuiltin');
+  late final _py_getbuiltin =
+      _py_getbuiltinPtr.asFunction<py_ItemRef Function(py_Name)>();
 
-  /// Python equivalent to `setattr(self, name, val)`.
-  bool py_setattr(
-    py_Ref self,
+  /// Get variable in the `__main__` module.
+  py_ItemRef py_getglobal(
+    py_Name name,
+  ) {
+    return _py_getglobal(
+      name,
+    );
+  }
+
+  late final _py_getglobalPtr =
+      _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>('py_getglobal');
+  late final _py_getglobal =
+      _py_getglobalPtr.asFunction<py_ItemRef Function(py_Name)>();
+
+  /// Set variable in the `__main__` module.
+  void py_setglobal(
     py_Name name,
     py_Ref val,
   ) {
-    return _py_setattr(
-      self,
+    return _py_setglobal(
       name,
       val,
     );
   }
 
-  late final _py_setattrPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name, py_Ref)>>(
-          'py_setattr');
-  late final _py_setattr =
-      _py_setattrPtr.asFunction<bool Function(py_Ref, py_Name, py_Ref)>();
+  late final _py_setglobalPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_Name, py_Ref)>>(
+          'py_setglobal');
+  late final _py_setglobal =
+      _py_setglobalPtr.asFunction<void Function(py_Name, py_Ref)>();
 
-  /// Python equivalent to `delattr(self, name)`.
-  bool py_delattr(
-    py_Ref self,
+  /// Get the i-th object from the top of the stack.
+  /// `i` should be negative, e.g. (-1) means TOS.
+  py_StackRef py_peek(
+    int i,
+  ) {
+    return _py_peek(
+      i,
+    );
+  }
+
+  late final _py_peekPtr =
+      _lookup<ffi.NativeFunction<py_StackRef Function(ffi.Int)>>('py_peek');
+  late final _py_peek = _py_peekPtr.asFunction<py_StackRef Function(int)>();
+
+  /// Push the object to the stack.
+  void py_push(
+    py_Ref src,
+  ) {
+    return _py_push(
+      src,
+    );
+  }
+
+  late final _py_pushPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_Ref)>>('py_push');
+  late final _py_push = _py_pushPtr.asFunction<void Function(py_Ref)>();
+
+  /// Push a `nil` object to the stack.
+  void py_pushnil() {
+    return _py_pushnil();
+  }
+
+  late final _py_pushnilPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_pushnil');
+  late final _py_pushnil = _py_pushnilPtr.asFunction<void Function()>();
+
+  /// Push a `None` object to the stack.
+  void py_pushnone() {
+    return _py_pushnone();
+  }
+
+  late final _py_pushnonePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_pushnone');
+  late final _py_pushnone = _py_pushnonePtr.asFunction<void Function()>();
+
+  /// Push a `py_Name` to the stack. This is used for keyword arguments.
+  void py_pushname(
     py_Name name,
   ) {
-    return _py_delattr(
-      self,
+    return _py_pushname(
       name,
     );
   }
 
-  late final _py_delattrPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name)>>(
-          'py_delattr');
-  late final _py_delattr =
-      _py_delattrPtr.asFunction<bool Function(py_Ref, py_Name)>();
+  late final _py_pushnamePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_Name)>>('py_pushname');
+  late final _py_pushname =
+      _py_pushnamePtr.asFunction<void Function(py_Name)>();
 
-  /// Python equivalent to `self[key]`.
-  bool py_getitem(
-    py_Ref self,
-    py_Ref key,
+  /// Pop an object from the stack.
+  void py_pop() {
+    return _py_pop();
+  }
+
+  late final _py_popPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_pop');
+  late final _py_pop = _py_popPtr.asFunction<void Function()>();
+
+  /// Shrink the stack by n.
+  void py_shrink(
+    int n,
   ) {
-    return _py_getitem(
-      self,
-      key,
+    return _py_shrink(
+      n,
     );
   }
 
-  late final _py_getitemPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
-          'py_getitem');
-  late final _py_getitem =
-      _py_getitemPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+  late final _py_shrinkPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>('py_shrink');
+  late final _py_shrink = _py_shrinkPtr.asFunction<void Function(int)>();
 
-  /// Python equivalent to `self[key] = val`.
-  bool py_setitem(
-    py_Ref self,
-    py_Ref key,
-    py_Ref val,
+  /// Get a temporary variable from the stack.
+  py_StackRef py_pushtmp() {
+    return _py_pushtmp();
+  }
+
+  late final _py_pushtmpPtr =
+      _lookup<ffi.NativeFunction<py_StackRef Function()>>('py_pushtmp');
+  late final _py_pushtmp = _py_pushtmpPtr.asFunction<py_StackRef Function()>();
+
+  /// Get the unbound method of the object.
+  /// Assume the object is located at the top of the stack.
+  /// If return true:  `[self] -> [unbound, self]`.
+  /// If return false: `[self] -> [self]` (no change).
+  bool py_pushmethod(
+    py_Name name,
   ) {
-    return _py_setitem(
-      self,
-      key,
-      val,
+    return _py_pushmethod(
+      name,
     );
   }
 
-  late final _py_setitemPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref, py_Ref)>>(
-          'py_setitem');
-  late final _py_setitem =
-      _py_setitemPtr.asFunction<bool Function(py_Ref, py_Ref, py_Ref)>();
+  late final _py_pushmethodPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Name)>>('py_pushmethod');
+  late final _py_pushmethod =
+      _py_pushmethodPtr.asFunction<bool Function(py_Name)>();
 
-  /// Python equivalent to `del self[key]`.
-  bool py_delitem(
-    py_Ref self,
-    py_Ref key,
+  /// Evaluate an expression and push the result to the stack.
+  /// This function is used for testing.
+  bool py_pusheval(
+    ffi.Pointer<ffi.Char> expr,
+    py_GlobalRef module,
   ) {
-    return _py_delitem(
-      self,
-      key,
+    return _py_pusheval(
+      expr,
+      module,
     );
   }
 
-  late final _py_delitemPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
-          'py_delitem');
-  late final _py_delitem =
-      _py_delitemPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+  late final _py_pushevalPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(
+              ffi.Pointer<ffi.Char>, py_GlobalRef)>>('py_pusheval');
+  late final _py_pusheval = _py_pushevalPtr
+      .asFunction<bool Function(ffi.Pointer<ffi.Char>, py_GlobalRef)>();
+
+  /// Call a callable object via pocketpy's calling convention.
+  /// You need to prepare the stack using the following format:
+  /// `callable, self/nil, arg1, arg2, ..., k1, v1, k2, v2, ...`.
+  /// `argc` is the number of positional arguments excluding `self`.
+  /// `kwargc` is the number of keyword arguments.
+  /// The result will be set to `py_retval()`.
+  /// The stack size will be reduced by `2 + argc + kwargc * 2`.
+  bool py_vectorcall(
+    int argc,
+    int kwargc,
+  ) {
+    return _py_vectorcall(
+      argc,
+      kwargc,
+    );
+  }
+
+  late final _py_vectorcallPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Uint16, ffi.Uint16)>>(
+          'py_vectorcall');
+  late final _py_vectorcall =
+      _py_vectorcallPtr.asFunction<bool Function(int, int)>();
+
+  /// Call a function.
+  /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
+  /// The result will be set to `py_retval()`.
+  /// The stack remains unchanged if successful.
+  bool py_call(
+    py_Ref f,
+    int argc,
+    py_Ref argv,
+  ) {
+    return _py_call(
+      f,
+      argc,
+      argv,
+    );
+  }
+
+  late final _py_callPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, ffi.Int, py_Ref)>>(
+          'py_call');
+  late final _py_call =
+      _py_callPtr.asFunction<bool Function(py_Ref, int, py_Ref)>();
+
+  /// Call a type to create a new instance.
+  bool py_tpcall(
+    int type,
+    int argc,
+    py_Ref argv,
+  ) {
+    return _py_tpcall(
+      type,
+      argc,
+      argv,
+    );
+  }
+
+  late final _py_tpcallPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Type, ffi.Int, py_Ref)>>(
+          'py_tpcall');
+  late final _py_tpcall =
+      _py_tpcallPtr.asFunction<bool Function(int, int, py_Ref)>();
+
+  /// Call a `py_CFunction` in a safe way.
+  /// This function does extra checks to help you debug `py_CFunction`.
+  bool py_callcfunc(
+    py_CFunction f,
+    int argc,
+    py_Ref argv,
+  ) {
+    return _py_callcfunc(
+      f,
+      argc,
+      argv,
+    );
+  }
+
+  late final _py_callcfuncPtr = _lookup<
+          ffi.NativeFunction<ffi.Bool Function(py_CFunction, ffi.Int, py_Ref)>>(
+      'py_callcfunc');
+  late final _py_callcfunc =
+      _py_callcfuncPtr.asFunction<bool Function(py_CFunction, int, py_Ref)>();
 
   /// Perform a binary operation.
   /// The result will be set to `py_retval()`.
@@ -2300,381 +2289,6 @@ class PocketpyBindings {
   late final _py_binarymatmul =
       _py_binarymatmulPtr.asFunction<bool Function(py_Ref, py_Ref)>();
 
-  /// Get the i-th object from the top of the stack.
-  /// `i` should be negative, e.g. (-1) means TOS.
-  py_StackRef py_peek(
-    int i,
-  ) {
-    return _py_peek(
-      i,
-    );
-  }
-
-  late final _py_peekPtr =
-      _lookup<ffi.NativeFunction<py_StackRef Function(ffi.Int)>>('py_peek');
-  late final _py_peek = _py_peekPtr.asFunction<py_StackRef Function(int)>();
-
-  /// Push the object to the stack.
-  void py_push(
-    py_Ref src,
-  ) {
-    return _py_push(
-      src,
-    );
-  }
-
-  late final _py_pushPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_Ref)>>('py_push');
-  late final _py_push = _py_pushPtr.asFunction<void Function(py_Ref)>();
-
-  /// Push a `nil` object to the stack.
-  void py_pushnil() {
-    return _py_pushnil();
-  }
-
-  late final _py_pushnilPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_pushnil');
-  late final _py_pushnil = _py_pushnilPtr.asFunction<void Function()>();
-
-  /// Push a `None` object to the stack.
-  void py_pushnone() {
-    return _py_pushnone();
-  }
-
-  late final _py_pushnonePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_pushnone');
-  late final _py_pushnone = _py_pushnonePtr.asFunction<void Function()>();
-
-  /// Push a `py_Name` to the stack. This is used for keyword arguments.
-  void py_pushname(
-    py_Name name,
-  ) {
-    return _py_pushname(
-      name,
-    );
-  }
-
-  late final _py_pushnamePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_Name)>>('py_pushname');
-  late final _py_pushname =
-      _py_pushnamePtr.asFunction<void Function(py_Name)>();
-
-  /// Pop an object from the stack.
-  void py_pop() {
-    return _py_pop();
-  }
-
-  late final _py_popPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_pop');
-  late final _py_pop = _py_popPtr.asFunction<void Function()>();
-
-  /// Shrink the stack by n.
-  void py_shrink(
-    int n,
-  ) {
-    return _py_shrink(
-      n,
-    );
-  }
-
-  late final _py_shrinkPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int)>>('py_shrink');
-  late final _py_shrink = _py_shrinkPtr.asFunction<void Function(int)>();
-
-  /// Get a temporary variable from the stack.
-  py_StackRef py_pushtmp() {
-    return _py_pushtmp();
-  }
-
-  late final _py_pushtmpPtr =
-      _lookup<ffi.NativeFunction<py_StackRef Function()>>('py_pushtmp');
-  late final _py_pushtmp = _py_pushtmpPtr.asFunction<py_StackRef Function()>();
-
-  /// Get the unbound method of the object.
-  /// Assume the object is located at the top of the stack.
-  /// If return true:  `[self] -> [unbound, self]`.
-  /// If return false: `[self] -> [self]` (no change).
-  bool py_pushmethod(
-    py_Name name,
-  ) {
-    return _py_pushmethod(
-      name,
-    );
-  }
-
-  late final _py_pushmethodPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Name)>>('py_pushmethod');
-  late final _py_pushmethod =
-      _py_pushmethodPtr.asFunction<bool Function(py_Name)>();
-
-  /// Call a callable object via pocketpy's calling convention.
-  /// You need to prepare the stack using the following format:
-  /// `callable, self/nil, arg1, arg2, ..., k1, v1, k2, v2, ...`.
-  /// `argc` is the number of positional arguments excluding `self`.
-  /// `kwargc` is the number of keyword arguments.
-  /// The result will be set to `py_retval()`.
-  /// The stack size will be reduced by `2 + argc + kwargc * 2`.
-  bool py_vectorcall(
-    int argc,
-    int kwargc,
-  ) {
-    return _py_vectorcall(
-      argc,
-      kwargc,
-    );
-  }
-
-  late final _py_vectorcallPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Uint16, ffi.Uint16)>>(
-          'py_vectorcall');
-  late final _py_vectorcall =
-      _py_vectorcallPtr.asFunction<bool Function(int, int)>();
-
-  /// Evaluate an expression and push the result to the stack.
-  /// This function is used for testing.
-  bool py_pusheval(
-    ffi.Pointer<ffi.Char> expr,
-    py_GlobalRef module,
-  ) {
-    return _py_pusheval(
-      expr,
-      module,
-    );
-  }
-
-  late final _py_pushevalPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Bool Function(
-              ffi.Pointer<ffi.Char>, py_GlobalRef)>>('py_pusheval');
-  late final _py_pusheval = _py_pushevalPtr
-      .asFunction<bool Function(ffi.Pointer<ffi.Char>, py_GlobalRef)>();
-
-  /// Create a new module.
-  py_GlobalRef py_newmodule(
-    ffi.Pointer<ffi.Char> path,
-  ) {
-    return _py_newmodule(
-      path,
-    );
-  }
-
-  late final _py_newmodulePtr =
-      _lookup<ffi.NativeFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>>(
-          'py_newmodule');
-  late final _py_newmodule = _py_newmodulePtr
-      .asFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>();
-
-  /// Get a module by path.
-  py_GlobalRef py_getmodule(
-    ffi.Pointer<ffi.Char> path,
-  ) {
-    return _py_getmodule(
-      path,
-    );
-  }
-
-  late final _py_getmodulePtr =
-      _lookup<ffi.NativeFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>>(
-          'py_getmodule');
-  late final _py_getmodule = _py_getmodulePtr
-      .asFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>();
-
-  /// Reload an existing module.
-  bool py_importlib_reload(
-    py_Ref module,
-  ) {
-    return _py_importlib_reload(
-      module,
-    );
-  }
-
-  late final _py_importlib_reloadPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>(
-          'py_importlib_reload');
-  late final _py_importlib_reload =
-      _py_importlib_reloadPtr.asFunction<bool Function(py_Ref)>();
-
-  /// Import a module.
-  /// The result will be set to `py_retval()`.
-  /// -1: error, 0: not found, 1: success
-  int py_import(
-    ffi.Pointer<ffi.Char> path,
-  ) {
-    return _py_import(
-      path,
-    );
-  }
-
-  late final _py_importPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Pointer<ffi.Char>)>>(
-          'py_import');
-  late final _py_import =
-      _py_importPtr.asFunction<int Function(ffi.Pointer<ffi.Char>)>();
-
-  /// Raise an exception by type and message. Always return false.
-  bool py_exception(
-    int type,
-    ffi.Pointer<ffi.Char> fmt,
-  ) {
-    return _py_exception(
-      type,
-      fmt,
-    );
-  }
-
-  late final _py_exceptionPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Bool Function(py_Type, ffi.Pointer<ffi.Char>)>>('py_exception');
-  late final _py_exception =
-      _py_exceptionPtr.asFunction<bool Function(int, ffi.Pointer<ffi.Char>)>();
-
-  /// Raise an exception object. Always return false.
-  bool py_raise(
-    py_Ref arg0,
-  ) {
-    return _py_raise(
-      arg0,
-    );
-  }
-
-  late final _py_raisePtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>('py_raise');
-  late final _py_raise = _py_raisePtr.asFunction<bool Function(py_Ref)>();
-
-  /// Print the current exception.
-  /// The exception will be set as handled.
-  void py_printexc() {
-    return _py_printexc();
-  }
-
-  late final _py_printexcPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_printexc');
-  late final _py_printexc = _py_printexcPtr.asFunction<void Function()>();
-
-  /// Format the current exception and return a null-terminated string.
-  /// The result should be freed by the caller.
-  /// The exception will be set as handled.
-  ffi.Pointer<ffi.Char> py_formatexc() {
-    return _py_formatexc();
-  }
-
-  late final _py_formatexcPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function()>>(
-          'py_formatexc');
-  late final _py_formatexc =
-      _py_formatexcPtr.asFunction<ffi.Pointer<ffi.Char> Function()>();
-
-  /// Check if an exception is raised.
-  bool py_checkexc(
-    bool ignore_handled,
-  ) {
-    return _py_checkexc(
-      ignore_handled,
-    );
-  }
-
-  late final _py_checkexcPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Bool)>>('py_checkexc');
-  late final _py_checkexc = _py_checkexcPtr.asFunction<bool Function(bool)>();
-
-  /// Check if the exception is an instance of the given type.
-  /// This function is roughly equivalent to python's `except <T> as e:` block.
-  /// If match, the exception will be stored in `py_retval()` as handled.
-  bool py_matchexc(
-    int type,
-  ) {
-    return _py_matchexc(
-      type,
-    );
-  }
-
-  late final _py_matchexcPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Type)>>('py_matchexc');
-  late final _py_matchexc = _py_matchexcPtr.asFunction<bool Function(int)>();
-
-  /// Clear the current exception.
-  /// @param p0 the unwinding point. Use `NULL` if not needed.
-  void py_clearexc(
-    py_StackRef p0,
-  ) {
-    return _py_clearexc(
-      p0,
-    );
-  }
-
-  late final _py_clearexcPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(py_StackRef)>>(
-          'py_clearexc');
-  late final _py_clearexc =
-      _py_clearexcPtr.asFunction<void Function(py_StackRef)>();
-
-  bool StopIteration() {
-    return _StopIteration();
-  }
-
-  late final _StopIterationPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function()>>('StopIteration');
-  late final _StopIteration = _StopIterationPtr.asFunction<bool Function()>();
-
-  bool KeyError(
-    py_Ref key,
-  ) {
-    return _KeyError(
-      key,
-    );
-  }
-
-  late final _KeyErrorPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>('KeyError');
-  late final _KeyError = _KeyErrorPtr.asFunction<bool Function(py_Ref)>();
-
-  /// Python equivalent to `bool(val)`.
-  /// 1: true, 0: false, -1: error
-  int py_bool(
-    py_Ref val,
-  ) {
-    return _py_bool(
-      val,
-    );
-  }
-
-  late final _py_boolPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref)>>('py_bool');
-  late final _py_bool = _py_boolPtr.asFunction<int Function(py_Ref)>();
-
-  /// Compare two objects.
-  /// 1: lhs == rhs, 0: lhs != rhs, -1: error
-  int py_equal(
-    py_Ref lhs,
-    py_Ref rhs,
-  ) {
-    return _py_equal(
-      lhs,
-      rhs,
-    );
-  }
-
-  late final _py_equalPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref, py_Ref)>>('py_equal');
-  late final _py_equal =
-      _py_equalPtr.asFunction<int Function(py_Ref, py_Ref)>();
-
-  /// Compare two objects.
-  /// 1: lhs < rhs, 0: lhs >= rhs, -1: error
-  int py_less(
-    py_Ref lhs,
-    py_Ref rhs,
-  ) {
-    return _py_less(
-      lhs,
-      rhs,
-    );
-  }
-
-  late final _py_lessPtr =
-      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref, py_Ref)>>('py_less');
-  late final _py_less = _py_lessPtr.asFunction<int Function(py_Ref, py_Ref)>();
-
   /// lhs == rhs
   bool py_eq(
     py_Ref lhs,
@@ -2765,6 +2379,70 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>('py_ge');
   late final _py_ge = _py_gePtr.asFunction<bool Function(py_Ref, py_Ref)>();
 
+  /// Python equivalent to `lhs is rhs`.
+  bool py_isidentical(
+    py_Ref arg0,
+    py_Ref arg1,
+  ) {
+    return _py_isidentical(
+      arg0,
+      arg1,
+    );
+  }
+
+  late final _py_isidenticalPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_isidentical');
+  late final _py_isidentical =
+      _py_isidenticalPtr.asFunction<bool Function(py_Ref, py_Ref)>();
+
+  /// Python equivalent to `bool(val)`.
+  /// 1: true, 0: false, -1: error
+  int py_bool(
+    py_Ref val,
+  ) {
+    return _py_bool(
+      val,
+    );
+  }
+
+  late final _py_boolPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref)>>('py_bool');
+  late final _py_bool = _py_boolPtr.asFunction<int Function(py_Ref)>();
+
+  /// Compare two objects.
+  /// 1: lhs == rhs, 0: lhs != rhs, -1: error
+  int py_equal(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_equal(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_equalPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref, py_Ref)>>('py_equal');
+  late final _py_equal =
+      _py_equalPtr.asFunction<int Function(py_Ref, py_Ref)>();
+
+  /// Compare two objects.
+  /// 1: lhs < rhs, 0: lhs >= rhs, -1: error
+  int py_less(
+    py_Ref lhs,
+    py_Ref rhs,
+  ) {
+    return _py_less(
+      lhs,
+      rhs,
+    );
+  }
+
+  late final _py_lessPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref, py_Ref)>>('py_less');
+  late final _py_less = _py_lessPtr.asFunction<int Function(py_Ref, py_Ref)>();
+
   /// Python equivalent to `callable(val)`.
   bool py_callable(
     py_Ref val,
@@ -2822,65 +2500,6 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref)>>('py_next');
   late final _py_next = _py_nextPtr.asFunction<int Function(py_Ref)>();
 
-  /// Python equivalent to `lhs is rhs`.
-  bool py_isidentical(
-    py_Ref arg0,
-    py_Ref arg1,
-  ) {
-    return _py_isidentical(
-      arg0,
-      arg1,
-    );
-  }
-
-  late final _py_isidenticalPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
-          'py_isidentical');
-  late final _py_isidentical =
-      _py_isidenticalPtr.asFunction<bool Function(py_Ref, py_Ref)>();
-
-  /// Call a function.
-  /// It prepares the stack and then performs a `vectorcall(argc, 0, false)`.
-  /// The result will be set to `py_retval()`.
-  /// The stack remains unchanged if successful.
-  bool py_call(
-    py_Ref f,
-    int argc,
-    py_Ref argv,
-  ) {
-    return _py_call(
-      f,
-      argc,
-      argv,
-    );
-  }
-
-  late final _py_callPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, ffi.Int, py_Ref)>>(
-          'py_call');
-  late final _py_call =
-      _py_callPtr.asFunction<bool Function(py_Ref, int, py_Ref)>();
-
-  /// Call a `py_CFunction` in a safe way.
-  /// This function does extra checks to help you debug `py_CFunction`.
-  bool py_callcfunc(
-    py_CFunction f,
-    int argc,
-    py_Ref argv,
-  ) {
-    return _py_callcfunc(
-      f,
-      argc,
-      argv,
-    );
-  }
-
-  late final _py_callcfuncPtr = _lookup<
-          ffi.NativeFunction<ffi.Bool Function(py_CFunction, ffi.Int, py_Ref)>>(
-      'py_callcfunc');
-  late final _py_callcfunc =
-      _py_callcfuncPtr.asFunction<bool Function(py_CFunction, int, py_Ref)>();
-
   /// Python equivalent to `str(val)`.
   bool py_str(
     py_Ref val,
@@ -2920,109 +2539,284 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>('py_len');
   late final _py_len = _py_lenPtr.asFunction<bool Function(py_Ref)>();
 
-  /// Python equivalent to `json.dumps(val)`.
-  bool py_json_dumps(
-    py_Ref val,
-    int indent,
+  /// Python equivalent to `getattr(self, name)`.
+  bool py_getattr(
+    py_Ref self,
+    py_Name name,
   ) {
-    return _py_json_dumps(
-      val,
-      indent,
+    return _py_getattr(
+      self,
+      name,
     );
   }
 
-  late final _py_json_dumpsPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, ffi.Int)>>(
-          'py_json_dumps');
-  late final _py_json_dumps =
-      _py_json_dumpsPtr.asFunction<bool Function(py_Ref, int)>();
+  late final _py_getattrPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name)>>(
+          'py_getattr');
+  late final _py_getattr =
+      _py_getattrPtr.asFunction<bool Function(py_Ref, py_Name)>();
 
-  /// Python equivalent to `json.loads(val)`.
-  bool py_json_loads(
-    ffi.Pointer<ffi.Char> source,
-  ) {
-    return _py_json_loads(
-      source,
-    );
-  }
-
-  late final _py_json_loadsPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<ffi.Char>)>>(
-          'py_json_loads');
-  late final _py_json_loads =
-      _py_json_loadsPtr.asFunction<bool Function(ffi.Pointer<ffi.Char>)>();
-
-  /// Python equivalent to `pickle.dumps(val)`.
-  bool py_pickle_dumps(
+  /// Python equivalent to `setattr(self, name, val)`.
+  bool py_setattr(
+    py_Ref self,
+    py_Name name,
     py_Ref val,
   ) {
-    return _py_pickle_dumps(
+    return _py_setattr(
+      self,
+      name,
       val,
     );
   }
 
-  late final _py_pickle_dumpsPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>('py_pickle_dumps');
-  late final _py_pickle_dumps =
-      _py_pickle_dumpsPtr.asFunction<bool Function(py_Ref)>();
+  late final _py_setattrPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name, py_Ref)>>(
+          'py_setattr');
+  late final _py_setattr =
+      _py_setattrPtr.asFunction<bool Function(py_Ref, py_Name, py_Ref)>();
 
-  /// Python equivalent to `pickle.loads(val)`.
-  bool py_pickle_loads(
-    ffi.Pointer<ffi.UnsignedChar> data,
-    int size,
+  /// Python equivalent to `delattr(self, name)`.
+  bool py_delattr(
+    py_Ref self,
+    py_Name name,
   ) {
-    return _py_pickle_loads(
-      data,
-      size,
+    return _py_delattr(
+      self,
+      name,
     );
   }
 
-  late final _py_pickle_loadsPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Bool Function(
-              ffi.Pointer<ffi.UnsignedChar>, ffi.Int)>>('py_pickle_loads');
-  late final _py_pickle_loads = _py_pickle_loadsPtr
-      .asFunction<bool Function(ffi.Pointer<ffi.UnsignedChar>, int)>();
+  late final _py_delattrPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Name)>>(
+          'py_delattr');
+  late final _py_delattr =
+      _py_delattrPtr.asFunction<bool Function(py_Ref, py_Name)>();
 
-  /// Profiler
-  void py_profiler_begin() {
-    return _py_profiler_begin();
+  /// Python equivalent to `self[key]`.
+  bool py_getitem(
+    py_Ref self,
+    py_Ref key,
+  ) {
+    return _py_getitem(
+      self,
+      key,
+    );
   }
 
-  late final _py_profiler_beginPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_profiler_begin');
-  late final _py_profiler_begin =
-      _py_profiler_beginPtr.asFunction<void Function()>();
+  late final _py_getitemPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_getitem');
+  late final _py_getitem =
+      _py_getitemPtr.asFunction<bool Function(py_Ref, py_Ref)>();
 
-  void py_profiler_end() {
-    return _py_profiler_end();
+  /// Python equivalent to `self[key] = val`.
+  bool py_setitem(
+    py_Ref self,
+    py_Ref key,
+    py_Ref val,
+  ) {
+    return _py_setitem(
+      self,
+      key,
+      val,
+    );
   }
 
-  late final _py_profiler_endPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_profiler_end');
-  late final _py_profiler_end =
-      _py_profiler_endPtr.asFunction<void Function()>();
+  late final _py_setitemPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref, py_Ref)>>(
+          'py_setitem');
+  late final _py_setitem =
+      _py_setitemPtr.asFunction<bool Function(py_Ref, py_Ref, py_Ref)>();
 
-  void py_profiler_reset() {
-    return _py_profiler_reset();
+  /// Python equivalent to `del self[key]`.
+  bool py_delitem(
+    py_Ref self,
+    py_Ref key,
+  ) {
+    return _py_delitem(
+      self,
+      key,
+    );
   }
 
-  late final _py_profiler_resetPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_profiler_reset');
-  late final _py_profiler_reset =
-      _py_profiler_resetPtr.asFunction<void Function()>();
+  late final _py_delitemPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, py_Ref)>>(
+          'py_delitem');
+  late final _py_delitem =
+      _py_delitemPtr.asFunction<bool Function(py_Ref, py_Ref)>();
 
-  ffi.Pointer<ffi.Char> py_profiler_report() {
-    return _py_profiler_report();
+  /// Get a module by path.
+  py_GlobalRef py_getmodule(
+    ffi.Pointer<ffi.Char> path,
+  ) {
+    return _py_getmodule(
+      path,
+    );
   }
 
-  late final _py_profiler_reportPtr =
+  late final _py_getmodulePtr =
+      _lookup<ffi.NativeFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>>(
+          'py_getmodule');
+  late final _py_getmodule = _py_getmodulePtr
+      .asFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>();
+
+  /// Create a new module.
+  py_GlobalRef py_newmodule(
+    ffi.Pointer<ffi.Char> path,
+  ) {
+    return _py_newmodule(
+      path,
+    );
+  }
+
+  late final _py_newmodulePtr =
+      _lookup<ffi.NativeFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>>(
+          'py_newmodule');
+  late final _py_newmodule = _py_newmodulePtr
+      .asFunction<py_GlobalRef Function(ffi.Pointer<ffi.Char>)>();
+
+  /// Reload an existing module.
+  bool py_importlib_reload(
+    py_Ref module,
+  ) {
+    return _py_importlib_reload(
+      module,
+    );
+  }
+
+  late final _py_importlib_reloadPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>(
+          'py_importlib_reload');
+  late final _py_importlib_reload =
+      _py_importlib_reloadPtr.asFunction<bool Function(py_Ref)>();
+
+  /// Import a module.
+  /// The result will be set to `py_retval()`.
+  /// -1: error, 0: not found, 1: success
+  int py_import(
+    ffi.Pointer<ffi.Char> path,
+  ) {
+    return _py_import(
+      path,
+    );
+  }
+
+  late final _py_importPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Pointer<ffi.Char>)>>(
+          'py_import');
+  late final _py_import =
+      _py_importPtr.asFunction<int Function(ffi.Pointer<ffi.Char>)>();
+
+  /// Check if there is an unhandled exception.
+  bool py_checkexc() {
+    return _py_checkexc();
+  }
+
+  late final _py_checkexcPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function()>>('py_checkexc');
+  late final _py_checkexc = _py_checkexcPtr.asFunction<bool Function()>();
+
+  /// Check if the unhandled exception is an instance of the given type.
+  /// If match, the exception will be stored in `py_retval()`.
+  bool py_matchexc(
+    int type,
+  ) {
+    return _py_matchexc(
+      type,
+    );
+  }
+
+  late final _py_matchexcPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Type)>>('py_matchexc');
+  late final _py_matchexc = _py_matchexcPtr.asFunction<bool Function(int)>();
+
+  /// Clear the unhandled exception.
+  /// @param p0 the unwinding point. Use `NULL` if not needed.
+  void py_clearexc(
+    py_StackRef p0,
+  ) {
+    return _py_clearexc(
+      p0,
+    );
+  }
+
+  late final _py_clearexcPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_StackRef)>>(
+          'py_clearexc');
+  late final _py_clearexc =
+      _py_clearexcPtr.asFunction<void Function(py_StackRef)>();
+
+  /// Print the unhandled exception.
+  void py_printexc() {
+    return _py_printexc();
+  }
+
+  late final _py_printexcPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_printexc');
+  late final _py_printexc = _py_printexcPtr.asFunction<void Function()>();
+
+  /// Format the unhandled exception and return a null-terminated string.
+  /// The returned string should be freed by the caller.
+  ffi.Pointer<ffi.Char> py_formatexc() {
+    return _py_formatexc();
+  }
+
+  late final _py_formatexcPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function()>>(
-          'py_profiler_report');
-  late final _py_profiler_report =
-      _py_profiler_reportPtr.asFunction<ffi.Pointer<ffi.Char> Function()>();
+          'py_formatexc');
+  late final _py_formatexc =
+      _py_formatexcPtr.asFunction<ffi.Pointer<ffi.Char> Function()>();
 
-  /// DAP
+  /// Raise an exception by type and message. Always return false.
+  bool py_exception(
+    int type,
+    ffi.Pointer<ffi.Char> fmt,
+  ) {
+    return _py_exception(
+      type,
+      fmt,
+    );
+  }
+
+  late final _py_exceptionPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(py_Type, ffi.Pointer<ffi.Char>)>>('py_exception');
+  late final _py_exception =
+      _py_exceptionPtr.asFunction<bool Function(int, ffi.Pointer<ffi.Char>)>();
+
+  /// Raise an exception object. Always return false.
+  bool py_raise(
+    py_Ref arg0,
+  ) {
+    return _py_raise(
+      arg0,
+    );
+  }
+
+  late final _py_raisePtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>('py_raise');
+  late final _py_raise = _py_raisePtr.asFunction<bool Function(py_Ref)>();
+
+  bool KeyError(
+    py_Ref key,
+  ) {
+    return _KeyError(
+      key,
+    );
+  }
+
+  late final _KeyErrorPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>('KeyError');
+  late final _KeyError = _KeyErrorPtr.asFunction<bool Function(py_Ref)>();
+
+  bool StopIteration() {
+    return _StopIteration();
+  }
+
+  late final _StopIterationPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function()>>('StopIteration');
+  late final _StopIteration = _StopIterationPtr.asFunction<bool Function()>();
+
   void py_debugger_waitforattach(
     ffi.Pointer<ffi.Char> hostname,
     int port,
@@ -3040,15 +2834,14 @@ class PocketpyBindings {
   late final _py_debugger_waitforattach = _py_debugger_waitforattachPtr
       .asFunction<void Function(ffi.Pointer<ffi.Char>, int)>();
 
-  bool py_debugger_isattached() {
-    return _py_debugger_isattached();
+  int py_debugger_status() {
+    return _py_debugger_status();
   }
 
-  late final _py_debugger_isattachedPtr =
-      _lookup<ffi.NativeFunction<ffi.Bool Function()>>(
-          'py_debugger_isattached');
-  late final _py_debugger_isattached =
-      _py_debugger_isattachedPtr.asFunction<bool Function()>();
+  late final _py_debugger_statusPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function()>>('py_debugger_status');
+  late final _py_debugger_status =
+      _py_debugger_statusPtr.asFunction<int Function()>();
 
   void py_debugger_exceptionbreakpoint(
     py_Ref exc,
@@ -3065,10 +2858,10 @@ class PocketpyBindings {
       _py_debugger_exceptionbreakpointPtr.asFunction<void Function(py_Ref)>();
 
   void py_debugger_exit(
-    int exitCode,
+    int code,
   ) {
     return _py_debugger_exit(
-      exitCode,
+      code,
     );
   }
 
@@ -3078,7 +2871,24 @@ class PocketpyBindings {
   late final _py_debugger_exit =
       _py_debugger_exitPtr.asFunction<void Function(int)>();
 
-  /// Unchecked Functions
+  /// Create a `tuple` with `n` UNINITIALIZED elements.
+  /// You should initialize all elements before using it.
+  py_ObjectRef py_newtuple(
+    py_OutRef arg0,
+    int n,
+  ) {
+    return _py_newtuple(
+      arg0,
+      n,
+    );
+  }
+
+  late final _py_newtuplePtr =
+      _lookup<ffi.NativeFunction<py_ObjectRef Function(py_OutRef, ffi.Int)>>(
+          'py_newtuple');
+  late final _py_newtuple =
+      _py_newtuplePtr.asFunction<py_ObjectRef Function(py_OutRef, int)>();
+
   py_ObjectRef py_tuple_data(
     py_Ref self,
   ) {
@@ -3139,6 +2949,38 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref)>>('py_tuple_len');
   late final _py_tuple_len =
       _py_tuple_lenPtr.asFunction<int Function(py_Ref)>();
+
+  /// Create an empty `list`.
+  void py_newlist(
+    py_OutRef arg0,
+  ) {
+    return _py_newlist(
+      arg0,
+    );
+  }
+
+  late final _py_newlistPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>('py_newlist');
+  late final _py_newlist =
+      _py_newlistPtr.asFunction<void Function(py_OutRef)>();
+
+  /// Create a `list` with `n` UNINITIALIZED elements.
+  /// You should initialize all elements before using it.
+  void py_newlistn(
+    py_OutRef arg0,
+    int n,
+  ) {
+    return _py_newlistn(
+      arg0,
+      n,
+    );
+  }
+
+  late final _py_newlistnPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef, ffi.Int)>>(
+          'py_newlistn');
+  late final _py_newlistn =
+      _py_newlistnPtr.asFunction<void Function(py_OutRef, int)>();
 
   py_ItemRef py_list_data(
     py_Ref self,
@@ -3293,6 +3135,20 @@ class PocketpyBindings {
           'py_list_insert');
   late final _py_list_insert =
       _py_list_insertPtr.asFunction<void Function(py_Ref, int, py_Ref)>();
+
+  /// Create an empty `dict`.
+  void py_newdict(
+    py_OutRef arg0,
+  ) {
+    return _py_newdict(
+      arg0,
+    );
+  }
+
+  late final _py_newdictPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef)>>('py_newdict');
+  late final _py_newdict =
+      _py_newdictPtr.asFunction<void Function(py_OutRef)>();
 
   /// -1: error, 0: not found, 1: found
   int py_dict_getitem(
@@ -3501,6 +3357,44 @@ class PocketpyBindings {
   late final _py_dict_lenPtr =
       _lookup<ffi.NativeFunction<ffi.Int Function(py_Ref)>>('py_dict_len');
   late final _py_dict_len = _py_dict_lenPtr.asFunction<int Function(py_Ref)>();
+
+  /// Create an UNINITIALIZED `slice` object.
+  /// You should use `py_setslot()` to set `start`, `stop`, and `step`.
+  py_ObjectRef py_newslice(
+    py_OutRef arg0,
+  ) {
+    return _py_newslice(
+      arg0,
+    );
+  }
+
+  late final _py_newslicePtr =
+      _lookup<ffi.NativeFunction<py_ObjectRef Function(py_OutRef)>>(
+          'py_newslice');
+  late final _py_newslice =
+      _py_newslicePtr.asFunction<py_ObjectRef Function(py_OutRef)>();
+
+  /// Create a `slice` object from 3 integers.
+  void py_newsliceint(
+    py_OutRef out,
+    int start,
+    int stop,
+    int step,
+  ) {
+    return _py_newsliceint(
+      out,
+      start,
+      stop,
+      step,
+    );
+  }
+
+  late final _py_newsliceintPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(
+              py_OutRef, py_i64, py_i64, py_i64)>>('py_newsliceint');
+  late final _py_newsliceint =
+      _py_newsliceintPtr.asFunction<void Function(py_OutRef, int, int, int)>();
 
   /// random module
   void py_newRandom(
@@ -3839,6 +3733,138 @@ class PocketpyBindings {
   late final _py_tocolor32 =
       _py_tocolor32Ptr.asFunction<c11_color32 Function(py_Ref)>();
 
+  /// json module *************/
+  /// /// Python equivalent to `json.dumps(val)`.
+  bool py_json_dumps(
+    py_Ref val,
+    int indent,
+  ) {
+    return _py_json_dumps(
+      val,
+      indent,
+    );
+  }
+
+  late final _py_json_dumpsPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref, ffi.Int)>>(
+          'py_json_dumps');
+  late final _py_json_dumps =
+      _py_json_dumpsPtr.asFunction<bool Function(py_Ref, int)>();
+
+  /// Python equivalent to `json.loads(val)`.
+  bool py_json_loads(
+    ffi.Pointer<ffi.Char> source,
+  ) {
+    return _py_json_loads(
+      source,
+    );
+  }
+
+  late final _py_json_loadsPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(ffi.Pointer<ffi.Char>)>>(
+          'py_json_loads');
+  late final _py_json_loads =
+      _py_json_loadsPtr.asFunction<bool Function(ffi.Pointer<ffi.Char>)>();
+
+  /// pickle module *************/
+  /// /// Python equivalent to `pickle.dumps(val)`.
+  bool py_pickle_dumps(
+    py_Ref val,
+  ) {
+    return _py_pickle_dumps(
+      val,
+    );
+  }
+
+  late final _py_pickle_dumpsPtr =
+      _lookup<ffi.NativeFunction<ffi.Bool Function(py_Ref)>>('py_pickle_dumps');
+  late final _py_pickle_dumps =
+      _py_pickle_dumpsPtr.asFunction<bool Function(py_Ref)>();
+
+  /// Python equivalent to `pickle.loads(val)`.
+  bool py_pickle_loads(
+    ffi.Pointer<ffi.UnsignedChar> data,
+    int size,
+  ) {
+    return _py_pickle_loads(
+      data,
+      size,
+    );
+  }
+
+  late final _py_pickle_loadsPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(
+              ffi.Pointer<ffi.UnsignedChar>, ffi.Int)>>('py_pickle_loads');
+  late final _py_pickle_loads = _py_pickle_loadsPtr
+      .asFunction<bool Function(ffi.Pointer<ffi.UnsignedChar>, int)>();
+
+  /// pkpy module *************/
+  /// /// Begin the watchdog with `timeout` in milliseconds.
+  /// /// `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
+  /// /// You need to call `py_watchdog_end()` later.
+  /// /// If `timeout` is reached, `TimeoutError` will be raised.
+  void py_watchdog_begin(
+    int timeout,
+  ) {
+    return _py_watchdog_begin(
+      timeout,
+    );
+  }
+
+  late final _py_watchdog_beginPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_i64)>>(
+          'py_watchdog_begin');
+  late final _py_watchdog_begin =
+      _py_watchdog_beginPtr.asFunction<void Function(int)>();
+
+  /// Reset the watchdog.
+  void py_watchdog_end() {
+    return _py_watchdog_end();
+  }
+
+  late final _py_watchdog_endPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_watchdog_end');
+  late final _py_watchdog_end =
+      _py_watchdog_endPtr.asFunction<void Function()>();
+
+  void py_profiler_begin() {
+    return _py_profiler_begin();
+  }
+
+  late final _py_profiler_beginPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_profiler_begin');
+  late final _py_profiler_begin =
+      _py_profiler_beginPtr.asFunction<void Function()>();
+
+  void py_profiler_end() {
+    return _py_profiler_end();
+  }
+
+  late final _py_profiler_endPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_profiler_end');
+  late final _py_profiler_end =
+      _py_profiler_endPtr.asFunction<void Function()>();
+
+  void py_profiler_reset() {
+    return _py_profiler_reset();
+  }
+
+  late final _py_profiler_resetPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('py_profiler_reset');
+  late final _py_profiler_reset =
+      _py_profiler_resetPtr.asFunction<void Function()>();
+
+  ffi.Pointer<ffi.Char> py_profiler_report() {
+    return _py_profiler_report();
+  }
+
+  late final _py_profiler_reportPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function()>>(
+          'py_profiler_report');
+  late final _py_profiler_report =
+      _py_profiler_reportPtr.asFunction<ffi.Pointer<ffi.Char> Function()>();
+
   /// An utility function to read a line from stdin for REPL.
   int py_replinput(
     ffi.Pointer<ffi.Char> buf,
@@ -3857,138 +3883,31 @@ class PocketpyBindings {
       _py_replinputPtr.asFunction<int Function(ffi.Pointer<ffi.Char>, int)>();
 }
 
-final class c11_vec2i extends ffi.Union {
-  external UnnamedStruct1 unnamed;
-
-  @ffi.Array.multi([2])
-  external ffi.Array<ffi.Int> data;
-
-  @ffi.Int64()
-  external int _i64;
-}
-
-final class UnnamedStruct1 extends ffi.Struct {
-  @ffi.Int()
-  external int x;
-
-  @ffi.Int()
-  external int y;
-}
-
-final class c11_vec3i extends ffi.Union {
-  external UnnamedStruct2 unnamed;
-
-  @ffi.Array.multi([3])
-  external ffi.Array<ffi.Int> data;
-}
-
-final class UnnamedStruct2 extends ffi.Struct {
-  @ffi.Int()
-  external int x;
-
-  @ffi.Int()
-  external int y;
-
-  @ffi.Int()
-  external int z;
-}
-
-final class c11_vec2 extends ffi.Union {
-  external UnnamedStruct3 unnamed;
-
-  @ffi.Array.multi([2])
-  external ffi.Array<ffi.Float> data;
-}
-
-final class UnnamedStruct3 extends ffi.Struct {
-  @ffi.Float()
-  external double x;
-
-  @ffi.Float()
-  external double y;
-}
-
-final class c11_vec3 extends ffi.Union {
-  external UnnamedStruct4 unnamed;
-
-  @ffi.Array.multi([3])
-  external ffi.Array<ffi.Float> data;
-}
-
-final class UnnamedStruct4 extends ffi.Struct {
-  @ffi.Float()
-  external double x;
-
-  @ffi.Float()
-  external double y;
-
-  @ffi.Float()
-  external double z;
-}
-
-final class c11_mat3x3 extends ffi.Union {
-  external UnnamedStruct5 unnamed;
-
-  @ffi.Array.multi([3, 3])
-  external ffi.Array<ffi.Array<ffi.Float>> m;
-
-  @ffi.Array.multi([9])
-  external ffi.Array<ffi.Float> data;
-}
-
-final class UnnamedStruct5 extends ffi.Struct {
-  @ffi.Float()
-  external double _11;
-
-  @ffi.Float()
-  external double _12;
-
-  @ffi.Float()
-  external double _13;
-
-  @ffi.Float()
-  external double _21;
-
-  @ffi.Float()
-  external double _22;
-
-  @ffi.Float()
-  external double _23;
-
-  @ffi.Float()
-  external double _31;
-
-  @ffi.Float()
-  external double _32;
-
-  @ffi.Float()
-  external double _33;
-}
-
-final class c11_color32 extends ffi.Union {
-  external UnnamedStruct6 unnamed;
-
-  @ffi.Array.multi([4])
-  external ffi.Array<ffi.UnsignedChar> data;
-}
-
-final class UnnamedStruct6 extends ffi.Struct {
-  @ffi.UnsignedChar()
-  external int r;
-
-  @ffi.UnsignedChar()
-  external int g;
-
-  @ffi.UnsignedChar()
-  external int b;
-
-  @ffi.UnsignedChar()
-  external int a;
-}
-
 final class py_OpaqueName extends ffi.Opaque {}
 
-final class py_TValue extends ffi.Opaque {}
+final class py_TValue extends ffi.Struct {
+  @py_Type()
+  external int type;
+
+  @ffi.Bool()
+  external bool is_ptr;
+
+  @ffi.Int()
+  external int extra;
+
+  external UnnamedUnion1 unnamed;
+}
+
+/// An integer that represents a python type. `0` is invalid.
+typedef py_Type = ffi.Int16;
+
+final class UnnamedUnion1 extends ffi.Union {
+  @ffi.Int64()
+  external int _i64;
+
+  @ffi.Array.multi([16])
+  external ffi.Array<ffi.Char> _chars;
+}
 
 /// A string view type. It is helpful for passing strings which are not null-terminated.
 final class c11_sv extends ffi.Struct {
@@ -4048,6 +3967,15 @@ typedef py_GlobalRef = ffi.Pointer<py_TValue>;
 /// A generic reference to a python object.
 typedef py_Ref = ffi.Pointer<py_TValue>;
 
+/// A struct contains the application-level callbacks.
+final class py_AppCallbacks extends ffi.Struct {
+  external ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int index)>>
+      on_vm_ctor;
+
+  external ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int index)>>
+      on_vm_dtor;
+}
+
 /// Python compiler modes.
 /// + `EXEC_MODE`: for statements.
 /// + `EVAL_MODE`: for expressions.
@@ -4063,8 +3991,17 @@ abstract class py_CompileMode {
 typedef py_TraceFunc = ffi.Pointer<
     ffi.NativeFunction<ffi.Void Function(ffi.Pointer<py_Frame>, ffi.Int32)>>;
 
+/// An output reference for returning a value. Only use this for function arguments.
+typedef py_OutRef = ffi.Pointer<py_TValue>;
+
+/// A specific location in the value stack of the VM.
+typedef py_StackRef = ffi.Pointer<py_TValue>;
+
 /// A 64-bit integer type. Corresponds to `int` in python.
 typedef py_i64 = ffi.Int64;
+
+/// A 64-bit floating-point type. Corresponds to `float` in python.
+typedef py_f64 = ffi.Double;
 
 /// Native function signature.
 /// @param argc number of arguments.
@@ -4073,30 +4010,147 @@ typedef py_i64 = ffi.Int64;
 typedef py_CFunction = ffi.Pointer<
     ffi.NativeFunction<ffi.Bool Function(ffi.Int argc, py_StackRef argv)>>;
 
-/// A specific location in the value stack of the VM.
-typedef py_StackRef = ffi.Pointer<py_TValue>;
+/// A pointer that represents a python identifier. For fast name resolution.
+typedef py_Name = ffi.Pointer<py_OpaqueName>;
 
 /// An item reference to a container object. It invalidates when the container is modified.
 typedef py_ItemRef = ffi.Pointer<py_TValue>;
 
-/// A pointer that represents a python identifier. For fast name resolution.
-typedef py_Name = ffi.Pointer<py_OpaqueName>;
-
-/// An output reference for returning a value. Only use this for function arguments.
-typedef py_OutRef = ffi.Pointer<py_TValue>;
-
-/// An integer that represents a python type. `0` is invalid.
-typedef py_Type = ffi.Int16;
-
-/// A 64-bit floating-point type. Corresponds to `float` in python.
-typedef py_f64 = ffi.Double;
+/// A generic destructor function.
+typedef py_Dtor
+    = ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>;
 
 /// A reference which has the same lifespan as the python object.
 typedef py_ObjectRef = ffi.Pointer<py_TValue>;
 
-/// A generic destructor function.
-typedef py_Dtor
-    = ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>;
+final class c11_vec2 extends ffi.Union {
+  external UnnamedStruct1 unnamed;
+
+  @ffi.Array.multi([2])
+  external ffi.Array<ffi.Float> data;
+}
+
+final class UnnamedStruct1 extends ffi.Struct {
+  @ffi.Float()
+  external double x;
+
+  @ffi.Float()
+  external double y;
+}
+
+final class c11_vec3 extends ffi.Union {
+  external UnnamedStruct2 unnamed;
+
+  @ffi.Array.multi([3])
+  external ffi.Array<ffi.Float> data;
+}
+
+final class UnnamedStruct2 extends ffi.Struct {
+  @ffi.Float()
+  external double x;
+
+  @ffi.Float()
+  external double y;
+
+  @ffi.Float()
+  external double z;
+}
+
+final class c11_vec2i extends ffi.Union {
+  external UnnamedStruct3 unnamed;
+
+  @ffi.Array.multi([2])
+  external ffi.Array<ffi.Int> data;
+
+  @ffi.Int64()
+  external int _i64;
+}
+
+final class UnnamedStruct3 extends ffi.Struct {
+  @ffi.Int()
+  external int x;
+
+  @ffi.Int()
+  external int y;
+}
+
+final class c11_vec3i extends ffi.Union {
+  external UnnamedStruct4 unnamed;
+
+  @ffi.Array.multi([3])
+  external ffi.Array<ffi.Int> data;
+}
+
+final class UnnamedStruct4 extends ffi.Struct {
+  @ffi.Int()
+  external int x;
+
+  @ffi.Int()
+  external int y;
+
+  @ffi.Int()
+  external int z;
+}
+
+final class c11_color32 extends ffi.Union {
+  external UnnamedStruct5 unnamed;
+
+  @ffi.Array.multi([4])
+  external ffi.Array<ffi.UnsignedChar> data;
+}
+
+final class UnnamedStruct5 extends ffi.Struct {
+  @ffi.UnsignedChar()
+  external int r;
+
+  @ffi.UnsignedChar()
+  external int g;
+
+  @ffi.UnsignedChar()
+  external int b;
+
+  @ffi.UnsignedChar()
+  external int a;
+}
+
+final class c11_mat3x3 extends ffi.Union {
+  external UnnamedStruct6 unnamed;
+
+  @ffi.Array.multi([3, 3])
+  external ffi.Array<ffi.Array<ffi.Float>> m;
+
+  @ffi.Array.multi([9])
+  external ffi.Array<ffi.Float> data;
+}
+
+final class UnnamedStruct6 extends ffi.Struct {
+  @ffi.Float()
+  external double _11;
+
+  @ffi.Float()
+  external double _12;
+
+  @ffi.Float()
+  external double _13;
+
+  @ffi.Float()
+  external double _21;
+
+  @ffi.Float()
+  external double _22;
+
+  @ffi.Float()
+  external double _23;
+
+  @ffi.Float()
+  external double _31;
+
+  @ffi.Float()
+  external double _32;
+
+  @ffi.Float()
+  external double _33;
+}
 
 /// Python favored string formatting.
 /// %d: int
@@ -4209,51 +4263,3 @@ abstract class py_PredefinedType {
   static const int tp_array2d_view = 64;
   static const int tp_chunked_array2d = 65;
 }
-
-const String PK_VERSION = '2.1.1';
-
-const int PK_VERSION_MAJOR = 2;
-
-const int PK_VERSION_MINOR = 1;
-
-const int PK_VERSION_PATCH = 1;
-
-const int PK_ENABLE_OS = 1;
-
-const int PK_ENABLE_THREADS = 1;
-
-const int PK_ENABLE_DETERMINISM = 0;
-
-const int PK_ENABLE_WATCHDOG = 0;
-
-const int PK_ENABLE_CUSTOM_SNAME = 0;
-
-const int PK_ENABLE_MIMALLOC = 0;
-
-const int PK_GC_MIN_THRESHOLD = 32768;
-
-const int PK_VM_STACK_SIZE = 16384;
-
-const int PK_MAX_CO_VARNAMES = 64;
-
-const int PK_MAX_MODULE_PATH_LEN = 63;
-
-const double PK_M_PI = 3.141592653589793;
-
-const double PK_M_E = 2.718281828459045;
-
-const double PK_M_DEG2RAD = 0.017453292519943295;
-
-const double PK_M_RAD2DEG = 57.29577951308232;
-
-const double PK_INST_ATTR_LOAD_FACTOR = 0.6700000166893005;
-
-const double PK_TYPE_ATTR_LOAD_FACTOR = 0.5;
-
-const int PK_PLATFORM_SEP = 47;
-
-const int PY_SYS_PLATFORM = 3;
-
-const String PY_SYS_PLATFORM_STRING = 'darwin';
-
-const int PK_IS_DESKTOP_PLATFORM = 1;

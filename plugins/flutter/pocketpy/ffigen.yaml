@@ -7,9 +7,9 @@ description: |
 output: 'lib/pocketpy_bindings_generated.dart'
 headers:
   entry-points:
-    - 'src/pocketpy.h'
+    - '../../../include/pocketpy.h'
   include-directives:
-    - 'src/pocketpy.h'
+    - '../../../include/pocketpy/*.h'
 preamble: |
   // ignore_for_file: always_specify_types
   // ignore_for_file: camel_case_types
@@ -17,3 +17,6 @@ preamble: |
 comments:
   style: any
   length: full
+compiler-opts:
+  - '-I../../../include'
+  - '-std=c11'

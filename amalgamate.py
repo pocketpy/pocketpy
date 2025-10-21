@@ -154,6 +154,3 @@ if sys.platform in ['linux', 'darwin']:
 		print("Test build success!")
 
 print("amalgamated/pocketpy.h")
-
-shutil.copy("amalgamated/pocketpy.h", "plugins/flutter/pocketpy/src/pocketpy.h")
-shutil.copy("amalgamated/pocketpy.c", "plugins/flutter/pocketpy/src/pocketpy.c")
