@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - pocketpy (2.0.0):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - pocketpy (from `.symlinks/plugins/pocketpy/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  pocketpy:
+    :path: ".symlinks/plugins/pocketpy/ios"
+
+SPEC CHECKSUMS:
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  pocketpy: dcb5d109e54bc958a4bff38624013094ce193214
+
+PODFILE CHECKSUM: 819463e6a0290f5a72f145ba7cde16e8b6ef0796
+
+COCOAPODS: 1.15.2
