@@ -102,7 +102,7 @@ jobs:
         run: python scripts/run_tests.py benchmark
       - name: Test Amalgamated Build
         run: python amalgamate.py
-  build_android:
+  build_android_libs:
       runs-on: ubuntu-latest
       steps:
       - uses: actions/checkout@v4
@@ -116,9 +116,9 @@ jobs:
           add-to-path: false
       - name: Compile Shared Library
         run: |
-          bash build_android.sh arm64-v8a
-          bash build_android.sh armeabi-v7a
-          bash build_android.sh x86_64
+          bash build_android_libs.sh arm64-v8a
+          bash build_android_libs.sh armeabi-v7a
+          bash build_android_libs.sh x86_64
 
           mkdir -p output/arm64-v8a
           mkdir -p output/armeabi-v7a
@@ -133,7 +133,7 @@ jobs:
         with:
           name: android
           path: output
-  build_ios:
+  build_darwin_libs:
       runs-on: macos-latest
       steps:
       - uses: actions/checkout@v4
@@ -141,8 +141,22 @@ jobs:
           submodules: recursive
       - name: Compile Frameworks
         run: |
-          git clone https://github.com/leetal/ios-cmake --depth 1 ~/ios-cmake
-          bash build_ios.sh
+          bash build_darwin_libs.sh
+          mkdir -p output
+          cp build/Release/libpocketpy.a output/libpocketpy.a
+      - uses: actions/upload-artifact@v4
+        with:
+          name: darwin
+          path: output
+  build_ios_libs:
+      runs-on: macos-latest
+      steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Compile Frameworks
+        run: |
+          bash build_ios_libs.sh
           mkdir -p output
           cp -r build/pocketpy.xcframework output/pocketpy.xcframework
       - uses: actions/upload-artifact@v4
@@ -175,7 +189,7 @@ jobs:
 
   merge:
       runs-on: ubuntu-latest
-      needs: [ build_win32, build_linux, build_darwin, build_android, build_ios ]
+      needs: [ build_win32, build_linux, build_darwin, build_android_libs, build_darwin_libs, build_ios_libs ]
       steps:
       - name: "Create output directory"
         run: "mkdir $GITHUB_WORKSPACE/output"
@@ -192,18 +206,18 @@ jobs:
           name: linux
           path: $GITHUB_WORKSPACE/output/linux
 
-      # - name: "Merge darwin"
-      #   uses: actions/download-artifact@v4.1.7
-      #   with:
-      #     name: macos
-      #     path: $GITHUB_WORKSPACE/output/macos
-
       - name: "Merge android"
         uses: actions/download-artifact@v4.1.7
         with:
           name: android
           path: $GITHUB_WORKSPACE/output/android
           
+      - name: "Merge darwin"
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: darwin
+          path: $GITHUB_WORKSPACE/output/darwin
+
       - name: "Merge ios"
         uses: actions/download-artifact@v4.1.7
         with:
