@@ -110,11 +110,6 @@ if(PK_BUILD_MODULE_LZ4)
     add_definitions(-DPK_BUILD_MODULE_LZ4)
 endif()
 
-if(PK_BUILD_MODULE_LIBHV)
-    add_subdirectory(3rd/libhv)
-    add_definitions(-DPK_BUILD_MODULE_LIBHV)
-endif()
-
 if(PK_BUILD_MODULE_CUTE_PNG)
     add_subdirectory(3rd/cute_png)
     add_definitions(-DPK_BUILD_MODULE_CUTE_PNG)
@@ -179,10 +174,6 @@ endif()
 ############################################
 if(PK_BUILD_MODULE_LZ4)
     target_link_libraries(${PROJECT_NAME} lz4)
-endif()
-
-if(PK_BUILD_MODULE_LIBHV)
-    target_link_libraries(${PROJECT_NAME} libhv_bindings)
 endif()
 
 if(PK_BUILD_MODULE_CUTE_PNG)

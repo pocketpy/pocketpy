@@ -14,7 +14,8 @@ void flutterPrint(Pointer<Char> text) {
 final PocketpyBindings pocket = () {
   DynamicLibrary dylib;
   if (Platform.isMacOS || Platform.isIOS) {
-    dylib = DynamicLibrary.open('$_libName.framework/$_libName');
+    // dylib = DynamicLibrary.open('$_libName.framework/$_libName');
+    dylib = DynamicLibrary.process();
   } else if (Platform.isAndroid || Platform.isLinux) {
     dylib = DynamicLibrary.open('lib$_libName.so');
   } else if (Platform.isWindows) {

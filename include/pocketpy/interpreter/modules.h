@@ -27,12 +27,6 @@ void pk__add_module_conio();
 void pk__add_module_lz4();
 void pk__add_module_pkpy();
 
-#ifdef PK_BUILD_MODULE_LIBHV
-void pk__add_module_libhv();
-#else
-#define pk__add_module_libhv()
-#endif
-
 #ifdef PK_BUILD_MODULE_CUTE_PNG
 void pk__add_module_cute_png();
 #else
