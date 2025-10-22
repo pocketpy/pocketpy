@@ -11,17 +11,19 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include(FetchContent)
 
+set(PK_ENABLE_OS OFF CACHE BOOL "" FORCE)
+set(PK_ENABLE_DETERMINISM ON CACHE BOOL "" FORCE)
+set(PK_BUILD_MODULE_LZ4 ON CACHE BOOL "" FORCE)
+set(PK_BUILD_MODULE_CUTE_PNG ON CACHE BOOL "" FORCE)
+set(PK_BUILD_SHARED_LIB ON CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
   pocketpy
   GIT_REPOSITORY https://github.com/pocketpy/pocketpy.git
   GIT_TAG        v2.1.3-patch
 )
 
-set(PK_ENABLE_OS OFF CACHE BOOL "" FORCE)
-set(PK_ENABLE_DETERMINISM ON CACHE BOOL "" FORCE)
-set(PK_BUILD_MODULE_LZ4 ON CACHE BOOL "" FORCE)
-set(PK_BUILD_MODULE_CUTE_PNG ON CACHE BOOL "" FORCE)
-set(PK_BUILD_SHARED_LIB ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(pocketpy)
 
 set_target_properties(pocketpy PROPERTIES
   PUBLIC_HEADER ${pocketpy_SOURCE_DIR}/include/pocketpy.h
