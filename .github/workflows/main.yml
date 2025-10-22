@@ -143,7 +143,7 @@ jobs:
         run: |
           bash build_darwin_libs.sh
           mkdir -p output
-          cp build/Release/libpocketpy.a output/libpocketpy.a
+          cp build/libpocketpy.a output/libpocketpy.a
       - uses: actions/upload-artifact@v4
         with:
           name: darwin

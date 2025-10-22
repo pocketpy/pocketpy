@@ -25,7 +25,7 @@ A new Flutter FFI plugin project.
   s.source                    = { :path => '.' }
   s.source_files              = 'Classes/**/*'
   s.library                   = 'c'
-  s.pod_target_xcconfig       = {
+  s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'OTHER_LDFLAGS' => '-force_load ' + __dir__ + '/Frameworks/libpocketpy.a',
   }

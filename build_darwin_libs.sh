@@ -15,3 +15,5 @@ FLAGS="-DPK_BUILD_STATIC_LIB=ON \
 
 cmake -G Xcode $FLAGS ..
 cmake --build . --config Release
+
+python scripts/merge_built_libraries.py build
