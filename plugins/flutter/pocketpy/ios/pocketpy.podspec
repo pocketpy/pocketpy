@@ -30,6 +30,14 @@ A new Flutter FFI plugin project.
   s.pod_target_xcconfig       = {
     'DEFINES_MODULE' => 'YES',
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386',
-    'OTHER_LDFLAGS' => '-force_load ' + __dir__ + '/Frameworks/pocketpy.xcframework/ios-arm64/libpocketpy.a',
+    'OTHER_LDFLAGS' => '-force_load ' + __dir__ + '/pocketpy/build/pocketpy.xcframework/ios-arm64/libpocketpy.a',
   }
+
+  s.prepare_command = <<-CMD
+  rm -rf pocketpy
+  git clone --branch v2.1.3-patch --depth 1 https://github.com/pocketpy/pocketpy.git
+  cd pocketpy
+  git submodule update --init --recursive --depth 1
+  bash build_ios_libs.sh
+CMD
 end

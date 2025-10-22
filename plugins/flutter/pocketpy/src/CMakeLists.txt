@@ -14,7 +14,7 @@ include(FetchContent)
 FetchContent_Declare(
   pocketpy
   GIT_REPOSITORY https://github.com/pocketpy/pocketpy.git
-  GIT_TAG        v2.1.3
+  GIT_TAG        v2.1.3-patch
 )
 
 set(PK_ENABLE_OS OFF CACHE BOOL "" FORCE)
