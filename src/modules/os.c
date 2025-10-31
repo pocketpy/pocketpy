@@ -16,7 +16,7 @@ bool platform_getcwd(char* buf, size_t size) { return _getcwd(buf, size) != NULL
 
 bool platform_path_exists(const char* path) { return _access(path, 0) == 0; }
 
-#elif PY_SYS_PLATFORM == 3 || PY_SYS_PLATFORM == 5
+#elif PY_SYS_PLATFORM == 2 || PY_SYS_PLATFORM == 3 || PY_SYS_PLATFORM == 5
 #include <unistd.h>
 
 int platform_chdir(const char* path) { return chdir(path); }
