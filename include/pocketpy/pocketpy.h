@@ -49,6 +49,7 @@ typedef struct c11_sv {
 
 #define PY_RAISE
 #define PY_RETURN
+#define PY_MAYBENULL
 
 /// A generic reference to a python object.
 typedef py_TValue* py_Ref;
@@ -79,7 +80,7 @@ typedef struct py_Callbacks {
     /// Used by `__import__` to load a source module.
     char* (*importfile)(const char*);
     /// Called before `importfile` to lazy-import a C module.
-    py_GlobalRef (*lazyimport)(const char*);
+    PY_MAYBENULL py_GlobalRef (*lazyimport)(const char*);
     /// Used by `print` to output a string.
     void (*print)(const char*);
     /// Flush the output buffer of `print`.
@@ -87,7 +88,9 @@ typedef struct py_Callbacks {
     /// Used by `input` to get a character.
     int (*getchr)();
     /// Used by `gc.collect()` to mark extra objects for garbage collection.
-    void (*gc_mark)(void (*f)(py_Ref val, void* ctx), void* ctx);
+    PY_MAYBENULL void (*gc_mark)(void (*f)(py_Ref val, void* ctx), void* ctx);
+    /// Used by `PRINT_EXPR` bytecode.
+    PY_MAYBENULL bool (*displayhook)(py_Ref val) PY_RAISE;
 } py_Callbacks;
 
 /// A struct contains the application-level callbacks.

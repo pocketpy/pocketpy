@@ -152,15 +152,21 @@ __NEXT_STEP:
             *THIRD() = tmp;
             DISPATCH();
         }
-        case OP_PRINT_EXPR:
-            if(TOP()->type != tp_NoneType) {
-                bool ok = py_repr(TOP());
+        case OP_PRINT_EXPR: {
+            if(self->callbacks.displayhook) {
+                bool ok = self->callbacks.displayhook(TOP());
                 if(!ok) goto __ERROR;
-                self->callbacks.print(py_tostr(&self->last_retval));
-                self->callbacks.print("\n");
+            } else {
+                if(TOP()->type != tp_NoneType) {
+                    bool ok = py_repr(TOP());
+                    if(!ok) goto __ERROR;
+                    self->callbacks.print(py_tostr(&self->last_retval));
+                    self->callbacks.print("\n");
+                }
             }
             POP();
             DISPATCH();
+        }
         /*****************************************/
         case OP_LOAD_CONST: {
             PUSH(c11__at(py_TValue, &frame->co->consts, byte.arg));

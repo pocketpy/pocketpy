@@ -56,3 +56,7 @@ Mark a function that can raise an exception on failure.
 ### `PY_RETURN` macro
 
 Mark a function that can store a value in `py_retval()` on success.
+
+### `PY_MAYBENULL` macro
+
+Mark a variable or callback function that may be `NULL`.
