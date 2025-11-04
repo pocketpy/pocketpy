@@ -67,7 +67,10 @@ int load_module_from_dll_desktop_only(const char* path) PY_RAISE PY_RETURN;
 int py_import(const char* path_cstr) {
     VM* vm = pk_current_vm;
     c11_sv path = {path_cstr, strlen(path_cstr)};
-    if(path.size == 0) return ValueError("empty module name");
+    if(path.size == 0) {
+        ValueError("empty module name");
+        return -1;
+    }
 
     if(path.data[0] == '.') {
         // try relative import
@@ -81,13 +84,16 @@ int py_import(const char* path_cstr) {
         py_ModuleInfo* mi = py_touserdata(vm->top_frame->module);
         c11_sv package_sv = c11_string__sv(mi->path);
         if(package_sv.size == 0) {
-            return ImportError("attempted relative import with no known parent package");
+            ImportError("attempted relative import with no known parent package");
+            return -1;
         }
 
         c11_vector /* T=c11_sv */ cpnts = c11_sv__split(package_sv, '.');
         for(int i = is_init; i < dot_count; i++) {
-            if(cpnts.length == 0)
-                return ImportError("attempted relative import beyond top-level package");
+            if(cpnts.length == 0){
+                ImportError("attempted relative import beyond top-level package");
+                return -1;
+            }
             c11_vector__pop(&cpnts);
         }
 
@@ -117,7 +123,7 @@ int py_import(const char* path_cstr) {
     py_GlobalRef ext_mod = py_getmodule(path.data);
     if(ext_mod) {
         py_assign(py_retval(), ext_mod);
-        return true;
+        return 1;
     }
 
     if(vm->callbacks.lazyimport) {
