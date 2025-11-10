@@ -32,3 +32,9 @@ void pk__add_module_cute_png();
 #else
 #define pk__add_module_cute_png()
 #endif
+
+#ifdef PK_BUILD_MODULE_MSGPACK
+void pk__add_module_msgpack();
+#else
+#define pk__add_module_msgpack()
+#endif

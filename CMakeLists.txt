@@ -115,6 +115,10 @@ if(PK_BUILD_MODULE_CUTE_PNG)
     add_definitions(-DPK_BUILD_MODULE_CUTE_PNG)
 endif()
 
+if(PK_BUILD_MODULE_MSGPACK)
+    add_subdirectory(3rd/msgpack)
+    add_definitions(-DPK_BUILD_MODULE_MSGPACK)
+endif()
 
 if(PK_BUILD_SHARED_LIB)
     message(">> Building shared library")
@@ -178,6 +182,10 @@ endif()
 
 if(PK_BUILD_MODULE_CUTE_PNG)
     target_link_libraries(${PROJECT_NAME} cute_png)
+endif()
+
+if(PK_BUILD_MODULE_MSGPACK)
+    target_link_libraries(${PROJECT_NAME} msgpack)
 endif()
 
 

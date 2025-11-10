@@ -5,3 +5,4 @@
 -Iinclude/
 -I3rd/lz4/
 -I3rd/cute_headers/include/
+-I3rd/msgpack/include/
