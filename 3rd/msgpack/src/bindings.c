@@ -97,13 +97,71 @@ static bool msgpack_loads(int argc, py_Ref argv) {
     return true;
 }
 
-// static mpack_node_t py_to_mpack(py_Ref object) {
+static bool py_to_mpack(py_Ref object, mpack_writer_t* writer);
 
-// }
+static bool mpack_write_dict_kv(py_Ref k, py_Ref v, void* ctx) {
+    mpack_writer_t* writer = ctx;
+    if(k->type != tp_str) return TypeError("msgpack: key must be strings");
+    c11_sv sv = py_tosv(k);
+    mpack_write_str(writer, sv.data, (size_t)sv.size);
+    return py_to_mpack(v, writer);
+}
+
+static bool py_to_mpack(py_Ref object, mpack_writer_t* writer) {
+    switch(object->type) {
+        case tp_NoneType: mpack_write_nil(writer); break;
+        case tp_bool: mpack_write_bool(writer, py_tobool(object)); break;
+        case tp_int: mpack_write_int(writer, py_toint(object)); break;
+        case tp_float: mpack_write_double(writer, py_tofloat(object)); break;
+        case tp_str: {
+            c11_sv sv = py_tosv(object);
+            mpack_write_str(writer, sv.data, (size_t)sv.size);
+            break;
+        }
+        case tp_bytes: {
+            int size;
+            unsigned char* data = py_tobytes(object, &size);
+            mpack_write_bin(writer, (const char*)data, (size_t)size);
+            break;
+        }
+        case tp_list: {
+            int len = py_list_len(object);
+            py_Ref data = py_list_data(object);
+            mpack_build_array(writer);
+            for(int i = 0; i < len; i++) {
+                bool ok = py_to_mpack(&data[i], writer);
+                if(!ok) return false;
+            }
+            mpack_complete_array(writer);
+            break;
+        }
+        case tp_dict: {
+            mpack_build_map(writer);
+            bool ok = py_dict_apply(object, mpack_write_dict_kv, writer);
+            if(!ok) return false;
+            mpack_complete_map(writer);
+            break;
+        }
+        default: return TypeError("msgpack: unsupported type '%t'", object->type);
+    }
+    return true;
+}
 
 static bool msgpack_dumps(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    return ValueError("not yet");
+    char* data;
+    size_t size;
+    mpack_writer_t writer;
+    mpack_writer_init_growable(&writer, &data, &size);
+    py_to_mpack(argv, &writer);
+    if(mpack_writer_destroy(&writer) != mpack_ok) {
+        return ValueError("msgpack: writer destroy failed");
+    }
+    assert(size <= INT32_MAX);
+    unsigned char* byte_data = py_newbytes(py_retval(), (int)size);
+    memcpy(byte_data, data, size);
+    MPACK_FREE(data);
+    return true;
 }
 
 void pk__add_module_msgpack() {
