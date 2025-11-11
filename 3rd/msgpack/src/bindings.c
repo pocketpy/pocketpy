@@ -130,7 +130,10 @@ static bool py_to_mpack(py_Ref object, mpack_writer_t* writer) {
             mpack_build_array(writer);
             for(int i = 0; i < len; i++) {
                 bool ok = py_to_mpack(&data[i], writer);
-                if(!ok) return false;
+                if(!ok) {
+                    mpack_complete_array(writer);
+                    return false;
+                }
             }
             mpack_complete_array(writer);
             break;
@@ -138,8 +141,8 @@ static bool py_to_mpack(py_Ref object, mpack_writer_t* writer) {
         case tp_dict: {
             mpack_build_map(writer);
             bool ok = py_dict_apply(object, mpack_write_dict_kv, writer);
-            if(!ok) return false;
             mpack_complete_map(writer);
+            if(!ok) return false;
             break;
         }
         default: return TypeError("msgpack: unsupported type '%t'", object->type);
@@ -153,10 +156,9 @@ static bool msgpack_dumps(int argc, py_Ref argv) {
     size_t size;
     mpack_writer_t writer;
     mpack_writer_init_growable(&writer, &data, &size);
-    py_to_mpack(argv, &writer);
-    if(mpack_writer_destroy(&writer) != mpack_ok) {
-        return ValueError("msgpack: writer destroy failed");
-    }
+    bool ok = py_to_mpack(argv, &writer);
+    if(mpack_writer_destroy(&writer) != mpack_ok) { assert(false); }
+    if(!ok) return false;
     assert(size <= INT32_MAX);
     unsigned char* byte_data = py_newbytes(py_retval(), (int)size);
     memcpy(byte_data, data, size);
