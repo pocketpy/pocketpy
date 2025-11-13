@@ -3959,6 +3959,10 @@ final class py_Callbacks extends ffi.Struct {
                               py_Ref val, ffi.Pointer<ffi.Void> ctx)>>
                   f,
               ffi.Pointer<ffi.Void> ctx)>> gc_mark;
+
+  /// Used by `PRINT_EXPR` bytecode.
+  external ffi.Pointer<ffi.NativeFunction<ffi.Bool Function(py_Ref val)>>
+      displayhook;
 }
 
 /// A global reference which has the same lifespan as the VM.
