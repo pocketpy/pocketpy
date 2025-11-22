@@ -22,7 +22,7 @@ c11_array2d* c11_newarray2d(py_OutRef out, int n_cols, int n_rows) {
     ud->header.n_cols = n_cols;
     ud->header.n_rows = n_rows;
     ud->header.numel = numel;
-    ud->header.f_get = (py_Ref(*)(c11_array2d_like*, int, int))c11_array2d__get;
+    ud->header.f_get = (py_Ref (*)(c11_array2d_like*, int, int))c11_array2d__get;
     ud->header.f_set = (bool (*)(c11_array2d_like*, int, int, py_Ref))c11_array2d__set;
     ud->data = py_getslot(out, 0);
     return ud;
@@ -131,10 +131,85 @@ static bool array2d_like_render(int argc, py_Ref argv) {
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
-            if(!py_str(item)) return false;
+            if(!py_str(item)) {
+                c11_sbuf__dtor(&buf);
+                return false;
+            }
             c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
         }
         if(j < self->n_rows - 1) c11_sbuf__write_char(&buf, '\n');
+    }
+    c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
+static bool array2d_like_render_with_color(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    c11_array2d_like* self = py_touserdata(argv);
+
+    if(!py_checkinstance(py_arg(1), tp_array2d_like)) return false;
+    if(!py_checkinstance(py_arg(2), tp_array2d_like)) return false;
+    c11_array2d_like* fg_colors = py_touserdata(py_arg(1));
+    c11_array2d_like* bg_colors = py_touserdata(py_arg(2));
+
+    c11_color32 curr_fg, curr_bg;
+    curr_fg.u32 = 0;
+    curr_bg.u32 = 0;
+
+    for(int j = 0; j < self->n_rows; j++) {
+        for(int i = 0; i < self->n_cols; i++) {
+            py_Ref item = self->f_get(self, i, j);
+            if(!py_str(item)) {
+                c11_sbuf__dtor(&buf);
+                return false;
+            }
+
+            py_Ref fg_item = fg_colors->f_get(fg_colors, i, j);
+            py_Ref bg_item = bg_colors->f_get(bg_colors, i, j);
+
+            c11_color32 new_fg, new_bg;
+            if(py_isnone(fg_item)) {
+                new_fg.u32 = 0;
+            } else {
+                if(!py_checktype(fg_item, tp_color32)) {
+                    c11_sbuf__dtor(&buf);
+                    return false;
+                }
+                new_fg = py_tocolor32(fg_item);
+            }
+            if(py_isnone(bg_item)) {
+                new_bg.u32 = 0;
+            } else {
+                if(!py_checktype(bg_item, tp_color32)) {
+                    c11_sbuf__dtor(&buf);
+                    return false;
+                }
+                new_bg = py_tocolor32(bg_item);
+            }
+
+            if(curr_fg.u32 != new_fg.u32 || curr_bg.u32 != new_bg.u32) {
+                if(curr_fg.u32 != 0 || curr_bg.u32 != 0) c11_sbuf__write_cstr(&buf, "\x1b[0m");
+                curr_fg = new_fg;
+                curr_bg = new_bg;
+                if(curr_fg.u32 != 0)
+                    pk_sprintf(&buf, "\x1b[38;2;%d;%d;%dm", curr_fg.r, curr_fg.g, curr_fg.b);
+                if(curr_bg.u32 != 0)
+                    pk_sprintf(&buf, "\x1b[48;2;%d;%d;%dm", curr_bg.r, curr_bg.g, curr_bg.b);
+            }
+
+            c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
+        }
+        if(j < self->n_rows - 1) {
+            if(curr_fg.u32 != 0 || curr_bg.u32 != 0) {
+                curr_fg.u32 = 0;
+                curr_bg.u32 = 0;
+                c11_sbuf__write_cstr(&buf, "\x1b[0m");
+            } else {
+                c11_sbuf__write_char(&buf, '\n');
+            }
+        }
     }
     c11_sbuf__py_submit(&buf, py_retval());
     return true;
@@ -409,7 +484,7 @@ static c11_array2d_view* _array2d_view__new(py_OutRef out,
     res->header.n_cols = width;
     res->header.n_rows = height;
     res->header.numel = width * height;
-    res->header.f_get = (py_Ref(*)(c11_array2d_like*, int, int))c11_array2d_view__get;
+    res->header.f_get = (py_Ref (*)(c11_array2d_like*, int, int))c11_array2d_view__get;
     res->header.f_set = (bool (*)(c11_array2d_like*, int, int, py_Ref))c11_array2d_view__set;
     res->origin.x = start_col;
     res->origin.y = start_row;
@@ -427,7 +502,7 @@ static bool _array2d_view(py_OutRef out,
     c11_array2d_view* res = _array2d_view__new(out, keepalive, start_col, start_row, width, height);
     if(res == NULL) return false;
     res->ctx = array;
-    res->f_get = (py_Ref(*)(void*, int, int))array->f_get;
+    res->f_get = (py_Ref (*)(void*, int, int))array->f_get;
     res->f_set = (bool (*)(void*, int, int, py_Ref))array->f_set;
     return true;
 }
@@ -442,7 +517,7 @@ static bool _chunked_array2d_view(py_OutRef out,
     c11_array2d_view* res = _array2d_view__new(out, keepalive, start_col, start_row, width, height);
     if(res == NULL) return false;
     res->ctx = array;
-    res->f_get = (py_Ref(*)(void*, int, int))c11_chunked_array2d__get;
+    res->f_get = (py_Ref (*)(void*, int, int))c11_chunked_array2d__get;
     res->f_set = (bool (*)(void*, int, int, py_Ref))c11_chunked_array2d__set;
     return true;
 }
@@ -754,6 +829,7 @@ static void register_array2d_like(py_Ref mod) {
     py_bindmethod(type, "index", array2d_like_index);
 
     py_bindmethod(type, "render", array2d_like_render);
+    py_bindmethod(type, "render_with_color", array2d_like_render_with_color);
 
     py_bindmethod(type, "all", array2d_like_all);
     py_bindmethod(type, "any", array2d_like_any);

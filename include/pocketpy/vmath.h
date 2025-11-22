@@ -42,4 +42,5 @@ typedef union c11_color32 {
         unsigned char a;
     };
     unsigned char data[4];
+    uint32_t u32;
 } c11_color32;

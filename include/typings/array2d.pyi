@@ -1,5 +1,5 @@
 from typing import Callable, Literal, overload, Iterator, Self
-from vmath import vec2i
+from vmath import vec2i, color32
 
 Neighborhood = Literal['Moore', 'von Neumann']
 
@@ -35,6 +35,7 @@ class array2d_like[T]:
         """
 
     def render(self) -> str: ...
+    def render_with_color(self, fg: array2d_like[color32 | None], bg: array2d_like[color32 | None]) -> str: ...
 
     def all(self: array2d_like[bool]) -> bool: ...
     def any(self: array2d_like[bool]) -> bool: ...
