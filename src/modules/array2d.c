@@ -205,7 +205,7 @@ static bool array2d_like_render_with_color(int argc, py_Ref argv) {
             if(curr_fg.u32 != 0 || curr_bg.u32 != 0) {
                 curr_fg.u32 = 0;
                 curr_bg.u32 = 0;
-                c11_sbuf__write_cstr(&buf, "\x1b[0m");
+                c11_sbuf__write_cstr(&buf, "\x1b[0m\n");
             } else {
                 c11_sbuf__write_char(&buf, '\n');
             }
