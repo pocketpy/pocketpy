@@ -944,7 +944,7 @@ static bool color32_to_hex(int argc, py_Ref argv) {
     return true;
 }
 
-static void c11_color32_premult(c11_color32* color) {
+void c11_color32_premult(c11_color32* color) {
     if(color->a == 255) return;
     float alpha = color->a / 255.0f;
     color->r = (unsigned char)(color->r * alpha);

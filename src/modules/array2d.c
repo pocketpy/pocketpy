@@ -143,6 +143,8 @@ static bool array2d_like_render(int argc, py_Ref argv) {
     return true;
 }
 
+void c11_color32_premult(c11_color32* color);
+
 static bool array2d_like_render_with_color(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
     c11_sbuf buf;
@@ -193,10 +195,14 @@ static bool array2d_like_render_with_color(int argc, py_Ref argv) {
                 if(curr_fg.u32 != 0 || curr_bg.u32 != 0) c11_sbuf__write_cstr(&buf, "\x1b[0m");
                 curr_fg = new_fg;
                 curr_bg = new_bg;
-                if(curr_fg.u32 != 0)
+                if(curr_fg.u32 != 0) {
+                    c11_color32_premult(&curr_fg);
                     pk_sprintf(&buf, "\x1b[38;2;%d;%d;%dm", curr_fg.r, curr_fg.g, curr_fg.b);
-                if(curr_bg.u32 != 0)
+                }
+                if(curr_bg.u32 != 0) {
+                    c11_color32_premult(&curr_bg);
                     pk_sprintf(&buf, "\x1b[48;2;%d;%d;%dm", curr_bg.r, curr_bg.g, curr_bg.b);
+                }
             }
 
             c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
