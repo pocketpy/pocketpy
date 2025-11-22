@@ -1,0 +1,23 @@
+import picoterm
+from vmath import rgb
+
+picoterm.enable_full_buffering_mode()
+
+bg = rgb(78, 118, 164)
+fg = rgb(200, 200, 0)
+text = "hello, \nworld"
+text = bg.ansi_bg(text)
+text = fg.ansi_fg(text)
+
+def ansi_italic(text: str):
+    return f'\x1b[3m{text}\x1b[0m'
+
+text = ansi_italic(text) + '123'
+print(text)
+
+cpnts = picoterm.split_ansi_escaped_string(text)
+
+assert cpnts == ['\x1b[3m', '\x1b[38;2;200;200;0m', '\x1b[48;2;78;118;164m', 'hello, ', '\n', 'world', '\x1b[0m', '\x1b[0m', '\x1b[0m', '123']
+
+cpnts_join = ''.join(cpnts)
+assert cpnts_join == text

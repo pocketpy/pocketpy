@@ -65,14 +65,6 @@ static bool pkpy_is_user_defined_type(int argc, py_Ref argv) {
     return true;
 }
 
-static bool pkpy_enable_full_buffering_mode(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(0);
-    static char buf[1024 * 128];
-    setvbuf(stdout, buf, _IOFBF, sizeof(buf));
-    py_newnone(py_retval());
-    return true;
-}
-
 static bool pkpy_currentvm(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
     py_newint(py_retval(), py_currentvm());
@@ -539,7 +531,6 @@ void pk__add_module_pkpy() {
 
     py_bindfunc(mod, "memory_usage", pkpy_memory_usage);
     py_bindfunc(mod, "is_user_defined_type", pkpy_is_user_defined_type);
-    py_bindfunc(mod, "enable_full_buffering_mode", pkpy_enable_full_buffering_mode);
 
     py_bindfunc(mod, "currentvm", pkpy_currentvm);
 

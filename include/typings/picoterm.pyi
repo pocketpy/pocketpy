@@ -1,0 +1,5 @@
+def enable_full_buffering_mode() -> None:
+    """Enable full buffering mode for ASCII drawings (32KB)."""
+
+def split_ansi_escaped_string(s: str) -> list[str]:
+    """Perform split on ANSI escaped string."""
