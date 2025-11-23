@@ -65,6 +65,7 @@ static bool pkpy_setup_gc_debug_callback(int argc, py_Ref argv) {
     } else {
         heap->debug_callback = argv;
     }
+    py_newnone(py_retval());
     return true;
 }
 
