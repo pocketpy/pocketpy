@@ -13,7 +13,7 @@ typedef struct ManagedHeap {
     int gc_threshold;  // threshold for gc_counter
     int gc_counter;    // objects created since last gc
     bool gc_enabled;
-    py_Ref debug_callback;
+    py_TValue debug_callback;
 } ManagedHeap;
 
 typedef struct {

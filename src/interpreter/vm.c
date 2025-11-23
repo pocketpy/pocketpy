@@ -686,7 +686,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
         pk__mark_value(&vm->reg[i]);
     }
     // mark gc debug callback
-    if(vm->heap.debug_callback) pk__mark_value(vm->heap.debug_callback);
+    pk__mark_value(&vm->heap.debug_callback);
     // mark user func
     if(vm->callbacks.gc_mark) vm->callbacks.gc_mark(pk__mark_value_func, p_stack);
     /*****************************/

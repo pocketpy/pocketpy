@@ -17,7 +17,7 @@ void ManagedHeap__ctor(ManagedHeap* self) {
     self->gc_threshold = PK_GC_MIN_THRESHOLD;
     self->gc_counter = 0;
     self->gc_enabled = true;
-    self->debug_callback = NULL;
+    self->debug_callback = *py_None();
 }
 
 void ManagedHeap__dtor(ManagedHeap* self) {
@@ -34,7 +34,6 @@ void ManagedHeap__dtor(ManagedHeap* self) {
 }
 
 static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
-    assert(self->debug_callback != NULL);
     assert(out_info != NULL);
 
     c11_sbuf buf;
@@ -84,7 +83,7 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
     pk_sprintf(&buf, "auto_thres.free_ratio:    %f\n", out_info->auto_thres.free_ratio);
     c11_sbuf__write_cstr(&buf, DIVIDER);
 
-    py_push(self->debug_callback);
+    py_push(&self->debug_callback);
     py_pushnil();
     py_StackRef arg = py_pushtmp();
     c11_sbuf__py_submit(&buf, arg);
@@ -101,7 +100,7 @@ void ManagedHeap__collect_if_needed(ManagedHeap* self) {
     self->gc_counter = 0;
 
     ManagedHeapSwpetInfo* out_info = NULL;
-    if(self->debug_callback) out_info = ManagedHeapSwpetInfo__new();
+    if(!py_isnone(&self->debug_callback)) out_info = ManagedHeapSwpetInfo__new();
     
     ManagedHeap__mark(self);
     if(out_info) out_info->mark_end = clock();
@@ -127,7 +126,7 @@ void ManagedHeap__collect_if_needed(ManagedHeap* self) {
     }
     self->gc_threshold = c11__min(c11__max(new_threshold, lower), upper);
 
-    if(self->debug_callback) {
+    if(!py_isnone(&self->debug_callback)) {
         ManagedHeap__fire_debug_callback(self, out_info);
         ManagedHeapSwpetInfo__delete(out_info);
     }
@@ -137,7 +136,7 @@ int ManagedHeap__collect(ManagedHeap* self) {
     self->gc_counter = 0;
 
     ManagedHeapSwpetInfo* out_info = NULL;
-    if(self->debug_callback) out_info = ManagedHeapSwpetInfo__new();
+    if(!py_isnone(&self->debug_callback)) out_info = ManagedHeapSwpetInfo__new();
     
     ManagedHeap__mark(self);
     if(out_info) out_info->mark_end = clock();
@@ -149,7 +148,7 @@ int ManagedHeap__collect(ManagedHeap* self) {
         out_info->auto_thres.after = self->gc_threshold;
     }
 
-    if(self->debug_callback) {
+    if(!py_isnone(&self->debug_callback)) {
         ManagedHeap__fire_debug_callback(self, out_info);
         ManagedHeapSwpetInfo__delete(out_info);
     }
