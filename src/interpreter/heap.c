@@ -41,7 +41,7 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
     c11_sbuf__ctor(&buf);
 
     const clock_t CLOCKS_PER_MS = CLOCKS_PER_SEC / 1000;
-    const char* DIVIDER = "------------------------------";
+    const char* DIVIDER = "------------------------------------------------------------\n";
 
     clock_t start = out_info->start / CLOCKS_PER_MS;
     clock_t mark_ms = (out_info->mark_end - out_info->start) / CLOCKS_PER_MS;
@@ -58,21 +58,24 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
     pk_sprintf(&buf, "large_freed:  %d\n", out_info->large_freed);
     c11_sbuf__write_cstr(&buf, DIVIDER);
 
-    char line_buf[256];
-    for(int i = 0; i < out_info->types_length; i++) {
-        const char* type_name = py_tpname(i);
-        int s_freed = out_info->small_types[i];
-        int l_freed = out_info->large_types[i];
-        if(s_freed == 0 && l_freed == 0) continue;
-        snprintf(line_buf,
-                 sizeof(line_buf),
-                 "[%-24s] small: %6d  large: %6d\n",
-                 type_name,
-                 s_freed,
-                 l_freed);
-        c11_sbuf__write_cstr(&buf, line_buf);
+    if(out_info->small_freed != 0 || out_info->large_freed != 0) {
+        char line_buf[256];
+        for(int i = 0; i < out_info->types_length; i++) {
+            const char* type_name = py_tpname(i);
+            int s_freed = out_info->small_types[i];
+            int l_freed = out_info->large_types[i];
+            if(s_freed == 0 && l_freed == 0) continue;
+            snprintf(line_buf,
+                    sizeof(line_buf),
+                    "[%-24s] small: %6d  large: %6d\n",
+                    type_name,
+                    s_freed,
+                    l_freed);
+            c11_sbuf__write_cstr(&buf, line_buf);
+        }
+        c11_sbuf__write_cstr(&buf, DIVIDER);
     }
-    c11_sbuf__write_cstr(&buf, DIVIDER);
+
     pk_sprintf(&buf, "auto_thres.before:        %d\n", out_info->auto_thres.before);
     pk_sprintf(&buf, "auto_thres.after:         %d\n", out_info->auto_thres.after);
     pk_sprintf(&buf, "auto_thres.upper:         %d\n", out_info->auto_thres.upper);
@@ -140,6 +143,11 @@ int ManagedHeap__collect(ManagedHeap* self) {
     if(out_info) out_info->mark_end = clock();
     int freed = ManagedHeap__sweep(self, out_info);
     if(out_info) out_info->swpet_end = clock();
+
+    if(out_info) {
+        out_info->auto_thres.before = self->gc_threshold;
+        out_info->auto_thres.after = self->gc_threshold;
+    }
 
     if(self->debug_callback) {
         ManagedHeap__fire_debug_callback(self, out_info);
