@@ -31,10 +31,10 @@ void ManagedHeap__dtor(ManagedHeap* self) {
     c11_vector__dtor(&self->gc_roots);
 }
 
-void ManagedHeap__collect_if_needed(ManagedHeap* self) {
+void ManagedHeap__collect_if_needed(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
     if(!self->gc_enabled) return;
     if(self->gc_counter < self->gc_threshold) return;
-    int freed = ManagedHeap__collect(self);
+    int freed = ManagedHeap__collect(self, out_info);
     // adjust `gc_threshold` based on `freed_ma`
     self->freed_ma[0] = self->freed_ma[1];
     self->freed_ma[1] = self->freed_ma[2];
@@ -44,22 +44,28 @@ void ManagedHeap__collect_if_needed(ManagedHeap* self) {
     const int lower = PK_GC_MIN_THRESHOLD / 2;
     float free_ratio = (float)avg_freed / self->gc_threshold;
     int new_threshold = self->gc_threshold * (1.5f / free_ratio);
-    // printf("gc_threshold=%d, avg_freed=%d, new_threshold=%d\n", self->gc_threshold, avg_freed,
-    // new_threshold);
+    if(out_info) {
+        out_info->auto_thres.valid = true;
+        out_info->auto_thres.before = self->gc_threshold;
+        out_info->auto_thres.after = new_threshold;
+        out_info->auto_thres.upper = upper;
+        out_info->auto_thres.lower = lower;
+        out_info->auto_thres.avg_freed = avg_freed;
+        out_info->auto_thres.free_ratio = free_ratio;
+    }
     self->gc_threshold = c11__min(c11__max(new_threshold, lower), upper);
 }
 
-int ManagedHeap__collect(ManagedHeap* self) {
+int ManagedHeap__collect(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
     self->gc_counter = 0;
     ManagedHeap__mark(self);
-    int freed = ManagedHeap__sweep(self);
-    // printf("GC: collected %d objects\n", freed);
-    return freed;
+    return ManagedHeap__sweep(self, out_info);
 }
 
-int ManagedHeap__sweep(ManagedHeap* self) {
+int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
     // small_objects
-    int small_freed = MultiPool__sweep_dealloc(&self->small_objects);
+    int small_freed =
+        MultiPool__sweep_dealloc(&self->small_objects, out_info ? out_info->small_types : NULL);
     // large_objects
     int large_living_count = 0;
     for(int i = 0; i < self->large_objects.length; i++) {
@@ -69,6 +75,7 @@ int ManagedHeap__sweep(ManagedHeap* self) {
             c11__setitem(PyObject*, &self->large_objects, large_living_count, obj);
             large_living_count++;
         } else {
+            if(out_info) out_info->large_types[obj->type]++;
             PyObject__dtor(obj);
             PK_FREE(obj);
         }
@@ -76,8 +83,11 @@ int ManagedHeap__sweep(ManagedHeap* self) {
     // shrink `self->large_objects`
     int large_freed = self->large_objects.length - large_living_count;
     self->large_objects.length = large_living_count;
-    // printf("large_freed=%d\n", large_freed);
-    // printf("small_freed=%d\n", small_freed);
+    if(out_info) {
+        out_info->small_freed = small_freed;
+        out_info->large_freed = large_freed;
+        out_info->end = clock();
+    }
     return small_freed + large_freed;
 }
 

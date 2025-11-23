@@ -129,3 +129,16 @@ void PyObject__dtor(PyObject* self) {
         NameDict__dtor(dict);
     }
 }
+
+void ManagedHeapSwpetInfo__ctor(ManagedHeapSwpetInfo* self) {
+    memset(self, 0, sizeof(ManagedHeapSwpetInfo));
+    self->start = clock();
+    self->small_types = py_malloc(sizeof(int) * pk_current_vm->types.length);
+    self->large_types = py_malloc(sizeof(int) * pk_current_vm->types.length);
+}
+
+void ManagedHeapSwpetInfo__dtor(ManagedHeapSwpetInfo* self) {
+    py_free(self->small_types);
+    py_free(self->large_types);
+    memset(self, 0, sizeof(ManagedHeapSwpetInfo));
+}
