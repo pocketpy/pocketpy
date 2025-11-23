@@ -58,7 +58,7 @@ static bool pkpy_memory_usage(int argc, py_Ref argv) {
 }
 
 static bool pkpy_setup_gc_debug_callback(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(0);
+    PY_CHECK_ARGC(1);
     ManagedHeap* heap = &pk_current_vm->heap;
     if(py_isnone(argv)) {
         heap->debug_callback = NULL;
