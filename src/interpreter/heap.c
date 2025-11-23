@@ -66,7 +66,7 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
         if(s_freed == 0 && l_freed == 0) continue;
         snprintf(line_buf,
                  sizeof(line_buf),
-                 "[-%24s] small: %6d  large: %6d\n",
+                 "[%-24s] small: %6d  large: %6d\n",
                  type_name,
                  s_freed,
                  l_freed);
