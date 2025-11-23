@@ -81,13 +81,15 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
     pk_sprintf(&buf, "auto_thres.free_ratio:    %f\n", out_info->auto_thres.free_ratio);
     c11_sbuf__write_cstr(&buf, DIVIDER);
 
-    py_Ref p0 = py_peek(0);
     py_push(self->debug_callback);
     py_pushnil();
     py_StackRef arg = py_pushtmp();
     c11_sbuf__py_submit(&buf, arg);
     bool ok = py_vectorcall(1, 0);
-    if(!ok) py_clearexc(p0);    // noexcept
+    if(!ok) {
+        char* msg = py_formatexc();
+        c11__abort("gc_debug_callback error!!\n%s", msg);
+    }
 }
 
 void ManagedHeap__collect_if_needed(ManagedHeap* self) {
