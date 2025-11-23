@@ -1,4 +1,4 @@
-from typing import Self, Literal
+from typing import Self, Literal, Callable
 from vmath import vec2, vec2i
 
 class TValue[T]:
@@ -16,6 +16,8 @@ configmacros: dict[str, int]
 
 def memory_usage() -> str:
     """Return a summary of the memory usage."""
+def setup_gc_debug_callback(cb: Callable[[str], None]) -> None:
+    """Setup a callback that will be triggered at the end of GC."""
 
 def is_user_defined_type(t: type) -> bool:
     """Check if a type is user-defined. This means the type was created by executing python `class` statement."""

@@ -57,6 +57,14 @@ static bool pkpy_memory_usage(int argc, py_Ref argv) {
     return true;
 }
 
+static bool pkpy_setup_gc_debug_callback(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    ManagedHeap* heap = &pk_current_vm->heap;
+    heap->debug_callback = *argv;
+    py_newnone(py_retval());
+    return true;
+}
+
 static bool pkpy_is_user_defined_type(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_type);
@@ -530,6 +538,7 @@ void pk__add_module_pkpy() {
     py_pop();
 
     py_bindfunc(mod, "memory_usage", pkpy_memory_usage);
+    py_bindfunc(mod, "setup_gc_debug_callback", pkpy_setup_gc_debug_callback);
     py_bindfunc(mod, "is_user_defined_type", pkpy_is_user_defined_type);
 
     py_bindfunc(mod, "currentvm", pkpy_currentvm);

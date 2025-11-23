@@ -2,6 +2,7 @@
 
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/objectpool.h"
+#include <time.h>
 
 typedef struct ManagedHeap {
     MultiPool small_objects;
@@ -12,14 +13,40 @@ typedef struct ManagedHeap {
     int gc_threshold;  // threshold for gc_counter
     int gc_counter;    // objects created since last gc
     bool gc_enabled;
+    py_TValue debug_callback;
 } ManagedHeap;
+
+typedef struct {
+    clock_t start;
+    clock_t mark_end;
+    clock_t swpet_end;
+
+    int types_length;
+    int* small_types;
+    int* large_types;
+
+    int small_freed;
+    int large_freed;
+
+    struct {
+        int before;
+        int after;
+        int upper;
+        int lower;
+        int avg_freed;
+        float free_ratio;
+    } auto_thres;
+} ManagedHeapSwpetInfo;
 
 void ManagedHeap__ctor(ManagedHeap* self);
 void ManagedHeap__dtor(ManagedHeap* self);
 
+ManagedHeapSwpetInfo* ManagedHeapSwpetInfo__new();
+void ManagedHeapSwpetInfo__delete(ManagedHeapSwpetInfo* self);
+
 void ManagedHeap__collect_if_needed(ManagedHeap* self);
 int ManagedHeap__collect(ManagedHeap* self);
-int ManagedHeap__sweep(ManagedHeap* self);
+int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info);
 
 #define ManagedHeap__new(self, type, slots, udsize)                                                \
     ManagedHeap__gcnew((self), (type), (slots), (udsize))
