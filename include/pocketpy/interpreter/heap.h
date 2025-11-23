@@ -13,19 +13,22 @@ typedef struct ManagedHeap {
     int gc_threshold;  // threshold for gc_counter
     int gc_counter;    // objects created since last gc
     bool gc_enabled;
+    py_Ref debug_callback;
 } ManagedHeap;
 
 typedef struct {
     clock_t start;
-    clock_t end;
-    
+    clock_t mark_end;
+    clock_t swpet_end;
+
+    int types_length;
     int* small_types;
     int* large_types;
+
     int small_freed;
     int large_freed;
 
     struct {
-        bool valid;
         int before;
         int after;
         int upper;
@@ -38,11 +41,11 @@ typedef struct {
 void ManagedHeap__ctor(ManagedHeap* self);
 void ManagedHeap__dtor(ManagedHeap* self);
 
-void ManagedHeapSwpetInfo__ctor(ManagedHeapSwpetInfo* self);
-void ManagedHeapSwpetInfo__dtor(ManagedHeapSwpetInfo* self);
+ManagedHeapSwpetInfo* ManagedHeapSwpetInfo__new();
+void ManagedHeapSwpetInfo__delete(ManagedHeapSwpetInfo* self);
 
-void ManagedHeap__collect_if_needed(ManagedHeap* self, ManagedHeapSwpetInfo* out_info);
-int ManagedHeap__collect(ManagedHeap* self, ManagedHeapSwpetInfo* out_info);
+void ManagedHeap__collect_if_needed(ManagedHeap* self);
+int ManagedHeap__collect(ManagedHeap* self);
 int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info);
 
 #define ManagedHeap__new(self, type, slots, udsize)                                                \

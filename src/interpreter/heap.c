@@ -2,6 +2,7 @@
 #include "pocketpy/config.h"
 #include "pocketpy/interpreter/objectpool.h"
 #include "pocketpy/objects/base.h"
+#include "pocketpy/common/sstream.h"
 #include "pocketpy/pocketpy.h"
 #include <assert.h>
 
@@ -16,6 +17,7 @@ void ManagedHeap__ctor(ManagedHeap* self) {
     self->gc_threshold = PK_GC_MIN_THRESHOLD;
     self->gc_counter = 0;
     self->gc_enabled = true;
+    self->debug_callback = NULL;
 }
 
 void ManagedHeap__dtor(ManagedHeap* self) {
@@ -31,10 +33,76 @@ void ManagedHeap__dtor(ManagedHeap* self) {
     c11_vector__dtor(&self->gc_roots);
 }
 
-void ManagedHeap__collect_if_needed(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
+static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
+    assert(self->debug_callback != NULL);
+    assert(out_info != NULL);
+
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+
+    const clock_t CLOCKS_PER_MS = CLOCKS_PER_SEC / 1000;
+    const char* DIVIDER = "------------------------------";
+
+    clock_t start = out_info->start / CLOCKS_PER_MS;
+    clock_t mark_ms = (out_info->mark_end - out_info->start) / CLOCKS_PER_MS;
+    clock_t swpet_ms = (out_info->swpet_end - out_info->mark_end) / CLOCKS_PER_MS;
+
+    c11_sbuf__write_cstr(&buf, DIVIDER);
+    pk_sprintf(&buf, "start:        %f\n", (double)start / 1000);
+    pk_sprintf(&buf, "mark_ms:      %i\n", (py_i64)mark_ms);
+    pk_sprintf(&buf, "swpet_ms:     %i\n", (py_i64)swpet_ms);
+    pk_sprintf(&buf, "total_ms:     %i\n", (py_i64)(mark_ms + swpet_ms));
+    c11_sbuf__write_cstr(&buf, DIVIDER);
+    pk_sprintf(&buf, "types_length: %d\n", out_info->types_length);
+    pk_sprintf(&buf, "small_freed:  %d\n", out_info->small_freed);
+    pk_sprintf(&buf, "large_freed:  %d\n", out_info->large_freed);
+    c11_sbuf__write_cstr(&buf, DIVIDER);
+
+    char line_buf[256];
+    for(int i = 0; i < out_info->types_length; i++) {
+        const char* type_name = py_tpname(i);
+        int s_freed = out_info->small_types[i];
+        int l_freed = out_info->large_types[i];
+        if(s_freed == 0 && l_freed == 0) continue;
+        snprintf(line_buf,
+                 sizeof(line_buf),
+                 "[-%24s] small: %6d  large: %6d\n",
+                 type_name,
+                 s_freed,
+                 l_freed);
+        c11_sbuf__write_cstr(&buf, line_buf);
+    }
+    c11_sbuf__write_cstr(&buf, DIVIDER);
+    pk_sprintf(&buf, "auto_thres.before:        %d\n", out_info->auto_thres.before);
+    pk_sprintf(&buf, "auto_thres.after:         %d\n", out_info->auto_thres.after);
+    pk_sprintf(&buf, "auto_thres.upper:         %d\n", out_info->auto_thres.upper);
+    pk_sprintf(&buf, "auto_thres.lower:         %d\n", out_info->auto_thres.lower);
+    pk_sprintf(&buf, "auto_thres.avg_freed:     %d\n", out_info->auto_thres.avg_freed);
+    pk_sprintf(&buf, "auto_thres.free_ratio:    %f\n", out_info->auto_thres.free_ratio);
+    c11_sbuf__write_cstr(&buf, DIVIDER);
+
+    py_Ref p0 = py_peek(0);
+    py_push(self->debug_callback);
+    py_pushnil();
+    py_StackRef arg = py_pushtmp();
+    c11_sbuf__py_submit(&buf, arg);
+    bool ok = py_vectorcall(1, 0);
+    if(!ok) py_clearexc(p0);    // noexcept
+}
+
+void ManagedHeap__collect_if_needed(ManagedHeap* self) {
     if(!self->gc_enabled) return;
     if(self->gc_counter < self->gc_threshold) return;
-    int freed = ManagedHeap__collect(self, out_info);
+    self->gc_counter = 0;
+
+    ManagedHeapSwpetInfo* out_info = NULL;
+    if(self->debug_callback) out_info = ManagedHeapSwpetInfo__new();
+    
+    ManagedHeap__mark(self);
+    if(out_info) out_info->mark_end = clock();
+    int freed = ManagedHeap__sweep(self, out_info);
+    if(out_info) out_info->swpet_end = clock();
+
     // adjust `gc_threshold` based on `freed_ma`
     self->freed_ma[0] = self->freed_ma[1];
     self->freed_ma[1] = self->freed_ma[2];
@@ -45,7 +113,6 @@ void ManagedHeap__collect_if_needed(ManagedHeap* self, ManagedHeapSwpetInfo* out
     float free_ratio = (float)avg_freed / self->gc_threshold;
     int new_threshold = self->gc_threshold * (1.5f / free_ratio);
     if(out_info) {
-        out_info->auto_thres.valid = true;
         out_info->auto_thres.before = self->gc_threshold;
         out_info->auto_thres.after = new_threshold;
         out_info->auto_thres.upper = upper;
@@ -54,12 +121,29 @@ void ManagedHeap__collect_if_needed(ManagedHeap* self, ManagedHeapSwpetInfo* out
         out_info->auto_thres.free_ratio = free_ratio;
     }
     self->gc_threshold = c11__min(c11__max(new_threshold, lower), upper);
+
+    if(self->debug_callback) {
+        ManagedHeap__fire_debug_callback(self, out_info);
+        ManagedHeapSwpetInfo__delete(out_info);
+    }
 }
 
-int ManagedHeap__collect(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
+int ManagedHeap__collect(ManagedHeap* self) {
     self->gc_counter = 0;
+
+    ManagedHeapSwpetInfo* out_info = NULL;
+    if(self->debug_callback) out_info = ManagedHeapSwpetInfo__new();
+    
     ManagedHeap__mark(self);
-    return ManagedHeap__sweep(self, out_info);
+    if(out_info) out_info->mark_end = clock();
+    int freed = ManagedHeap__sweep(self, out_info);
+    if(out_info) out_info->swpet_end = clock();
+
+    if(self->debug_callback) {
+        ManagedHeap__fire_debug_callback(self, out_info);
+        ManagedHeapSwpetInfo__delete(out_info);
+    }
+    return freed;
 }
 
 int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
@@ -86,7 +170,6 @@ int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
     if(out_info) {
         out_info->small_freed = small_freed;
         out_info->large_freed = large_freed;
-        out_info->end = clock();
     }
     return small_freed + large_freed;
 }
