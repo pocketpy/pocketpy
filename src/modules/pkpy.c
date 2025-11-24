@@ -212,7 +212,7 @@ static bool ComputeThread_wait_for_done(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_ComputeThread* self = py_touserdata(argv);
     while(!atomic_load(&self->is_done)) {
-        c11_thrd_yield();
+        c11_thrd__yield();
     }
     py_newnone(py_retval());
     return true;
@@ -308,7 +308,7 @@ static bool ComputeThread_submit_exec(int argc, py_Ref argv) {
     c11_ComputeThread__reset_job(self, job, ComputeThreadJobExec__dtor);
     /**************************/
     atomic_store(&self->is_done, false);
-    bool ok = c11_thrd_create(&self->thread, ComputeThreadJob_exec, job);
+    bool ok = c11_thrd__create(&self->thread, ComputeThreadJob_exec, job);
     if(!ok) {
         atomic_store(&self->is_done, true);
         return OSError("thrd_create() failed");
@@ -331,7 +331,7 @@ static bool ComputeThread_submit_eval(int argc, py_Ref argv) {
     c11_ComputeThread__reset_job(self, job, ComputeThreadJobExec__dtor);
     /**************************/
     atomic_store(&self->is_done, false);
-    bool ok = c11_thrd_create(&self->thread, ComputeThreadJob_exec, job);
+    bool ok = c11_thrd__create(&self->thread, ComputeThreadJob_exec, job);
     if(!ok) {
         atomic_store(&self->is_done, true);
         return OSError("thrd_create() failed");
@@ -368,7 +368,7 @@ static bool ComputeThread_submit_call(int argc, py_Ref argv) {
     c11_ComputeThread__reset_job(self, job, ComputeThreadJobCall__dtor);
     /**************************/
     atomic_store(&self->is_done, false);
-    bool ok = c11_thrd_create(&self->thread, ComputeThreadJob_call, job);
+    bool ok = c11_thrd__create(&self->thread, ComputeThreadJob_call, job);
     if(!ok) {
         atomic_store(&self->is_done, true);
         return OSError("thrd_create() failed");

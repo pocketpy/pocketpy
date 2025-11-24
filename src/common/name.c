@@ -47,7 +47,7 @@ void pk_names_finalize() {
 py_Name py_namev(c11_sv name) {
 #if PK_ENABLE_THREADS
     while(atomic_flag_test_and_set(&pk_string_table.lock)) {
-        c11_thrd_yield();
+        c11_thrd__yield();
     }
 #endif
     uint64_t hash = c11_sv__hash(name);
