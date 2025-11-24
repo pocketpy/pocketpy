@@ -94,8 +94,7 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
     }
 }
 
-void ManagedHeap__collect_if_needed(ManagedHeap* self) {
-    if(!self->gc_enabled) return;
+void ManagedHeap__collect_hint(ManagedHeap* self) {
     if(self->gc_counter < self->gc_threshold) return;
     self->gc_counter = 0;
 
@@ -185,13 +184,10 @@ int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
 
 PyObject* ManagedHeap__gcnew(ManagedHeap* self, py_Type type, int slots, int udsize) {
     assert(slots >= 0 || slots == -1);
-    PyObject* obj;
     // header + slots + udsize
     int size = sizeof(PyObject) + PK_OBJ_SLOTS_SIZE(slots) + udsize;
-    if(size <= kPoolMaxBlockSize) {
-        obj = MultiPool__alloc(&self->small_objects, size);
-        assert(obj != NULL);
-    } else {
+    PyObject* obj = MultiPool__alloc(&self->small_objects, size);
+    if(obj == NULL) {
         obj = PK_MALLOC(size);
         c11_vector__push(PyObject*, &self->large_objects, obj);
     }

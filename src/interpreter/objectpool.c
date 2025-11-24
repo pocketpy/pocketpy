@@ -141,7 +141,7 @@ static int Pool__sweep_dealloc(Pool* self,
 }
 
 void* MultiPool__alloc(MultiPool* self, int size) {
-    if(size == 0) return NULL;
+    assert(size > 0);
     int index = (size - 1) >> 5;
     if(index < kMultiPoolCount) {
         Pool* pool = &self->pools[index];

@@ -3,11 +3,9 @@ icon: package
 label: json
 ---
 
-### `json.loads(data: str)`
+JSON serialization and deserialization module.
 
-Decode a JSON string into a python object.
+#### Source code
 
-### `json.dumps(obj, indent=0) -> str`
-
-Encode a python object into a JSON string.
+:::code source="../../include/typings/json.pyi" :::
 

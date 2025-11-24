@@ -3,18 +3,8 @@ icon: package
 label: gc
 ---
 
-### `gc.collect()`
+Garbage collection interface module.
 
-Invoke the garbage collector.
+#### Source code
 
-### `gc.enable()`
-
-Enable automatic garbage collection.
-
-### `gc.disable()`
-
-Disable automatic garbage collection.
-
-### `gc.isenabled()`
-
-Return `True` if automatic garbage collection is enabled, `False` otherwise.
+:::code source="../../include/typings/gc.pyi" :::

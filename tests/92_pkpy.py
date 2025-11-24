@@ -1,4 +1,4 @@
-from pkpy import is_user_defined_type
+from inspect import is_user_defined_type
 
 class A:
     pass

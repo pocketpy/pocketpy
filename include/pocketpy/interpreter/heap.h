@@ -44,7 +44,7 @@ void ManagedHeap__dtor(ManagedHeap* self);
 ManagedHeapSwpetInfo* ManagedHeapSwpetInfo__new();
 void ManagedHeapSwpetInfo__delete(ManagedHeapSwpetInfo* self);
 
-void ManagedHeap__collect_if_needed(ManagedHeap* self);
+void ManagedHeap__collect_hint(ManagedHeap* self);
 int ManagedHeap__collect(ManagedHeap* self);
 int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info);
 

@@ -1,7 +1,6 @@
 import gc
-from pkpy import setup_gc_debug_callback
 
-setup_gc_debug_callback(print)
+gc.setup_debug_callback(print)
 
 gc.collect()
 def create_garbage():

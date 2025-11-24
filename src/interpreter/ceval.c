@@ -729,7 +729,7 @@ __NEXT_STEP:
         }
         /*****************************************/
         case OP_CALL: {
-            ManagedHeap__collect_if_needed(&self->heap);
+            if(self->heap.gc_enabled) ManagedHeap__collect_hint(&self->heap);
             vectorcall_opcall(byte.arg & 0xFF, byte.arg >> 8);
             DISPATCH();
         }
