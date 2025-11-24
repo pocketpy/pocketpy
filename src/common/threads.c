@@ -80,11 +80,11 @@ static c11_thrd_retval_t _thrdpool_worker(void* arg) {
         while(true) {
             c11_cond__wait(p_worker->p_cond, p_worker->p_mutex);
             int sync_val = atomic_load(&p_tasks->sync_val);
+            if(sync_val == 1) break;
             if(sync_val == -1) {
                 c11_mutex__unlock(p_worker->p_mutex);
                 return 0;  // force kill
             }
-            if(sync_val == 1) break;
         }
         c11_mutex__unlock(p_worker->p_mutex);
 
@@ -98,6 +98,10 @@ static c11_thrd_retval_t _thrdpool_worker(void* arg) {
             } else {
                 break;
             }
+        }
+
+        while(atomic_load(&p_tasks->sync_val) == 0) {
+            c11_thrd__yield();
         }
     }
     return 0;
@@ -123,24 +127,23 @@ void c11_thrdpool__ctor(c11_thrdpool* pool, int length) {
 }
 
 void c11_thrdpool__dtor(c11_thrdpool* pool) {
+    c11_mutex__lock(&pool->workers_mutex);
     atomic_store(&pool->tasks.sync_val, -1);
     c11_cond__broadcast(&pool->workers_cond);
+    c11_mutex__unlock(&pool->workers_mutex);
 
     for(int i = 0; i < pool->length; i++) {
         c11_thrdpool_worker* p_worker = &pool->workers[i];
         c11_thrd__join(p_worker->thread);
     }
 
-    PK_FREE(pool->workers);
     c11_mutex__dtor(&pool->workers_mutex);
     c11_cond__dtor(&pool->workers_cond);
+    PK_FREE(pool->workers);
 }
 
 void c11_thrdpool__map(c11_thrdpool* pool, c11_thrdpool_func_t func, void** args, int num_tasks) {
     if(num_tasks == 0) return;
-    while(atomic_load(&pool->tasks.sync_val) != 0) {
-        c11_thrd__yield();
-    }
     // assign tasks
     c11_mutex__lock(&pool->workers_mutex);
     pool->tasks.func = func;
