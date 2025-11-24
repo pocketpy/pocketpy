@@ -40,26 +40,37 @@ void c11_cond__ctor(c11_cond_t* cond);
 void c11_cond__dtor(c11_cond_t* cond);
 void c11_cond__wait(c11_cond_t* cond, c11_mutex_t* mutex);
 void c11_cond__signal(c11_cond_t* cond);
+void c11_cond__broadcast(c11_cond_t* cond);
+
+typedef void (*c11_thrdpool_func_t)(void* arg);
+
+typedef struct c11_thrdpool_tasks {
+    c11_thrdpool_func_t func;
+    void** args;
+    int length;
+    atomic_int current_index;
+    atomic_int completed_count;
+} c11_thrdpool_tasks;
 
 typedef struct c11_thrdpool_worker {
-    c11_thrd_t thread;
     c11_mutex_t mutex;
-    c11_cond_t cond;
-
-    c11_thrd_func_t func;
-    void* arg;
-
+    c11_cond_t* p_cond;
+    c11_thrdpool_tasks* tasks;
     bool should_exit;
+
+    c11_thrd_t thread;
 } c11_thrdpool_worker;
 
 typedef struct c11_thrdpool {
     int length;
     c11_thrdpool_worker* workers;
-    c11_thrd_t main_thread;
+    c11_thrdpool_tasks tasks;
+    atomic_bool is_busy;
+    c11_cond_t workers_cond;
 } c11_thrdpool;
 
 void c11_thrdpool__ctor(c11_thrdpool* pool, int length);
 void c11_thrdpool__dtor(c11_thrdpool* pool);
-bool c11_thrdpool__create(c11_thrdpool* pool, c11_thrd_func_t func, void* arg);
+void c11_thrdpool__map(c11_thrdpool* pool, c11_thrdpool_func_t func, void** args, int num_tasks);
 
 #endif
