@@ -44,10 +44,12 @@ void c11_cond__broadcast(c11_cond_t* cond);
 
 typedef void (*c11_thrdpool_func_t)(void* arg);
 
+
 typedef struct c11_thrdpool_tasks {
     c11_thrdpool_func_t func;
     void** args;
     int length;
+    int sync_val;
     atomic_int current_index;
     atomic_int completed_count;
 } c11_thrdpool_tasks;
@@ -56,8 +58,6 @@ typedef struct c11_thrdpool_worker {
     c11_mutex_t* p_mutex;
     c11_cond_t* p_cond;
     c11_thrdpool_tasks* p_tasks;
-
-    bool should_exit;
     c11_thrd_t thread;
 } c11_thrdpool_worker;
 
@@ -66,8 +66,8 @@ typedef struct c11_thrdpool {
     c11_thrdpool_worker* workers;
     atomic_bool is_busy;
     
-    c11_mutex_t workers_mutex;
-    c11_cond_t workers_cond;
+    c11_mutex_t workers_mutex[2];
+    c11_cond_t workers_cond[2];
     c11_thrdpool_tasks tasks;
 } c11_thrdpool;
 
