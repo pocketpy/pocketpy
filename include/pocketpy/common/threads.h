@@ -54,6 +54,8 @@ typedef struct c11_thrdpool_tasks {
 } c11_thrdpool_tasks;
 
 typedef struct c11_thrdpool_worker {
+    int index;
+    atomic_int* p_ready_workers_num;
     c11_mutex_t* p_mutex;
     c11_cond_t* p_cond;
     c11_thrdpool_tasks* p_tasks;
@@ -62,6 +64,8 @@ typedef struct c11_thrdpool_worker {
 
 typedef struct c11_thrdpool {
     int length;
+    atomic_int ready_workers_num;
+
     c11_thrdpool_worker* workers;
 
     c11_mutex_t workers_mutex;
