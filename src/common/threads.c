@@ -136,12 +136,13 @@ static c11_thrd_retval_t _thrdpool_worker(void* arg) {
                 break;
             }
         }
-        atomic_fetch_add_explicit(&p_tasks->completed_count, completed_count, memory_order_relaxed);
+        // sync point
+        atomic_fetch_add_explicit(&p_tasks->completed_count, completed_count, memory_order_release);
 
         c11_thrdpool_debug_log(p_worker->index,
                                "Execution complete, waiting for `sync_val` reset...");
         while(true) {
-            int sync_val = atomic_load(&p_tasks->sync_val);
+            int sync_val = atomic_load_explicit(&p_tasks->sync_val, memory_order_relaxed);
             if(sync_val == 0) break;
             if(sync_val == -1) return 0;  // force kill
             c11_thrd__yield();
@@ -154,13 +155,13 @@ static c11_thrd_retval_t _thrdpool_worker(void* arg) {
 
 void c11_thrdpool__ctor(c11_thrdpool* pool, int length) {
     pool->length = length;
-    atomic_store(&pool->ready_workers_num, 0);
+    atomic_store_explicit(&pool->ready_workers_num, 0, memory_order_relaxed);
     pool->workers = PK_MALLOC(sizeof(c11_thrdpool_worker) * length);
 
     c11_mutex__ctor(&pool->workers_mutex);
     c11_cond__ctor(&pool->workers_cond);
 
-    atomic_store(&pool->tasks.sync_val, 0);
+    atomic_store_explicit(&pool->tasks.sync_val, 0, memory_order_relaxed);
 
     for(int i = 0; i < length; i++) {
         c11_thrdpool_worker* p_worker = &pool->workers[i];
@@ -176,7 +177,7 @@ void c11_thrdpool__ctor(c11_thrdpool* pool, int length) {
 
 void c11_thrdpool__dtor(c11_thrdpool* pool) {
     c11_mutex__lock(&pool->workers_mutex);
-    atomic_store(&pool->tasks.sync_val, -1);
+    atomic_store_explicit(&pool->tasks.sync_val, -1, memory_order_relaxed);
     c11_thrdpool_debug_log(-1, "Terminating all workers...");
     c11_cond__broadcast(&pool->workers_cond);
     c11_mutex__unlock(&pool->workers_mutex);
@@ -212,12 +213,11 @@ void c11_thrdpool__map(c11_thrdpool* pool, c11_thrdpool_func_t func, void** args
 
     // wait for complete
     c11_thrdpool_debug_log(-1, "Waiting for %d tasks to complete...", num_tasks);
-    while(atomic_load_explicit(&pool->tasks.completed_count, memory_order_relaxed) < num_tasks) {
+    while(atomic_load_explicit(&pool->tasks.completed_count, memory_order_acquire) < num_tasks) {
         c11_thrd__yield();
     }
 
-    // the last sync point
-    atomic_store(&pool->tasks.sync_val, 0);
+    atomic_store_explicit(&pool->tasks.sync_val, 0, memory_order_relaxed);
     c11_thrdpool_debug_log(-1, "All %d tasks completed, `sync_val` was reset.", num_tasks);
 }
 

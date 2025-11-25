@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     long long* data = PK_MALLOC(sizeof(long long) * num_tasks);
     void** args = PK_MALLOC(sizeof(void*) * num_tasks);
 
-    for(int i = 0; i < 3; i++) {
+    for(int i = 0; i < 10; i++) {
         for(int i = 0; i < num_tasks; i++) {
             data[i] = i;
             args[i] = &data[i];
@@ -42,6 +42,9 @@ int main(int argc, char** argv) {
                data[100],
                data[400]);
         printf("  Elapsed time for %d tasks: %.6f seconds\n", num_tasks, elapsed);
+        for(int i = 0; i < 5000000; i++) {
+            c11_thrd__yield();
+        }
     }
 
     c11_thrdpool__dtor(&pool);
