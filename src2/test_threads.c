@@ -6,7 +6,7 @@ int64_t time_ns();
 static void func(void* arg) {
     long long* val = (long long*)arg;
     long long sum = 0;
-    for(int i = 0; i < 1000000; i++) {
+    for(int i = 0; i < 100000; i++) {
         sum += *val;
     }
     *val = sum;
@@ -20,11 +20,11 @@ int main(int argc, char** argv) {
     c11_thrdpool pool;
     c11_thrdpool__ctor(&pool, threads_num);
 
-    int num_tasks = 2000;
+    int num_tasks = 10000;
     long long* data = PK_MALLOC(sizeof(long long) * num_tasks);
     void** args = PK_MALLOC(sizeof(void*) * num_tasks);
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 3; i++) {
         for(int i = 0; i < num_tasks; i++) {
             data[i] = i;
             args[i] = &data[i];
