@@ -76,5 +76,6 @@ typedef struct c11_thrdpool {
 void c11_thrdpool__ctor(c11_thrdpool* pool, int length);
 void c11_thrdpool__dtor(c11_thrdpool* pool);
 void c11_thrdpool__map(c11_thrdpool* pool, c11_thrdpool_func_t func, void** args, int num_tasks);
+void c11_thrdpool__join(c11_thrdpool* pool);
 
 #endif

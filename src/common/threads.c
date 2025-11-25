@@ -193,7 +193,6 @@ void c11_thrdpool__dtor(c11_thrdpool* pool) {
 }
 
 void c11_thrdpool__map(c11_thrdpool* pool, c11_thrdpool_func_t func, void** args, int num_tasks) {
-    if(num_tasks == 0) return;
     c11_thrdpool_debug_log(-1, "c11_thrdpool__map() called on %d tasks...", num_tasks);
     while(atomic_load_explicit(&pool->ready_workers_num, memory_order_relaxed) < pool->length) {
         c11_thrd__yield();
@@ -210,13 +209,15 @@ void c11_thrdpool__map(c11_thrdpool* pool, c11_thrdpool_func_t func, void** args
     atomic_store_explicit(&pool->tasks.completed_count, 0, memory_order_relaxed);
     c11_cond__broadcast(&pool->workers_cond);
     c11_mutex__unlock(&pool->workers_mutex);
+}
 
+void c11_thrdpool__join(c11_thrdpool *pool) {
     // wait for complete
+    int num_tasks = pool->tasks.length;
     c11_thrdpool_debug_log(-1, "Waiting for %d tasks to complete...", num_tasks);
     while(atomic_load_explicit(&pool->tasks.completed_count, memory_order_acquire) < num_tasks) {
         c11_thrd__yield();
     }
-
     atomic_store_explicit(&pool->tasks.sync_val, 0, memory_order_relaxed);
     c11_thrdpool_debug_log(-1, "All %d tasks completed, `sync_val` was reset.", num_tasks);
 }

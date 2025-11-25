@@ -33,6 +33,7 @@ int main(int argc, char** argv) {
         printf("==> %dth run\n", i + 1);
         int64_t start_ns = time_ns();
         c11_thrdpool__map(&pool, func, args, num_tasks);
+        c11_thrdpool__join(&pool);
         int64_t end_ns = time_ns();
         double elapsed = (end_ns - start_ns) / 1e9;
         printf("  Results: %lld, %lld, %lld, %lld, %lld\n",
