@@ -107,8 +107,8 @@ static int Pool__sweep_dealloc(Pool* self,
         if(item->unused_length == item->block_count) {
             // all free
             if(arenas->length > 0) {
-                // at least one arena
-                PoolArena__delete(item);
+                // keep at least 1 arena
+                PK_FREE(item);
             } else {
                 // no arena
                 c11_vector__push(PoolArena*, arenas, item);
@@ -127,7 +127,7 @@ static int Pool__sweep_dealloc(Pool* self,
         } else {
             if(item->unused_length == item->block_count) {
                 // all free
-                PoolArena__delete(item);
+                PK_FREE(item);
             } else {
                 // some free
                 c11_vector__push(PoolArena*, arenas, item);
