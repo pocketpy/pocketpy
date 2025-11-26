@@ -1,7 +1,9 @@
 #define _XOPEN_SOURCE 700
+#include <time.h>
+#undef _XOPEN_SOURCE
 
 #include "pocketpy/pocketpy.h"
-#include <time.h>
+#include "pocketpy/common/threads.h"
 #include <assert.h>
 
 #define NANOS_PER_SEC 1000000000
@@ -50,11 +52,14 @@ static bool time_sleep(int argc, py_Ref argv) {
     py_f64 secs;
     if(!py_castfloat(argv, &secs)) return false;
 
-    clock_t start = clock();
-    const clock_t end = start + (clock_t)(secs * CLOCKS_PER_SEC);
+    int64_t start = time_ns();
+    const int64_t end = start + secs * NANOS_PER_SEC;
     while(true) {
-        clock_t now = clock();
+        int64_t now = time_ns();
         if(now >= end) break;
+#if PK_ENABLE_THREADS
+        c11_thrd__yield();
+#endif
     }
     py_newnone(py_retval());
     return true;
