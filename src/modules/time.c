@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 700
+
 #include "pocketpy/pocketpy.h"
 #include <time.h>
 #include <assert.h>
