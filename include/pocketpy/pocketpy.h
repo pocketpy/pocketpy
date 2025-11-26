@@ -801,6 +801,8 @@ PK_API void py_profiler_reset();
 PK_API char* py_profiler_report();
 
 /************* Others *************/
+int64_t time_ns();
+int64_t time_monotonic_ns();
 
 /// An utility function to read a line from stdin for REPL.
 PK_API int py_replinput(char* buf, int max_size);

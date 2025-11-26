@@ -17,9 +17,9 @@ typedef struct ManagedHeap {
 } ManagedHeap;
 
 typedef struct {
-    clock_t start;
-    clock_t mark_end;
-    clock_t swpet_end;
+    int64_t start_ns;
+    int64_t mark_end_ns;
+    int64_t swpet_end_ns;
 
     int types_length;
     int* small_types;

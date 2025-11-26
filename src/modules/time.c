@@ -2,6 +2,13 @@
 #include <time.h>
 #undef _XOPEN_SOURCE
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <profileapi.h>
+#undef WIN32_LEAN_AND_MEAN
+#endif
+
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/common/threads.h"
 #include <assert.h>
@@ -23,8 +30,34 @@ int64_t time_ns() {
     nanos += tms.tv_nsec;
     return nanos;
 }
+
+int64_t time_monotonic_ns() {
+#ifdef _WIN32
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+    LONGLONG ticksll = now.QuadPart;
+    static LARGE_INTEGER freq;
+    if(freq.QuadPart == 0) QueryPerformanceFrequency(&freq);
+    /* Convert ticks to nanoseconds */
+    return (ticksll * NANOS_PER_SEC) / freq.QuadPart;
+#endif
+
+    struct timespec tms;
+#ifdef CLOCK_MONOTONIC
+    clock_gettime(CLOCK_MONOTONIC, &tms);
+#else
+    /* The C11 way */
+    timespec_get(&tms, TIME_UTC);
+#endif
+    /* seconds, multiplied with 1 billion */
+    int64_t nanos = tms.tv_sec * (int64_t)NANOS_PER_SEC;
+    /* Add full nanoseconds */
+    nanos += tms.tv_nsec;
+    return nanos;
+}
 #else
 int64_t time_ns() { return 0; }
+int64_t time_monotonic_ns() { return 0; }
 #endif
 
 static bool time_time(int argc, py_Ref argv) {
@@ -41,7 +74,25 @@ static bool time_time_ns(int argc, py_Ref argv) {
     return true;
 }
 
+static bool time_time_monotonic(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    int64_t nanos = time_monotonic_ns();
+    py_newfloat(py_retval(), (double)nanos / NANOS_PER_SEC);
+    return true;
+}
+
+static bool time_time_monotonic_ns(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    int64_t nanos = time_monotonic_ns();
+    py_newint(py_retval(), nanos);
+    return true;
+}
+
 static bool time_perf_counter(int argc, py_Ref argv) {
+    return time_time_monotonic(argc, argv);
+}
+
+static bool time_process_time(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
     py_newfloat(py_retval(), (double)clock() / CLOCKS_PER_SEC);
     return true;
@@ -52,10 +103,10 @@ static bool time_sleep(int argc, py_Ref argv) {
     py_f64 secs;
     if(!py_castfloat(argv, &secs)) return false;
 
-    int64_t start = time_ns();
+    int64_t start = time_monotonic_ns();
     const int64_t end = start + secs * NANOS_PER_SEC;
     while(true) {
-        int64_t now = time_ns();
+        int64_t now = time_monotonic_ns();
         if(now >= end) break;
 #if PK_ENABLE_THREADS
         c11_thrd__yield();
@@ -112,7 +163,10 @@ void pk__add_module_time() {
 
     py_bindfunc(mod, "time", time_time);
     py_bindfunc(mod, "time_ns", time_time_ns);
+    py_bindfunc(mod, "monotonic", time_time_monotonic);
+    py_bindfunc(mod, "monotonic_ns", time_time_monotonic_ns);
     py_bindfunc(mod, "perf_counter", time_perf_counter);
+    py_bindfunc(mod, "process_time", time_process_time);
     py_bindfunc(mod, "sleep", time_sleep);
     py_bindfunc(mod, "localtime", time_localtime);
 }

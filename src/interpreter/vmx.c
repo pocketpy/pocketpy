@@ -140,7 +140,7 @@ ManagedHeapSwpetInfo* ManagedHeapSwpetInfo__new() {
         self->small_types[i] = 0;
         self->large_types[i] = 0;
     }
-    self->start = clock();
+    self->start_ns = time_ns();
     return self;
 }
 

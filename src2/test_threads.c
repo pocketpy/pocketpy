@@ -1,7 +1,7 @@
 #include "pocketpy/common/threads.h"
 #include <stdio.h>
 
-int64_t time_ns();
+int64_t time_monotonic_ns();
 
 static void func(void* arg) {
     long long* val = (long long*)arg;
@@ -31,10 +31,11 @@ int main(int argc, char** argv) {
         }
 
         printf("==> %dth run\n", i + 1);
-        int64_t start_ns = time_ns();
+        int64_t start_ns = time_monotonic_ns();
         c11_thrdpool__map(&pool, func, args, num_tasks);
         c11_thrdpool__join(&pool);
-        int64_t end_ns = time_ns();
+        int64_t end_ns = time_monotonic_ns();
+        printf("==> %lld -> %lld\n", (long long)start_ns, (long long)end_ns);
         double elapsed = (end_ns - start_ns) / 1e9;
         printf("  Results: %lld, %lld, %lld, %lld, %lld\n",
                data[0],

@@ -6,6 +6,7 @@
 #include "pocketpy/pocketpy.h"
 #include <assert.h>
 
+
 void ManagedHeap__ctor(ManagedHeap* self) {
     MultiPool__ctor(&self->small_objects);
     c11_vector__ctor(&self->large_objects, sizeof(PyObject*));
@@ -39,12 +40,12 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
 
-    const clock_t CLOCKS_PER_MS = CLOCKS_PER_SEC / 1000;
+    const int64_t NANOS_PER_SEC = 1000000000;
     const char* DIVIDER = "------------------------------------------------------------\n";
 
-    clock_t start = out_info->start / CLOCKS_PER_MS;
-    clock_t mark_ms = (out_info->mark_end - out_info->start) / CLOCKS_PER_MS;
-    clock_t swpet_ms = (out_info->swpet_end - out_info->mark_end) / CLOCKS_PER_MS;
+    double start = out_info->start_ns / 1e9;
+    int64_t mark_ms = (out_info->mark_end_ns - out_info->start_ns) / NANOS_PER_SEC;
+    int64_t swpet_ms = (out_info->swpet_end_ns - out_info->mark_end_ns) / NANOS_PER_SEC;
 
     c11_sbuf__write_cstr(&buf, DIVIDER);
     pk_sprintf(&buf, "start:        %f\n", (double)start / 1000);
@@ -102,9 +103,9 @@ void ManagedHeap__collect_hint(ManagedHeap* self) {
     if(!py_isnone(&self->debug_callback)) out_info = ManagedHeapSwpetInfo__new();
     
     ManagedHeap__mark(self);
-    if(out_info) out_info->mark_end = clock();
+    if(out_info) out_info->mark_end_ns = time_ns();
     int freed = ManagedHeap__sweep(self, out_info);
-    if(out_info) out_info->swpet_end = clock();
+    if(out_info) out_info->swpet_end_ns = time_ns();
 
     // adjust `gc_threshold` based on `freed_ma`
     self->freed_ma[0] = self->freed_ma[1];
@@ -138,9 +139,9 @@ int ManagedHeap__collect(ManagedHeap* self) {
     if(!py_isnone(&self->debug_callback)) out_info = ManagedHeapSwpetInfo__new();
     
     ManagedHeap__mark(self);
-    if(out_info) out_info->mark_end = clock();
+    if(out_info) out_info->mark_end_ns = time_ns();
     int freed = ManagedHeap__sweep(self, out_info);
-    if(out_info) out_info->swpet_end = clock();
+    if(out_info) out_info->swpet_end_ns = time_ns();
 
     if(out_info) {
         out_info->auto_thres.before = self->gc_threshold;

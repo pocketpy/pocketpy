@@ -75,8 +75,6 @@ void c11_cond__broadcast(c11_cond_t* cond) { cnd_broadcast(cond); }
 #define C11_THRDPOOL_DEBUG 0
 
 #if C11_THRDPOOL_DEBUG
-int64_t time_ns();
-
 static void c11_thrdpool_debug_log(int index, const char* format, ...) {
     va_list args;
     va_start(args, format);

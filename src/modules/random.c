@@ -1,8 +1,5 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/pocketpy.h"
-#include <time.h>
-
-int64_t time_ns();  // from random.c
 
 /* https://github.com/clibs/mt19937ar
 
