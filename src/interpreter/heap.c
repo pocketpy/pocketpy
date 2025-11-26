@@ -6,7 +6,6 @@
 #include "pocketpy/pocketpy.h"
 #include <assert.h>
 
-
 void ManagedHeap__ctor(ManagedHeap* self) {
     MultiPool__ctor(&self->small_objects);
     c11_vector__ctor(&self->large_objects, sizeof(PyObject*));
@@ -34,7 +33,20 @@ void ManagedHeap__dtor(ManagedHeap* self) {
     c11_vector__dtor(&self->gc_roots);
 }
 
-static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
+static void ManagedHeap__fire_debug_callback_start(ManagedHeap* self) {
+    py_push(&self->debug_callback);
+    py_pushnil();
+    py_newstr(py_pushtmp(), "start");
+    py_newstr(py_pushtmp(), "");
+    bool ok = py_vectorcall(2, 0);
+    if(!ok) {
+        char* msg = py_formatexc();
+        c11__abort("gc_debug_callback error!!\n%s", msg);
+    }
+}
+
+static void ManagedHeap__fire_debug_callback_stop(ManagedHeap* self,
+                                                  ManagedHeapSwpetInfo* out_info) {
     assert(out_info != NULL);
 
     c11_sbuf buf;
@@ -65,11 +77,11 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
             int l_freed = out_info->large_types[i];
             if(s_freed == 0 && l_freed == 0) continue;
             snprintf(line_buf,
-                    sizeof(line_buf),
-                    "[%-24s] small: %6d  large: %6d\n",
-                    type_name,
-                    s_freed,
-                    l_freed);
+                     sizeof(line_buf),
+                     "[%-24s] small: %6d  large: %6d\n",
+                     type_name,
+                     s_freed,
+                     l_freed);
             c11_sbuf__write_cstr(&buf, line_buf);
         }
         c11_sbuf__write_cstr(&buf, DIVIDER);
@@ -85,9 +97,10 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
 
     py_push(&self->debug_callback);
     py_pushnil();
+    py_newstr(py_pushtmp(), "stop");
     py_StackRef arg = py_pushtmp();
     c11_sbuf__py_submit(&buf, arg);
-    bool ok = py_vectorcall(1, 0);
+    bool ok = py_vectorcall(2, 0);
     if(!ok) {
         char* msg = py_formatexc();
         c11__abort("gc_debug_callback error!!\n%s", msg);
@@ -99,8 +112,11 @@ void ManagedHeap__collect_hint(ManagedHeap* self) {
     self->gc_counter = 0;
 
     ManagedHeapSwpetInfo* out_info = NULL;
-    if(!py_isnone(&self->debug_callback)) out_info = ManagedHeapSwpetInfo__new();
-    
+    if(!py_isnone(&self->debug_callback)) {
+        out_info = ManagedHeapSwpetInfo__new();
+        ManagedHeap__fire_debug_callback_start(self);
+    }
+
     ManagedHeap__mark(self);
     if(out_info) out_info->mark_end_ns = time_ns();
     int freed = ManagedHeap__sweep(self, out_info);
@@ -126,7 +142,7 @@ void ManagedHeap__collect_hint(ManagedHeap* self) {
     self->gc_threshold = c11__min(c11__max(new_threshold, lower), upper);
 
     if(!py_isnone(&self->debug_callback)) {
-        ManagedHeap__fire_debug_callback(self, out_info);
+        ManagedHeap__fire_debug_callback_stop(self, out_info);
         ManagedHeapSwpetInfo__delete(out_info);
     }
 }
@@ -135,8 +151,11 @@ int ManagedHeap__collect(ManagedHeap* self) {
     self->gc_counter = 0;
 
     ManagedHeapSwpetInfo* out_info = NULL;
-    if(!py_isnone(&self->debug_callback)) out_info = ManagedHeapSwpetInfo__new();
-    
+    if(!py_isnone(&self->debug_callback)) {
+        out_info = ManagedHeapSwpetInfo__new();
+        ManagedHeap__fire_debug_callback_start(self);
+    }
+
     ManagedHeap__mark(self);
     if(out_info) out_info->mark_end_ns = time_ns();
     int freed = ManagedHeap__sweep(self, out_info);
@@ -148,7 +167,7 @@ int ManagedHeap__collect(ManagedHeap* self) {
     }
 
     if(!py_isnone(&self->debug_callback)) {
-        ManagedHeap__fire_debug_callback(self, out_info);
+        ManagedHeap__fire_debug_callback_stop(self, out_info);
         ManagedHeapSwpetInfo__delete(out_info);
     }
     return freed;

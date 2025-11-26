@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Literal
 
 def isenabled() -> bool:
     """Check if automatic garbage collection is enabled."""
@@ -23,5 +23,5 @@ def collect_hint() -> None:
     and `gc.collect_hint()` is called at the end of each frame.
     """
 
-def setup_debug_callback(cb: Callable[[str], None] | None) -> None:
+def setup_debug_callback(cb: Callable[[Literal['start', 'stop'], str], None] | None) -> None:
     """Setup a callback that will be triggered at the end of each collection."""
