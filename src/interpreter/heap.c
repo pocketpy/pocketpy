@@ -43,12 +43,11 @@ static void ManagedHeap__fire_debug_callback(ManagedHeap* self, ManagedHeapSwpet
     const int64_t NANOS_PER_MS = 1000000000 / 1000;
     const char* DIVIDER = "------------------------------------------------------------\n";
 
-    double start = out_info->start_ns / 1e9;
     int64_t mark_ms = (out_info->mark_end_ns - out_info->start_ns) / NANOS_PER_MS;
     int64_t swpet_ms = (out_info->swpet_end_ns - out_info->mark_end_ns) / NANOS_PER_MS;
 
     c11_sbuf__write_cstr(&buf, DIVIDER);
-    pk_sprintf(&buf, "start:        %f\n", (double)start / 1000);
+    pk_sprintf(&buf, "start:        %f\n", out_info->start_ns / 1e9);
     pk_sprintf(&buf, "mark_ms:      %i\n", (py_i64)mark_ms);
     pk_sprintf(&buf, "swpet_ms:     %i\n", (py_i64)swpet_ms);
     pk_sprintf(&buf, "total_ms:     %i\n", (py_i64)(mark_ms + swpet_ms));
