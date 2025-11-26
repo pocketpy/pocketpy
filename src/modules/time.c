@@ -16,7 +16,20 @@
 #define NANOS_PER_SEC 1000000000
 
 #ifndef __circle__
+
 int64_t time_ns() {
+#ifdef _WIN32
+    FILETIME system_time;
+    ULARGE_INTEGER large;
+
+    GetSystemTimePreciseAsFileTime(&system_time);
+    large.u.LowPart = system_time.dwLowDateTime;
+    large.u.HighPart = system_time.dwHighDateTime;
+    /* 11,644,473,600,000,000,000: number of nanoseconds between
+       the 1st january 1601 and the 1st january 1970 (369 years + 89 leap
+       days). */
+    return (large.QuadPart - 116444736000000000) * 100;
+#else
     struct timespec tms;
 #ifdef CLOCK_REALTIME
     clock_gettime(CLOCK_REALTIME, &tms);
@@ -29,6 +42,7 @@ int64_t time_ns() {
     /* Add full nanoseconds */
     nanos += tms.tv_nsec;
     return nanos;
+#endif
 }
 
 int64_t time_monotonic_ns() {
@@ -40,8 +54,7 @@ int64_t time_monotonic_ns() {
     if(freq.QuadPart == 0) QueryPerformanceFrequency(&freq);
     /* Convert ticks to nanoseconds */
     return (ticksll * NANOS_PER_SEC) / freq.QuadPart;
-#endif
-
+#else
     struct timespec tms;
 #ifdef CLOCK_MONOTONIC
     clock_gettime(CLOCK_MONOTONIC, &tms);
@@ -54,6 +67,7 @@ int64_t time_monotonic_ns() {
     /* Add full nanoseconds */
     nanos += tms.tv_nsec;
     return nanos;
+#endif
 }
 #else
 int64_t time_ns() { return 0; }
