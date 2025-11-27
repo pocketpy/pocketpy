@@ -28,3 +28,15 @@ assert picoterm.wcwidth(ord('测')) == 2
 assert picoterm.wcwidth(ord('👀')) == 2
 
 assert picoterm.wcswidth("hello, 测试a测试👀测\n") == 7 + 1 + 12
+
+text = rgb(12, 34, 56).ansi_fg("hello")
+out_list = []
+assert picoterm.sscanf(text, "\x1b[38;2;%d;%d;%dm", out_list)
+assert out_list == [12, 34, 56]
+
+assert picoterm.sscanf(text, "\x1b[38;2;%d;%d;%dmhello", out_list)
+assert out_list == [12, 34, 56]
+
+assert picoterm.sscanf(text, "\x1b[38;2;%d;%d;%d", out_list)
+assert not picoterm.sscanf(text, "\x1b[38;2;%d;%d;%dm???", out_list)
+assert not picoterm.sscanf(text, "\x1b[77;2;%d;%d;%dm", out_list)

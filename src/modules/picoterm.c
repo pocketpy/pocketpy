@@ -89,6 +89,56 @@ static bool picoterm_wcswidth(int argc, py_Ref argv) {
     return true;
 }
 
+static bool picoterm_sscanf(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    PY_CHECK_ARG_TYPE(1, tp_str);
+    PY_CHECK_ARG_TYPE(2, tp_list);
+    const char* input = py_tostr(py_arg(0));
+    const char* format = py_tostr(py_arg(1));
+    py_Ref output_list = py_arg(2);
+    py_list_clear(output_list);
+
+    const char* p1 = input;
+    const char* p2 = format;
+
+    while(*p1 != '\0' && *p2 != '\0') {
+        if(*p2 == '%') {
+            p2++;
+            if(*p2 == 'd' || *p2 == 'i') {
+                bool negative = false;
+                if(*p1 == '-') {
+                    negative = true;
+                    p1++;
+                }
+                const char* start = p1;
+                while(*p1 >= '0' && *p1 <= '9')
+                    p1++;
+                c11_sv num_sv = {.data = start, .size = p1 - start};
+                if(num_sv.size == 0) break;
+
+                int64_t value = 0;
+                IntParsingResult res = c11__parse_uint(num_sv, &value, 10);
+                if(res != IntParsing_SUCCESS) break;
+
+                if(negative) value = -value;
+                py_ItemRef item = py_list_emplace(output_list);
+                py_newint(item, value);
+                p2++;
+            } else {
+                return ValueError("unsupported format specifier: %%%c", *p2);
+            }
+        } else {
+            if(*p1 != *p2) break;
+            p1++;
+            p2++;
+        }
+    }
+
+    py_newbool(py_retval(), *p2 == '\0');
+    return true;
+}
+
 void pk__add_module_picoterm() {
     py_Ref mod = py_newmodule("picoterm");
 
@@ -96,6 +146,7 @@ void pk__add_module_picoterm() {
     py_bindfunc(mod, "split_ansi_escaped_string", picoterm_split_ansi_escaped_string);
     py_bindfunc(mod, "wcwidth", picoterm_wcwidth);
     py_bindfunc(mod, "wcswidth", picoterm_wcswidth);
+    py_bindfunc(mod, "sscanf", picoterm_sscanf);
 }
 
 static bool split_ansi_escaped_string(c11_sv sv, c11_vector* out_tokens) {
