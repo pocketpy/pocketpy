@@ -180,8 +180,11 @@ void MultiPool__dtor(MultiPool* self) {
 c11_string* MultiPool__summary(MultiPool* self) {
     c11_sbuf sbuf;
     c11_sbuf__ctor(&sbuf);
+    int arena_count = 0;
+    char buf[256];
     for(int i = 0; i < kMultiPoolCount; i++) {
         Pool* item = &self->pools[i];
+        arena_count += item->arenas.length + item->no_free_arenas.length;
         int total_bytes = (item->arenas.length + item->no_free_arenas.length) * kPoolArenaSize;
         int used_bytes = 0;
         for(int j = 0; j < item->arenas.length; j++) {
@@ -190,10 +193,10 @@ c11_string* MultiPool__summary(MultiPool* self) {
         }
         used_bytes += item->no_free_arenas.length * kPoolArenaSize;
         float used_pct = (float)used_bytes / total_bytes * 100;
-        char buf[256];
+        if(total_bytes == 0) used_pct = 0.0f;
         snprintf(buf,
                  sizeof(buf),
-                 "Pool<%d>: len(arenas)=%d, len(no_free_arenas)=%d, %d/%d (%.1f%% used)",
+                 "Pool %3d: len(arenas)=%d, len(no_free_arenas)=%d, %d/%d (%.1f%% used)\n",
                  item->block_size,
                  item->arenas.length,
                  item->no_free_arenas.length,
@@ -201,7 +204,13 @@ c11_string* MultiPool__summary(MultiPool* self) {
                  total_bytes,
                  used_pct);
         c11_sbuf__write_cstr(&sbuf, buf);
-        c11_sbuf__write_char(&sbuf, '\n');
     }
+    long long total_size = arena_count * kPoolArenaSize;
+    double total_size_mb = (long long)(total_size / 1024) / 1024.0;
+    snprintf(buf,
+             sizeof(buf),
+             "Total: %.2f MB\n",
+             total_size_mb);
+    c11_sbuf__write_cstr(&sbuf, buf);
     return c11_sbuf__submit(&sbuf);
 }
