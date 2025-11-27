@@ -1022,7 +1022,7 @@ const static c11_u32_range kEastAsianWidthRanges[] = {
 };
 // clang-format on
 
-const static char* c11__u32_east_asian_width(int c) {
+const char* c11__u32_east_asian_width(int c) {
     const char* data =
         c11__search_u32_ranges(c,
                                kEastAsianWidthRanges,

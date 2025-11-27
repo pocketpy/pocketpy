@@ -3,3 +3,6 @@ def enable_full_buffering_mode() -> None:
 
 def split_ansi_escaped_string(s: str) -> list[str]:
     """Perform split on ANSI escaped string."""
+
+def wcwidth(c: int) -> int: ...
+def wcswidth(s: str) -> int: ...

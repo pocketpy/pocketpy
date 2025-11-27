@@ -21,3 +21,10 @@ assert cpnts == ['\x1b[3m', '\x1b[38;2;200;200;0m', '\x1b[48;2;78;118;164m', 'he
 
 cpnts_join = ''.join(cpnts)
 assert cpnts_join == text
+
+assert picoterm.wcwidth(ord('\n')) == 0
+assert picoterm.wcwidth(ord('a')) == 1
+assert picoterm.wcwidth(ord('测')) == 2
+assert picoterm.wcwidth(ord('👀')) == 2
+
+assert picoterm.wcswidth("hello, 测试a测试👀测\n") == 7 + 1 + 12
