@@ -177,6 +177,16 @@ void MultiPool__dtor(MultiPool* self) {
     }
 }
 
+size_t MultiPool__total_allocated_bytes(MultiPool* self) {
+    size_t total = 0;
+    for(int i = 0; i < kMultiPoolCount; i++) {
+        Pool* item = &self->pools[i];
+        int arena_count = item->arenas.length + item->no_free_arenas.length;
+        total += (size_t)arena_count * kPoolArenaSize;
+    }
+    return total;
+}
+
 c11_string* MultiPool__summary(MultiPool* self) {
     c11_sbuf sbuf;
     c11_sbuf__ctor(&sbuf);

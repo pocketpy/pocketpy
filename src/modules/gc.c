@@ -27,16 +27,16 @@ static bool gc_isenabled(int argc, py_Ref argv) {
 static bool gc_collect(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
     ManagedHeap* heap = &pk_current_vm->heap;
-    int res = ManagedHeap__collect(heap);
-    py_newint(py_retval(), res);
+    int freed = ManagedHeap__collect(heap);
+    py_newint(py_retval(), freed);
     return true;
 }
 
 static bool gc_collect_hint(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
     ManagedHeap* heap = &pk_current_vm->heap;
-    ManagedHeap__collect_hint(heap);
-    py_newnone(py_retval());
+    int freed = ManagedHeap__collect_hint(heap);
+    py_newint(py_retval(), freed);
     return true;
 }
 

@@ -52,3 +52,5 @@ bool c11__stable_sort(void* ptr,
                       int elem_size,
                       int (*f_lt)(const void* a, const void* b, void* extra),
                       void* extra);
+
+int c11__bit_length(unsigned long x);

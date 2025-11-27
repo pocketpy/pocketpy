@@ -5,7 +5,7 @@
 
 typedef struct PyObject {
     py_Type type;  // we have a duplicated type here for convenience
-    // bool _;
+    uint8_t size_8b;
     bool gc_marked;
     int slots;  // number of slots in the object
     char flex[];

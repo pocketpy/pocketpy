@@ -34,4 +34,5 @@ void* MultiPool__alloc(MultiPool* self, int size);
 int MultiPool__sweep_dealloc(MultiPool* self, int* out_types);
 void MultiPool__ctor(MultiPool* self);
 void MultiPool__dtor(MultiPool* self);
+size_t MultiPool__total_allocated_bytes(MultiPool* self);
 c11_string* MultiPool__summary(MultiPool* self);

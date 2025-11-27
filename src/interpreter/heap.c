@@ -6,10 +6,30 @@
 #include "pocketpy/pocketpy.h"
 #include <assert.h>
 
+static uint8_t encode_size_8b(int size, int* out_size) {
+    int bit_length = c11__bit_length(size);
+    int min_val = 1 << (bit_length - 1);
+    int gap = min_val;
+    float ratio = (float)(size - min_val) / gap;
+    int ratio_3bit = (int)(ratio * 7.999f);
+    *out_size = min_val + (int)(gap * ((float)ratio_3bit / 7.999f));
+    return (uint8_t)((bit_length << 3) | ratio_3bit);
+}
+
+static int decode_size_8b(uint8_t byte) {
+    int bit_length = byte >> 3;
+    int ratio_3bit = byte & 0x07;
+    int min_val = 1 << (bit_length - 1);
+    int gap = min_val;
+    float ratio = (float)ratio_3bit / 7.999f;
+    return min_val + (int)(gap * ratio);
+}
+
 void ManagedHeap__ctor(ManagedHeap* self) {
     MultiPool__ctor(&self->small_objects);
     c11_vector__ctor(&self->large_objects, sizeof(PyObject*));
     c11_vector__ctor(&self->gc_roots, sizeof(PyObject*));
+    self->large_total_size = 0;
 
     for(int i = 0; i < c11__count_array(self->freed_ma); i++) {
         self->freed_ma[i] = PK_GC_MIN_THRESHOLD;
@@ -107,8 +127,8 @@ static void ManagedHeap__fire_debug_callback_stop(ManagedHeap* self,
     }
 }
 
-void ManagedHeap__collect_hint(ManagedHeap* self) {
-    if(self->gc_counter < self->gc_threshold) return;
+int ManagedHeap__collect_hint(ManagedHeap* self) {
+    if(self->gc_counter < self->gc_threshold) return 0;
     self->gc_counter = 0;
 
     ManagedHeapSwpetInfo* out_info = NULL;
@@ -127,7 +147,7 @@ void ManagedHeap__collect_hint(ManagedHeap* self) {
     self->freed_ma[1] = self->freed_ma[2];
     self->freed_ma[2] = freed;
     int avg_freed = (self->freed_ma[0] + self->freed_ma[1] + self->freed_ma[2]) / 3;
-    const int upper = PK_GC_MIN_THRESHOLD * 16;
+    const int upper = PK_GC_MIN_THRESHOLD * 8;
     const int lower = PK_GC_MIN_THRESHOLD / 2;
     float free_ratio = (float)avg_freed / self->gc_threshold;
     int new_threshold = self->gc_threshold * (1.5f / free_ratio);
@@ -145,6 +165,7 @@ void ManagedHeap__collect_hint(ManagedHeap* self) {
         ManagedHeap__fire_debug_callback_stop(self, out_info);
         ManagedHeapSwpetInfo__delete(out_info);
     }
+    return freed;
 }
 
 int ManagedHeap__collect(ManagedHeap* self) {
@@ -187,6 +208,7 @@ int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
             large_living_count++;
         } else {
             if(out_info) out_info->large_types[obj->type]++;
+            self->large_total_size -= decode_size_8b(obj->size_8b);
             PyObject__dtor(obj);
             PK_FREE(obj);
         }
@@ -206,11 +228,16 @@ PyObject* ManagedHeap__gcnew(ManagedHeap* self, py_Type type, int slots, int uds
     // header + slots + udsize
     int size = sizeof(PyObject) + PK_OBJ_SLOTS_SIZE(slots) + udsize;
     PyObject* obj = MultiPool__alloc(&self->small_objects, size);
+    uint8_t size_8b = 0;
     if(obj == NULL) {
         obj = PK_MALLOC(size);
+        int quantized_size;
+        size_8b = encode_size_8b(size, &quantized_size);
+        self->large_total_size += quantized_size;
         c11_vector__push(PyObject*, &self->large_objects, obj);
     }
     obj->type = type;
+    obj->size_8b = size_8b;
     obj->gc_marked = false;
     obj->slots = slots;
 

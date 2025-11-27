@@ -8,6 +8,7 @@ typedef struct ManagedHeap {
     MultiPool small_objects;
     c11_vector /* PyObject_p */ large_objects;
     c11_vector /* PyObject_p */ gc_roots;
+    size_t large_total_size;
 
     int freed_ma[3];
     int gc_threshold;  // threshold for gc_counter
@@ -44,7 +45,7 @@ void ManagedHeap__dtor(ManagedHeap* self);
 ManagedHeapSwpetInfo* ManagedHeapSwpetInfo__new();
 void ManagedHeapSwpetInfo__delete(ManagedHeapSwpetInfo* self);
 
-void ManagedHeap__collect_hint(ManagedHeap* self);
+int ManagedHeap__collect_hint(ManagedHeap* self);
 int ManagedHeap__collect(ManagedHeap* self);
 int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info);
 

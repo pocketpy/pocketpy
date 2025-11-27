@@ -15,7 +15,7 @@ def collect() -> int:
     Returns an integer indicating the number of unreachable objects found.
     """
 
-def collect_hint() -> None:
+def collect_hint() -> int:
     """Hint the garbage collector to run a collection.
 
     The typical usage scenario for this function is in frame-driven games,

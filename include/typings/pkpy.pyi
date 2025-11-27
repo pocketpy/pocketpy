@@ -14,8 +14,8 @@ class TValue[T]:
     
 configmacros: dict[str, int]
 
-def memory_usage() -> str:
-    """Return a summary of the memory usage."""
+def memory_usage_info() -> str: ...
+def memory_usage() -> int: ...
 
 
 def currentvm() -> int:

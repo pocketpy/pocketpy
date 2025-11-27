@@ -37,17 +37,37 @@ DEF_TVALUE_METHODS(float, _f64)
 DEF_TVALUE_METHODS(vec2, _vec2)
 DEF_TVALUE_METHODS(vec2i, _vec2i)
 
+
 static bool pkpy_memory_usage(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    ManagedHeap* heap = &pk_current_vm->heap;
+    py_i64 size = MultiPool__total_allocated_bytes(&heap->small_objects);
+    size += heap->large_total_size;
+    size += sizeof(VM);
+    py_newint(py_retval(), size);
+    return true;
+}
+
+static bool pkpy_memory_usage_info(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
     ManagedHeap* heap = &pk_current_vm->heap;
     c11_string* small_objects_usage = MultiPool__summary(&heap->small_objects);
     int large_object_count = heap->large_objects.length;
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
+    c11_sbuf__write_cstr(&buf, "== pre-allocated ==\n");
+    double vm_size_mb = sizeof(VM) / 1024.0 / 1024.0;
+    c11_sbuf__write_cstr(&buf, "VM: ");
+    c11_sbuf__write_f64(&buf, vm_size_mb, 2);
+    c11_sbuf__write_cstr(&buf, " MB\n");
     c11_sbuf__write_cstr(&buf, "== heap.small_objects ==\n");
     c11_sbuf__write_cstr(&buf, small_objects_usage->data);
     c11_sbuf__write_cstr(&buf, "== heap.large_objects ==\n");
     pk_sprintf(&buf, "len(large_objects)=%d\n", large_object_count);
+    double large_total_size_mb = (size_t)(heap->large_total_size / 1024) / 1024.0;
+    c11_sbuf__write_cstr(&buf, "Total: ~");
+    c11_sbuf__write_f64(&buf, large_total_size_mb, 2);
+    c11_sbuf__write_cstr(&buf, " MB\n");
     c11_sbuf__write_cstr(&buf, "== heap.gc ==\n");
     pk_sprintf(&buf, "gc_counter=%d\n", heap->gc_counter);
     pk_sprintf(&buf, "gc_threshold=%d", heap->gc_threshold);
@@ -522,6 +542,7 @@ void pk__add_module_pkpy() {
     py_pop();
 
     py_bindfunc(mod, "memory_usage", pkpy_memory_usage);
+    py_bindfunc(mod, "memory_usage_info", pkpy_memory_usage_info);
 
     py_bindfunc(mod, "currentvm", pkpy_currentvm);
 
