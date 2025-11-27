@@ -33,7 +33,7 @@
 
 // GC min threshold
 #ifndef PK_GC_MIN_THRESHOLD         // can be overridden by cmake
-    #define PK_GC_MIN_THRESHOLD     32768
+    #define PK_GC_MIN_THRESHOLD     20000
 #endif
 
 // This is the maximum size of the value stack in py_TValue units
