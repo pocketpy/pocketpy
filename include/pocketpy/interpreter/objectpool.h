@@ -22,7 +22,7 @@ typedef struct PoolArena {
 
 typedef struct Pool {
     c11_vector /* PoolArena* */ arenas;
-    c11_vector /* PoolArena* */ no_free_arenas;
+    int available_index;
     int block_size;
 } Pool;
 
