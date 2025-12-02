@@ -5,6 +5,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <conio.h>
+#undef WIN32_LEAN_AND_MEAN
 
 #elif PY_SYS_PLATFORM == 3 || PY_SYS_PLATFORM == 5
 

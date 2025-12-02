@@ -220,4 +220,10 @@ void c11_thrdpool__join(c11_thrdpool *pool) {
     c11_thrdpool_debug_log(-1, "All %d tasks completed, `sync_val` was reset.", num_tasks);
 }
 
+#undef C11_THRDPOOL_DEBUG
+
+#ifdef c11_thrdpool_debug_log
+#undef c11_thrdpool_debug_log
+#endif
+
 #endif  // PK_ENABLE_THREADS

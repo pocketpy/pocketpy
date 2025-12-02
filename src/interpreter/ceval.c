@@ -1445,7 +1445,6 @@ bool pk_format_object(VM* self, py_Ref val, c11_sv spec) {
     return true;
 }
 
-#undef CHECK_RETURN_FROM_EXCEPT_OR_FINALLY
 #undef DISPATCH
 #undef DISPATCH_JUMP
 #undef DISPATCH_JUMP_ABSOLUTE

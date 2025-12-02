@@ -1,5 +1,7 @@
 import re
 
+whitelist = {'K', 'equal', 'V', 'less', 'NAME'}
+
 def check_define_undef_pairs(code):
     # 使用正则表达式匹配#define和#undef指令
     define_pattern = re.compile(r'#define\s+(\w+)')
@@ -8,6 +10,9 @@ def check_define_undef_pairs(code):
     # 查找所有的#define和#undef
     defines = define_pattern.findall(code)
     undefs = undef_pattern.findall(code)
+
+    defines = [x for x in defines if x not in whitelist]
+    undefs = [x for x in undefs if x not in whitelist]
 
     # 使用集合计算差集，找出不匹配的部分
     define_set = set(defines)
@@ -21,11 +26,13 @@ def check_define_undef_pairs(code):
             print("mismatched #define")
             for define in unmatched_defines:
                 print(f"- {define}")
+            exit(1)
 
         if unmatched_undefs:
             print("mismatched #undef")
             for undef in unmatched_undefs:
                 print(f"- {undef}")
+            exit(1)
 
 
 # iterate over all the files in `path` directory

@@ -16,18 +16,18 @@ fi
 rm -rf .coverage
 mkdir .coverage
 
-# remove .gcno files if the 1st line contains "Source:src/debugger/"
-find . -type f -name "*.gcno" | while read -r file; do
-    first_line=$(head -n 1 "$file")
-    if [[ "$first_line" == *"Source:src/debugger/"* ]]; then
-        echo "Deleting: $file"
-        rm -f "$file"
-    fi
-done
-
 UNITS=$(find ./ -name "*.gcno")
 llvm-cov-17 gcov ${UNITS} -r -s include/ -r -s src/ >> .coverage/coverage.txt
 
 mv *.gcov .coverage
 rm *.gcda
 rm *.gcno
+
+# remove .gcno files if the 1st line contains "Source:src/debugger/"
+find .coverage/ -type f -name "*.gcov" | while read -r file; do
+    first_line=$(head -n 1 "$file")
+    if [[ "$first_line" == *"Source:src/debugger/"* ]]; then
+        echo "Removing: $file"
+        rm "$file"
+    fi
+done
