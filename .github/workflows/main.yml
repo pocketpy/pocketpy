@@ -68,6 +68,7 @@ jobs:
       run: |
         python scripts/check_pragma_once.py include
         python scripts/check_undef.py src
+        python scripts/check_binding_retval.py
     - name: Unit Test with Coverage
       run: bash run_tests.sh
     - name: Upload coverage reports to Codecov

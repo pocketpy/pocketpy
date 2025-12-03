@@ -2,6 +2,10 @@ set -e
 
 python prebuild.py
 
+# Run static analysis checks
+echo "Running static analysis checks..."
+python scripts/check_binding_retval.py || { echo "Binding return value check failed"; exit 1; }
+
 SRC=$(find src/ -name "*.c")
 
 clang -std=c11 --coverage -O1 -Wfatal-errors -o main src2/main.c $SRC -Iinclude -DPK_ENABLE_OS=1 -lm -ldl -DNDEBUG
