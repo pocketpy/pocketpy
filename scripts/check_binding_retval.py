@@ -72,22 +72,36 @@ class BindingChecker:
     
     def extract_functions(self, content: str) -> Dict[str, Dict]:
         """Extract all bool-returning functions from C code."""
-        # Pattern to match bool-returning functions
-        pattern = r'(?:static\s+)?bool\s+(\w+)\s*\(([^)]*)\)\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}'
+        # Pattern to match function declarations (start of bool functions)
+        pattern = r'(?:static\s+)?bool\s+(\w+)\s*\(([^)]*)\)\s*\{'
         
         functions = {}
-        for match in re.finditer(pattern, content, re.MULTILINE | re.DOTALL):
+        for match in re.finditer(pattern, content):
             func_name = match.group(1)
             func_params = match.group(2)
-            func_body = match.group(3)
-            full_func = match.group(0)
+            start_pos = match.end()  # Position after the opening brace
             
-            functions[func_name] = {
-                'params': func_params,
-                'body': func_body,
-                'full': full_func,
-                'start_pos': match.start(),
-            }
+            # Find matching closing brace using brace counting
+            brace_count = 1
+            pos = start_pos
+            while pos < len(content) and brace_count > 0:
+                if content[pos] == '{':
+                    brace_count += 1
+                elif content[pos] == '}':
+                    brace_count -= 1
+                pos += 1
+            
+            if brace_count == 0:
+                # Successfully found matching brace
+                func_body = content[start_pos:pos-1]  # Exclude closing brace
+                full_func = content[match.start():pos]
+                
+                functions[func_name] = {
+                    'params': func_params,
+                    'body': func_body,
+                    'full': full_func,
+                    'start_pos': match.start(),
+                }
         
         return functions
     
@@ -101,7 +115,7 @@ class BindingChecker:
             r'py_bind\s*\([^,]+,\s*"[^"]*",\s*(\w+)\)',
             r'py_bindmagic\s*\([^,]+,\s*\w+,\s*(\w+)\)',
             r'py_bindmethod\s*\([^,]+,\s*"[^"]+",\s*(\w+)\)',
-            r'py_bindproperty\s*\([^,]+,\s*"[^"]+",\s*(\w+)',
+            r'py_bindproperty\s*\([^,]+,\s*"[^"]+",\s*(\w+)(?:,|\))',
         ]
         
         for pattern in patterns:
@@ -131,8 +145,10 @@ class BindingChecker:
                 return True
         
         # Check for functions that set py_retval internally
+        # Use word boundaries to avoid matching substrings in comments or other identifiers
         for func in RETVAL_SETTING_FUNCTIONS:
-            if func + '(' in code_without_comments:
+            pattern = r'\b' + re.escape(func) + r'\s*\('
+            if re.search(pattern, code_without_comments):
                 return True
         
         return False
