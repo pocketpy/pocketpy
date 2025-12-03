@@ -24,16 +24,17 @@ import argparse
 from typing import List, Dict, Tuple, Set
 
 # Functions that set py_retval() internally
+# See: include/pocketpy/pocketpy.h and src/public/ for implementations
 RETVAL_SETTING_FUNCTIONS = {
-    'py_import',      # Sets py_retval() on success
-    'py_call',        # Sets py_retval() with result
-    'py_iter',        # Sets py_retval() with iterator
-    'py_str',         # Sets py_retval() with string representation
-    'py_repr',        # Sets py_retval() with repr string
-    'py_getattr',     # Sets py_retval() with attribute value
-    'py_next',        # Sets py_retval() with next value
-    'py_getitem',     # Sets py_retval() with item
-    'py_vectorcall',  # Sets py_retval() with call result
+    'py_import',      # Sets py_retval() on success (src/public/ModuleSystem.c)
+    'py_call',        # Sets py_retval() with result (src/public/PythonOps.c)
+    'py_iter',        # Sets py_retval() with iterator (src/public/PythonOps.c)
+    'py_str',         # Sets py_retval() with string representation (src/public/PythonOps.c)
+    'py_repr',        # Sets py_retval() with repr string (src/public/PythonOps.c)
+    'py_getattr',     # Sets py_retval() with attribute value (src/public/PythonOps.c)
+    'py_next',        # Sets py_retval() with next value (src/public/PythonOps.c)
+    'py_getitem',     # Sets py_retval() with item (src/public/PythonOps.c)
+    'py_vectorcall',  # Sets py_retval() with call result (src/public/StackOps.c)
 }
 
 # Patterns that indicate py_retval() is being set
@@ -43,6 +44,15 @@ RETVAL_PATTERNS = [
     r'py_assign\s*\(\s*py_retval\(\)',   # py_assign(py_retval(), ...)
     r'\*py_retval\(\)\s*=',              # *py_retval() = ...
 ]
+
+# Pre-compile regex patterns for performance
+COMPILED_RETVAL_PATTERNS = [re.compile(pattern) for pattern in RETVAL_PATTERNS]
+
+# Pre-compile regex patterns for function call detection
+COMPILED_RETVAL_FUNCTION_PATTERNS = {
+    func: re.compile(r'\b' + re.escape(func) + r'\s*\(')
+    for func in RETVAL_SETTING_FUNCTIONS
+}
 
 
 class BindingChecker:
@@ -139,16 +149,14 @@ class BindingChecker:
         # Remove comments to avoid false positives
         code_without_comments = self.remove_comments(func_body)
         
-        # Check for direct patterns
-        for pattern in RETVAL_PATTERNS:
-            if re.search(pattern, code_without_comments):
+        # Check for direct patterns using pre-compiled regexes
+        for compiled_pattern in COMPILED_RETVAL_PATTERNS:
+            if compiled_pattern.search(code_without_comments):
                 return True
         
-        # Check for functions that set py_retval internally
-        # Use word boundaries to avoid matching substrings in comments or other identifiers
-        for func in RETVAL_SETTING_FUNCTIONS:
-            pattern = r'\b' + re.escape(func) + r'\s*\('
-            if re.search(pattern, code_without_comments):
+        # Check for functions that set py_retval internally using pre-compiled patterns
+        for func, compiled_pattern in COMPILED_RETVAL_FUNCTION_PATTERNS.items():
+            if compiled_pattern.search(code_without_comments):
                 return True
         
         return False
