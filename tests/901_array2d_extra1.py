@@ -60,16 +60,18 @@ try:
         array2d.fromlist(color_fg),
         array2d(51, 51, 1)
         )
+    assert False, "here expect a TypeError"
 except TypeError as e:
-    pass
+    assert "color32" in str(e) or "None" in str(e)
 
 try:
     array2d.fromlist(text_data).render_with_color(
         array2d(51, 51, 1),
         array2d.fromlist(color_bg)
         )
+    assert False, "here expect a TypeError"
 except TypeError as e:
-    pass
+    assert "color32" in str(e) or "None" in str(e)
 
 
 # ====array2d_like_any
@@ -98,7 +100,7 @@ for i in range(10):
         data[vec2i(i,j)] = 10
 
 del data[vec2i(0,0)]
-
+assert data[vec2i(0,0)] == data.default
 
 # ====chunked_array2d__len__
 data = chunked_array2d(4)
