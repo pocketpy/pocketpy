@@ -120,7 +120,7 @@ def gc_collect_callback(statue, msg):
             if "5290" in line and "str" in line:
                 return
         print(msg)
-        assert False
+        raise AssertionError("Expected GC output not found")
 
 gc.collect()
 gc.setup_debug_callback(gc_collect_callback)
