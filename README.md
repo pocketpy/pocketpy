@@ -200,6 +200,19 @@ And these are the results of the primes benchmark on Intel i5-12400F, WSL (Ubunt
 
 Submit a pull request to add your project here.
 
+## Code Quality
+
+pocketpy maintains code quality through automated checks:
+
+- **Binding Return Value Check**: Ensures all Python binding functions properly set return values
+  ```bash
+  python scripts/check_binding_retval.py
+  ```
+- **Pragma Once Check**: Validates header file include guards
+- **Define/Undef Check**: Ensures balanced macro definitions
+
+These checks run automatically in CI/CD pipeline.
+
 ## Contribution
 
 All kinds of contributions are welcome.
