@@ -21,7 +21,7 @@ set(PK_BUILD_SHARED_LIB ON CACHE BOOL "" FORCE)
 FetchContent_Declare(
   pocketpy
   GIT_REPOSITORY https://github.com/pocketpy/pocketpy.git
-  GIT_TAG        v2.1.4
+  GIT_TAG        v2.1.5
 )
 
 FetchContent_MakeAvailable(pocketpy)

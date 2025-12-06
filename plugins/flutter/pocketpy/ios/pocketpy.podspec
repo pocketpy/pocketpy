@@ -35,7 +35,7 @@ A new Flutter FFI plugin project.
 
   s.prepare_command = <<-CMD
   rm -rf pocketpy
-  git clone --branch v2.1.4 --depth 1 https://github.com/pocketpy/pocketpy.git
+  git clone --branch v2.1.5 --depth 1 https://github.com/pocketpy/pocketpy.git
   cd pocketpy
   git submodule update --init --recursive --depth 1
   bash build_ios_libs.sh
