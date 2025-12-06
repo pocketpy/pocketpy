@@ -208,9 +208,13 @@ static bool array2d_like_render_with_color(int argc, py_Ref argv) {
             c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
         }
         // newline
-        curr_fg.u32 = 0;
-        curr_bg.u32 = 0; 
-        c11_sbuf__write_cstr(&buf, "\x1b[0m\n");
+        if(j < self->n_rows - 1) {
+            curr_fg.u32 = 0;
+            curr_bg.u32 = 0;
+            c11_sbuf__write_cstr(&buf, "\x1b[0m\n");
+        } else {
+            c11_sbuf__write_cstr(&buf, "\x1b[0m");
+        }
     }
     c11_sbuf__py_submit(&buf, py_retval());
     return true;
