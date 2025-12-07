@@ -988,18 +988,6 @@ static bool color32_to_rgb565(int argc, py_Ref argv) {
     return true;
 }
 
-static bool color32_to_bgr565(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_color32 color = py_tocolor32(argv);
-    c11_color32_premult(&color);
-    uint16_t b = (color.b >> 3) & 0x1F;
-    uint16_t g = (color.g >> 2) & 0x3F;
-    uint16_t r = (color.r >> 3) & 0x1F;
-    uint16_t bgr565 = (b << 11) | (g << 5) | r;
-    py_newint(py_retval(), bgr565);
-    return true;
-}
-
 static bool color32__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     if(argv[1].type != tp_color32) {
@@ -1304,7 +1292,6 @@ void pk__add_module_vmath() {
     py_bindmethod(color32, "to_vec3", color32_to_vec3);
     py_bindmethod(color32, "to_vec3i", color32_to_vec3i);
     py_bindmethod(color32, "to_rgb565", color32_to_rgb565);
-    py_bindmethod(color32, "to_bgr565", color32_to_bgr565);
     py_bindmethod(color32, "ansi_fg", color32_ansi_fg);
     py_bindmethod(color32, "ansi_bg", color32_ansi_bg);
     py_bindfunc(mod, "rgb", vmath_rgb);
