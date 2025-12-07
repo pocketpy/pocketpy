@@ -159,8 +159,9 @@ static bool cute_png_Image__to_rgb565_bytes(int argc, py_Ref argv) {
             uint16_t g = (pixel.g >> 2) & 0x3F;
             uint16_t b = (pixel.b >> 3) & 0x1F;
             uint16_t rgb565 = (r << 11) | (g << 5) | b;
-            data[idx * 2 + 0] = (rgb565 >> 8) & 0xFF;
-            data[idx * 2 + 1] = (rgb565 >> 0) & 0xFF;
+            // use little-endian
+            data[idx * 2 + 0] = rgb565 & 0xFF;
+            data[idx * 2 + 1] = (rgb565 >> 8) & 0xFF;
         }
     }
     return true;
