@@ -152,7 +152,7 @@ static bool cute_png_Image__clear(int argc, py_Ref argv) {
     return true;
 }
 
-static bool cute_png_Image__to_rgb565(int argc, py_Ref argv) {
+static bool cute_png_Image__to_rgb565_bytes(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     cp_image_t* image = py_touserdata(argv);
     unsigned char* data = py_newbytes(py_retval(), image->w * image->h * 2);
@@ -168,6 +168,17 @@ static bool cute_png_Image__to_rgb565(int argc, py_Ref argv) {
             data[idx * 2 + 1] = (rgb565 >> 0) & 0xFF;
         }
     }
+    return true;
+}
+
+static bool cute_png_Image__to_png_bytes(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    cp_image_t* image = py_touserdata(argv);
+    cp_saved_png_t saved_image = cp_save_png_to_memory(image);
+    assert(saved_image.data != NULL);
+    unsigned char* data = py_newbytes(py_retval(), saved_image.size);
+    memcpy(data, saved_image.data, saved_image.size);
+    CUTE_PNG_FREE(saved_image.data);
     return true;
 }
 
@@ -188,5 +199,6 @@ void pk__add_module_cute_png() {
     py_bindmethod(tp_image, "getpixel", cute_png_Image__getpixel);
     py_bindmethod(tp_image, "clear", cute_png_Image__clear);
 
-    py_bindmethod(tp_image, "to_rgb565", cute_png_Image__to_rgb565);
+    py_bindmethod(tp_image, "to_rgb565_bytes", cute_png_Image__to_rgb565_bytes);
+    py_bindmethod(tp_image, "to_png_bytes", cute_png_Image__to_png_bytes);
 }
