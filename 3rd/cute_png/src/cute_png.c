@@ -62,10 +62,7 @@ static bool cute_png_Image__new__(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(2, tp_int);
     int width = py_toint(py_arg(1));
     int height = py_toint(py_arg(2));
-    cp_image_t* ud = py_newobject(py_retval(),
-                                  py_totype(argv),
-                                  py_gettype("cute_png", py_name("Image")),
-                                  sizeof(cp_image_t));
+    cp_image_t* ud = py_newobject(py_retval(), py_totype(argv), 0, sizeof(cp_image_t));
     *ud = cp_load_blank(width, height);
     return true;
 }
@@ -77,10 +74,8 @@ static bool cute_png_Image__from_bytes_STATIC(int argc, py_Ref argv) {
     unsigned char* data = py_tobytes(argv, &size);
     cp_image_t image = cp_load_png_mem(data, size);
     if(image.pix == NULL) return ValueError("cute_png: %s", cp_error_reason);
-    cp_image_t* ud = py_newobject(py_retval(),
-                                  py_totype(argv),
-                                  py_gettype("cute_png", py_name("Image")),
-                                  sizeof(cp_image_t));
+    cp_image_t* ud =
+        py_newobject(py_retval(), py_gettype("cute_png", py_name("Image")), 0, sizeof(cp_image_t));
     *ud = image;
     return true;
 }
@@ -185,6 +180,7 @@ static bool cute_png_Image__to_png_bytes(int argc, py_Ref argv) {
 void pk__add_module_cute_png() {
     py_GlobalRef mod = py_newmodule("cute_png");
     py_Type tp_image = py_newtype("Image", tp_object, mod, cute_png_Image__dtor);
+    py_tpsetfinal(tp_image);
 
     py_bindfunc(mod, "loads", cute_png_loads);
     py_bindfunc(mod, "dumps", cute_png_dumps);
