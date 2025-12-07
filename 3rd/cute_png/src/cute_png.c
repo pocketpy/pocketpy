@@ -23,6 +23,7 @@ static bool cute_png_loads(int argc, py_Ref argv) {
             py_newcolor32(slot, color);
         }
     }
+    cp_free_png(&image);
     return true;
 }
 
@@ -45,12 +46,126 @@ static bool cute_png_dumps(int argc, py_Ref argv) {
     assert(saved_image.data != NULL);
     unsigned char* data = py_newbytes(py_retval(), saved_image.size);
     memcpy(data, saved_image.data, saved_image.size);
+    CUTE_PNG_FREE(saved_image.data);
+    cp_free_png(&image);
+    return true;
+}
+
+static void cute_png_Image__dtor(void* ud) {
+    cp_image_t* image = (cp_image_t*)ud;
+    cp_free_png(image);
+}
+
+static bool cute_png_Image__new__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    int width = py_toint(py_arg(1));
+    int height = py_toint(py_arg(2));
+    cp_image_t* ud = py_newobject(py_retval(),
+                                  py_totype(argv),
+                                  py_gettype("cute_png", py_name("Image")),
+                                  sizeof(cp_image_t));
+    *ud = cp_load_blank(width, height);
+    return true;
+}
+
+static bool cute_png_Image__from_bytes_STATIC(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_bytes);
+    int size;
+    unsigned char* data = py_tobytes(argv, &size);
+    cp_image_t image = cp_load_png_mem(data, size);
+    if(image.pix == NULL) return ValueError("cute_png: %s", cp_error_reason);
+    cp_image_t* ud = py_newobject(py_retval(),
+                                  py_totype(argv),
+                                  py_gettype("cute_png", py_name("Image")),
+                                  sizeof(cp_image_t));
+    *ud = image;
+    return true;
+}
+
+static bool cute_png_Image__width(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    cp_image_t* image = py_touserdata(argv);
+    py_newint(py_retval(), image->w);
+    return true;
+}
+
+static bool cute_png_Image__height(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    cp_image_t* image = py_touserdata(argv);
+    py_newint(py_retval(), image->h);
+    return true;
+}
+
+static bool cute_png_Image__setpixel(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    cp_image_t* image = py_touserdata(argv);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    PY_CHECK_ARG_TYPE(3, tp_color32);
+    int x = py_toint(py_arg(1));
+    int y = py_toint(py_arg(2));
+    c11_color32 color = py_tocolor32(py_arg(3));
+    if(x < 0 || x >= image->w || y < 0 || y >= image->h) {
+        return IndexError("cute_png.Image: index out of range");
+    }
+    cp_pixel_t pixel = cp_make_pixel_a(color.r, color.g, color.b, color.a);
+    image->pix[y * image->w + x] = pixel;
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool cute_png_Image__getpixel(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    cp_image_t* image = py_touserdata(argv);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    int x = py_toint(py_arg(1));
+    int y = py_toint(py_arg(2));
+    if(x < 0 || x >= image->w || y < 0 || y >= image->h) {
+        return IndexError("cute_png.Image: index out of range");
+    }
+    cp_pixel_t pixel = image->pix[y * image->w + x];
+    c11_color32 color;
+    color.r = pixel.r;
+    color.g = pixel.g;
+    color.b = pixel.b;
+    color.a = pixel.a;
+    py_newcolor32(py_retval(), color);
+    return true;
+}
+
+static bool cute_png_Image__clear(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    cp_image_t* image = py_touserdata(argv);
+    PY_CHECK_ARG_TYPE(1, tp_color32);
+    c11_color32 color = py_tocolor32(py_arg(1));
+    cp_pixel_t pixel = cp_make_pixel_a(color.r, color.g, color.b, color.a);
+    for(int y = 0; y < image->h; y++) {
+        for(int x = 0; x < image->w; x++) {
+            image->pix[y * image->w + x] = pixel;
+        }
+    }
+    py_newnone(py_retval());
     return true;
 }
 
 void pk__add_module_cute_png() {
     py_GlobalRef mod = py_newmodule("cute_png");
+    py_Type tp_image = py_newtype("Image", tp_object, mod, cute_png_Image__dtor);
 
     py_bindfunc(mod, "loads", cute_png_loads);
     py_bindfunc(mod, "dumps", cute_png_dumps);
+
+    py_bindmethod(tp_image, "__new__", cute_png_Image__new__);
+    py_bindstaticmethod(tp_image, "from_bytes", cute_png_Image__from_bytes_STATIC);
+
+    py_bindproperty(tp_image, "width", cute_png_Image__width, NULL);
+    py_bindproperty(tp_image, "height", cute_png_Image__height, NULL);
+
+    py_bindmethod(tp_image, "setpixel", cute_png_Image__setpixel);
+    py_bindmethod(tp_image, "getpixel", cute_png_Image__getpixel);
+    py_bindmethod(tp_image, "clear", cute_png_Image__clear);
 }
