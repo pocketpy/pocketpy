@@ -95,7 +95,7 @@ static bool cute_png_Image__height(int argc, py_Ref argv) {
 }
 
 static bool cute_png_Image__setpixel(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(3);
+    PY_CHECK_ARGC(4);
     cp_image_t* image = py_touserdata(argv);
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
