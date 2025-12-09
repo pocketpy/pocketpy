@@ -1,5 +1,6 @@
 #include "pocketpy/objects/base.h"
 #include "pocketpy/pocketpy.h"
+#include "pocketpy/interpreter/types.h"
 #include "pocketpy/interpreter/vm.h"
 
 #if PK_ENABLE_OS
@@ -100,12 +101,6 @@ void pk__add_module_os() {
 
     py_newdict(py_emplacedict(mod, py_name("environ")));
 }
-
-typedef struct {
-    const char* path;
-    const char* mode;
-    FILE* file;
-} io_FileIO;
 
 static bool io_FileIO__new__(int argc, py_Ref argv) {
     // __new__(cls, file, mode)
@@ -213,6 +208,14 @@ static bool io_FileIO_write(int argc, py_Ref argv) {
     return true;
 }
 
+static bool io_FileIO_flush(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    io_FileIO* ud = py_touserdata(py_arg(0));
+    fflush(ud->file);
+    py_newnone(py_retval());
+    return true;
+}
+
 void pk__add_module_io() {
     py_Ref mod = py_newmodule("io");
 
@@ -226,6 +229,7 @@ void pk__add_module_io() {
     py_bindmethod(FileIO, "close", io_FileIO_close);
     py_bindmethod(FileIO, "tell", io_FileIO_tell);
     py_bindmethod(FileIO, "seek", io_FileIO_seek);
+    py_bindmethod(FileIO, "flush", io_FileIO_flush);
 
     py_newint(py_emplacedict(mod, py_name("SEEK_SET")), SEEK_SET);
     py_newint(py_emplacedict(mod, py_name("SEEK_CUR")), SEEK_CUR);

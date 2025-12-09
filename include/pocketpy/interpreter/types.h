@@ -2,6 +2,7 @@
 
 #include "pocketpy/common/vector.h"
 #include "pocketpy/objects/base.h"
+#include <stdio.h>
 
 typedef struct {
     uint64_t hash;
@@ -22,3 +23,9 @@ typedef c11_vector List;
 
 void c11_chunked_array2d__mark(void* ud, c11_vector* p_stack);
 void function__gc_mark(void* ud, c11_vector* p_stack);
+
+typedef struct {
+    FILE* file;         // cute_png will cast the whole userdata to FILE**
+    const char* path;
+    const char* mode;
+} io_FileIO;

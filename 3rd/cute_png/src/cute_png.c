@@ -1,4 +1,5 @@
 #include "pocketpy.h"
+#include <stdio.h>
 
 #define CUTE_PNG_IMPLEMENTATION
 #include "cute_png.h"
@@ -147,26 +148,6 @@ static bool cute_png_Image__clear(int argc, py_Ref argv) {
     return true;
 }
 
-static bool cute_png_Image__to_rgb565_bytes(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    cp_image_t* image = py_touserdata(argv);
-    unsigned char* data = py_newbytes(py_retval(), image->w * image->h * 2);
-    for(int y = 0; y < image->h; y++) {
-        for(int x = 0; x < image->w; x++) {
-            size_t idx = y * image->w + x;
-            cp_pixel_t pixel = image->pix[idx];
-            uint16_t r = (pixel.r >> 3) & 0x1F;
-            uint16_t g = (pixel.g >> 2) & 0x3F;
-            uint16_t b = (pixel.b >> 3) & 0x1F;
-            uint16_t rgb565 = (r << 11) | (g << 5) | b;
-            // use little-endian
-            data[idx * 2 + 0] = rgb565 & 0xFF;
-            data[idx * 2 + 1] = (rgb565 >> 8) & 0xFF;
-        }
-    }
-    return true;
-}
-
 static bool cute_png_Image__to_png_bytes(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     cp_image_t* image = py_touserdata(argv);
@@ -175,6 +156,54 @@ static bool cute_png_Image__to_png_bytes(int argc, py_Ref argv) {
     unsigned char* data = py_newbytes(py_retval(), saved_image.size);
     memcpy(data, saved_image.data, saved_image.size);
     CUTE_PNG_FREE(saved_image.data);
+    return true;
+}
+
+static bool cute_png_Image__to_png_file(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    cp_image_t* image = py_touserdata(argv);
+    size_t size = 0;
+
+    py_Type tp_FileIO = py_gettype("io", py_name("FileIO"));
+    if(tp_FileIO != tp_nil) {
+        PY_CHECK_ARG_TYPE(1, tp_FileIO);
+        FILE** ud = py_touserdata(py_arg(1));
+        FILE* fp = *ud;
+
+        cp_saved_png_t saved_image = cp_save_png_to_memory(image);
+        assert(saved_image.data != NULL);
+        size = fwrite(saved_image.data, saved_image.size, 1, fp);
+        CUTE_PNG_FREE(saved_image.data);
+    }
+    py_newint(py_retval(), size);
+    return true;
+}
+
+static bool cute_png_Image__to_rgb565_file(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    cp_image_t* image = py_touserdata(argv);
+    size_t size = 0;
+
+    py_Type tp_FileIO = py_gettype("io", py_name("FileIO"));
+    if(tp_FileIO != tp_nil) {
+        PY_CHECK_ARG_TYPE(1, tp_FileIO);
+        FILE** ud = py_touserdata(py_arg(1));
+        FILE* fp = *ud;
+
+        for(int y = 0; y < image->h; y++) {
+            for(int x = 0; x < image->w; x++) {
+                size_t idx = y * image->w + x;
+                cp_pixel_t pixel = image->pix[idx];
+                uint16_t r = (pixel.r >> 3) & 0x1F;
+                uint16_t g = (pixel.g >> 2) & 0x3F;
+                uint16_t b = (pixel.b >> 3) & 0x1F;
+                uint16_t rgb565 = (r << 11) | (g << 5) | b;
+                // use little-endian
+                size += fwrite(&rgb565, 1, 2, fp);
+            }
+        }
+    }
+    py_newint(py_retval(), size);
     return true;
 }
 
@@ -196,6 +225,7 @@ void pk__add_module_cute_png() {
     py_bindmethod(tp_image, "getpixel", cute_png_Image__getpixel);
     py_bindmethod(tp_image, "clear", cute_png_Image__clear);
 
-    py_bindmethod(tp_image, "to_rgb565_bytes", cute_png_Image__to_rgb565_bytes);
     py_bindmethod(tp_image, "to_png_bytes", cute_png_Image__to_png_bytes);
+    py_bindmethod(tp_image, "to_png_file", cute_png_Image__to_png_file);
+    py_bindmethod(tp_image, "to_rgb565_file", cute_png_Image__to_rgb565_file);
 }
