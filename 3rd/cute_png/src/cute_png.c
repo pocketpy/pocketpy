@@ -4,13 +4,13 @@
 #define CUTE_PNG_IMPLEMENTATION
 #include "cute_png.h"
 
-// #if PY_SYS_PLATFORM == 5
-// #include <unistd.h>
-// #include <fcntl.h>
-// #include <sys/ioctl.h>
-// #include <sys/mman.h>
-// #include <linux/fb.h>
-// #endif
+#if PY_SYS_PLATFORM == 5
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <linux/fb.h>
+#endif
 
 static bool cute_png_loads(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -215,37 +215,37 @@ static bool cute_png_Image__to_rgb565_file(int argc, py_Ref argv) {
         }                                                                                          \
     }
 
-// #if PY_SYS_PLATFORM == 5
-//     if(strcmp(path, "/dev/fb0") == 0) {
-//         static struct fb_fix_screeninfo finfo;
-//         static uint8_t* vmem_base;
-//         if(vmem_base == NULL) {
-//             int fbdev_fd = open(path, O_RDWR);
-//             if(fbdev_fd < 0) return OSError("open() '/dev/fb0' failed");
-//             fcntl(fbdev_fd, F_SETFD, fcntl(fbdev_fd, F_GETFD) | FD_CLOEXEC);
-//             if(ioctl(fbdev_fd, FBIOGET_FSCREENINFO, &finfo) < 0) {
-//                 close(fbdev_fd);
-//                 return OSError("ioctl() '/dev/fb0' failed");
-//             }
-//             vmem_base = mmap(0, finfo.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fbdev_fd, 0);
-//             if(vmem_base == MAP_FAILED) {
-//                 vmem_base = NULL;
-//                 close(fbdev_fd);
-//                 return OSError("mmap() '/dev/fb0' failed");
-//             }
-//             close(fbdev_fd);
-//         }
-//         CONVERT_TO_RGB565(
-//             // use little endian
-//             if(size + 2 > finfo.smem_len) {
-//                 py_newint(py_retval(), size);
-//                 return true;
-//             } memcpy(vmem_base + size, &rgb565, 2);
-//             size += 2;)
-//         py_newint(py_retval(), size);
-//         return true;
-//     }
-// #endif
+#if PY_SYS_PLATFORM == 5
+    if(strcmp(path, "/dev/fb0") == 0) {
+        static struct fb_fix_screeninfo finfo;
+        static uint8_t* vmem_base;
+        if(vmem_base == NULL) {
+            int fbdev_fd = open(path, O_RDWR);
+            if(fbdev_fd < 0) return OSError("open() '/dev/fb0' failed");
+            fcntl(fbdev_fd, F_SETFD, fcntl(fbdev_fd, F_GETFD) | FD_CLOEXEC);
+            if(ioctl(fbdev_fd, FBIOGET_FSCREENINFO, &finfo) < 0) {
+                close(fbdev_fd);
+                return OSError("ioctl() '/dev/fb0' failed");
+            }
+            vmem_base = mmap(0, finfo.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fbdev_fd, 0);
+            if(vmem_base == MAP_FAILED) {
+                vmem_base = NULL;
+                close(fbdev_fd);
+                return OSError("mmap() '/dev/fb0' failed");
+            }
+            close(fbdev_fd);
+        }
+        CONVERT_TO_RGB565(
+            // use little endian
+            if(size + 2 > finfo.smem_len) {
+                py_newint(py_retval(), size);
+                return true;
+            } memcpy(vmem_base + size, &rgb565, 2);
+            size += 2;)
+        py_newint(py_retval(), size);
+        return true;
+    }
+#endif
 
     FILE* fp = fopen(path, "wb");
     if(fp == NULL) return OSError("cannot open file '%s' for writing", path);
