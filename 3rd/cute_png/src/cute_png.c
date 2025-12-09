@@ -258,6 +258,59 @@ static bool cute_png_Image__to_rgb565_file(int argc, py_Ref argv) {
 #undef CONVERT_TO_RGB565
 }
 
+static bool cute_png_Image__paste(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(8);
+    PY_CHECK_ARG_TYPE(1, py_gettype("cute_png", py_name("Image")));  // src_img
+    PY_CHECK_ARG_TYPE(2, tp_vec2i);                                  // src_pos
+    PY_CHECK_ARG_TYPE(3, tp_vec2i);                                  // dst_pos
+    PY_CHECK_ARG_TYPE(4, tp_int);                                    // width
+    PY_CHECK_ARG_TYPE(5, tp_int);                                    // height
+    PY_CHECK_ARG_TYPE(6, tp_color32);                                // fg
+    PY_CHECK_ARG_TYPE(7, tp_color32);                                // bg
+
+    cp_image_t* dst_image = py_touserdata(argv);
+    cp_image_t* src_image = py_touserdata(py_arg(1));
+    c11_vec2i src_pos = py_tovec2i(py_arg(2));
+    c11_vec2i dst_pos = py_tovec2i(py_arg(3));
+    int width = py_toint(py_arg(4));
+    int height = py_toint(py_arg(5));
+    c11_color32 fg = py_tocolor32(py_arg(6));
+    c11_color32 bg = py_tocolor32(py_arg(7));
+
+    for(int y = 0; y < height; y++) {
+        for(int x = 0; x < width; x++) {
+            int src_x = src_pos.x + x;
+            int src_y = src_pos.y + y;
+            int dst_x = dst_pos.x + x;
+            int dst_y = dst_pos.y + y;
+
+            if(src_x >= src_image->w || src_y >= src_image->h) continue;
+            if(dst_x >= dst_image->w || dst_y >= dst_image->h) continue;
+
+            // fill with bg color first
+            cp_pixel_t dst_pixel = cp_make_pixel_a(bg.r, bg.g, bg.b, 255);
+
+            // override with fg * src_pixel
+            cp_pixel_t src_pixel = src_image->pix[src_y * src_image->w + src_x];
+            src_pixel.r = (src_pixel.r * (int)fg.r) / 255;
+            src_pixel.g = (src_pixel.g * (int)fg.g) / 255;
+            src_pixel.b = (src_pixel.b * (int)fg.b) / 255;
+
+            // alpha blend
+            if(src_pixel.a > 0) {
+                float alpha = src_pixel.a / 255.0f;
+                dst_pixel.r = (uint8_t)(src_pixel.r * alpha + dst_pixel.r * (1.0f - alpha));
+                dst_pixel.g = (uint8_t)(src_pixel.g * alpha + dst_pixel.g * (1.0f - alpha));
+                dst_pixel.b = (uint8_t)(src_pixel.b * alpha + dst_pixel.b * (1.0f - alpha));
+            }
+
+            dst_image->pix[dst_y * dst_image->w + dst_x] = dst_pixel;
+        }
+    }
+    py_newnone(py_retval());
+    return true;
+}
+
 void pk__add_module_cute_png() {
     py_GlobalRef mod = py_newmodule("cute_png");
     py_Type tp_image = py_newtype("Image", tp_object, mod, cute_png_Image__dtor);
@@ -276,6 +329,8 @@ void pk__add_module_cute_png() {
     py_bindmethod(tp_image, "setpixel", cute_png_Image__setpixel);
     py_bindmethod(tp_image, "getpixel", cute_png_Image__getpixel);
     py_bindmethod(tp_image, "clear", cute_png_Image__clear);
+
+    py_bindmethod(tp_image, "paste", cute_png_Image__paste);
 
     py_bindmethod(tp_image, "to_png_bytes", cute_png_Image__to_png_bytes);
     py_bindmethod(tp_image, "to_png_file", cute_png_Image__to_png_file);
