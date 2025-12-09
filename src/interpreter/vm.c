@@ -607,7 +607,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         } else {
             if(is_default_new) {
                 if(argc != 0 || kwargc != 0) {
-                    TypeError("%t() takes no arguments", p0->type);
+                    TypeError("%s() takes no arguments", py_tpname(p0->type));
                     return RES_ERROR;
                 }
             }
