@@ -81,6 +81,18 @@ static bool cute_png_Image__from_bytes_STATIC(int argc, py_Ref argv) {
     return true;
 }
 
+static bool cute_png_Image__from_file_STATIC(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    const char* path = py_tostr(argv);
+    cp_image_t image = cp_load_png(path);
+    if(image.pix == NULL) return ValueError("cute_png: %s", cp_error_reason);
+    cp_image_t* ud =
+        py_newobject(py_retval(), py_gettype("cute_png", py_name("Image")), 0, sizeof(cp_image_t));
+    *ud = image;
+    return true;
+}
+
 static bool cute_png_Image__width(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     cp_image_t* image = py_touserdata(argv);
@@ -161,45 +173,42 @@ static bool cute_png_Image__to_png_bytes(int argc, py_Ref argv) {
 
 static bool cute_png_Image__to_png_file(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(1, tp_str);
     cp_image_t* image = py_touserdata(argv);
-    size_t size = 0;
-
-    py_Type tp_FileIO = py_gettype("io", py_name("FileIO"));
-    if(tp_FileIO != tp_nil) {
-        PY_CHECK_ARG_TYPE(1, tp_FileIO);
-        FILE** ud = py_touserdata(py_arg(1));
-        FILE* fp = *ud;
-
-        cp_saved_png_t saved_image = cp_save_png_to_memory(image);
-        assert(saved_image.data != NULL);
-        size = fwrite(saved_image.data, saved_image.size, 1, fp);
-        CUTE_PNG_FREE(saved_image.data);
-    }
+    const char* path = py_tostr(py_arg(1));
+    FILE* fp = fopen(path, "wb");
+    if(fp == NULL) return OSError("cannot open file '%s' for writing", path);
+    cp_saved_png_t saved_image = cp_save_png_to_memory(image);
+    assert(saved_image.data != NULL);
+    size_t size = fwrite(saved_image.data, saved_image.size, 1, fp);
+    CUTE_PNG_FREE(saved_image.data);
+    fclose(fp);
     py_newint(py_retval(), size);
     return true;
 }
 
 static bool cute_png_Image__to_rgb565_file(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(1, tp_str);
     cp_image_t* image = py_touserdata(argv);
+    const char* path = py_tostr(py_arg(1));
+    FILE* fp = fopen(path, "wb");
+    if(fp == NULL) return OSError("cannot open file '%s' for writing", path);
     size_t size = 0;
-
-    py_Type tp_FileIO = py_gettype("io", py_name("FileIO"));
-    if(tp_FileIO != tp_nil) {
-        PY_CHECK_ARG_TYPE(1, tp_FileIO);
-        FILE** ud = py_touserdata(py_arg(1));
-        FILE* fp = *ud;
-
-        for(int y = 0; y < image->h; y++) {
-            for(int x = 0; x < image->w; x++) {
-                size_t idx = y * image->w + x;
-                cp_pixel_t pixel = image->pix[idx];
-                uint16_t r = (pixel.r >> 3) & 0x1F;
-                uint16_t g = (pixel.g >> 2) & 0x3F;
-                uint16_t b = (pixel.b >> 3) & 0x1F;
-                uint16_t rgb565 = (r << 11) | (g << 5) | b;
-                // use little-endian
-                size += fwrite(&rgb565, 1, 2, fp);
+    for(int y = 0; y < image->h; y++) {
+        for(int x = 0; x < image->w; x++) {
+            size_t idx = y * image->w + x;
+            cp_pixel_t pixel = image->pix[idx];
+            uint16_t r = (pixel.r >> 3) & 0x1F;
+            uint16_t g = (pixel.g >> 2) & 0x3F;
+            uint16_t b = (pixel.b >> 3) & 0x1F;
+            uint16_t rgb565 = (r << 11) | (g << 5) | b;
+            // use little-endian
+            size_t delta = fwrite(&rgb565, 1, 2, fp);
+            size += delta;
+            if(delta != 2) {
+                py_newint(py_retval(), size);
+                return true;
             }
         }
     }
@@ -217,6 +226,7 @@ void pk__add_module_cute_png() {
 
     py_bindmethod(tp_image, "__new__", cute_png_Image__new__);
     py_bindstaticmethod(tp_image, "from_bytes", cute_png_Image__from_bytes_STATIC);
+    py_bindstaticmethod(tp_image, "from_file", cute_png_Image__from_file_STATIC);
 
     py_bindproperty(tp_image, "width", cute_png_Image__width, NULL);
     py_bindproperty(tp_image, "height", cute_png_Image__height, NULL);
