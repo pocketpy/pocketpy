@@ -160,6 +160,16 @@ b = [(1, 2), (3, 3), (5, 1)]
 b.sort(key=lambda x:x[1])
 assert b == [(5, 1), (1, 2), (3,3)]
 
+# test del slice
+a = [1, 2, 3, 4]
+b = a.copy(); del b[:2]; assert b == [3, 4]
+b = a.copy(); del b[1:3]; assert b == [1, 4]
+b = a.copy(); del b[2:]; assert b == [1, 2]
+b = a.copy(); del b[:-1]; assert b == [4]
+b = a.copy(); del b[-1:]; assert b == [1, 2, 3]
+b = a.copy(); del b[:]; assert b == []
+assert a == [1, 2, 3, 4]
+
 # test cyclic reference
 # a = []
 # a.append(0)

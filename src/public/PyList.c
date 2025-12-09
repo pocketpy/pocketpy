@@ -167,8 +167,26 @@ static bool list__setitem__(int argc, py_Ref argv) {
 
 static bool list__delitem__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    PY_CHECK_ARG_TYPE(1, tp_int);
     List* self = py_touserdata(py_arg(0));
+
+    if(py_istype(py_arg(1), tp_slice)) {
+        int start, stop, step;
+        bool ok = pk__parse_int_slice(py_arg(1), self->length, &start, &stop, &step);
+        if(!ok) return false;
+        if(step != 1) return ValueError("slice step must be 1 for deletion");
+        int n = stop - start;
+        if(n > 0) {
+            py_TValue* p = self->data;
+            for(int i = stop; i < self->length; i++) {
+                p[start + i - stop] = p[i];
+            }
+            self->length -= n;
+        }
+        py_newnone(py_retval());
+        return true;
+    }
+
+    PY_CHECK_ARG_TYPE(1, tp_int);
     int index = py_toint(py_arg(1));
     if(!pk__normalize_index(&index, self->length)) return false;
     c11_vector__erase(py_TValue, self, index);
