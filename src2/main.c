@@ -94,18 +94,16 @@ int main(int argc, char** argv) {
 
         char* source = read_file(filename);
         if(source) {
-            if(!py_exec(source, filename, EXEC_MODE, NULL))
-                py_printexc();
-            else {
-                if(profile) {
-                    char* json_report = py_profiler_report();
-                    FILE* report_file = fopen("profiler_report.json", "w");
-                    if(report_file) {
-                        fprintf(report_file, "%s", json_report);
-                        fclose(report_file);
-                    }
-                    PK_FREE(json_report);
+            if(!py_exec(source, filename, EXEC_MODE, NULL)) py_printexc();
+
+            if(profile) {
+                char* json_report = py_profiler_report();
+                FILE* report_file = fopen("profiler_report.json", "w");
+                if(report_file) {
+                    fprintf(report_file, "%s", json_report);
+                    fclose(report_file);
                 }
+                PK_FREE(json_report);
             }
 
             PK_FREE(source);
