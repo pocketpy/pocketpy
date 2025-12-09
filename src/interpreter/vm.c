@@ -580,6 +580,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         // [cls, NULL, args..., kwargs...]
         py_Ref new_f = py_tpfindmagic(py_totype(p0), __new__);
         assert(new_f && py_isnil(p0 + 1));
+        bool is_default_new = new_f->type == tp_nativefunc && new_f->_cfunc == pk__object_new;
 
         // prepare a copy of args and kwargs
         int span = self->stack.sp - argv;
@@ -603,6 +604,13 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
             // [__init__, self, args..., kwargs...]
             if(VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
             *py_retval() = p0[1];  // restore the new instance
+        } else {
+            if(is_default_new) {
+                if(argc != 0 || kwargc != 0) {
+                    TypeError("%t() takes no arguments", p0->type);
+                    return RES_ERROR;
+                }
+            }
         }
         // reset the stack
         self->stack.sp = p0;

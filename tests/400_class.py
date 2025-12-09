@@ -136,3 +136,23 @@ assert MyClass.c == 2
 assert MyClass.d == 3
 
 assert MyClass(1, 2).m == 1
+
+class E: pass
+try:
+    E(1,2,3)
+    exit(1)
+except TypeError:
+    pass
+
+class E1:
+    def __new__(cls, a, b):
+        o = object.__new__(cls)
+        o.a = a
+        o.b = b
+        return o
+
+    def sum(self):
+        return self.a + self.b
+
+e1 = E1(3,4)
+assert e1.sum() == 7
