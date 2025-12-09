@@ -4,6 +4,14 @@
 #define CUTE_PNG_IMPLEMENTATION
 #include "cute_png.h"
 
+#if PY_SYS_PLATFORM == 5
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <linux/fb.h>
+#endif
+
 static bool cute_png_loads(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_bytes);
@@ -192,28 +200,62 @@ static bool cute_png_Image__to_rgb565_file(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_str);
     cp_image_t* image = py_touserdata(argv);
     const char* path = py_tostr(py_arg(1));
-    FILE* fp = fopen(path, "wb");
-    if(fp == NULL) return OSError("cannot open file '%s' for writing", path);
-    size_t size = 0;
-    for(int y = 0; y < image->h; y++) {
-        for(int x = 0; x < image->w; x++) {
-            size_t idx = y * image->w + x;
-            cp_pixel_t pixel = image->pix[idx];
-            uint16_t r = (pixel.r >> 3) & 0x1F;
-            uint16_t g = (pixel.g >> 2) & 0x3F;
-            uint16_t b = (pixel.b >> 3) & 0x1F;
-            uint16_t rgb565 = (r << 11) | (g << 5) | b;
-            // use little-endian
-            size_t delta = fwrite(&rgb565, 1, 2, fp);
-            size += delta;
-            if(delta != 2) {
+
+#define CONVERT_TO_RGB565(__block)                                                                 \
+    size_t size = 0;                                                                               \
+    for(int y = 0; y < image->h; y++) {                                                            \
+        for(int x = 0; x < image->w; x++) {                                                        \
+            size_t idx = y * image->w + x;                                                         \
+            cp_pixel_t pixel = image->pix[idx];                                                    \
+            uint16_t r = (pixel.r >> 3) & 0x1F;                                                    \
+            uint16_t g = (pixel.g >> 2) & 0x3F;                                                    \
+            uint16_t b = (pixel.b >> 3) & 0x1F;                                                    \
+            uint16_t rgb565 = (r << 11) | (g << 5) | b;                                            \
+            __block                                                                                \
+        }                                                                                          \
+    }
+
+#if PY_SYS_PLATFORM == 5
+    if(strcmp(path, "/dev/fb0") == 0) {
+        static struct fb_fix_screeninfo finfo;
+        static uint8_t* vmem_base;
+        if(vmem_base == NULL) {
+            int fbdev_fd = open(path, O_RDWR);
+            if(fbdev_fd < 0) return OSError("open() '/dev/fb0' failed");
+            fcntl(fbdev_fd, F_SETFD, fcntl(fbdev_fd, F_GETFD) | FD_CLOEXEC);
+            if(ioctl(fbdev_fd, FBIOGET_FSCREENINFO, &finfo) < 0) {
+                close(fbdev_fd);
+                return OSError("ioctl() '/dev/fb0' failed");
+            }
+            vmem_base = mmap(0, finfo.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED, fbdev_fd, 0);
+            if(vmem_base == MAP_FAILED) {
+                vmem_base = NULL;
+                close(fbdev_fd);
+                return OSError("mmap() '/dev/fb0' failed");
+            }
+            close(fbdev_fd);
+        }
+        CONVERT_TO_RGB565(
+            // use little endian
+            if(size + 2 > finfo.smem_len) {
                 py_newint(py_retval(), size);
                 return true;
-            }
-        }
+            } memcpy(vmem_base + size, &rgb565, 2);
+            size += 2;)
+        py_newint(py_retval(), size);
+        return true;
     }
+#endif
+
+    FILE* fp = fopen(path, "wb");
+    if(fp == NULL) return OSError("cannot open file '%s' for writing", path);
+    CONVERT_TO_RGB565(
+        // use little endian
+        size += fwrite(&rgb565, 1, 2, fp);)
+    fclose(fp);
     py_newint(py_retval(), size);
     return true;
+#undef CONVERT_TO_RGB565
 }
 
 void pk__add_module_cute_png() {
