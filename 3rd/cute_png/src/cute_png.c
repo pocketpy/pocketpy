@@ -10,7 +10,7 @@ static bool cute_png_loads(int argc, py_Ref argv) {
     int size;
     unsigned char* data = py_tobytes(argv, &size);
     cp_image_t image = cp_load_png_mem(data, size);
-    if(image.pix == NULL) return ValueError("cute_png: %s", cp_error_reason);
+    if(image.pix == NULL) return ValueError("cp_load_png_mem() failed");
     py_newarray2d(py_retval(), image.w, image.h);
     for(int y = 0; y < image.h; y++) {
         for(int x = 0; x < image.w; x++) {
@@ -74,7 +74,7 @@ static bool cute_png_Image__from_bytes_STATIC(int argc, py_Ref argv) {
     int size;
     unsigned char* data = py_tobytes(argv, &size);
     cp_image_t image = cp_load_png_mem(data, size);
-    if(image.pix == NULL) return ValueError("cute_png: %s", cp_error_reason);
+    if(image.pix == NULL) return ValueError("cp_load_png_mem() failed");
     cp_image_t* ud =
         py_newobject(py_retval(), py_gettype("cute_png", py_name("Image")), 0, sizeof(cp_image_t));
     *ud = image;
@@ -86,7 +86,7 @@ static bool cute_png_Image__from_file_STATIC(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_str);
     const char* path = py_tostr(argv);
     cp_image_t image = cp_load_png(path);
-    if(image.pix == NULL) return ValueError("cute_png: %s", cp_error_reason);
+    if(image.pix == NULL) return ValueError("cp_load_png() failed");
     cp_image_t* ud =
         py_newobject(py_retval(), py_gettype("cute_png", py_name("Image")), 0, sizeof(cp_image_t));
     *ud = image;
