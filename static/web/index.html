@@ -1,0 +1,310 @@
+<!-- 
+
+Note:
+This site was created by modifying code pen https://codepen.io/antonmedv/pen/PoPoGwg
+written by 'Anton Medvedev' the license can be found bellow.
+
+LICENSE
+-------
+Copyright (c) 2022 by Anton Medvedev (https://codepen.io/antonmedv/pen/PoPoGwg)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="static/codejar/codejar.js"></script>
+  <script src="static/codejar/linenumbers.js"></script>
+  <script src="static/highlight.js/highlight.min.js"></script>
+  <link rel="stylesheet" href="static/highlight.js/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Lato:wght@300&family=PT+Mono&display=swap");
+
+    .hljs {
+      display: block;
+      overflow-x: auto;
+      padding: .5em;
+      background: #282a36
+    }
+
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-literal,
+    .hljs-section,
+    .hljs-link {
+      color: #73cbde
+    }
+
+    .hljs,
+    .hljs-subst {
+      color: #f8f8f2
+    }
+
+    .hljs-string,
+    .hljs-title,
+    .hljs-name,
+    .hljs-type,
+    .hljs-attribute,
+    .hljs-symbol,
+    .hljs-bullet,
+    .hljs-addition,
+    .hljs-variable,
+    .hljs-template-tag,
+    .hljs-template-variable {
+      color: #f1fa8c
+    }
+
+    .hljs-comment,
+    .hljs-quote,
+    .hljs-deletion,
+    .hljs-meta {
+      color: #6272a4
+    }
+
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-literal,
+    .hljs-title,
+    .hljs-section,
+    .hljs-doctag,
+    .hljs-type,
+    .hljs-name,
+    .hljs-strong {
+      font-weight: bold
+    }
+
+    .hljs-emphasis {
+      font-style: italic
+    }
+
+    :root {
+      --window-width: 80%;
+    }
+
+    body {
+      background-color: #778abb;
+      font-family: Lato, sans-serif;
+      font-weight: 300;
+      font-size: 15px;
+      margin: 0;
+    }
+
+    *,
+    *:before,
+    *:after {
+      box-sizing: border-box;
+    }
+
+    *:focus {
+      outline: none;
+    }
+
+    a,
+    a:visited,
+    a:active {
+      color: black;
+    }
+
+    main {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .title {
+      color: #fff;
+      text-align: center;
+      font-weight: 300;
+      font-size: 34px;
+      margin-top: 20px;
+    }
+
+    .window {
+      width: var(--window-width);
+      border-radius: 6px;
+      box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .window .window-header {
+      height: 25px;
+      background: Gainsboro;
+      position: relative;
+    }
+
+    .window .window-header .action-buttons {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      margin-top: -5px;
+      width: 10px;
+      height: 10px;
+      background: Crimson;
+      border-radius: 50%;
+      box-shadow: 15px 0 0 Orange, 30px 0 0 LimeGreen;
+    }
+
+    #code-editor {
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+      box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12),
+        0 3px 1px -2px rgba(0, 0, 0, 0.2);
+      font-family: "PT Mono", monospace;
+      font-size: 14px;
+      font-weight: 400;
+      min-height: 300px;
+      letter-spacing: normal;
+      line-height: 20px;
+      padding: 10px;
+      resize: none !important;
+      tab-size: 4;
+    }
+
+    #run-button {
+      padding-left: 10px;
+      padding-right: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #code-editor.hljs {
+      padding: 10px;
+    }
+
+    #output-wrapper {
+      font-family: "PT Mono", monospace;
+      width: var(--window-width);
+      min-height: 50px;
+      background-color: #282a36;
+      border-radius: 6px;
+      padding: 10px;
+      color: white;
+      margin: 0 !important;
+    }
+
+    #code-output span.error-line {
+      color: #ec5424;
+    }
+
+    .controls {
+      font-size: 14px;
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      margin-top: -10px;
+      display: flex;
+    }
+
+    .controls>div:first-child>a {
+      display: inline-block;
+      width: 40px;
+    }
+
+    .features {
+      width: 547px;
+      font-size: 16px;
+      margin-bottom: 30px;
+    }
+  </style>
+
+  <title>Try Online</title>
+</head>
+
+<body id="tryonline-body">
+
+  <main>
+    <br>
+    <div class="window">
+      <div class="window-header">
+        <div class="action-buttons"></div>
+        <div class="controls">
+          <div id="run-button">Run</div>
+        </div>
+      </div>
+      <div class="window-body">
+        <div id="code-editor" class="language-python" data-gramm="false"></div>
+      </div>
+    </div>
+    <pre id="output-wrapper"><div id="code-output">...</div></pre>
+    <br>
+  </main>
+
+  <script>
+    var Module = {
+      onRuntimeInitialized: function () {
+        Module.ccall('py_initialize', null, [], []);
+        console.log("py_initialize() called");
+      },
+      print: function (text) {
+        code_output.innerText += text + '\n';
+      },
+      onabort: function (what) {
+        code_output.innerText += 'Aborted: ' + what + '\n';
+        Module.ccall('py_finalize', null, [], []);
+        console.log("py_finalize() called");
+      }
+    };
+  </script>
+  <script src="lib/pocketpy.js"></script>
+  <script>
+    let code_editor = document.querySelector('#code-editor');
+    let code_output = document.querySelector('#code-output');
+    let run_button = document.querySelector('#run-button');
+
+    code_editor.textContent = '# A recursive fibonacci function.\ndef fib(n):\n  if n < 2:\n    return n\n  return fib(n-1) + fib(n-2)\n\n# Prints all fibonacci from 0 to 10 exclusive.\nfor i in range(10):\n  print(f"fib({i}) = {fib(i)}")\n';
+
+    let highlight = withLineNumbers(function (editor) {
+      editor.textContent = editor.textContent;
+      hljs.highlightElement(editor);
+    });
+
+    highlight(code_editor);
+    CodeJar(code_editor, highlight); //, { indentOn: /[(\[{:]$/});
+
+    window.onload = function () {
+      run_button.onclick = function () {
+        code_output.innerText = '';
+        const source = code_editor.textContent;
+        var ok = Module.ccall(
+          'py_exec', 'boolean', ['string', 'string', 'number', 'number'],
+          [source, 'main.py', 0, 0]
+        );
+        console.log("py_exec() called");
+        if (!ok) {
+          Module.ccall('py_printexc', null, [], []);
+          Module.ccall('py_clearexc', null, ['number'], [0]);
+        }
+      }
+    }
+
+  </script>
+
+</body>
+
+</html>
