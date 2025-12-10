@@ -7,7 +7,7 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 
-#if __EMSCRIPTEN__ || __APPLE__ || __linux__
+#if __EMSCRIPTEN__ || __APPLE__ || __linux__ || __MINGW32__
 #include <pthread.h>
 #define PK_USE_PTHREADS 1
 typedef pthread_t c11_thrd_t;
