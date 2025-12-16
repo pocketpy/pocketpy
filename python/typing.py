@@ -28,6 +28,8 @@ Type = _PLACEHOLDER
 TypeAlias = _PLACEHOLDER
 NewType = _PLACEHOLDER
 
+ClassVar = _PLACEHOLDER
+
 Literal = _PLACEHOLDER
 LiteralString = _PLACEHOLDER
 
