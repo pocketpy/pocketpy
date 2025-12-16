@@ -191,8 +191,8 @@ class Library:
             self.functions.append(Function(
                 name=function.name,
                 params=[FunctionParam(
-                    type=param,
-                    name=f'_{i}'
+                    type=param[0],
+                    name=param[1] or f'_{i}'
                 ) for i, param in enumerate(function.args)],
                 ret_type=function.ret
             ))

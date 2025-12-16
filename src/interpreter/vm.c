@@ -237,6 +237,7 @@ void VM__ctor(VM* self) {
 
     py_newnotimplemented(py_emplacedict(self->builtins, py_name("NotImplemented")));
 
+    pk__add_module_stdc();
     pk__add_module_vmath();
     pk__add_module_array2d();
     pk__add_module_colorcvt();

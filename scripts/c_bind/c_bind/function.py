@@ -2,6 +2,12 @@ from .writer import Writer
 from .converters import get_converter
 from .schema import Function
 
+from keyword import iskeyword
+
+def sanitize_name(name: str):
+    if iskeyword(name):
+        return name + '_'
+    return name
 
 def gen_function(w: Writer, pyi_w: Writer, function: Function):
     name = function.name
@@ -35,10 +41,11 @@ def gen_function(w: Writer, pyi_w: Writer, function: Function):
     # pyi
     py_args = []
     # arg_names = [f'_{i}' for i in range(len(args_cvt))]
-    arg_names = [arg.name for arg in function.params]
+    arg_names = [sanitize_name(arg.name) for arg in function.params]
     for i in range(len(args_cvt)):
         py_args.append(f'{arg_names[i]}: {args_cvt[i].py_T}')
 
+    py_args.append('/')
     pyi_w.write(f'def {name}({", ".join(py_args)}) -> {ret_cvt.py_T}:')
     if function.desc:
         pyi_w.write(f'    """Wraps `{function.signature()}`\n\n    {function.desc}"""')

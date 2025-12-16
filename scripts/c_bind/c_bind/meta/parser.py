@@ -129,7 +129,7 @@ class Header:
                 else:
                     T, name = self.build_param(param)
                     if T != 'void':
-                        func.args.append(T)
+                        func.args.append((T, name))
         self.functions.append(func)
 
     def build(self, ast: c_ast.FileAST):

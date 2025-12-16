@@ -876,6 +876,16 @@ enum py_PredefinedType {
     tp_ImportError,
     tp_AssertionError,
     tp_KeyError,
+    /* stdc */
+    tp_stdc_Memory,
+    tp_stdc_Char, tp_stdc_UChar,
+    tp_stdc_Short, tp_stdc_UShort,
+    tp_stdc_Int, tp_stdc_UInt,
+    tp_stdc_Long, tp_stdc_ULong,
+    tp_stdc_LongLong, tp_stdc_ULongLong,
+    tp_stdc_Float, tp_stdc_Double,
+    tp_stdc_Pointer,
+    tp_stdc_Bool,
     /* vmath */
     tp_vec2,
     tp_vec3,

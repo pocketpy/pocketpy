@@ -4,3 +4,6 @@
 [submodule "3rd/dmath/dmath"]
 	path = 3rd/dmath/dmath
 	url = https://github.com/pocketpy/dmath
+[submodule "3rd/periphery/c-periphery"]
+	path = 3rd/periphery/c-periphery
+	url = https://github.com/vsergeev/c-periphery.git

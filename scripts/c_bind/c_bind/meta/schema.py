@@ -32,7 +32,7 @@ class Enum:
 class Function:
     def __init__(self, name: str, ret: str):
         self.name = name
-        self.args = [] # type: list[str]
+        self.args = [] # type: list[tuple[str, str]]
         self.ret = ret
 
     def __repr__(self):
