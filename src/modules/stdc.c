@@ -267,6 +267,13 @@ void pk__add_module_stdc() {
             }
         }
     }
+    for(py_Type t = tp_stdc_Char; t <= tp_stdc_ULongLong; t += 2) {
+        py_Ref size_var = py_getdict(py_tpobject(t), py_name("size"));
+        if(py_toint(size_var) == sizeof(size_t)) {
+            py_setdict(mod, py_name("SizeT"), py_tpobject(t + 1));
+            break;
+        }
+    }
 
     pk__bind_stdc_Float(mod);
     pk__bind_stdc_Double(mod);

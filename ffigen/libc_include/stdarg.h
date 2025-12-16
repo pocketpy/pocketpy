@@ -1,1 +1,1 @@
-#define va_list int
+typedef int va_list;

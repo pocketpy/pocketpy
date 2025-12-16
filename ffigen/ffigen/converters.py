@@ -155,9 +155,15 @@ def is_vmath_type(T: str) -> bool:
         return False
     return isinstance(cvt, BuiltinVMathConverter)
 
+_has_vmath_converter = False
 def set_vmath_converter(T: str, py_T: str):
+    global _has_vmath_converter
     assert py_T in VMATH_TYPES
     _CONVERTERS[T] = BuiltinVMathConverter(T, py_T)
+    _has_vmath_converter = True
+
+def has_vmath_converter() -> bool:
+    return _has_vmath_converter
 
 def set_enum_converters(enums: list[str]):
     for T in enums:

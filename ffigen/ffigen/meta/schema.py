@@ -2,7 +2,7 @@ from pycparser import c_ast
 
 class Pointer:
     def __init__(self, base: str, level: int):
-        super().__init__(f'{base}' + '*' * level)
+        # super().__init__(f'{base}' + '*' * level)
         self.base = base
         self.level = level
 

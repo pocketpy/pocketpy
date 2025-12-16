@@ -18,8 +18,6 @@ header.build(ast)
 
 lib = Library.from_header('periphery', header)
 
-set_enum_converters([enum.name for enum in lib.enums])
-
 lib.build(
     includes=['c-periphery/src/gpio.h'],
     glue_dir='3rd/periphery/src',

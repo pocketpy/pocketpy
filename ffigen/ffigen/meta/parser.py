@@ -1,3 +1,4 @@
+from typing import Literal
 from .schema import *
 
 class UnsupportedNode(Exception):
@@ -11,7 +12,12 @@ class UnsupportedNode(Exception):
 class Header:
     def __init__(self):
         self.types = [] # type: list
-        self.type_aliases = {} # type: dict[str, str]
+        self.type_aliases = {} # type: dict[str, str | c_ast.Node]
+        self.builtin_aliases = {
+            'size_t', 'bool',
+            'int8_t', 'int16_t', 'int32_t', 'int64_t',
+            'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
+        }
         self.functions = [] # type: list[Function]
 
     def remove_types(self, names: set):
@@ -20,16 +26,16 @@ class Header:
     def remove_functions(self, names: set):
         self.functions = [f for f in self.functions if f.name not in names]
 
+    def add_type_alias(self, k: str, v: str | c_ast.Node):
+        if k in self.builtin_aliases:
+            return
+        self.type_aliases[k] = v
+
     def build_enum(self, node: c_ast.Enum):
         enum = Enum(node.name)
         for item in node.values.enumerators:
             enum.values.append(item.name)
         self.types.append(enum)
-
-    def unalias(self, name: str):
-        while name in self.type_aliases:
-            name = self.type_aliases[name]
-        return name
 
     def build_struct(self, node):
         if isinstance(node, c_ast.Struct):
@@ -51,14 +57,19 @@ class Header:
         else:
             self.types.append(cls(node.name, None))
 
-    def build_type(self, name, node):
+    def build_type(self, node, alias_name):
         if isinstance(node, c_ast.Enum):
             self.build_enum(node)
+            if alias_name:
+                self.add_type_alias(alias_name, node)
         elif isinstance(node, (c_ast.Struct, c_ast.Union)):
             self.build_struct(node)
+            if alias_name:
+                self.add_type_alias(alias_name, node)
         elif isinstance(node, c_ast.IdentifierType):
-            assert name
-            self.type_aliases[name] = node.names[0]
+            assert alias_name
+            assert node.names[0]
+            self.add_type_alias(alias_name, node.names[0])
         else:
             raise UnsupportedNode(node)
         
@@ -137,23 +148,18 @@ class Header:
             if isinstance(node, c_ast.Typedef):
                 name, node = node.name, node.type
                 if isinstance(node, c_ast.TypeDecl):
-                    self.build_type(name, node.type)
+                    self.build_type(node.type, name)
                 elif isinstance(node, c_ast.PtrDecl):
-                    type_name = self.get_type_name(node)
-                    self.type_aliases[name] = type_name
+                    self.add_type_alias(name, node)
                 else:
-                    # raise UnsupportedNode(node.type)
-                    # print(f"Unsupported typedef: {type(node)}")
-                    continue
+                    raise UnsupportedNode(node.type)
             elif isinstance(node, c_ast.Decl):
                 if isinstance(node.type, c_ast.FuncDecl):
                     self.build_function(node.type)
                 else:
                     try:
-                        self.build_type(None, node.type)
+                        self.build_type(node.type, None)
                     except UnsupportedNode:
                         pass
             else:
-                # raise UnsupportedNode(node.type)
-                # print(f"Unsupported typedef: {type(node)}")
-                continue
+                raise UnsupportedNode(node.type)

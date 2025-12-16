@@ -25,7 +25,7 @@ def gen_setter(w: Writer, name: str, cvt: Converter, field: StructField):
 
 def gen_struct(w: Writer, pyi_w: Writer, struct: Struct):
     name = struct.name
-    converters = [get_converter(field.type) for field in struct.fields]
+    converters = [get_converter(field.type) for field in struct.fields or []]
     # default __new__
     w.write(f'static bool {name}__new__(int argc, py_Ref argv) {{')
     w.indent()
@@ -73,8 +73,8 @@ def gen_struct(w: Writer, pyi_w: Writer, struct: Struct):
     w.dedent()
     w.write('}')
 
-    for field in struct.fields:
-        cvt = get_converter(field.type)
+    for i, field in enumerate(struct.fields):
+        cvt = converters[i]
         gen_getter(w, name, cvt, field)
         if not cvt.is_const():
             gen_setter(w, name, cvt, field)
@@ -88,8 +88,8 @@ def gen_struct(w: Writer, pyi_w: Writer, struct: Struct):
     w.write(f'py_bindmethod(type, "__address__", struct__address__);')
     w.write(f'py_bindmethod(type, "copy", {name}__copy__);')
 
-    for field in struct.fields:
-        cvt = get_converter(field.type)
+    for i, field in enumerate(struct.fields):
+        cvt = converters[i]
         if cvt.is_const():
             setter = 'NULL'
         else:
@@ -105,8 +105,8 @@ def gen_struct(w: Writer, pyi_w: Writer, struct: Struct):
     pyi_w.indent()
 
     py_args = []
-    for field in struct.fields:
-        cvt = get_converter(field.type)
+    for i, field in enumerate(struct.fields):
+        cvt = converters[i]
         desc = (field.desc or '') + f' ({field.type})'
         py_args.append(f"{field.name}: {cvt.py_T}")
         pyi_w.write(f"{py_args[-1]} # {desc}")

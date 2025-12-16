@@ -1,11 +1,9 @@
-#define size_t int
+typedef int int8_t;
+typedef int int16_t;
+typedef int int32_t;
+typedef int int64_t;
 
-#define int8_t int
-#define int16_t int
-#define int32_t int
-#define int64_t int
-
-#define uint8_t unsigned
-#define uint16_t unsigned
-#define uint32_t unsigned
-#define uint64_t unsigned
+typedef unsigned uint8_t;
+typedef unsigned uint16_t;
+typedef unsigned uint32_t;
+typedef unsigned uint64_t;

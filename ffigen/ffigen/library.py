@@ -3,7 +3,7 @@ from .writer import Writer
 from .enum import gen_enum
 from .struct import gen_struct
 from .function import gen_function
-from .converters import is_vmath_type
+from .converters import is_vmath_type, has_vmath_converter
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -14,23 +14,34 @@ class Library:
         self.name = name
         # ['defines', 'structs', 'aliases', 'enums', 'callbacks', 'functions']
         self.structs = []   # type: list[Struct]
-        self.aliases = []   # type: list[Alias]
+        self.aliases = {}   # type: dict[str, str | c_ast.Node]
         self.enums = []     # type: list[Enum]
         self.functions = [] # type: list[Function]
         self.callbacks = set() # type: set[str]
+
+    def unalias(self, name: str) -> c_ast.Node:
+        while name in self.aliases:
+            node = self.aliases[name]
+            if isinstance(node, str):
+                name = node
+            else:
+                return node
+        assert False, f'alias {name} not found'
 
     def build(self, *, glue_dir='.', stub_dir='.', includes: list[str] | None = None):
         self.remove_unsupported()
 
         w, pyi_w = Writer(), Writer()
 
-        pyi_w.write('from vmath import vec2, vec3, vec2i, vec3i, mat3x3, color32')
+        if has_vmath_converter():
+            pyi_w.write('from vmath import vec2, vec3, vec2i, vec3i, mat3x3, color32')
         pyi_w.write('from typing import overload')
-        pyi_w.write('intptr = int')
+        pyi_w.write('from stdc import intptr')
         pyi_w.write('')
 
         w.write('#include "pocketpy.h"')
-        w.write(f'#include "string.h"')
+        w.write(f'#include <string.h>')
+        w.write(f'#include <stdint.h>')
         
         if includes:
             for include in includes:
@@ -49,8 +60,10 @@ class Library:
         w.write('}')
         w.write('')
 
-        for alias in self.aliases:
-            w.write(f'#define tp_user_{alias.name} tp_user_{alias.type}')
+        for k in self.aliases.keys():
+            node = self.unalias(k)
+            if isinstance(node, str):
+                w.write(f'#define tp_user_{k} tp_user_{node}')
         w.write('')
 
         reg_exprs = [
@@ -73,9 +86,14 @@ class Library:
 
         w.write('/* aliases */')
         pyi_w.write('# aliases')
-        for alias in self.aliases:
-            w.write(f'py_setdict(mod, py_name("{alias.name}"), py_getdict(mod, py_name("{alias.type}")));')
-            pyi_w.write(f'{alias.name} = {alias.type}')
+        for k in self.aliases.keys():
+            node = self.unalias(k)
+            if isinstance(node, str):
+                w.write(f'py_setdict(mod, py_name("{k}"), py_getdict(mod, py_name("{node}")));')
+                pyi_w.write(f'{k} = {node}')
+            elif isinstance(node, c_ast.Enum):
+                w.write(f'py_setdict(mod, py_name("{k}"), py_tpobject(tp_int));')
+                pyi_w.write(f'{k} = int')
 
         w.write('/* functions */')
         for function in self.functions:
@@ -125,11 +143,7 @@ class Library:
                 ) for field in struct['fields']]
             ))
         for alias in data['aliases']:
-            self.aliases.append(Alias(
-                type=alias['type'],
-                name=alias['name'],
-                desc=alias['description']
-            ))
+            self.aliases[alias['name']] = str(alias['type'])
         for enum in data['enums']:
             self.enums.append(Enum(
                 name=enum['name'],
@@ -182,10 +196,7 @@ class Library:
                     ) for value in type.values]
                 ))
         for k, v in header.type_aliases.items():
-            self.aliases.append(Alias(
-                name=k,
-                type=v
-            ))
+            self.aliases[k] = v
 
         for function in header.functions:
             self.functions.append(Function(
