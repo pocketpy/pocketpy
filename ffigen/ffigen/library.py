@@ -3,7 +3,7 @@ from .writer import Writer
 from .enum import gen_enum
 from .struct import gen_struct
 from .function import gen_function
-from .converters import is_vmath_type, has_vmath_converter
+from .converters import is_vmath_type, has_vmath_converter, set_enum_converter
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -31,6 +31,11 @@ class Library:
     def build(self, *, glue_dir='.', stub_dir='.', includes: list[str] | None = None):
         self.remove_unsupported()
 
+        for k in self.aliases.keys():
+            node = self.unalias(k)
+            if isinstance(node, c_ast.Enum):
+                set_enum_converter(k)
+
         w, pyi_w = Writer(), Writer()
 
         if has_vmath_converter():
@@ -49,15 +54,6 @@ class Library:
 
         w.write('')
         w.write('#define ADD_ENUM(name) py_newint(py_emplacedict(mod, py_name(#name)), name)')
-        w.write('')
-        w.write('static bool struct__address__(int argc, py_Ref argv) {')
-        w.indent()
-        w.write('PY_CHECK_ARGC(1);')
-        w.write('void* ud = py_touserdata(argv);')
-        w.write('py_newint(py_retval(), (py_i64)ud);')
-        w.write('return true;')
-        w.dedent()
-        w.write('}')
         w.write('')
 
         for k in self.aliases.keys():
@@ -135,6 +131,7 @@ class Library:
                 continue
             self.structs.append(Struct(
                 name=struct['name'],
+                typedef_name=struct['name'],
                 desc=struct['description'],
                 fields=[StructField(
                     type=field['type'],
@@ -182,6 +179,7 @@ class Library:
                     assert fields is not None
                     self.structs.append(Struct(
                         name=type.name,
+                        typedef_name=type.typedef_name,
                         fields=[StructField(
                             type=field_type,
                             name=field_name

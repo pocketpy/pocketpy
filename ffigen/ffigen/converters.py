@@ -165,9 +165,8 @@ def set_vmath_converter(T: str, py_T: str):
 def has_vmath_converter() -> bool:
     return _has_vmath_converter
 
-def set_enum_converters(enums: list[str]):
-    for T in enums:
-        _CONVERTERS[T] = EnumConverter(T)
+def set_enum_converter(T: str):
+    _CONVERTERS[T] = EnumConverter(T)
 
 def get_converter(T: str) -> Converter:
     if T in _CONVERTERS:

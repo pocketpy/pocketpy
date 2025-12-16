@@ -31,13 +31,13 @@ class Header:
             return
         self.type_aliases[k] = v
 
-    def build_enum(self, node: c_ast.Enum):
+    def build_enum(self, node: c_ast.Enum, alias_name: str | None = None):
         enum = Enum(node.name)
         for item in node.values.enumerators:
             enum.values.append(item.name)
         self.types.append(enum)
 
-    def build_struct(self, node):
+    def build_struct(self, node: c_ast.Struct | c_ast.Union, alias_name: str | None = None):
         if isinstance(node, c_ast.Struct):
             cls = Struct
         elif isinstance(node, c_ast.Union):
@@ -53,17 +53,17 @@ class Header:
                     fields[name] = type
                 except UnsupportedNode:
                     pass
-            self.types.append(cls(node.name, fields))
+            self.types.append(cls(node.name, fields, alias_name))
         else:
-            self.types.append(cls(node.name, None))
+            self.types.append(cls(node.name, None, alias_name))
 
     def build_type(self, node, alias_name):
         if isinstance(node, c_ast.Enum):
-            self.build_enum(node)
+            self.build_enum(node, alias_name)
             if alias_name:
                 self.add_type_alias(alias_name, node)
         elif isinstance(node, (c_ast.Struct, c_ast.Union)):
-            self.build_struct(node)
+            self.build_struct(node, alias_name)
             if alias_name:
                 self.add_type_alias(alias_name, node)
         elif isinstance(node, c_ast.IdentifierType):
@@ -132,6 +132,9 @@ class Header:
         assert isinstance(node, c_ast.TypeDecl), type(node)
         name = node.declname
         ret = node.type.names[0]
+        is_const = node.quals and 'const' in node.quals
+        if is_const:
+            ret = 'const ' + ret
         func = Function(name, ret + '*' * level)
         if args is not None:
             for param in args.params:

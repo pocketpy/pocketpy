@@ -15,9 +15,24 @@ class EnumValue:
 
 @dataclass
 class Struct:
-    name: str
+    name: str | None = None
+    typedef_name: str | None = None
     desc: str | None = None
     fields: list[StructField] | None = None
+
+    @property
+    def code_name(self):
+        if self.typedef_name:
+            return self.typedef_name
+        assert self.name is not None
+        return f'struct {self.name}'
+    
+    @property
+    def identifier(self):
+        if self.name:
+            return self.name
+        assert self.typedef_name is not None
+        return self.typedef_name
 
 @dataclass
 class Enum:

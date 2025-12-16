@@ -7,9 +7,10 @@ class Pointer:
         self.level = level
 
 class NamedFields:
-    def __init__(self, name: str, fields: dict[str, str] | None):
+    def __init__(self, name: str, fields: dict[str, str] | None, typedef_name: str | None = None):
         self.name = name
         self.fields = fields
+        self.typedef_name = typedef_name
 
     def is_opaque(self):
         return self.fields is None

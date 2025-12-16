@@ -1,7 +1,7 @@
 import pcpp
 import pycparser
 from ffigen.library import Library
-from ffigen.converters import set_vmath_converter, set_enum_converters
+from ffigen.converters import set_vmath_converter, set_enum_converter
 from ffigen.meta import Header
 import os
 

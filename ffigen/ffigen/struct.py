@@ -2,21 +2,21 @@ from .writer import Writer
 from .converters import get_converter, Converter
 from .schema import Struct, StructField
 
-def gen_getter(w: Writer, name: str, cvt: Converter, field: StructField):
-    w.write(f'static bool {name}__get_{field.name}(int argc, py_Ref argv) {{')
+def gen_getter(w: Writer, struct: Struct, cvt: Converter, field: StructField):
+    w.write(f'static bool {struct.identifier}__get_{field.name}(int argc, py_Ref argv) {{')
     w.indent()
     w.write(f'PY_CHECK_ARGC(1);')
-    w.write(f'{name}* self = py_touserdata(argv);')
+    w.write(f'{struct.code_name}* self = py_touserdata(argv);')
     cvt.c2py(w, 'py_retval()', f'self->{field.name}')
     w.write('return true;')
     w.dedent()
     w.write('}')
 
-def gen_setter(w: Writer, name: str, cvt: Converter, field: StructField):
-    w.write(f'static bool {name}__set_{field.name}(int argc, py_Ref argv) {{')
+def gen_setter(w: Writer, struct: Struct, cvt: Converter, field: StructField):
+    w.write(f'static bool {struct.identifier}__set_{field.name}(int argc, py_Ref argv) {{')
     w.indent()
     w.write(f'PY_CHECK_ARGC(2);')
-    w.write(f'{name}* self = py_touserdata(argv);')
+    w.write(f'{struct.code_name}* self = py_touserdata(argv);')
     cvt.py2c(w, f'self->{field.name}', 'py_arg(1)')
     w.write('py_newnone(py_retval());')
     w.write('return true;')
@@ -24,10 +24,11 @@ def gen_setter(w: Writer, name: str, cvt: Converter, field: StructField):
     w.write('}')
 
 def gen_struct(w: Writer, pyi_w: Writer, struct: Struct):
-    name = struct.name
+    name = struct.code_name
+    identifier = struct.identifier
     converters = [get_converter(field.type) for field in struct.fields or []]
     # default __new__
-    w.write(f'static bool {name}__new__(int argc, py_Ref argv) {{')
+    w.write(f'static bool {identifier}__new__(int argc, py_Ref argv) {{')
     w.indent()
     w.write(f'py_Type cls = py_totype(argv);')
     w.write(f'py_newobject(py_retval(), cls, 0, sizeof({name}));')
@@ -36,7 +37,7 @@ def gen_struct(w: Writer, pyi_w: Writer, struct: Struct):
     w.write('}')
 
     # default __init__
-    w.write(f'static bool {name}__init__(int argc, py_Ref argv) {{')
+    w.write(f'static bool {identifier}__init__(int argc, py_Ref argv) {{')
     w.indent()
     w.write(f'{name}* self = py_touserdata(argv);')
     w.write(f'if(argc == 1) {{')
@@ -62,46 +63,33 @@ def gen_struct(w: Writer, pyi_w: Writer, struct: Struct):
     w.dedent()
     w.write('}')
 
-    # default __copy__
-    w.write(f'static bool {name}__copy__(int argc, py_Ref argv) {{')
-    w.indent()
-    w.write(f'PY_CHECK_ARGC(1);')
-    w.write(f'{name}* self = py_touserdata(argv);')
-    w.write(f'{name}* res = py_newobject(py_retval(), py_typeof(argv), 0, sizeof({name}));')
-    w.write(f'*res = *self;')
-    w.write('return true;')
-    w.dedent()
-    w.write('}')
-
     for i, field in enumerate(struct.fields):
         cvt = converters[i]
-        gen_getter(w, name, cvt, field)
+        gen_getter(w, struct, cvt, field)
         if not cvt.is_const():
-            gen_setter(w, name, cvt, field)
+            gen_setter(w, struct, cvt, field)
 
-    w.write(f'static py_Type register__{name}(py_GlobalRef mod) {{')
+    w.write(f'static py_Type register__{identifier}(py_GlobalRef mod) {{')
     w.indent()
-    w.write(f'py_Type type = py_newtype("{name}", tp_object, mod, NULL);')
+    w.write(f'py_Type type = py_newtype("{identifier}", tp_object, mod, NULL);')
 
-    w.write(f'py_bindmagic(type, __new__, {name}__new__);')
-    w.write(f'py_bindmagic(type, __init__, {name}__init__);')
-    w.write(f'py_bindmethod(type, "__address__", struct__address__);')
-    w.write(f'py_bindmethod(type, "copy", {name}__copy__);')
+    w.write(f'py_bindmethod(type, "__new__", {identifier}__new__);')
+    w.write(f'py_bindmethod(type, "__init__", {identifier}__init__);')
 
     for i, field in enumerate(struct.fields):
         cvt = converters[i]
         if cvt.is_const():
             setter = 'NULL'
         else:
-            setter = f'{name}__set_{field.name}'
-        w.write(f'py_bindproperty(type, "{field.name}", {name}__get_{field.name}, {setter});')
+            setter = f'{identifier}__set_{field.name}'
+        w.write(f'py_bindproperty(type, "{field.name}", {identifier}__get_{field.name}, {setter});')
 
     w.write(f'return type;')
     w.dedent()
     w.write('}')
 
     # pyi
-    pyi_w.write(f'class {name}:')
+    pyi_w.write(f'class {identifier}:')
     pyi_w.indent()
 
     py_args = []
@@ -116,10 +104,8 @@ def gen_struct(w: Writer, pyi_w: Writer, struct: Struct):
     pyi_w.write(f'def __init__(self): ...')
     pyi_w.write(f'@overload')
     pyi_w.write(f'def __init__(self, {", ".join(py_args)}): ...')
-    pyi_w.write(f'def __address__(self) -> int: ...')
-    pyi_w.write(f"def copy(self) -> '{name}': ...")
     pyi_w.write('')
     pyi_w.dedent()
 
-    w.write(f'static py_Type tp_user_{name};')
-    return f'tp_user_{name} = register__{name}(mod);'
+    w.write(f'static py_Type tp_user_{identifier};')
+    return f'tp_user_{identifier} = register__{identifier}(mod);'
