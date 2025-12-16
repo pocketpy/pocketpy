@@ -1,5 +1,5 @@
 import json
-from c_bind import Library, set_vmath_converter
+from ffigen import Library, set_vmath_converter
 
 with open('../3rd/raylib/parser/output/raylib_api.json') as f:
     data = json.load(f)

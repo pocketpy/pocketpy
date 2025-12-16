@@ -1,7 +1,7 @@
 import pcpp
 import pycparser
-from c_bind import Library, set_vmath_converter, set_enum_converters
-from c_bind.meta import Header
+from ffigen import Library, set_vmath_converter, set_enum_converters
+from ffigen.meta import Header
 import os
 
 path = '../3rd/box2d/include/box2d/box2d.h'

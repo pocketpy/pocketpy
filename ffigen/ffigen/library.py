@@ -157,7 +157,7 @@ class Library:
     
     @staticmethod
     def from_header(name: str, header: 'Header'):
-        from c_bind.meta import schema
+        from ffigen.meta import schema
         self = Library(name)
         for type in header.types:
             if isinstance(type, schema.NamedFields):

@@ -1,7 +1,8 @@
 import pcpp
 import pycparser
-from c_bind import Library, set_vmath_converter, set_enum_converters
-from c_bind.meta import Header
+from ffigen.library import Library
+from ffigen.converters import set_vmath_converter, set_enum_converters
+from ffigen.meta import Header
 import os
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +21,7 @@ lib = Library.from_header('periphery', header)
 set_enum_converters([enum.name for enum in lib.enums])
 
 lib.build(
-    includes=['c-periphery/gpio.h'],
+    includes=['c-periphery/src/gpio.h'],
     glue_dir='3rd/periphery/src',
     stub_dir='include/typings'
 )
