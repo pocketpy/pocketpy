@@ -40,3 +40,9 @@ void pk__add_module_msgpack();
 #else
 #define pk__add_module_msgpack()
 #endif
+
+#ifdef PK_BUILD_MODULE_PERIPHERY
+void pk__add_module_periphery();
+#else
+#define pk__add_module_periphery()
+#endif
