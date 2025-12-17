@@ -142,7 +142,8 @@ static bool gpio_config__get_label(int argc, py_Ref argv) {
     return true;
 }
 static py_Type register__gpio_config(py_GlobalRef mod) {
-    py_Type type = py_newtype("gpio_config", tp_object, mod, NULL);
+    py_Type type = py_newtype("gpio_config", tp_stdc_Memory, mod, NULL);
+    py_newint(py_emplacedict(py_tpobject(type), py_name("size")), sizeof(gpio_config_t));
     py_bindmethod(type, "__new__", gpio_config__new__);
     py_bindmethod(type, "__init__", gpio_config__init__);
     py_bindproperty(type, "direction", gpio_config__get_direction, gpio_config__set_direction);
@@ -228,7 +229,8 @@ static bool periphery_version__get_commit_id(int argc, py_Ref argv) {
     return true;
 }
 static py_Type register__periphery_version(py_GlobalRef mod) {
-    py_Type type = py_newtype("periphery_version", tp_object, mod, NULL);
+    py_Type type = py_newtype("periphery_version", tp_stdc_Memory, mod, NULL);
+    py_newint(py_emplacedict(py_tpobject(type), py_name("size")), sizeof(periphery_version_t));
     py_bindmethod(type, "__new__", periphery_version__new__);
     py_bindmethod(type, "__init__", periphery_version__init__);
     py_bindproperty(type, "major", periphery_version__get_major, periphery_version__set_major);

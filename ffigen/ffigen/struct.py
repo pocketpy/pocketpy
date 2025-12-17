@@ -71,7 +71,8 @@ def gen_struct(w: Writer, pyi_w: Writer, struct: Struct):
 
     w.write(f'static py_Type register__{identifier}(py_GlobalRef mod) {{')
     w.indent()
-    w.write(f'py_Type type = py_newtype("{identifier}", tp_object, mod, NULL);')
+    w.write(f'py_Type type = py_newtype("{identifier}", tp_stdc_Memory, mod, NULL);')
+    w.write(f'py_newint(py_emplacedict(py_tpobject(type), py_name("size")), sizeof({name}));')
 
     w.write(f'py_bindmethod(type, "__new__", {identifier}__new__);')
     w.write(f'py_bindmethod(type, "__init__", {identifier}__init__);')
