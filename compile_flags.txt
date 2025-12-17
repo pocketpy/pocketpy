@@ -4,6 +4,6 @@
 -std=c11
 -Iinclude/
 -I3rd/lz4/
--I3rd/periphery/
+-I3rd/periphery/include/
 -I3rd/cute_png/include/
 -I3rd/msgpack/include/

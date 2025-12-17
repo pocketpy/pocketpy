@@ -17,6 +17,7 @@ option(PK_ENABLE_MIMALLOC "" OFF)
 option(PK_BUILD_MODULE_LZ4 "" OFF)
 option(PK_BUILD_MODULE_CUTE_PNG "" OFF)
 option(PK_BUILD_MODULE_MSGPACK "" OFF)
+option(PK_BUILD_MODULE_PERIPHERY "" OFF)
 
 # PK_IS_MAIN determines whether the project is being used from root
 # or if it is added as a dependency (through add_subdirectory for example).

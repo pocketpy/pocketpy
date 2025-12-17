@@ -120,6 +120,11 @@ if(PK_BUILD_MODULE_MSGPACK)
     add_definitions(-DPK_BUILD_MODULE_MSGPACK)
 endif()
 
+if(PK_BUILD_MODULE_PERIPHERY)
+    add_subdirectory(3rd/periphery)
+    add_definitions(-DPK_BUILD_MODULE_PERIPHERY)
+endif()
+
 if(PK_BUILD_SHARED_LIB)
     message(">> Building shared library")
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
@@ -188,6 +193,10 @@ if(PK_BUILD_MODULE_MSGPACK)
     target_link_libraries(${PROJECT_NAME} msgpack)
 endif()
 
+if(PK_BUILD_MODULE_PERIPHERY)
+    target_link_libraries(${PROJECT_NAME} periphery-ffi)
+endif()
+############################################
 
 if(PK_ENABLE_MIMALLOC)
     target_link_libraries(${PROJECT_NAME} mimalloc-static)
