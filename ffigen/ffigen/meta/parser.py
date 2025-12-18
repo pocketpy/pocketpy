@@ -33,7 +33,7 @@ class Header:
         self.type_aliases[k] = v
 
     def build_enum(self, node: c_ast.Enum, alias_name: str | None = None):
-        enum = Enum(node.name)
+        enum = Enum(node.name, alias_name)
         for item in node.values.enumerators:
             enum.values.append(item.name)
         self.types.append(enum)

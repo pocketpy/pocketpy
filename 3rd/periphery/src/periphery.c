@@ -1644,11 +1644,9 @@ static bool cfunc__serial_set_parity(int argc, py_Ref argv) {
     serial_t* _0;
     if(!py_checkint(py_arg(0))) return false;
     _0 = (serial_t*)py_toint(py_arg(0));
-    enum serial_parity _1;
-    do {
-        if(!py_checktype(py_arg(1), tp_user_enum serial_parity)) return false;
-        _1 = *(enum serial_parity*)py_touserdata(py_arg(1));
-    } while(0);
+    serial_parity_t _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = (serial_parity_t)py_toint(py_arg(1));
     int res = serial_set_parity(_0, _1);
     py_newint(py_retval(), res);
     return true;

@@ -23,8 +23,9 @@ class Struct(NamedFields): pass
 class Union(NamedFields): pass
     
 class Enum:
-    def __init__(self, name: str):
+    def __init__(self, name: str, typedef_name: str | None = None):
         self.name = name
+        self.typedef_name = typedef_name
         self.values = [] # type: list[str]
 
     def __repr__(self):

@@ -352,8 +352,8 @@ def serial_set_baudrate(serial: intptr, baudrate: int, /) -> int:
 def serial_set_databits(serial: intptr, databits: int, /) -> int:
     """Wraps `int serial_set_databits(serial_t* serial, unsigned databits)`"""
 
-def serial_set_parity(serial: intptr, parity: enum serial_parity, /) -> int:
-    """Wraps `int serial_set_parity(serial_t* serial, enum serial_parity parity)`"""
+def serial_set_parity(serial: intptr, parity: int, /) -> int:
+    """Wraps `int serial_set_parity(serial_t* serial, serial_parity_t parity)`"""
 
 def serial_set_stopbits(serial: intptr, stopbits: int, /) -> int:
     """Wraps `int serial_set_stopbits(serial_t* serial, unsigned stopbits)`"""
