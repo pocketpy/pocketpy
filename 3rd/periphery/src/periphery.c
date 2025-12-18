@@ -826,6 +826,207 @@ static bool cfunc__gpio_errmsg(int argc, py_Ref argv) {
     py_newstr(py_retval(), res);
     return true;
 }
+static bool cfunc__led_new(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
+    led_t* res = led_new();
+    py_newint(py_retval(), (py_i64)res);
+    return true;
+}
+static bool cfunc__led_open(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    const char* _1;
+    if(!py_checkstr(py_arg(1))) return false;
+    _1 = py_tostr(py_arg(1));
+    int res = led_open(_0, _1);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_read(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    bool* _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = (bool*)py_toint(py_arg(1));
+    int res = led_read(_0, _1);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_write(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    bool _1;
+    if(!py_checkbool(py_arg(1))) return false;
+    _1 = py_tobool(py_arg(1));
+    int res = led_write(_0, _1);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_close(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    int res = led_close(_0);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_free(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    led_free(_0);
+    py_newnone(py_retval());
+    return true;
+}
+static bool cfunc__led_get_brightness(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    unsigned* _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = (unsigned*)py_toint(py_arg(1));
+    int res = led_get_brightness(_0, _1);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_get_max_brightness(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    unsigned* _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = (unsigned*)py_toint(py_arg(1));
+    int res = led_get_max_brightness(_0, _1);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_get_trigger(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    char* _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = (char*)py_toint(py_arg(1));
+    size_t _2;
+    if(!py_checkint(py_arg(2))) return false;
+    _2 = py_toint(py_arg(2));
+    int res = led_get_trigger(_0, _1, _2);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_get_triggers_entry(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(4);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    unsigned _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = py_toint(py_arg(1));
+    char* _2;
+    if(!py_checkint(py_arg(2))) return false;
+    _2 = (char*)py_toint(py_arg(2));
+    size_t _3;
+    if(!py_checkint(py_arg(3))) return false;
+    _3 = py_toint(py_arg(3));
+    int res = led_get_triggers_entry(_0, _1, _2, _3);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_get_triggers_count(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    unsigned* _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = (unsigned*)py_toint(py_arg(1));
+    int res = led_get_triggers_count(_0, _1);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_set_brightness(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    unsigned _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = py_toint(py_arg(1));
+    int res = led_set_brightness(_0, _1);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_set_trigger(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    const char* _1;
+    if(!py_checkstr(py_arg(1))) return false;
+    _1 = py_tostr(py_arg(1));
+    int res = led_set_trigger(_0, _1);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_name(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    char* _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = (char*)py_toint(py_arg(1));
+    size_t _2;
+    if(!py_checkint(py_arg(2))) return false;
+    _2 = py_toint(py_arg(2));
+    int res = led_name(_0, _1, _2);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_tostring(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(3);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    char* _1;
+    if(!py_checkint(py_arg(1))) return false;
+    _1 = (char*)py_toint(py_arg(1));
+    size_t _2;
+    if(!py_checkint(py_arg(2))) return false;
+    _2 = py_toint(py_arg(2));
+    int res = led_tostring(_0, _1, _2);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_errno(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    int res = led_errno(_0);
+    py_newint(py_retval(), res);
+    return true;
+}
+static bool cfunc__led_errmsg(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    led_t* _0;
+    if(!py_checkint(py_arg(0))) return false;
+    _0 = (led_t*)py_toint(py_arg(0));
+    const char* res = led_errmsg(_0);
+    py_newstr(py_retval(), res);
+    return true;
+}
 static bool cfunc__mmio_new(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
     mmio_t* res = mmio_new();
@@ -2132,6 +2333,23 @@ void py__add_module_periphery() {
     py_bindfunc(mod, "gpio_tostring", &cfunc__gpio_tostring);
     py_bindfunc(mod, "gpio_errno", &cfunc__gpio_errno);
     py_bindfunc(mod, "gpio_errmsg", &cfunc__gpio_errmsg);
+    py_bindfunc(mod, "led_new", &cfunc__led_new);
+    py_bindfunc(mod, "led_open", &cfunc__led_open);
+    py_bindfunc(mod, "led_read", &cfunc__led_read);
+    py_bindfunc(mod, "led_write", &cfunc__led_write);
+    py_bindfunc(mod, "led_close", &cfunc__led_close);
+    py_bindfunc(mod, "led_free", &cfunc__led_free);
+    py_bindfunc(mod, "led_get_brightness", &cfunc__led_get_brightness);
+    py_bindfunc(mod, "led_get_max_brightness", &cfunc__led_get_max_brightness);
+    py_bindfunc(mod, "led_get_trigger", &cfunc__led_get_trigger);
+    py_bindfunc(mod, "led_get_triggers_entry", &cfunc__led_get_triggers_entry);
+    py_bindfunc(mod, "led_get_triggers_count", &cfunc__led_get_triggers_count);
+    py_bindfunc(mod, "led_set_brightness", &cfunc__led_set_brightness);
+    py_bindfunc(mod, "led_set_trigger", &cfunc__led_set_trigger);
+    py_bindfunc(mod, "led_name", &cfunc__led_name);
+    py_bindfunc(mod, "led_tostring", &cfunc__led_tostring);
+    py_bindfunc(mod, "led_errno", &cfunc__led_errno);
+    py_bindfunc(mod, "led_errmsg", &cfunc__led_errmsg);
     py_bindfunc(mod, "mmio_new", &cfunc__mmio_new);
     py_bindfunc(mod, "mmio_open", &cfunc__mmio_open);
     py_bindfunc(mod, "mmio_open_advanced", &cfunc__mmio_open_advanced);
@@ -2263,6 +2481,11 @@ void py__add_module_periphery() {
     ADD_ENUM(GPIO_DRIVE_DEFAULT);
     ADD_ENUM(GPIO_DRIVE_OPEN_DRAIN);
     ADD_ENUM(GPIO_DRIVE_OPEN_SOURCE);
+    ADD_ENUM(LED_ERROR_ARG);
+    ADD_ENUM(LED_ERROR_OPEN);
+    ADD_ENUM(LED_ERROR_QUERY);
+    ADD_ENUM(LED_ERROR_IO);
+    ADD_ENUM(LED_ERROR_CLOSE);
     ADD_ENUM(MMIO_ERROR_ARG);
     ADD_ENUM(MMIO_ERROR_OPEN);
     ADD_ENUM(MMIO_ERROR_CLOSE);

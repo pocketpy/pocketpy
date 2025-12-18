@@ -151,6 +151,57 @@ def gpio_errno(gpio: intptr, /) -> int:
 def gpio_errmsg(gpio: intptr, /) -> str:
     """Wraps `const char* gpio_errmsg(gpio_t* gpio)`"""
 
+def led_new() -> intptr:
+    """Wraps `led_t* led_new()`"""
+
+def led_open(led: intptr, name: str, /) -> int:
+    """Wraps `int led_open(led_t* led, const char* name)`"""
+
+def led_read(led: intptr, value: intptr, /) -> int:
+    """Wraps `int led_read(led_t* led, bool* value)`"""
+
+def led_write(led: intptr, value: bool, /) -> int:
+    """Wraps `int led_write(led_t* led, bool value)`"""
+
+def led_close(led: intptr, /) -> int:
+    """Wraps `int led_close(led_t* led)`"""
+
+def led_free(led: intptr, /) -> None:
+    """Wraps `void led_free(led_t* led)`"""
+
+def led_get_brightness(led: intptr, brightness: intptr, /) -> int:
+    """Wraps `int led_get_brightness(led_t* led, unsigned* brightness)`"""
+
+def led_get_max_brightness(led: intptr, max_brightness: intptr, /) -> int:
+    """Wraps `int led_get_max_brightness(led_t* led, unsigned* max_brightness)`"""
+
+def led_get_trigger(led: intptr, str: intptr, len: int, /) -> int:
+    """Wraps `int led_get_trigger(led_t* led, char* str, size_t len)`"""
+
+def led_get_triggers_entry(led: intptr, index: int, str: intptr, len: int, /) -> int:
+    """Wraps `int led_get_triggers_entry(led_t* led, unsigned index, char* str, size_t len)`"""
+
+def led_get_triggers_count(led: intptr, count: intptr, /) -> int:
+    """Wraps `int led_get_triggers_count(led_t* led, unsigned* count)`"""
+
+def led_set_brightness(led: intptr, brightness: int, /) -> int:
+    """Wraps `int led_set_brightness(led_t* led, unsigned brightness)`"""
+
+def led_set_trigger(led: intptr, trigger: str, /) -> int:
+    """Wraps `int led_set_trigger(led_t* led, const char* trigger)`"""
+
+def led_name(led: intptr, str: intptr, len: int, /) -> int:
+    """Wraps `int led_name(led_t* led, char* str, size_t len)`"""
+
+def led_tostring(led: intptr, str: intptr, len: int, /) -> int:
+    """Wraps `int led_tostring(led_t* led, char* str, size_t len)`"""
+
+def led_errno(led: intptr, /) -> int:
+    """Wraps `int led_errno(led_t* led)`"""
+
+def led_errmsg(led: intptr, /) -> str:
+    """Wraps `const char* led_errmsg(led_t* led)`"""
+
 def mmio_new() -> intptr:
     """Wraps `mmio_t* mmio_new()`"""
 
@@ -497,6 +548,11 @@ GPIO_BIAS_DISABLE: int
 GPIO_DRIVE_DEFAULT: int
 GPIO_DRIVE_OPEN_DRAIN: int
 GPIO_DRIVE_OPEN_SOURCE: int
+LED_ERROR_ARG: int
+LED_ERROR_OPEN: int
+LED_ERROR_QUERY: int
+LED_ERROR_IO: int
+LED_ERROR_CLOSE: int
 MMIO_ERROR_ARG: int
 MMIO_ERROR_OPEN: int
 MMIO_ERROR_CLOSE: int

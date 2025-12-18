@@ -1,6 +1,6 @@
 #include "../c-periphery/src/gpio.h"
 // #include "../c-periphery/src/i2c.h"
-// #include "../c-periphery/src/led.h"
+#include "../c-periphery/src/led.h"
 #include "../c-periphery/src/mmio.h"
 #include "../c-periphery/src/pwm.h"
 #include "../c-periphery/src/serial.h"
