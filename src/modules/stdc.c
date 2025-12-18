@@ -274,6 +274,15 @@ void pk__add_module_stdc() {
             break;
         }
     }
+    if(sizeof(void*) == 4) {
+        py_setdict(mod, py_name("IntPtrT"), py_getdict(mod, py_name("Int32")));
+        py_setdict(mod, py_name("UIntPtrT"), py_getdict(mod, py_name("UInt32")));
+    } else if(sizeof(void*) == 8) {
+        py_setdict(mod, py_name("IntPtrT"), py_getdict(mod, py_name("Int64")));
+        py_setdict(mod, py_name("UIntPtrT"), py_getdict(mod, py_name("UInt64")));
+    } else {
+        c11__abort("unsupported pointer size");
+    }
 
     pk__bind_stdc_Float(mod);
     pk__bind_stdc_Double(mod);
