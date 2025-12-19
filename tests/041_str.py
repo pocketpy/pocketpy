@@ -193,6 +193,18 @@ assert hex(256) == '0x100'
 assert hex(257) == '0x101'
 assert hex(17) == '0x11'
 
+assert bin(-42) == '-0b101010'
+assert bin(42) == '0b101010'
+
+assert bin(0) == '0b0'
+assert bin(1) == '0b1'
+assert bin(15) == '0b1111'
+assert bin(16) == '0b10000'
+assert bin(255) == '0b11111111'
+assert bin(256) == '0b100000000'
+assert bin(257) == '0b100000001'
+assert bin(17) == '0b10001'
+
 assert '-'.join(['r', 'u', 'n', 'o', 'o', 'b']) == 'r-u-n-o-o-b'
 
 assert (1 != '1') is True

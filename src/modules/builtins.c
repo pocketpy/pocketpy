@@ -83,6 +83,36 @@ static bool builtins_hex(int argc, py_Ref argv) {
     return true;
 }
 
+static bool builtins_bin(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_int);
+
+    py_i64 val = py_toint(argv);
+
+    if(val == 0) {
+        py_newstr(py_retval(), "0b0");
+        return true;
+    }
+
+    c11_sbuf ss;
+    c11_sbuf__ctor(&ss);
+
+    if(val < 0) {
+        c11_sbuf__write_char(&ss, '-');
+        val = -val;
+    }
+    c11_sbuf__write_cstr(&ss, "0b");
+    bool non_zero = true;
+    for(int i = 63; i >= 0; i--) {
+        unsigned char bit = (val >> i) & 1;
+        if(bit != 0) non_zero = false;
+        if(!non_zero) c11_sbuf__write_char(&ss, bit ? '1' : '0');
+    }
+
+    c11_sbuf__py_submit(&ss, py_retval());
+    return true;
+}
+
 static bool builtins_iter(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     return py_iter(argv);
@@ -463,6 +493,7 @@ py_GlobalRef pk_builtins__register() {
     py_bindfunc(builtins, "repr", builtins_repr);
     py_bindfunc(builtins, "len", builtins_len);
     py_bindfunc(builtins, "hex", builtins_hex);
+    py_bindfunc(builtins, "bin", builtins_bin);
     py_bindfunc(builtins, "iter", builtins_iter);
     py_bindfunc(builtins, "next", builtins_next);
     py_bindfunc(builtins, "hash", builtins_hash);
