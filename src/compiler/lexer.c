@@ -565,6 +565,7 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
             case ' ':
             case '\t': eat_spaces(self); break;
             case '\n': {
+                if(self->brackets_level > 0) return NULL;
                 add_token(self, TK_EOL);
                 if(!eat_indentation(self)) {
                     return LexerError(self, "unindent does not match any outer indentation level");

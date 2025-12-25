@@ -29,3 +29,19 @@ else:
 
 a = 1
 assert a == 1
+
+# https://github.com/pocketpy/pocketpy/issues/408
+x = (
+1
++
+2
+)
+
+# https://peps.python.org/pep-0008/#should-a-line-break-before-or-after-a-binary-operator
+compile('''
+income = (gross_wages
+          + taxable_interest
+          + (dividends - qualified_dividends)
+          - ira_deduction
+          - student_loan_interest)
+'''.strip(), 'main.py', 'exec')

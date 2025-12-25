@@ -1454,11 +1454,9 @@ static Error* EXPR_TUPLE_ALLOW_SLICE(Compiler* self, bool allow_slice) {
     // tuple expression     // (a, )
     int count = 1;
     do {
-        if(curr()->brackets_level) match_newlines();
         if(!is_expression(self, allow_slice)) break;
         check(parse_expression(self, PREC_LOWEST + 1, allow_slice));
         count += 1;
-        if(curr()->brackets_level) match_newlines();
     } while(match(TK_COMMA));
     // pop `count` expressions from the stack and merge them into a TupleExpr
     SequenceExpr* e = TupleExpr__new(prev()->line, count);
@@ -1755,9 +1753,7 @@ static Error* exprGroup(Compiler* self) {
         Ctx__s_push(ctx(), (Expr*)TupleExpr__new(line, 0));
         return NULL;
     }
-    match_newlines();
     check(EXPR_TUPLE(self));  // () is just for change precedence
-    match_newlines();
     consume(TK_RPAREN);
     if(Ctx__s_top(ctx())->vt->is_tuple) return NULL;
     GroupedExpr* g = GroupedExpr__new(line, Ctx__s_popx(ctx()));
@@ -1800,7 +1796,6 @@ static Error* consume_comp(Compiler* self, Opcode op0, Opcode op1) {
     check(EXPR_VARS(self));  // [expr, vars]
     consume(TK_IN);
     check(parse_expression(self, PREC_TERNARY + 1, false));  // [expr, vars, iter]
-    match_newlines();
     if(match(TK_IF)) {
         check(parse_expression(self, PREC_TERNARY + 1, false));  // [expr, vars, iter, cond]
         has_cond = true;
@@ -1811,7 +1806,6 @@ static Error* consume_comp(Compiler* self, Opcode op0, Opcode op1) {
     ce->vars = Ctx__s_popx(ctx());
     ce->expr = Ctx__s_popx(ctx());
     Ctx__s_push(ctx(), (Expr*)ce);
-    match_newlines();
     return NULL;
 }
 
@@ -1820,17 +1814,14 @@ static Error* exprList(Compiler* self) {
     int line = prev()->line;
     int count = 0;
     do {
-        match_newlines();
         if(curr()->type == TK_RBRACKET) break;
         check(EXPR(self));
         count += 1;
-        match_newlines();
         if(count == 1 && match(TK_FOR)) {
             check(consume_comp(self, OP_BUILD_LIST, OP_LIST_APPEND));
             consume(TK_RBRACKET);
             return NULL;
         }
-        match_newlines();
     } while(match(TK_COMMA));
     consume(TK_RBRACKET);
     SequenceExpr* e = ListExpr__new(line, count);
@@ -1847,7 +1838,6 @@ static Error* exprMap(Compiler* self) {
     bool parsing_dict = false;  // {...} may be dict or set
     int count = 0;
     do {
-        match_newlines();
         if(curr()->type == TK_RBRACE) break;
         check(EXPR(self));  // [key]
         if(curr()->type == TK_COLON) { parsing_dict = true; }
@@ -1860,7 +1850,6 @@ static Error* exprMap(Compiler* self) {
             Ctx__s_push(ctx(), (Expr*)item);
         }
         count += 1;  // key-value pair count
-        match_newlines();
         if(count == 1 && match(TK_FOR)) {
             if(parsing_dict) {
                 check(consume_comp(self, OP_BUILD_DICT, OP_DICT_ADD));
@@ -1870,7 +1859,6 @@ static Error* exprMap(Compiler* self) {
             consume(TK_RBRACE);
             return NULL;
         }
-        match_newlines();
     } while(match(TK_COMMA));
     consume(TK_RBRACE);
 
@@ -1898,7 +1886,6 @@ static Error* exprCompileTimeCall(Compiler* self, py_ItemRef func, int line) {
     uint16_t kwargc = 0;
     // copied from `exprCall`
     do {
-        match_newlines();
         if(curr()->type == TK_RPAREN) break;
         if(curr()->type == TK_ID && next()->type == TK_ASSIGN) {
             consume(TK_ID);
@@ -1915,7 +1902,6 @@ static Error* exprCompileTimeCall(Compiler* self, py_ItemRef func, int line) {
             check(read_literal(self, py_pushtmp()));
             argc += 1;
         }
-        match_newlines();
     } while(match(TK_COMMA));
     consume(TK_RPAREN);
 
@@ -1953,7 +1939,6 @@ static Error* exprCall(Compiler* self) {
     CallExpr* e = CallExpr__new(line, callable);
     Ctx__s_push(ctx(), (Expr*)e);  // push onto the stack in advance
     do {
-        match_newlines();
         if(curr()->type == TK_RPAREN) break;
         if(curr()->type == TK_ID && next()->type == TK_ASSIGN) {
             consume(TK_ID);
@@ -1979,7 +1964,6 @@ static Error* exprCall(Compiler* self) {
                 c11_vector__push(Expr*, &e->args, Ctx__s_popx(ctx()));
             }
         }
-        match_newlines();
     } while(match(TK_COMMA));
     consume(TK_RPAREN);
     return NULL;
@@ -2029,9 +2013,7 @@ static Error* exprSlice1(Compiler* self) {
 static Error* exprSubscr(Compiler* self) {
     Error* err;
     int line = prev()->line;
-    match_newlines();
     check(EXPR_TUPLE_ALLOW_SLICE(self, true));
-    match_newlines();
     consume(TK_RBRACKET);  // [lhs, rhs]
     SubscrExpr* e = SubscrExpr__new(line);
     e->rhs = Ctx__s_popx(ctx());  // [lhs]
@@ -2360,7 +2342,6 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool is_lambda) {
     int state = 0;  // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
     Error* err;
     do {
-        if(!is_lambda) match_newlines();
         if(state >= 3) return SyntaxError(self, "**kwargs should be the last argument");
         if(match(TK_MUL)) {
             if(state < 1)
@@ -2399,7 +2380,6 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool is_lambda) {
                 break;
         }
     } while(match(TK_COMMA));
-    if(!is_lambda) match_newlines();
     return NULL;
 }
 
@@ -2603,7 +2583,6 @@ __EAT_DOTS_END:
 
     bool has_bracket = match(TK_LPAREN);
     do {
-        if(has_bracket) match_newlines();
         Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
         consume(TK_ID);
         c11_sv name = Token__sv(prev());
@@ -2615,7 +2594,6 @@ __EAT_DOTS_END:
         Ctx__emit_store_name(ctx(), name_scope(self), py_namev(name), prev()->line);
     } while(match(TK_COMMA));
     if(has_bracket) {
-        match_newlines();
         consume(TK_RPAREN);
     }
     Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
