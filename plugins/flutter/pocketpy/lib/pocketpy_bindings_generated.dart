@@ -3865,6 +3865,24 @@ class PocketpyBindings {
   late final _py_profiler_report =
       _py_profiler_reportPtr.asFunction<ffi.Pointer<ffi.Char> Function()>();
 
+  /// Others
+  int time_ns() {
+    return _time_ns();
+  }
+
+  late final _time_nsPtr =
+      _lookup<ffi.NativeFunction<ffi.Int64 Function()>>('time_ns');
+  late final _time_ns = _time_nsPtr.asFunction<int Function()>();
+
+  int time_monotonic_ns() {
+    return _time_monotonic_ns();
+  }
+
+  late final _time_monotonic_nsPtr =
+      _lookup<ffi.NativeFunction<ffi.Int64 Function()>>('time_monotonic_ns');
+  late final _time_monotonic_ns =
+      _time_monotonic_nsPtr.asFunction<int Function()>();
+
   /// An utility function to read a line from stdin for REPL.
   int py_replinput(
     ffi.Pointer<ffi.Char> buf,
@@ -4101,6 +4119,9 @@ final class c11_color32 extends ffi.Union {
 
   @ffi.Array.multi([4])
   external ffi.Array<ffi.UnsignedChar> data;
+
+  @ffi.Uint32()
+  external int u32;
 }
 
 final class UnnamedStruct5 extends ffi.Struct {
@@ -4252,18 +4273,35 @@ abstract class py_PredefinedType {
   static const int tp_AssertionError = 53;
   static const int tp_KeyError = 54;
 
+  /// stdc
+  static const int tp_stdc_Memory = 55;
+  static const int tp_stdc_Char = 56;
+  static const int tp_stdc_UChar = 57;
+  static const int tp_stdc_Short = 58;
+  static const int tp_stdc_UShort = 59;
+  static const int tp_stdc_Int = 60;
+  static const int tp_stdc_UInt = 61;
+  static const int tp_stdc_Long = 62;
+  static const int tp_stdc_ULong = 63;
+  static const int tp_stdc_LongLong = 64;
+  static const int tp_stdc_ULongLong = 65;
+  static const int tp_stdc_Float = 66;
+  static const int tp_stdc_Double = 67;
+  static const int tp_stdc_Pointer = 68;
+  static const int tp_stdc_Bool = 69;
+
   /// vmath
-  static const int tp_vec2 = 55;
-  static const int tp_vec3 = 56;
-  static const int tp_vec2i = 57;
-  static const int tp_vec3i = 58;
-  static const int tp_mat3x3 = 59;
-  static const int tp_color32 = 60;
+  static const int tp_vec2 = 70;
+  static const int tp_vec3 = 71;
+  static const int tp_vec2i = 72;
+  static const int tp_vec3i = 73;
+  static const int tp_mat3x3 = 74;
+  static const int tp_color32 = 75;
 
   /// array2d
-  static const int tp_array2d_like = 61;
-  static const int tp_array2d_like_iterator = 62;
-  static const int tp_array2d = 63;
-  static const int tp_array2d_view = 64;
-  static const int tp_chunked_array2d = 65;
+  static const int tp_array2d_like = 76;
+  static const int tp_array2d_like_iterator = 77;
+  static const int tp_array2d = 78;
+  static const int tp_array2d_view = 79;
+  static const int tp_chunked_array2d = 80;
 }
