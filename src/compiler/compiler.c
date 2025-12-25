@@ -1254,6 +1254,10 @@ static int Ctx__add_const(Ctx* self, py_Ref v) {
 }
 
 static void Ctx__emit_store_name(Ctx* self, NameScope scope, py_Name name, int line) {
+    if(name == py_name("_")) {
+        Ctx__emit_(self, OP_POP_TOP, BC_NOARG, line);
+        return;
+    }
     switch(scope) {
         case NAME_LOCAL: Ctx__emit_(self, OP_STORE_FAST, Ctx__add_varname(self, name), line); break;
         case NAME_GLOBAL: {
@@ -2593,9 +2597,7 @@ __EAT_DOTS_END:
         }
         Ctx__emit_store_name(ctx(), name_scope(self), py_namev(name), prev()->line);
     } while(match(TK_COMMA));
-    if(has_bracket) {
-        consume(TK_RPAREN);
-    }
+    if(has_bracket) { consume(TK_RPAREN); }
     Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
     consume_end_stmt();
     return NULL;

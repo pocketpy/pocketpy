@@ -125,9 +125,8 @@ else:
 assert x == 2
 
 # match case
-
-case, _ = 1, 2
-assert case == 1 and _ == 2
+case, _1 = 1, 2
+assert case == 1 and _1 == 2
 
 match (404 * 1):
     case 200:
