@@ -45,3 +45,22 @@ income = (gross_wages
           - ira_deduction
           - student_loan_interest)
 '''.strip(), 'main.py', 'exec')
+
+res = []
+class Thing:
+	def do_a(self):
+		res.append("A")
+		return self
+	def do_b(self):
+		res.append("B")
+		return self
+	def do_c(self):
+		res.append("C")
+		return self
+		
+(Thing()
+	.do_a()
+	.do_b()
+	.do_c())
+
+assert res == ["A", "B", "C"]
