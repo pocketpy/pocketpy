@@ -1,6 +1,9 @@
 set -e
 
-python prebuild.py
+# Use python3 if available, otherwise fall back to python
+PYTHON=$(command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
+
+$PYTHON prebuild.py
 
 rm -rf web/lib
 mkdir web/lib

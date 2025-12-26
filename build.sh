@@ -8,7 +8,7 @@ if ! type -P clang >/dev/null 2>&1; then
 fi
 
 echo "> Running prebuild.py... "
-python prebuild.py
+command -v python3 >/dev/null 2>&1 && python3 prebuild.py || python prebuild.py
 
 if [ $? -ne 0 ]; then
     echo "prebuild.py failed."

@@ -2,7 +2,7 @@ import os
 import sys
 import shutil
 
-assert os.system("python prebuild.py") == 0
+assert os.system(f"{sys.executable} prebuild.py") == 0
 
 if not os.path.exists("build"):
     os.mkdir("build")

@@ -5,7 +5,7 @@ import sys
 import time
 from typing import List, Dict
 
-assert os.system("python prebuild.py") == 0
+assert os.system(f"{sys.executable} prebuild.py") == 0
 
 ROOT = 'include/pocketpy'
 PUBLIC_HEADERS = ['config.h', 'export.h', 'vmath.h', 'pocketpy.h']
