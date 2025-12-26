@@ -1,12 +1,15 @@
 set -e
 
-python prebuild.py
+# Use python3 if available, otherwise fall back to python
+PYTHON=$(command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
+
+$PYTHON prebuild.py
 
 SRC=$(find src/ -name "*.c")
 
 clang -std=c11 --coverage -O1 -Wfatal-errors -o main src2/main.c $SRC -Iinclude -DPK_ENABLE_OS=1 -lm -ldl -DNDEBUG
 
-python scripts/run_tests.py
+$PYTHON scripts/run_tests.py
 
 # if prev error exit
 if [ $? -ne 0 ]; then

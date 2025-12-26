@@ -1,6 +1,9 @@
 set -e
 
-python amalgamate.py
+# Use python3 if available, otherwise fall back to python
+PYTHON=$(command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
+
+$PYTHON amalgamate.py
 
 rm -rf build
 mkdir build
@@ -27,8 +30,8 @@ cd ../
 
 HEADERS="amalgamated/pocketpy.h"
 
-python scripts/merge_built_libraries.py build/os64
-python scripts/merge_built_libraries.py build/simulatorarm64
+$PYTHON scripts/merge_built_libraries.py build/os64
+$PYTHON scripts/merge_built_libraries.py build/simulatorarm64
 
 xcodebuild -create-xcframework \
     -library build/os64/libpocketpy.a -headers $HEADERS \

@@ -2,11 +2,14 @@ import os
 import sys
 import time
 import subprocess
+import shutil
 
 
 def test_file(filepath, cpython=False):
     if cpython:
-        return os.system("python " + filepath) == 0
+        # Use python3 if available, otherwise fall back to python
+        python_cmd = shutil.which("python3") or shutil.which("python") or "python"
+        return os.system(f"{python_cmd} {filepath}") == 0
     if sys.platform == 'win32':
         code = os.system("main.exe " + filepath)
     else:

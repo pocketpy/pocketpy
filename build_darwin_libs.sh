@@ -1,6 +1,9 @@
 set -e
 
-python amalgamate.py
+# Use python3 if available, otherwise fall back to python
+PYTHON=$(command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
+
+$PYTHON amalgamate.py
 
 rm -rf build
 mkdir build
@@ -20,4 +23,4 @@ cmake --build . --config Release
 
 cd ../
 
-python scripts/merge_built_libraries.py build
+$PYTHON scripts/merge_built_libraries.py build
