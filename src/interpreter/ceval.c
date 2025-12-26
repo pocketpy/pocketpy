@@ -1117,14 +1117,35 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_WITH_EXIT: {
-            // [expr]
-            py_push(TOP());
+            // Stack: [cm, exc_type, exc_val, exc_tb]
+            // Call cm.__exit__(exc_type, exc_val, exc_tb)
+            py_Ref exc_tb = TOP();
+            py_Ref exc_val = SECOND();
+            py_Ref exc_type = THIRD();
+            py_Ref cm = FOURTH();
+            
+            // Save all values from stack
+            py_TValue saved_cm = *cm;
+            py_TValue saved_exc_type = *exc_type;
+            py_TValue saved_exc_val = *exc_val;
+            py_TValue saved_exc_tb = *exc_tb;
+            self->stack.sp -= 4;
+            
+            // Push cm and get __exit__ method
+            py_push(&saved_cm);
             if(!py_pushmethod(__exit__)) {
-                TypeError("'%t' object does not support the context manager protocol", TOP()->type);
+                TypeError("'%t' object does not support the context manager protocol", saved_cm.type);
                 goto __ERROR;
             }
-            if(!py_vectorcall(0, 0)) goto __ERROR;
-            POP();
+            
+            // Push arguments: exc_type, exc_val, exc_tb
+            PUSH(&saved_exc_type);
+            PUSH(&saved_exc_val);
+            PUSH(&saved_exc_tb);
+            
+            // Call __exit__(exc_type, exc_val, exc_tb)
+            if(!py_vectorcall(3, 0)) goto __ERROR;
+            py_pop();  // discard return value
             DISPATCH();
         }
         ///////////
