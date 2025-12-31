@@ -200,3 +200,174 @@ void Function__dtor(Function* self) {
     if(self->closure) NameDict__delete(self->closure);
     memset(self, 0, sizeof(Function));
 }
+
+// Helper function to write binary data to a vector
+static void write_bytes(c11_vector* vec, const void* data, int size) {
+    c11_vector__extend(char, vec, data, size);
+}
+
+// Helper function to write an integer
+static void write_int(c11_vector* vec, int value) {
+    write_bytes(vec, &value, sizeof(int));
+}
+
+// Helper function to write a string
+static void write_string(c11_vector* vec, c11_string* str) {
+    if(str == NULL) {
+        write_int(vec, -1);
+    } else {
+        write_int(vec, str->size);
+        write_bytes(vec, str->data, str->size);
+    }
+}
+
+// Helper function to read binary data
+static const char* read_bytes(const char* p, void* data, int size) {
+    memcpy(data, p, size);
+    return p + size;
+}
+
+// Helper function to read an integer
+static const char* read_int(const char* p, int* value) {
+    return read_bytes(p, value, sizeof(int));
+}
+
+// Helper function to read a string
+static const char* read_string(const char* p, c11_string** str) {
+    int size;
+    p = read_int(p, &size);
+    if(size == -1) {
+        *str = NULL;
+    } else {
+        *str = c11_string__new2(p, size);
+        p += size;
+    }
+    return p;
+}
+
+char* CodeObject__dumps(CodeObject* self, int* size) {
+    c11_vector vec;
+    c11_vector__ctor(&vec, sizeof(char));
+    
+    // Write a magic number for validation
+    int magic = 0x504B4F42; // "PKOB" in hex
+    write_int(&vec, magic);
+    
+    // Write name
+    write_string(&vec, self->name);
+    
+    // Write codes vector
+    write_int(&vec, self->codes.length);
+    write_bytes(&vec, self->codes.data, self->codes.length * sizeof(Bytecode));
+    
+    // Write codes_ex vector
+    write_int(&vec, self->codes_ex.length);
+    write_bytes(&vec, self->codes_ex.data, self->codes_ex.length * sizeof(BytecodeEx));
+    
+    // Write varnames vector
+    write_int(&vec, self->varnames.length);
+    write_bytes(&vec, self->varnames.data, self->varnames.length * sizeof(py_Name));
+    
+    // Write names vector
+    write_int(&vec, self->names.length);
+    write_bytes(&vec, self->names.data, self->names.length * sizeof(py_Name));
+    
+    // Write nlocals
+    write_int(&vec, self->nlocals);
+    
+    // Write blocks vector
+    write_int(&vec, self->blocks.length);
+    write_bytes(&vec, self->blocks.data, self->blocks.length * sizeof(CodeBlock));
+    
+    // Write start_line and end_line
+    write_int(&vec, self->start_line);
+    write_int(&vec, self->end_line);
+    
+    // Return the serialized data
+    *size = vec.length;
+    char* result = PK_MALLOC(vec.length);
+    memcpy(result, vec.data, vec.length);
+    c11_vector__dtor(&vec);
+    return result;
+}
+
+bool CodeObject__loads(CodeObject* self, const char* data, int size) {
+    if(size < sizeof(int)) return false;
+    
+    const char* p = data;
+    
+    // Read and validate magic number
+    int magic;
+    p = read_int(p, &magic);
+    if(magic != 0x504B4F42) return false;
+    
+    // Read name
+    c11_string* name;
+    p = read_string(p, &name);
+    if(self->name != NULL) {
+        c11_string__delete(self->name);
+    }
+    self->name = name;
+    
+    // Read codes vector
+    int codes_length;
+    p = read_int(p, &codes_length);
+    c11_vector__clear(&self->codes);
+    c11_vector__reserve(&self->codes, codes_length);
+    p = read_bytes(p, self->codes.data, codes_length * sizeof(Bytecode));
+    self->codes.length = codes_length;
+    
+    // Read codes_ex vector
+    int codes_ex_length;
+    p = read_int(p, &codes_ex_length);
+    c11_vector__clear(&self->codes_ex);
+    c11_vector__reserve(&self->codes_ex, codes_ex_length);
+    p = read_bytes(p, self->codes_ex.data, codes_ex_length * sizeof(BytecodeEx));
+    self->codes_ex.length = codes_ex_length;
+    
+    // Read varnames vector
+    int varnames_length;
+    p = read_int(p, &varnames_length);
+    c11_vector__clear(&self->varnames);
+    c11_vector__reserve(&self->varnames, varnames_length);
+    p = read_bytes(p, self->varnames.data, varnames_length * sizeof(py_Name));
+    self->varnames.length = varnames_length;
+    
+    // Read names vector
+    int names_length;
+    p = read_int(p, &names_length);
+    c11_vector__clear(&self->names);
+    c11_vector__reserve(&self->names, names_length);
+    p = read_bytes(p, self->names.data, names_length * sizeof(py_Name));
+    self->names.length = names_length;
+    
+    // Read nlocals
+    p = read_int(p, &self->nlocals);
+    
+    // Read blocks vector
+    int blocks_length;
+    p = read_int(p, &blocks_length);
+    c11_vector__clear(&self->blocks);
+    c11_vector__reserve(&self->blocks, blocks_length);
+    p = read_bytes(p, self->blocks.data, blocks_length * sizeof(CodeBlock));
+    self->blocks.length = blocks_length;
+    
+    // Read start_line and end_line
+    p = read_int(p, &self->start_line);
+    p = read_int(p, &self->end_line);
+    
+    // Rebuild the inverse maps
+    c11_smallmap_n2d__clear(&self->varnames_inv);
+    for(int i = 0; i < self->varnames.length; i++) {
+        py_Name name = c11__getitem(py_Name, &self->varnames, i);
+        c11_smallmap_n2d__set(&self->varnames_inv, name, i);
+    }
+    
+    c11_smallmap_n2d__clear(&self->names_inv);
+    for(int i = 0; i < self->names.length; i++) {
+        py_Name name = c11__getitem(py_Name, &self->names, i);
+        c11_smallmap_n2d__set(&self->names_inv, name, i);
+    }
+    
+    return true;
+}
