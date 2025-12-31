@@ -360,3 +360,7 @@ const char* CodeObject__loads(CodeObject* co, const void* data, int size) {
     c11_deserializer__dtor(&d);
     return NULL;
 }
+
+#undef CODEOBJECT_MAGIC
+#undef CODEOBJECT_VER_MAJOR
+#undef CODEOBJECT_VER_MINOR
