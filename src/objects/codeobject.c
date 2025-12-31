@@ -221,24 +221,34 @@ static void write_string(c11_vector* vec, c11_string* str) {
     }
 }
 
+// Helper function to check if enough bytes are available
+static bool check_bounds(const char* p, const char* start, int total_size, int needed) {
+    int consumed = (int)(p - start);
+    return consumed >= 0 && consumed <= total_size && needed >= 0 && (total_size - consumed) >= needed;
+}
+
 // Helper function to read binary data
-static const char* read_bytes(const char* p, void* data, int size) {
+static const char* read_bytes(const char* p, const char* start, int total_size, void* data, int size) {
+    if(!check_bounds(p, start, total_size, size)) return NULL;
     memcpy(data, p, size);
     return p + size;
 }
 
 // Helper function to read an integer
-static const char* read_int(const char* p, int* value) {
-    return read_bytes(p, value, sizeof(int));
+static const char* read_int(const char* p, const char* start, int total_size, int* value) {
+    return read_bytes(p, start, total_size, value, sizeof(int));
 }
 
 // Helper function to read a string
-static const char* read_string(const char* p, c11_string** str) {
+static const char* read_string(const char* p, const char* start, int total_size, c11_string** str) {
     int size;
-    p = read_int(p, &size);
+    p = read_int(p, start, total_size, &size);
+    if(p == NULL) return NULL;
+    if(size < -1 || size > 1048576) return NULL;  // Sanity check: max 1MB string
     if(size == -1) {
         *str = NULL;
     } else {
+        if(!check_bounds(p, start, total_size, size)) return NULL;
         *str = c11_string__new2(p, size);
         p += size;
     }
@@ -249,33 +259,53 @@ char* CodeObject__dumps(CodeObject* self, int* size) {
     c11_vector vec;
     c11_vector__ctor(&vec, sizeof(char));
     
-    // Write a magic number for validation
-    int magic = 0x504B4F42; // "PKOB" in hex
+    // Write a magic number for validation (PBOK in little-endian)
+    int magic = 0x504B4F42;
     write_int(&vec, magic);
     
     // Write name
     write_string(&vec, self->name);
     
-    // Write codes vector
+    // Write codes vector - check for overflow
+    if(self->codes.length > 0 && self->codes.length > INT_MAX / (int)sizeof(Bytecode)) {
+        c11_vector__dtor(&vec);
+        return NULL;
+    }
     write_int(&vec, self->codes.length);
     write_bytes(&vec, self->codes.data, self->codes.length * sizeof(Bytecode));
     
-    // Write codes_ex vector
+    // Write codes_ex vector - check for overflow
+    if(self->codes_ex.length > 0 && self->codes_ex.length > INT_MAX / (int)sizeof(BytecodeEx)) {
+        c11_vector__dtor(&vec);
+        return NULL;
+    }
     write_int(&vec, self->codes_ex.length);
     write_bytes(&vec, self->codes_ex.data, self->codes_ex.length * sizeof(BytecodeEx));
     
-    // Write varnames vector
+    // Write varnames vector - check for overflow
+    if(self->varnames.length > 0 && self->varnames.length > INT_MAX / (int)sizeof(py_Name)) {
+        c11_vector__dtor(&vec);
+        return NULL;
+    }
     write_int(&vec, self->varnames.length);
     write_bytes(&vec, self->varnames.data, self->varnames.length * sizeof(py_Name));
     
-    // Write names vector
+    // Write names vector - check for overflow
+    if(self->names.length > 0 && self->names.length > INT_MAX / (int)sizeof(py_Name)) {
+        c11_vector__dtor(&vec);
+        return NULL;
+    }
     write_int(&vec, self->names.length);
     write_bytes(&vec, self->names.data, self->names.length * sizeof(py_Name));
     
     // Write nlocals
     write_int(&vec, self->nlocals);
     
-    // Write blocks vector
+    // Write blocks vector - check for overflow
+    if(self->blocks.length > 0 && self->blocks.length > INT_MAX / (int)sizeof(CodeBlock)) {
+        c11_vector__dtor(&vec);
+        return NULL;
+    }
     write_int(&vec, self->blocks.length);
     write_bytes(&vec, self->blocks.data, self->blocks.length * sizeof(CodeBlock));
     
@@ -286,24 +316,30 @@ char* CodeObject__dumps(CodeObject* self, int* size) {
     // Return the serialized data
     *size = vec.length;
     char* result = PK_MALLOC(vec.length);
+    if(result == NULL) {
+        c11_vector__dtor(&vec);
+        return NULL;
+    }
     memcpy(result, vec.data, vec.length);
     c11_vector__dtor(&vec);
     return result;
 }
 
 bool CodeObject__loads(CodeObject* self, const char* data, int size) {
-    if(size < sizeof(int)) return false;
+    if(data == NULL || size < sizeof(int)) return false;
     
+    const char* start = data;
     const char* p = data;
     
     // Read and validate magic number
     int magic;
-    p = read_int(p, &magic);
-    if(magic != 0x504B4F42) return false;
+    p = read_int(p, start, size, &magic);
+    if(p == NULL || magic != 0x504B4F42) return false;
     
     // Read name
     c11_string* name;
-    p = read_string(p, &name);
+    p = read_string(p, start, size, &name);
+    if(p == NULL) return false;
     if(self->name != NULL) {
         c11_string__delete(self->name);
     }
@@ -311,50 +347,69 @@ bool CodeObject__loads(CodeObject* self, const char* data, int size) {
     
     // Read codes vector
     int codes_length;
-    p = read_int(p, &codes_length);
+    p = read_int(p, start, size, &codes_length);
+    if(p == NULL || codes_length < 0 || codes_length > 1000000) return false;  // Sanity limit
+    // Check for integer overflow before allocation
+    if(codes_length > 0 && codes_length > INT_MAX / (int)sizeof(Bytecode)) return false;
     c11_vector__clear(&self->codes);
     c11_vector__reserve(&self->codes, codes_length);
-    p = read_bytes(p, self->codes.data, codes_length * sizeof(Bytecode));
+    p = read_bytes(p, start, size, self->codes.data, codes_length * sizeof(Bytecode));
+    if(p == NULL) return false;
     self->codes.length = codes_length;
     
     // Read codes_ex vector
     int codes_ex_length;
-    p = read_int(p, &codes_ex_length);
+    p = read_int(p, start, size, &codes_ex_length);
+    if(p == NULL || codes_ex_length < 0 || codes_ex_length > 1000000) return false;
+    if(codes_ex_length > 0 && codes_ex_length > INT_MAX / (int)sizeof(BytecodeEx)) return false;
     c11_vector__clear(&self->codes_ex);
     c11_vector__reserve(&self->codes_ex, codes_ex_length);
-    p = read_bytes(p, self->codes_ex.data, codes_ex_length * sizeof(BytecodeEx));
+    p = read_bytes(p, start, size, self->codes_ex.data, codes_ex_length * sizeof(BytecodeEx));
+    if(p == NULL) return false;
     self->codes_ex.length = codes_ex_length;
     
     // Read varnames vector
     int varnames_length;
-    p = read_int(p, &varnames_length);
+    p = read_int(p, start, size, &varnames_length);
+    if(p == NULL || varnames_length < 0 || varnames_length > 100000) return false;
+    if(varnames_length > 0 && varnames_length > INT_MAX / (int)sizeof(py_Name)) return false;
     c11_vector__clear(&self->varnames);
     c11_vector__reserve(&self->varnames, varnames_length);
-    p = read_bytes(p, self->varnames.data, varnames_length * sizeof(py_Name));
+    p = read_bytes(p, start, size, self->varnames.data, varnames_length * sizeof(py_Name));
+    if(p == NULL) return false;
     self->varnames.length = varnames_length;
     
     // Read names vector
     int names_length;
-    p = read_int(p, &names_length);
+    p = read_int(p, start, size, &names_length);
+    if(p == NULL || names_length < 0 || names_length > 100000) return false;
+    if(names_length > 0 && names_length > INT_MAX / (int)sizeof(py_Name)) return false;
     c11_vector__clear(&self->names);
     c11_vector__reserve(&self->names, names_length);
-    p = read_bytes(p, self->names.data, names_length * sizeof(py_Name));
+    p = read_bytes(p, start, size, self->names.data, names_length * sizeof(py_Name));
+    if(p == NULL) return false;
     self->names.length = names_length;
     
     // Read nlocals
-    p = read_int(p, &self->nlocals);
+    p = read_int(p, start, size, &self->nlocals);
+    if(p == NULL) return false;
     
     // Read blocks vector
     int blocks_length;
-    p = read_int(p, &blocks_length);
+    p = read_int(p, start, size, &blocks_length);
+    if(p == NULL || blocks_length < 0 || blocks_length > 100000) return false;
+    if(blocks_length > 0 && blocks_length > INT_MAX / (int)sizeof(CodeBlock)) return false;
     c11_vector__clear(&self->blocks);
     c11_vector__reserve(&self->blocks, blocks_length);
-    p = read_bytes(p, self->blocks.data, blocks_length * sizeof(CodeBlock));
+    p = read_bytes(p, start, size, self->blocks.data, blocks_length * sizeof(CodeBlock));
+    if(p == NULL) return false;
     self->blocks.length = blocks_length;
     
     // Read start_line and end_line
-    p = read_int(p, &self->start_line);
-    p = read_int(p, &self->end_line);
+    p = read_int(p, start, size, &self->start_line);
+    if(p == NULL) return false;
+    p = read_int(p, start, size, &self->end_line);
+    if(p == NULL) return false;
     
     // Rebuild the inverse maps
     c11_smallmap_n2d__clear(&self->varnames_inv);
