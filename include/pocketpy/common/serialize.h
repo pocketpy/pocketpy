@@ -33,10 +33,10 @@ void* c11_deserializer__read_bytes(c11_deserializer* self, int size);
 
 
 #define DEF_ATOMIC_INLINE_RW(name, T) \
-    inline void c11_serializer__write_##name(c11_serializer* self, T value){ \
+    static inline void c11_serializer__write_##name(c11_serializer* self, T value){ \
         c11_serializer__write_bytes(self, &value, sizeof(T)); \
     } \
-    inline T c11_deserializer__read_##name(c11_deserializer* self){ \
+    static inline T c11_deserializer__read_##name(c11_deserializer* self){ \
         T* p = (T*)(self->data + self->index); \
         self->index += sizeof(T); \
         return *p; \

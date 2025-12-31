@@ -93,6 +93,10 @@ int CodeObject__add_varname(CodeObject* self, py_Name name);
 int CodeObject__add_name(CodeObject* self, py_Name name);
 void CodeObject__gc_mark(const CodeObject* self, c11_vector* p_stack);
 
+// Serialization
+void* CodeObject__dumps(const CodeObject* co, int* size);
+const char* CodeObject__loads(CodeObject* co, const void* data, int size);
+
 typedef struct FuncDeclKwArg {
     int index;        // index in co->varnames
     py_Name key;      // name of this argument
