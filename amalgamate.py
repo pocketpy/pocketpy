@@ -80,7 +80,14 @@ for entry in os.listdir(ROOT):
 			headers[f'{entry}/{file}'] = Header(f'{entry}/{file}')
 
 def merge_c_files():
-	c_files = [COPYRIGHT, '\n', '#include "pocketpy.h"', '\n']
+	c_files = [
+		COPYRIGHT,
+		'\n',
+		'#define PK_IS_AMALGAMATED_C',
+		'\n',
+		'#include "pocketpy.h"',
+		'\n'
+	]
 
 	# merge internal headers
 	internal_h = []
@@ -123,7 +130,12 @@ def merge_c_files():
 	return ''.join(c_files)
 
 def merge_h_files():
-	h_files = [COPYRIGHT, '#pragma once']
+	h_files = [
+		COPYRIGHT,
+		'#pragma once',
+		'\n',
+		'#define PK_IS_PUBLIC_INCLUDE',
+	]
 
 	def _replace(m):
 		path = m.group(1)
@@ -148,9 +160,15 @@ write_file('amalgamated/pocketpy.h', merge_h_files())
 
 shutil.copy("src2/main.c", "amalgamated/main.c")
 
+def checked_sh(cmd):
+	ok = os.system(cmd)
+	assert ok == 0, f"command failed: {cmd}"
+
 if sys.platform in ['linux', 'darwin']:
-	ok = os.system("gcc -o main amalgamated/pocketpy.c amalgamated/main.c -O1 --std=c11 -lm -ldl -lpthread")
-	if ok == 0:
-		print("Test build success!")
+	common_flags = "-O1 --std=c11 -lm -ldl -lpthread -Iamalgamated"
+	checked_sh(f"gcc -o main amalgamated/pocketpy.c src2/example.c {common_flags}")
+	checked_sh("./main && rm -f ./main")
+	checked_sh(f"gcc -o main amalgamated/pocketpy.c amalgamated/main.c {common_flags}")
+
 
 print("amalgamated/pocketpy.h")

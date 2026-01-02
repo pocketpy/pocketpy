@@ -28,6 +28,7 @@ typedef double py_f64;
 /// A generic destructor function.
 typedef void (*py_Dtor)(void*);
 
+#ifndef PK_IS_AMALGAMATED_C
 #ifdef PK_IS_PUBLIC_INCLUDE
 typedef struct py_TValue {
     py_Type type;
@@ -39,6 +40,7 @@ typedef struct py_TValue {
         char _chars[16];
     };
 } py_TValue;
+#endif
 #endif
 
 /// A string view type. It is helpful for passing strings which are not null-terminated.
