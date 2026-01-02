@@ -11,7 +11,7 @@ py_ItemRef pk_tpfindname(py_TypeInfo* ti, py_Name name) {
     return NULL;
 }
 
-extern PK_INLINE py_TypeInfo* pk_typeinfo(py_Type type) {
+PK_INLINE py_TypeInfo* pk_typeinfo(py_Type type) {
 #ifndef NDEBUG
     int length = pk_current_vm->types.length;
     if(type <= 0 || type >= length) {

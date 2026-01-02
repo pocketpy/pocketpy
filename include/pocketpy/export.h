@@ -65,7 +65,7 @@
 #ifdef NDEBUG
     #if defined(__GNUC__)
         #define PK_INLINE __attribute__((always_inline)) inline
-    #elif defined(_MSC_VER)
+    #elif defined(_MSC_VER) && !defined(__clang__)
         #define PK_INLINE __forceinline
     #else
         #define PK_INLINE inline

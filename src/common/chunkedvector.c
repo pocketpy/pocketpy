@@ -6,7 +6,7 @@
 #include <intrin.h>
 #endif
 
-extern PK_INLINE int c11__bit_length(unsigned long x) {
+PK_INLINE int c11__bit_length(unsigned long x) {
 #if(defined(__clang__) || defined(__GNUC__))
     return x == 0 ? 0 : (int)sizeof(unsigned long) * 8 - __builtin_clzl(x);
 #elif defined(_MSC_VER)
