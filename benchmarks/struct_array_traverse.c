@@ -48,9 +48,9 @@ static uint64_t bench_char(void) {
 int main(void) {
     uint64_t int_avg = bench_int();
     uint64_t char_avg = bench_char();
-    printf("int[1000] average traversal (ns): %llu\n",
+    printf("int[%d] average traversal (ns): %llu\n", ARRAY_SIZE,
            (unsigned long long)int_avg);
-    printf("char[1000] average traversal (ns): %llu\n",
+    printf("char[%d] average traversal (ns): %llu\n", ARRAY_SIZE,
            (unsigned long long)char_avg);
     return 0;
 }
