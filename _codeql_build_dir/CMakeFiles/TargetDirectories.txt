@@ -1,0 +1,4 @@
+/home/runner/work/pocketpy/pocketpy/_codeql_build_dir/CMakeFiles/pocketpy.dir
+/home/runner/work/pocketpy/pocketpy/_codeql_build_dir/CMakeFiles/main.dir
+/home/runner/work/pocketpy/pocketpy/_codeql_build_dir/CMakeFiles/edit_cache.dir
+/home/runner/work/pocketpy/pocketpy/_codeql_build_dir/CMakeFiles/rebuild_cache.dir

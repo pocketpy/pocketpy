@@ -1,0 +1,1 @@
+/home/runner/work/pocketpy/.codeql-scratch/dbs/cpp/working/autobuild/bin/cc -fPIC  -O2 -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/pocketpy.dir/link.d -shared -Wl,-soname,libpocketpy.so -o libpocketpy.so CMakeFiles/pocketpy.dir/Unity/unity_pocketpy_c.c.o  -lm -ldl
