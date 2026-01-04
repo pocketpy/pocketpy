@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <time.h>
 
+#define ARRAY_SIZE 1000
+#define NUM_ROUNDS 100000
+
 static inline uint64_t nanos(void) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -10,36 +13,36 @@ static inline uint64_t nanos(void) {
 }
 
 static uint64_t bench_int(void) {
-    int arr[1000];
-    for (int i = 0; i < 1000; ++i) arr[i] = 1;
+    int arr[ARRAY_SIZE];
+    for (int i = 0; i < ARRAY_SIZE; ++i) arr[i] = 1;
 
     volatile long long total = 0;
     uint64_t start = nanos();
-    for (int round = 0; round < 100000; ++round) {
+    for (int round = 0; round < NUM_ROUNDS; ++round) {
         long long sum = 0;
-        for (int i = 0; i < 1000; ++i) sum += arr[i];
+        for (int i = 0; i < ARRAY_SIZE; ++i) sum += arr[i];
         total += sum;
     }
     uint64_t end = nanos();
     // prevent optimization
     if (total == 0) printf("unused: %lld\n", total);
-    return (end - start) / 100000;
+    return (end - start) / NUM_ROUNDS;
 }
 
 static uint64_t bench_char(void) {
-    char arr[1000];
-    for (int i = 0; i < 1000; ++i) arr[i] = 1;
+    char arr[ARRAY_SIZE];
+    for (int i = 0; i < ARRAY_SIZE; ++i) arr[i] = 1;
 
     volatile long long total = 0;
     uint64_t start = nanos();
-    for (int round = 0; round < 100000; ++round) {
+    for (int round = 0; round < NUM_ROUNDS; ++round) {
         long long sum = 0;
-        for (int i = 0; i < 1000; ++i) sum += arr[i];
+        for (int i = 0; i < ARRAY_SIZE; ++i) sum += arr[i];
         total += sum;
     }
     uint64_t end = nanos();
     if (total == 0) printf("unused: %lld\n", total);
-    return (end - start) / 100000;
+    return (end - start) / NUM_ROUNDS;
 }
 
 int main(void) {
