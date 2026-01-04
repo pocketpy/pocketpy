@@ -15,7 +15,7 @@ static uint64_t bench_int(void) {
 
     volatile long long total = 0;
     uint64_t start = nanos();
-    for (int round = 0; round < 1000; ++round) {
+    for (int round = 0; round < 100000; ++round) {
         long long sum = 0;
         for (int i = 0; i < 1000; ++i) sum += arr[i];
         total += sum;
@@ -23,7 +23,7 @@ static uint64_t bench_int(void) {
     uint64_t end = nanos();
     // prevent optimization
     if (total == 0) printf("unused: %lld\n", total);
-    return (end - start) / 1000;
+    return (end - start) / 100000;
 }
 
 static uint64_t bench_char(void) {
@@ -32,14 +32,14 @@ static uint64_t bench_char(void) {
 
     volatile long long total = 0;
     uint64_t start = nanos();
-    for (int round = 0; round < 1000; ++round) {
+    for (int round = 0; round < 100000; ++round) {
         long long sum = 0;
         for (int i = 0; i < 1000; ++i) sum += arr[i];
         total += sum;
     }
     uint64_t end = nanos();
     if (total == 0) printf("unused: %lld\n", total);
-    return (end - start) / 1000;
+    return (end - start) / 100000;
 }
 
 int main(void) {
