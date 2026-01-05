@@ -27,7 +27,7 @@ typedef struct c11_deserializer {
 
 void c11_deserializer__ctor(c11_deserializer* self, const void* data, int size);
 void c11_deserializer__dtor(c11_deserializer* self);
-bool c11_deserializer__check_header(c11_deserializer* self, int16_t magic, int8_t major_ver, int8_t minor_ver);
+bool c11_deserializer__check_header(c11_deserializer* self, int16_t magic, int8_t major_ver, int8_t minor_ver_min);
 const char* c11_deserializer__read_cstr(c11_deserializer* self);
 void* c11_deserializer__read_bytes(c11_deserializer* self, int size);
 

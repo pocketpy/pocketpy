@@ -370,3 +370,4 @@ char* CodeObject__loads(const void* data, int size, CodeObject* out) {
 #undef CODEOBJECT_MAGIC
 #undef CODEOBJECT_VER_MAJOR
 #undef CODEOBJECT_VER_MINOR
+#undef CODEOBJECT_VER_MINOR_MIN

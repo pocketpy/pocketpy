@@ -56,7 +56,7 @@ bool c11_deserializer__error(c11_deserializer* self, const char* msg){
     return false;
 }
 
-bool c11_deserializer__check_header(c11_deserializer* self, int16_t magic, int8_t major_ver, int8_t minor_ver){
+bool c11_deserializer__check_header(c11_deserializer* self, int16_t magic, int8_t major_ver, int8_t minor_ver_min){
     if(self->size < 8){
         return c11_deserializer__error(self, "bad header: size < 8");
     }
@@ -80,7 +80,7 @@ bool c11_deserializer__check_header(c11_deserializer* self, int16_t magic, int8_
     if(self->major_ver != major_ver){
         return c11_deserializer__error(self, "bad header: major version mismatch");
     }
-    if(self->minor_ver < minor_ver){
+    if(self->minor_ver < minor_ver_min){
         // file_ver: 1.1, require_ver: 1.0 => ok
         // file_ver: 1.1, require_ver: 1.1 => ok
         // file_ver: 1.1, require_ver: 1.2 => error
