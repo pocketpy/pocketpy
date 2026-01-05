@@ -95,7 +95,7 @@ struct import_callback {
     };
 
     static char* importfile(const char* path) {
-        if(value.empty()) return _importfile(path);
+        if(value.empty()) return _importfile(path, NULL);
         // +1 for the null terminator
         char* cstr = new char[value.size() + 1];
 
