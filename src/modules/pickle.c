@@ -59,7 +59,7 @@ static void PickleObject__dtor(PickleObject* self) {
 static bool PickleObject__py_submit(PickleObject* self, py_OutRef out);
 
 static void PickleObject__write_bytes(PickleObject* buf, const void* data, int size) {
-    c11_vector__extend(char, &buf->codes, data, size);
+    c11_vector__extend(&buf->codes, data, size);
 }
 
 static void c11_sbuf__write_type_path(c11_sbuf* path_buf, py_Type type) {

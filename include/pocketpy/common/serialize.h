@@ -42,8 +42,6 @@ void* c11_deserializer__read_bytes(c11_deserializer* self, int size);
         return *p; \
     }
 
-
-DEF_ATOMIC_INLINE_RW(size, int)
 DEF_ATOMIC_INLINE_RW(i8, int8_t)
 DEF_ATOMIC_INLINE_RW(i16, int16_t)
 DEF_ATOMIC_INLINE_RW(i32, int32_t)
@@ -53,3 +51,4 @@ DEF_ATOMIC_INLINE_RW(f64, double)
 DEF_ATOMIC_INLINE_RW(type, py_Type)
 
 #undef DEF_ATOMIC_INLINE_RW
+

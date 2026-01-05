@@ -1,5 +1,6 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/common/utils.h"
+#include "pocketpy/config.h"
 #include "pocketpy/pocketpy.h"
 #include <stdint.h>
 #include <assert.h>
@@ -17,11 +18,12 @@ bool Bytecode__is_forward_jump(const Bytecode* self) {
            (op == OP_FOR_ITER || op == OP_FOR_ITER_YIELD_VALUE);
 }
 
-static void FuncDecl__dtor(FuncDecl* self) {
+void FuncDecl__dtor(FuncDecl* self) {
     CodeObject__dtor(&self->code);
     c11_vector__dtor(&self->args);
     c11_vector__dtor(&self->kwargs);
     c11_smallmap_n2d__dtor(&self->kw_to_index);
+    if(self->docstring) py_free(self->docstring);
 }
 
 FuncDecl_ FuncDecl__rcnew(SourceData_ src, c11_sv name) {
@@ -30,7 +32,7 @@ FuncDecl_ FuncDecl__rcnew(SourceData_ src, c11_sv name) {
     self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
     CodeObject__ctor(&self->code, src, name);
 
-    c11_vector__ctor(&self->args, sizeof(int));
+    c11_vector__ctor(&self->args, sizeof(int32_t));
     c11_vector__ctor(&self->kwargs, sizeof(FuncDeclKwArg));
 
     self->starred_arg = -1;
@@ -66,8 +68,8 @@ bool FuncDecl__is_duplicated_arg(const FuncDecl* decl, py_Name name) {
 }
 
 void FuncDecl__add_arg(FuncDecl* self, py_Name name) {
-    int index = CodeObject__add_varname(&self->code, name);
-    c11_vector__push(int, &self->args, index);
+    int32_t index = CodeObject__add_varname(&self->code, name);
+    c11_vector__push(int32_t, &self->args, index);
 }
 
 void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value) {
@@ -87,32 +89,6 @@ void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name) {
 void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name) {
     int index = CodeObject__add_varname(&self->code, name);
     self->starred_kwarg = index;
-}
-
-FuncDecl_ FuncDecl__build(c11_sv name,
-                          c11_sv* args,
-                          int argc,
-                          c11_sv starred_arg,
-                          c11_sv* kwargs,
-                          int kwargc,
-                          py_Ref kwdefaults,  // a tuple contains default values
-                          c11_sv starred_kwarg,
-                          const char* docstring) {
-    SourceData_ source = SourceData__rcnew("pass", "<bind>", EXEC_MODE, false);
-    FuncDecl_ decl = FuncDecl__rcnew(source, name);
-    for(int i = 0; i < argc; i++) {
-        FuncDecl__add_arg(decl, py_namev(args[i]));
-    }
-    if(starred_arg.size) { FuncDecl__add_starred_arg(decl, py_namev(starred_arg)); }
-    assert(py_istype(kwdefaults, tp_tuple));
-    assert(py_tuple_len(kwdefaults) == kwargc);
-    for(int i = 0; i < kwargc; i++) {
-        FuncDecl__add_kwarg(decl, py_namev(kwargs[i]), py_tuple_getitem(kwdefaults, i));
-    }
-    if(starred_kwarg.size) FuncDecl__add_starred_kwarg(decl, py_namev(starred_kwarg));
-    decl->docstring = docstring;
-    PK_DECREF(source);
-    return decl;
 }
 
 void CodeObject__ctor(CodeObject* self, SourceData_ src, c11_sv name) {

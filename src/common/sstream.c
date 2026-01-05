@@ -79,7 +79,7 @@ void c11_sbuf__write_cstr(c11_sbuf* self, const char* str) {
 }
 
 void c11_sbuf__write_cstrn(c11_sbuf* self, const char* str, int n) {
-    c11_vector__extend(char, &self->data, str, n);
+    c11_vector__extend(&self->data, str, n);
 }
 
 void c11_sbuf__write_quoted(c11_sbuf* self, c11_sv sv, char quote) {

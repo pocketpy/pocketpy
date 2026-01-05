@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <assert.h>
 
-static char* pk_default_importfile(const char* path) {
+static char* pk_default_importfile(const char* path, int* data_size) {
 #if PK_ENABLE_OS
     FILE* f = fopen(path, "rb");
     if(f == NULL) return NULL;
@@ -23,6 +23,7 @@ static char* pk_default_importfile(const char* path) {
     size = fread(buffer, 1, size, f);
     buffer[size] = 0;
     fclose(f);
+    if(data_size) *data_size = (int)size;
     return buffer;
 #else
     return NULL;
@@ -112,7 +113,6 @@ void VM__ctor(VM* self) {
     self->stack.end = self->stack.begin + PK_VM_STACK_SIZE;
 
     CachedNames__ctor(&self->cached_names);
-    NameDict__ctor(&self->compile_time_funcs, PK_TYPE_ATTR_LOAD_FACTOR);
 
     /* Init Builtin Types */
     // 0: unused
@@ -260,6 +260,7 @@ void VM__ctor(VM* self) {
     pk__add_module_base64();
     pk__add_module_importlib();
     pk__add_module_unicodedata();
+    pk__add_module_py_compile();
 
     pk__add_module_conio();
     pk__add_module_lz4();       // optional
@@ -306,7 +307,6 @@ void VM__dtor(VM* self) {
     BinTree__dtor(&self->modules);
     FixedMemoryPool__dtor(&self->pool_frame);
     CachedNames__dtor(&self->cached_names);
-    NameDict__dtor(&self->compile_time_funcs);
     c11_vector__dtor(&self->types);
 }
 
@@ -670,12 +670,6 @@ void ManagedHeap__mark(ManagedHeap* self) {
     for(int i = 0; i < vm->cached_names.entries.length; i++) {
         CachedNames_KV* kv = c11_chunkedvector__at(&vm->cached_names.entries, i);
         pk__mark_value(&kv->val);
-    }
-    // mark compile time functions
-    for(int i = 0; i < vm->compile_time_funcs.capacity; i++) {
-        NameDict_KV* kv = &vm->compile_time_funcs.items[i];
-        if(kv->key == NULL) continue;
-        pk__mark_value(&kv->value);
     }
     // mark types
     int types_length = vm->types.length;

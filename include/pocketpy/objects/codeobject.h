@@ -45,25 +45,25 @@ typedef enum Opcode {
 } Opcode;
 
 typedef struct Bytecode {
-    uint8_t op;
+    uint16_t op;
     uint16_t arg;
 } Bytecode;
 
 void Bytecode__set_signed_arg(Bytecode* self, int arg);
 bool Bytecode__is_forward_jump(const Bytecode* self);
 
-typedef struct CodeBlock {
-    CodeBlockType type;
-    int parent;  // parent index in blocks
-    int start;   // start index of this block in codes, inclusive
-    int end;     // end index of this block in codes, exclusive
-    int end2;    // ...
-} CodeBlock;
-
 typedef struct BytecodeEx {
-    int lineno;       // line number for each bytecode
-    int iblock;       // block index
+    int32_t lineno;       // line number for each bytecode
+    int32_t iblock;       // block index
 } BytecodeEx;
+
+typedef struct CodeBlock {
+    int32_t type;
+    int32_t parent;  // parent index in blocks
+    int32_t start;   // start index of this block in codes, inclusive
+    int32_t end;     // end index of this block in codes, exclusive
+    int32_t end2;    // ...
+} CodeBlock;
 
 typedef struct CodeObject {
     SourceData_ src;
@@ -74,8 +74,8 @@ typedef struct CodeObject {
 
     c11_vector /*T=py_TValue*/ consts;  // constants
     c11_vector /*T=py_Name*/ varnames;  // local variables
-    c11_vector /*T=py_Name*/ names;
-    int nlocals;
+    c11_vector /*T=py_Name*/ names;     // non-local names
+    int nlocals;  // number of local variables
 
     c11_smallmap_n2d varnames_inv;
     c11_smallmap_n2d names_inv;
@@ -95,7 +95,7 @@ void CodeObject__gc_mark(const CodeObject* self, c11_vector* p_stack);
 
 // Serialization
 void* CodeObject__dumps(const CodeObject* co, int* size);
-const char* CodeObject__loads(CodeObject* co, const void* data, int size);
+char* CodeObject__loads(const void* data, int size, CodeObject* out);
 
 typedef struct FuncDeclKwArg {
     int index;        // index in co->varnames
@@ -114,7 +114,7 @@ typedef struct FuncDecl {
     int starred_kwarg;  // index in co->varnames, -1 if no **kwarg
     bool nested;        // whether this function is nested
 
-    const char* docstring;  // docstring of this function (weak ref)
+    char* docstring;
 
     FuncType type;
     c11_smallmap_n2d kw_to_index;
@@ -129,6 +129,7 @@ void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value);
 void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name);
 void FuncDecl__gc_mark(const FuncDecl* self, c11_vector* p_stack);
+void FuncDecl__dtor(FuncDecl* self);
 
 // runtime function
 typedef struct Function {

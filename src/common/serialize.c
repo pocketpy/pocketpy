@@ -31,7 +31,7 @@ void c11_serializer__write_cstr(c11_serializer *self, const char* cstr) {
 }
 
 void c11_serializer__write_bytes(c11_serializer* self, const void* data, int size){
-    c11_vector__extend(uint8_t, &self->data, data, size);
+    c11_vector__extend(&self->data, data, size);
 }
 
 void* c11_serializer__submit(c11_serializer* self, int* size){

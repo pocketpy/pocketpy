@@ -10,7 +10,7 @@ PK_INLINE int c11__bit_length(unsigned long x) {
 #if(defined(__clang__) || defined(__GNUC__))
     return x == 0 ? 0 : (int)sizeof(unsigned long) * 8 - __builtin_clzl(x);
 #elif defined(_MSC_VER)
-    static_assert(sizeof(unsigned long) <= 4, "unsigned long is greater than 4 bytes");
+    _Static_assert(sizeof(unsigned long) <= 4, "unsigned long is greater than 4 bytes");
     unsigned long msb;
     if(_BitScanReverse(&msb, x)) { return (int)msb + 1; }
     return 0;

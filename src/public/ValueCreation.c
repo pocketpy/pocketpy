@@ -121,7 +121,7 @@ py_Name py_newfunction(py_OutRef out,
         c11__abort("py_newfunction(): invalid signature '%s'", sig);
     }
     FuncDecl_ decl = c11__getitem(FuncDecl_, &code.func_decls, 0);
-    decl->docstring = docstring;
+    if(docstring) decl->docstring = c11_strdup(docstring);
     // construct the function
     Function* ud = py_newobject(out, tp_function, slots, sizeof(Function));
     Function__ctor(ud, decl, NULL, NULL);

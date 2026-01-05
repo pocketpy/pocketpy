@@ -8,9 +8,15 @@ static void SourceData__ctor(struct SourceData* self,
                              const char* filename,
                              enum py_CompileMode mode,
                              bool is_dynamic) {
-    self->filename = c11_string__new(filename);
     self->mode = mode;
+    self->is_dynamic = is_dynamic;
+    self->filename = c11_string__new(filename);
     c11_vector__ctor(&self->line_starts, sizeof(const char*));
+
+    if(!source) {
+        self->source = NULL;
+        return;
+    }
 
     // Skip utf8 BOM if there is any.
     if(strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
@@ -34,13 +40,12 @@ static void SourceData__ctor(struct SourceData* self,
         self->source->data[last_index + 1] = '\0';
     }
 
-    self->is_dynamic = is_dynamic;
     c11_vector__push(const char*, &self->line_starts, self->source->data);
 }
 
 static void SourceData__dtor(struct SourceData* self) {
     c11_string__delete(self->filename);
-    c11_string__delete(self->source);
+    if(self->source) c11_string__delete(self->source);
     c11_vector__dtor(&self->line_starts);
 }
 
@@ -59,7 +64,7 @@ bool SourceData__get_line(const struct SourceData* self,
                           int lineno,
                           const char** st,
                           const char** ed) {
-    if(lineno < 0) return false;
+    if(lineno < 0 || !self->source) return false;
     lineno -= 1;
     if(lineno < 0) lineno = 0;
     const char* _start = c11__getitem(const char*, &self->line_starts, lineno);
