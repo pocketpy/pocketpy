@@ -1,13 +1,14 @@
 from py_compile import compile
-import os
 
-if not os.path.exists('tmp'):
-    os.mkdir('tmp')
+try:
+    import os
+except ImportError:
+    print('os is not enabled, skipping test...')
+    exit(0)
 
-compile('python/heapq.py', 'tmp/heapq1.pyc')
-assert os.path.exists('tmp/heapq1.pyc')
+compile('python/heapq.py', 'heapq1.pyc')
+assert os.path.exists('heapq1.pyc')
 
-os.chdir('tmp')
 import heapq1
 import heapq
 

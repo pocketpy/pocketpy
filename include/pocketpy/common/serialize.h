@@ -37,9 +37,11 @@ void* c11_deserializer__read_bytes(c11_deserializer* self, int size);
         c11_serializer__write_bytes(self, &value, sizeof(T)); \
     } \
     static inline T c11_deserializer__read_##name(c11_deserializer* self){ \
-        T* p = (T*)(self->data + self->index); \
+        const void* p = self->data + self->index; \
         self->index += sizeof(T); \
-        return *p; \
+        T retval;\
+        memcpy(&retval, p, sizeof(T)); \
+        return retval; \
     }
 
 DEF_ATOMIC_INLINE_RW(i8, int8_t)
