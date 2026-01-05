@@ -16,6 +16,8 @@ def do_compile(src_path, dst_path):
     assert os.system(cmd) == 0
 
 if os.path.isfile(source_dir):
+    if output_dir.endswith('.py'):
+        output_dir += 'c'
     do_compile(source_dir, output_dir)
     exit(0)
 
