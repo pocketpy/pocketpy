@@ -77,6 +77,7 @@ int main(int argc, char** argv) {
 
     if(compile) {
         bool ok = py_compilefile(arg1, arg2);
+        if(!ok) py_printexc();
         py_finalize();
         return ok ? 0 : 1;
     }

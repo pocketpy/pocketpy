@@ -121,7 +121,7 @@ void py_sys_setargv(int argc, char** argv) {
     py_GlobalRef sys = py_getmodule("sys");
     py_Ref argv_list = py_getdict(sys, py_name("argv"));
     py_list_clear(argv_list);
-    for(int i = 0; i < argc; i++) {
+    for(int i = 1; i < argc; i++) {
         py_newstr(py_list_emplace(argv_list), argv[i]);
     }
 }
