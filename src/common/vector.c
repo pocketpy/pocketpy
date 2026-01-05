@@ -76,3 +76,14 @@ int c11_vector__nextcap(c11_vector* self) {
         return self->capacity + (self->capacity >> 2);
     }
 }
+
+void c11_vector__extend(c11_vector* self, const void* p, int size) {
+    int min_capacity = self->length + size;
+    if(self->capacity < min_capacity) {
+        int nextcap = c11_vector__nextcap(self);
+        c11_vector__reserve((self), c11__max(nextcap, min_capacity));
+    }
+    void* dst = (char*)self->data + self->length * self->elem_size;
+    memcpy(dst, p, size * self->elem_size);
+    self->length += size;
+}

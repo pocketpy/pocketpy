@@ -76,7 +76,6 @@ static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break);
 static int Ctx__enter_block(Ctx* self, CodeBlockType type);
 static void Ctx__exit_block(Ctx* self);
 static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
-// static void Ctx__revert_last_emit_(Ctx* self);
 static int Ctx__emit_int(Ctx* self, int64_t value, int line);
 static void Ctx__patch_jump(Ctx* self, int index);
 static void Ctx__emit_jump(Ctx* self, int target, int line);
@@ -1177,7 +1176,7 @@ static void Ctx__s_emit_decorators(Ctx* self, int count) {
 }
 
 static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line) {
-    Bytecode bc = {(uint8_t)opcode, arg};
+    Bytecode bc = {(uint16_t)opcode, arg};
     BytecodeEx bcx = {line, self->curr_iblock};
     c11_vector__push(Bytecode, &self->co->codes, bc);
     c11_vector__push(BytecodeEx, &self->co->codes_ex, bcx);
@@ -1186,11 +1185,6 @@ static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line) {
     if(line == BC_KEEPLINE) { codes_ex[i].lineno = i >= 1 ? codes_ex[i - 1].lineno : 1; }
     return i;
 }
-
-// static void Ctx__revert_last_emit_(Ctx* self) {
-//     c11_vector__pop(&self->co->codes);
-//     c11_vector__pop(&self->co->codes_ex);
-// }
 
 static int Ctx__emit_int(Ctx* self, int64_t value, int line) {
     if(INT16_MIN <= value && value <= INT16_MAX) {
@@ -1881,65 +1875,11 @@ static Error* exprMap(Compiler* self) {
 
 static Error* read_literal(Compiler* self, py_Ref out);
 
-static Error* exprCompileTimeCall(Compiler* self, py_ItemRef func, int line) {
-    Error* err;
-    py_push(func);
-    py_pushnil();
-
-    uint16_t argc = 0;
-    uint16_t kwargc = 0;
-    // copied from `exprCall`
-    do {
-        if(curr()->type == TK_RPAREN) break;
-        if(curr()->type == TK_ID && next()->type == TK_ASSIGN) {
-            consume(TK_ID);
-            py_Name key = py_namev(Token__sv(prev()));
-            consume(TK_ASSIGN);
-            // k=v
-            py_pushname(key);
-            check(read_literal(self, py_pushtmp()));
-            kwargc += 1;
-        } else {
-            if(kwargc > 0) {
-                return SyntaxError(self, "positional argument follows keyword argument");
-            }
-            check(read_literal(self, py_pushtmp()));
-            argc += 1;
-        }
-    } while(match(TK_COMMA));
-    consume(TK_RPAREN);
-
-    py_StackRef p0 = py_peek(0);
-    bool ok = py_vectorcall(argc, kwargc);
-    if(!ok) {
-        char* msg = py_formatexc();
-        py_clearexc(p0);
-        err = SyntaxError(self, "compile-time call error:\n%s", msg);
-        PK_FREE(msg);
-        return err;
-    }
-
-    // TODO: optimize string dedup
-    int index = Ctx__add_const(ctx(), py_retval());
-    Ctx__s_push(ctx(), (Expr*)LoadConstExpr__new(line, index));
-    return NULL;
-}
-
 static Error* exprCall(Compiler* self) {
     Error* err;
     Expr* callable = Ctx__s_popx(ctx());
     int line = prev()->line;
-    if(callable->vt->is_name) {
-        NameExpr* ne = (NameExpr*)callable;
-        py_ItemRef func = py_macroget(ne->name);
-        if(func != NULL) {
-            py_StackRef p0 = py_peek(0);
-            err = exprCompileTimeCall(self, func, line);
-            if(err != NULL) py_clearexc(p0);
-            return err;
-        }
-    }
-
+    
     CallExpr* e = CallExpr__new(line, callable);
     Ctx__s_push(ctx(), (Expr*)e);  // push onto the stack in advance
     do {
@@ -2425,7 +2365,7 @@ static Error* compile_function(Compiler* self, int decorators) {
             py_TValue* consts = decl->code.consts.data;
             py_TValue* c = &consts[codes[0].arg];
             if(py_isstr(c)) {
-                decl->docstring = py_tostr(c);
+                decl->docstring = c11_strdup(py_tostr(c));
                 codes[0].op = OP_NO_OP;
                 codes[1].op = OP_NO_OP;
             }

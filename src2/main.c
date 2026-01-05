@@ -34,7 +34,9 @@ int main(int argc, char** argv) {
 
     bool profile = false;
     bool debug = false;
-    const char* filename = NULL;
+    bool compile = false;
+    const char* arg1 = NULL;
+    const char* arg2 = NULL;
 
     for(int i = 1; i < argc; i++) {
         if(strcmp(argv[i], "--profile") == 0) {
@@ -45,11 +47,19 @@ int main(int argc, char** argv) {
             debug = true;
             continue;
         }
-        if(filename == NULL) {
-            filename = argv[i];
+        if(strcmp(argv[i], "--compile") == 0) {
+            compile = true;
             continue;
         }
-        printf("Usage: pocketpy [--profile] [--debug] filename\n");
+        if(arg1 == NULL) {
+            arg1 = argv[i];
+            continue;
+        }
+        if(arg2 == NULL) {
+            arg2 = argv[i];
+            continue;
+        }
+        printf("Usage: pocketpy [--profile] [--debug] [--compile] filename\n");
     }
 
     if(debug && profile) {
@@ -57,9 +67,22 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    if(compile && (debug || profile)) {
+        printf("Error: --compile cannot be used with --debug or --profile.\n");
+        return 1;
+    }
+
     py_initialize();
     py_sys_setargv(argc, argv);
 
+    if(compile) {
+        bool ok = py_compilefile(arg1, arg2);
+        if(!ok) py_printexc();
+        py_finalize();
+        return ok ? 0 : 1;
+    }
+
+    const char* filename = arg1;
     if(filename == NULL) {
         if(profile) printf("Warning: --profile is ignored in REPL mode.\n");
         if(debug) printf("Warning: --debug is ignored in REPL mode.\n");

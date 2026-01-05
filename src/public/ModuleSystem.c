@@ -140,19 +140,38 @@ int py_import(const char* path_cstr) {
     c11_string* filename = c11_string__new3("%s.py", slashed_path->data);
 
     bool need_free = true;
+    bool is_pyc = false;
     const char* data = load_kPythonLib(path_cstr);
+    int data_size = -1;
+
     if(data != NULL) {
         need_free = false;
         goto __SUCCESS;
     }
 
-    data = vm->callbacks.importfile(filename->data);
+    data = vm->callbacks.importfile(filename->data, &data_size);
     if(data != NULL) goto __SUCCESS;
 
     c11_string__delete(filename);
+    filename = c11_string__new3("%s.pyc", slashed_path->data);
+    data = vm->callbacks.importfile(filename->data, &data_size);
+    if(data != NULL) {
+        is_pyc = true;
+        goto __SUCCESS;
+    }
+
+    c11_string__delete(filename);
     filename = c11_string__new3("%s%c__init__.py", slashed_path->data, PK_PLATFORM_SEP);
-    data = vm->callbacks.importfile(filename->data);
+    data = vm->callbacks.importfile(filename->data, &data_size);
     if(data != NULL) goto __SUCCESS;
+
+    c11_string__delete(filename);
+    filename = c11_string__new3("%s%c__init__.pyc", slashed_path->data, PK_PLATFORM_SEP);
+    data = vm->callbacks.importfile(filename->data, &data_size);
+    if(data != NULL) {
+        is_pyc = true;
+        goto __SUCCESS;
+    }
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
@@ -162,8 +181,25 @@ int py_import(const char* path_cstr) {
 __SUCCESS:
     do {
     } while(0);
+    
     py_GlobalRef mod = py_newmodule(path_cstr);
-    bool ok = py_exec((const char*)data, filename->data, EXEC_MODE, mod);
+
+    bool ok;
+    if(is_pyc) {
+        CodeObject co;
+        char* err = CodeObject__loads(data, data_size, filename->data, &co);
+        if(err == NULL) {
+            c11__rtassert(co.src->mode == EXEC_MODE);
+            c11__rtassert(co.src->is_dynamic == false);
+            ok = pk_exec(&co, mod);
+        } else {
+            RuntimeError("failed to load %s: %s", filename->data, err);
+            ok = false;
+        }
+    } else {
+        ok = py_exec(data, filename->data, EXEC_MODE, mod);
+    }
+    
     py_assign(py_retval(), mod);
 
     c11_string__delete(filename);
@@ -180,11 +216,13 @@ bool py_importlib_reload(py_Ref module) {
     c11_sv path = c11_string__sv(mi->path);
     c11_string* slashed_path = c11_sv__replace(path, '.', PK_PLATFORM_SEP);
     c11_string* filename = c11_string__new3("%s.py", slashed_path->data);
-    char* data = vm->callbacks.importfile(filename->data);
+    // Here we only consider source modules.
+    // Because compiled modules have no source file (it cannot be reloaded)
+    char* data = vm->callbacks.importfile(filename->data, NULL);
     if(data == NULL) {
         c11_string__delete(filename);
         filename = c11_string__new3("%s%c__init__.py", slashed_path->data, PK_PLATFORM_SEP);
-        data = vm->callbacks.importfile(filename->data);
+        data = vm->callbacks.importfile(filename->data, NULL);
     }
     c11_string__delete(slashed_path);
     if(data == NULL) return ImportError("module '%v' not found", path);

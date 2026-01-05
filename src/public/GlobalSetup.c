@@ -32,6 +32,10 @@ void py_initialize() {
     _Static_assert(sizeof(py_TValue) == 24, "sizeof(py_TValue) != 24");
     _Static_assert(offsetof(py_TValue, extra) == 4, "offsetof(py_TValue, extra) != 4");
 
+    // check sizes
+    _Static_assert(sizeof(float) == 4, "");
+    _Static_assert(sizeof(double) == 8, "");
+
     pk_current_vm = pk_all_vm[0] = &pk_default_vm;
 
     // initialize some convenient references
@@ -117,7 +121,7 @@ void py_sys_setargv(int argc, char** argv) {
     py_GlobalRef sys = py_getmodule("sys");
     py_Ref argv_list = py_getdict(sys, py_name("argv"));
     py_list_clear(argv_list);
-    for(int i = 0; i < argc; i++) {
+    for(int i = 1; i < argc; i++) {
         py_newstr(py_list_emplace(argv_list), argv[i]);
     }
 }

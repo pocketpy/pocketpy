@@ -22,6 +22,7 @@ bool c11_vector__contains(const c11_vector* self, void* elem);
 void* c11_vector__submit(c11_vector* self, int* length);
 void c11_vector__swap(c11_vector* self, c11_vector* other);
 int c11_vector__nextcap(c11_vector* self);
+void c11_vector__extend(c11_vector* self, const void* p, int size);
 
 #define c11__getitem(T, self, index) (((T*)(self)->data)[index])
 #define c11__setitem(T, self, index, value) ((T*)(self)->data)[index] = value;
@@ -39,17 +40,6 @@ int c11_vector__nextcap(c11_vector* self);
 #define c11_vector__pop(self) (--(self)->length)
 
 #define c11_vector__back(T, self) (((T*)(self)->data)[(self)->length - 1])
-
-#define c11_vector__extend(T, self, p, size)                                                       \
-    do {                                                                                           \
-        int min_capacity = (self)->length + (size);                                                \
-        if((self)->capacity < min_capacity) {                                                      \
-            int nextcap = c11_vector__nextcap(self);                                               \
-            c11_vector__reserve((self), c11__max(nextcap, min_capacity));                          \
-        }                                                                                          \
-        memcpy((T*)(self)->data + (self)->length, (p), (size) * sizeof(T));                        \
-        (self)->length += (size);                                                                  \
-    } while(0)
 
 #define c11_vector__insert(T, self, index, elem)                                                   \
     do {                                                                                           \

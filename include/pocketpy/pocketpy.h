@@ -79,8 +79,8 @@ typedef void (*py_TraceFunc)(py_Frame* frame, enum py_TraceEvent);
 
 /// A struct contains the callbacks of the VM.
 typedef struct py_Callbacks {
-    /// Used by `__import__` to load a source module.
-    char* (*importfile)(const char*);
+    /// Used by `__import__` to load a source or compiled module.
+    char* (*importfile)(const char* path, int* data_size);
     /// Called before `importfile` to lazy-import a C module.
     PY_MAYBENULL py_GlobalRef (*lazyimport)(const char*);
     /// Used by `print` to output a string.
@@ -182,6 +182,9 @@ PK_API bool py_compile(const char* source,
                        const char* filename,
                        enum py_CompileMode mode,
                        bool is_dynamic) PY_RAISE PY_RETURN;
+/// Compile a `.py` file into a `.pyc` file.
+PK_API bool py_compilefile(const char* src_path,
+                           const char* dst_path) PY_RAISE;
 /// Run a source string.
 /// @param source source string.
 /// @param filename filename (for error messages).
@@ -300,10 +303,6 @@ PK_API void
     py_bindproperty(py_Type type, const char* name, py_CFunction getter, py_CFunction setter);
 /// Bind a magic method to type.
 PK_API void py_bindmagic(py_Type type, py_Name name, py_CFunction f);
-/// Bind a compile-time function via "decl-based" style.
-PK_API void py_macrobind(const char* sig, py_CFunction f);
-/// Get a compile-time function by name.
-PK_API py_ItemRef py_macroget(py_Name name);
 
 /************* Value Cast *************/
 
