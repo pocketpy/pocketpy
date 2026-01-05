@@ -95,7 +95,7 @@ void CodeObject__gc_mark(const CodeObject* self, c11_vector* p_stack);
 
 // Serialization
 void* CodeObject__dumps(const CodeObject* co, int* size);
-char* CodeObject__loads(const void* data, int size, CodeObject* out);
+char* CodeObject__loads(const void* data, int size, const char* filename, CodeObject* out);
 
 typedef struct FuncDeclKwArg {
     int index;        // index in co->varnames

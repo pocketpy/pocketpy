@@ -16,7 +16,7 @@ static FuncDecl_ FuncDecl__deserialize(c11_deserializer* d, SourceData_ embedded
 static void CodeObject__serialize(c11_serializer* s,
                                   const CodeObject* co,
                                   const struct SourceData* parent_src);
-static CodeObject CodeObject__deserialize(c11_deserializer* d, SourceData_ embedded_src);
+static CodeObject CodeObject__deserialize(c11_deserializer* d, const char* filename, SourceData_ embedded_src);
 
 // Serialize a py_TValue constant
 // Supported types: None, int, float, bool, str, bytes, tuple, Ellipsis
@@ -106,11 +106,7 @@ static void CodeObject__serialize(c11_serializer* s,
                                   const CodeObject* co,
                                   const struct SourceData* parent_src) {
     // SourceData
-    if(!parent_src) {
-        c11_serializer__write_i8(s, (int8_t)co->src->mode);
-        c11_serializer__write_i8(s, co->src->is_dynamic ? 1 : 0);
-        c11_serializer__write_cstr(s, co->src->filename->data);
-    } else {
+    if(parent_src) {
         c11__rtassert(co->src == parent_src);
     }
 
@@ -169,19 +165,18 @@ static void CodeObject__serialize(c11_serializer* s,
 }
 
 // Deserialize CodeObject (initialize co before calling)
-static CodeObject CodeObject__deserialize(c11_deserializer* d, SourceData_ embedded_src) {
+static CodeObject CodeObject__deserialize(c11_deserializer* d, const char* filename, SourceData_ embedded_src) {
     CodeObject co;
 
     // SourceData
     SourceData_ src;
     if(embedded_src != NULL) {
+        c11__rtassert(filename == NULL);
         src = embedded_src;
         PK_INCREF(src);
     } else {
-        enum py_CompileMode mode = (enum py_CompileMode)c11_deserializer__read_i8(d);
-        bool is_dynamic = c11_deserializer__read_i8(d) != 0;
-        const char* filename = c11_deserializer__read_cstr(d);
-        src = SourceData__rcnew(NULL, filename, mode, is_dynamic);
+        c11__rtassert(filename != NULL);
+        src = SourceData__rcnew(NULL, filename, EXEC_MODE, false);
     }
 
     // name
@@ -299,7 +294,7 @@ static FuncDecl_ FuncDecl__deserialize(c11_deserializer* d, SourceData_ embedded
     c11_smallmap_n2d__ctor(&self->kw_to_index);
 
     // CodeObject (embedded)
-    self->code = CodeObject__deserialize(d, embedded_src);
+    self->code = CodeObject__deserialize(d, NULL, embedded_src);
 
     // args
     int args_len = c11_deserializer__read_i32(d);
@@ -349,7 +344,7 @@ void* CodeObject__dumps(const CodeObject* co, int* size) {
 
 // Public API: Deserialize CodeObject from bytes
 // Returns error message or NULL on success
-char* CodeObject__loads(const void* data, int size, CodeObject* out) {
+char* CodeObject__loads(const void* data, int size, const char* filename, CodeObject* out) {
     c11_deserializer d;
     c11_deserializer__ctor(&d, data, size);
 
@@ -362,7 +357,7 @@ char* CodeObject__loads(const void* data, int size, CodeObject* out) {
         return error_msg;
     }
 
-    *out = CodeObject__deserialize(&d, NULL);
+    *out = CodeObject__deserialize(&d, filename, NULL);
     c11_deserializer__dtor(&d);
     return NULL;
 }

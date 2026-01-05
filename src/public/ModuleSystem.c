@@ -187,9 +187,10 @@ __SUCCESS:
     bool ok;
     if(is_pyc) {
         CodeObject co;
-        char* err = CodeObject__loads(data, data_size, &co);
+        char* err = CodeObject__loads(data, data_size, filename->data, &co);
         if(err == NULL) {
             c11__rtassert(co.src->mode == EXEC_MODE);
+            c11__rtassert(co.src->is_dynamic == false);
             ok = pk_exec(&co, mod);
         } else {
             RuntimeError("failed to load %s: %s", filename->data, err);
