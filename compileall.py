@@ -10,9 +10,15 @@ source_dir = sys.argv[2]
 output_dir = sys.argv[3]
 
 def do_compile(src_path, dst_path):
+    assert os.path.isfile(src_path)
+    assert os.path.isfile(dst_path)
     cmd = f'{pkpy_exe} --compile "{src_path}" "{dst_path}"'
     print(src_path)
     assert os.system(cmd) == 0
+
+if os.path.isfile(source_dir):
+    do_compile(source_dir, output_dir)
+    exit(0)
 
 for root, _, files in os.walk(source_dir):
     for file in files:
