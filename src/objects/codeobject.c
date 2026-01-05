@@ -1,6 +1,5 @@
 #include "pocketpy/objects/codeobject.h"
 #include "pocketpy/common/utils.h"
-#include "pocketpy/config.h"
 #include "pocketpy/pocketpy.h"
 #include <stdint.h>
 #include <assert.h>

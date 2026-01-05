@@ -77,8 +77,14 @@ bool c11_deserializer__check_header(c11_deserializer* self, int16_t magic, int8_
         return c11_deserializer__error(self, "bad header: checksum mismatch");
     }
     // check version
-    if(self->major_ver != major_ver || self->minor_ver > minor_ver){
-        return c11_deserializer__error(self, "bad header: version mismatch");
+    if(self->major_ver != major_ver){
+        return c11_deserializer__error(self, "bad header: major version mismatch");
+    }
+    if(self->minor_ver < minor_ver){
+        // file_ver: 1.1, require_ver: 1.0 => ok
+        // file_ver: 1.1, require_ver: 1.1 => ok
+        // file_ver: 1.1, require_ver: 1.2 => error
+        return c11_deserializer__error(self, "bad header: minor version mismatch");
     }
     return true;
 }

@@ -6,6 +6,7 @@
 #define CODEOBJECT_MAGIC 0x434F
 #define CODEOBJECT_VER_MAJOR 1
 #define CODEOBJECT_VER_MINOR 0
+#define CODEOBJECT_VER_MINOR_MIN 0
 
 // Forward declarations
 static void FuncDecl__serialize(c11_serializer* s,
@@ -355,7 +356,7 @@ char* CodeObject__loads(const void* data, int size, CodeObject* out) {
     if(!c11_deserializer__check_header(&d,
                                        CODEOBJECT_MAGIC,
                                        CODEOBJECT_VER_MAJOR,
-                                       CODEOBJECT_VER_MINOR)) {
+                                       CODEOBJECT_VER_MINOR_MIN)) {
         char* error_msg = c11_strdup(d.error_msg);
         c11_deserializer__dtor(&d);
         return error_msg;
