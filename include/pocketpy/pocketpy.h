@@ -180,6 +180,9 @@ PK_API bool py_compile(const char* source,
                        const char* filename,
                        enum py_CompileMode mode,
                        bool is_dynamic) PY_RAISE PY_RETURN;
+/// Compile a `.py` file into a `.pyc` file.
+PK_API bool py_compilefile(const char* src_path,
+                           const char* dst_path) PY_RAISE;
 /// Run a source string.
 /// @param source source string.
 /// @param filename filename (for error messages).

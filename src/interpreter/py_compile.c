@@ -2,12 +2,7 @@
 #include "pocketpy/interpreter/vm.h"
 #include <errno.h>
 
-static bool py_compile_compile(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    PY_CHECK_ARG_TYPE(0, tp_str);
-    PY_CHECK_ARG_TYPE(1, tp_str);
-    const char* src_path = py_tostr(py_arg(0));
-    const char* dst_path = py_tostr(py_arg(1));
+bool py_compilefile(const char* src_path, const char* dst_path) {
     // read
     FILE* fp = fopen(src_path, "rb");
     if(fp == NULL) {
@@ -40,12 +35,5 @@ static bool py_compile_compile(int argc, py_Ref argv) {
     fwrite(bc_data, 1, bc_size, fp);
     fclose(fp);
     PK_FREE(bc_data);
-    py_newnone(py_retval());
     return true;
-}
-
-void pk__add_module_py_compile() {
-    py_Ref mod = py_newmodule("py_compile");
-
-    py_bindfunc(mod, "compile", py_compile_compile);
 }

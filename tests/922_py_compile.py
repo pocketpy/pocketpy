@@ -1,12 +1,10 @@
-from py_compile import compile
-
 try:
     import os
 except ImportError:
     print('os is not enabled, skipping test...')
     exit(0)
 
-compile('python/heapq.py', 'heapq1.pyc')
+assert os.system('./main --compile python/heapq.py heapq1.pyc') == 0
 assert os.path.exists('heapq1.pyc')
 
 import heapq1

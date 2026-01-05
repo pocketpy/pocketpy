@@ -18,7 +18,6 @@ void pk__add_module_pickle();
 void pk__add_module_base64();
 void pk__add_module_importlib();
 void pk__add_module_unicodedata();
-void pk__add_module_py_compile();
 
 void pk__add_module_stdc();
 void pk__add_module_vmath();
