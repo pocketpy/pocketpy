@@ -11,7 +11,6 @@ output_dir = sys.argv[3]
 
 def do_compile(src_path, dst_path):
     assert os.path.isfile(src_path)
-    assert os.path.isfile(dst_path)
     cmd = f'{pkpy_exe} --compile "{src_path}" "{dst_path}"'
     print(src_path)
     assert os.system(cmd) == 0
