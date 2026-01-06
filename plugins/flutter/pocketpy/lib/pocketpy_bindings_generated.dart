@@ -357,6 +357,47 @@ class PocketpyBindings {
   late final _py_compile = _py_compilePtr.asFunction<
       bool Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>, int, bool)>();
 
+  /// Compile a `.py` file into a `.pyc` file.
+  bool py_compilefile(
+    ffi.Pointer<ffi.Char> src_path,
+    ffi.Pointer<ffi.Char> dst_path,
+  ) {
+    return _py_compilefile(
+      src_path,
+      dst_path,
+    );
+  }
+
+  late final _py_compilefilePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(
+              ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>>('py_compilefile');
+  late final _py_compilefile = _py_compilefilePtr.asFunction<
+      bool Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
+  /// Run a compiled code object.
+  bool py_execo(
+    ffi.Pointer<ffi.Void> data,
+    int size,
+    ffi.Pointer<ffi.Char> filename,
+    py_Ref module,
+  ) {
+    return _py_execo(
+      data,
+      size,
+      filename,
+      module,
+    );
+  }
+
+  late final _py_execoPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Bool Function(ffi.Pointer<ffi.Void>, ffi.Int,
+              ffi.Pointer<ffi.Char>, py_Ref)>>('py_execo');
+  late final _py_execo = _py_execoPtr.asFunction<
+      bool Function(
+          ffi.Pointer<ffi.Void>, int, ffi.Pointer<ffi.Char>, py_Ref)>();
+
   /// Run a source string.
   /// @param source source string.
   /// @param filename filename (for error messages).
@@ -959,38 +1000,6 @@ class PocketpyBindings {
           ffi.Void Function(py_Type, py_Name, py_CFunction)>>('py_bindmagic');
   late final _py_bindmagic =
       _py_bindmagicPtr.asFunction<void Function(int, py_Name, py_CFunction)>();
-
-  /// Bind a compile-time function via "decl-based" style.
-  void py_macrobind(
-    ffi.Pointer<ffi.Char> sig,
-    py_CFunction f,
-  ) {
-    return _py_macrobind(
-      sig,
-      f,
-    );
-  }
-
-  late final _py_macrobindPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(
-              ffi.Pointer<ffi.Char>, py_CFunction)>>('py_macrobind');
-  late final _py_macrobind = _py_macrobindPtr
-      .asFunction<void Function(ffi.Pointer<ffi.Char>, py_CFunction)>();
-
-  /// Get a compile-time function by name.
-  py_ItemRef py_macroget(
-    py_Name name,
-  ) {
-    return _py_macroget(
-      name,
-    );
-  }
-
-  late final _py_macrogetPtr =
-      _lookup<ffi.NativeFunction<py_ItemRef Function(py_Name)>>('py_macroget');
-  late final _py_macroget =
-      _py_macrogetPtr.asFunction<py_ItemRef Function(py_Name)>();
 
   /// Convert an `int` object in python to `int64_t`.
   int py_toint(
@@ -3946,10 +3955,12 @@ abstract class py_TraceEvent {
 
 /// A struct contains the callbacks of the VM.
 final class py_Callbacks extends ffi.Struct {
-  /// Used by `__import__` to load a source module.
+  /// Used by `__import__` to load a source or compiled module.
   external ffi.Pointer<
-      ffi.NativeFunction<
-          ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>)>> importfile;
+          ffi.NativeFunction<
+              ffi.Pointer<ffi.Char> Function(
+                  ffi.Pointer<ffi.Char> path, ffi.Pointer<ffi.Int> data_size)>>
+      importfile;
 
   /// Called before `importfile` to lazy-import a C module.
   external ffi
@@ -4035,12 +4046,12 @@ typedef py_CFunction = ffi.Pointer<
 /// A pointer that represents a python identifier. For fast name resolution.
 typedef py_Name = ffi.Pointer<py_OpaqueName>;
 
-/// An item reference to a container object. It invalidates when the container is modified.
-typedef py_ItemRef = ffi.Pointer<py_TValue>;
-
 /// A generic destructor function.
 typedef py_Dtor
     = ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>;
+
+/// An item reference to a container object. It invalidates when the container is modified.
+typedef py_ItemRef = ffi.Pointer<py_TValue>;
 
 /// A reference which has the same lifespan as the python object.
 typedef py_ObjectRef = ffi.Pointer<py_TValue>;

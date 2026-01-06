@@ -1,6 +1,6 @@
 ---
 icon: dot
-title: Threading
+title: Compute Threads
 ---
 
 pocketpy organizes its state by `VM` structure.
