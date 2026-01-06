@@ -19,7 +19,6 @@ static void CodeObject__serialize(c11_serializer* s,
 static CodeObject CodeObject__deserialize(c11_deserializer* d, const char* filename, SourceData_ embedded_src);
 
 // Serialize a py_TValue constant
-// Supported types: None, int, float, bool, str, bytes, tuple, Ellipsis
 static void TValue__serialize(c11_serializer* s, py_Ref val) {
     c11_serializer__write_type(s, val->type);
     // 1. co_consts: int | float | str
@@ -285,7 +284,7 @@ static void FuncDecl__serialize(c11_serializer* s,
 
 // Deserialize FuncDecl
 static FuncDecl_ FuncDecl__deserialize(c11_deserializer* d, SourceData_ embedded_src) {
-    FuncDecl* self = PK_MALLOC(sizeof(FuncDecl));
+    FuncDecl_ self = PK_MALLOC(sizeof(FuncDecl));
     self->rc.count = 1;
     self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
 

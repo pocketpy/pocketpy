@@ -89,9 +89,9 @@ void SourceData__snapshot(const struct SourceData* self,
         c11_sbuf__write_cstr(ss, name);
     }
 
-    c11_sbuf__write_char(ss, '\n');
     const char *st = NULL, *ed;
     if(SourceData__get_line(self, lineno, &st, &ed)) {
+        c11_sbuf__write_char(ss, '\n');
         while(st < ed && isblank(*st))
             ++st;
         if(st < ed) {
@@ -108,5 +108,5 @@ void SourceData__snapshot(const struct SourceData* self,
         }
     }
 
-    if(!st) { c11_sbuf__write_cstr(ss, "    <?>"); }
+    // if(!st) { c11_sbuf__write_cstr(ss, "    <?>"); }
 }

@@ -78,6 +78,7 @@ int c11_vector__nextcap(c11_vector* self) {
 }
 
 void c11_vector__extend(c11_vector* self, const void* p, int size) {
+    if (size <= 0) return;
     int min_capacity = self->length + size;
     if(self->capacity < min_capacity) {
         int nextcap = c11_vector__nextcap(self);

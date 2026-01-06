@@ -107,8 +107,8 @@ typedef struct FuncDecl {
     RefCounted rc;
     CodeObject code;  // strong ref
 
-    c11_vector /*T=int*/ args;      // indices in co->varnames
-    c11_vector /*T=KwArg*/ kwargs;  // indices in co->varnames
+    c11_vector /*T=int32_t*/ args;          // indices in co->varnames
+    c11_vector /*T=FuncDeclKwArg*/ kwargs;  // indices in co->varnames
 
     int starred_arg;    // index in co->varnames, -1 if no *arg
     int starred_kwarg;  // index in co->varnames, -1 if no **kwarg
