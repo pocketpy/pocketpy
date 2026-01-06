@@ -1,8 +1,8 @@
 #include "pocketpy/interpreter/vm.h"
 
-py_Ref py_getreg(int i) { return pk_current_vm->reg + i; }
+PK_INLINE py_Ref py_getreg(int i) { return pk_current_vm->reg + i; }
 
-void py_setreg(int i, py_Ref val) { pk_current_vm->reg[i] = *val; }
+PK_INLINE void py_setreg(int i, py_Ref val) { pk_current_vm->reg[i] = *val; }
 
 PK_INLINE py_Ref py_retval() { return &pk_current_vm->last_retval; }
 

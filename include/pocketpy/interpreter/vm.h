@@ -58,8 +58,8 @@ typedef struct VM {
     int recursion_depth;
     int max_recursion_depth;
 
-    py_TValue reg[8];  // users' registers
-    void* ctx;         // user-defined context
+    py_TValue reg[14];  // users' registers
+    void* ctx;          // user-defined context
 
     CachedNames cached_names;
 

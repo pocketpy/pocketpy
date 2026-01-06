@@ -44,8 +44,7 @@ struct object_pool {
     };
 
     static void initialize(int size) noexcept {
-        // use 8th register.
-        pool = py_getreg(7);
+        pool = py_sysr1();
         py_newtuple(pool, size);
         indices_ = new std::vector<int>(size, 0);
     }

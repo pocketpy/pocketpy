@@ -46,7 +46,7 @@ static struct c11_debugger {
     c11_vector py_frames;
     c11_smallmap_d2index scopes_query_cache;
 
-#define python_vars py_r7()
+#define python_vars py_sysr0()
 
 } debugger;
 

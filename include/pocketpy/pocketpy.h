@@ -441,6 +441,13 @@ PK_API py_GlobalRef py_retval();
 #define py_r6() py_getreg(6)
 #define py_r7() py_getreg(7)
 
+#define py_tmpr0() py_getreg(8)
+#define py_tmpr1() py_getreg(9)
+#define py_tmpr2() py_getreg(10)
+#define py_tmpr3() py_getreg(11)
+#define py_sysr0() py_getreg(12)    // for debugger
+#define py_sysr1() py_getreg(13)    // for pybind11
+
 /// Get an item from the object's `__dict__`.
 /// Return `NULL` if not found.
 PK_API py_ItemRef py_getdict(py_Ref self, py_Name name);

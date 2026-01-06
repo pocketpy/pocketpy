@@ -114,10 +114,8 @@ py_Ref py_name2ref(py_Name name) {
     py_Ref res = CachedNames__try_get(d, name);
     if(res != NULL) return res;
     // not found, create a new one
-    py_StackRef tmp = py_pushtmp();
-    py_newstrv(tmp, py_name2sv(name));
-    CachedNames__set(d, name, tmp);
-    py_pop();
+    py_newstrv(py_tmpr0(), py_name2sv(name));
+    CachedNames__set(d, name, py_tmpr0());
     return CachedNames__try_get(d, name);
 }
 

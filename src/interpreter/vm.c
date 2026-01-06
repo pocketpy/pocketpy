@@ -99,6 +99,8 @@ void VM__ctor(VM* self) {
     self->recursion_depth = 0;
     self->max_recursion_depth = 1000;
 
+    memset(self->reg, 0, sizeof(self->reg));
+
     self->ctx = NULL;
     self->curr_class = NULL;
     self->curr_decl_based_function = NULL;
