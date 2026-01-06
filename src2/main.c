@@ -9,21 +9,6 @@
 #include <windows.h>
 #endif
 
-static char* read_file(const char* path) {
-    FILE* file = fopen(path, "rb");
-    if(file == NULL) {
-        printf("Error: file not found\n");
-        return NULL;
-    }
-    fseek(file, 0, SEEK_END);
-    long size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    char* buffer = PK_MALLOC(size + 1);
-    size = fread(buffer, 1, size, file);
-    buffer[size] = 0;
-    return buffer;
-}
-
 static char buf[2048];
 
 int main(int argc, char** argv) {
@@ -115,9 +100,28 @@ int main(int argc, char** argv) {
         if(profile) py_profiler_begin();
         if(debug) py_debugger_waitforattach("127.0.0.1", 6110);
 
-        char* source = read_file(filename);
-        if(source) {
-            if(!py_exec(source, filename, EXEC_MODE, NULL)) py_printexc();
+        int data_size;
+        char* data = py_callbacks()->importfile(filename, &data_size);
+        // check filename endswith .pyc
+        bool is_pyc = false;
+        int filename_len = (int)strlen(filename);
+        if(filename_len >= 4) {
+            if(filename[filename_len - 4] == '.' &&
+               filename[filename_len - 3] == 'p' &&
+               filename[filename_len - 2] == 'y' &&
+               filename[filename_len - 1] == 'c') {
+                is_pyc = true;
+            }
+        }
+
+        if(data) {
+            bool ok;
+            if(is_pyc) {
+                ok = py_execo(data, data_size, filename, NULL);
+            } else {
+                ok = py_exec(data, filename, EXEC_MODE, NULL);
+            }
+            if(!ok) py_printexc();
 
             if(profile) {
                 char* json_report = py_profiler_report();
@@ -128,8 +132,11 @@ int main(int argc, char** argv) {
                 }
                 PK_FREE(json_report);
             }
-
-            PK_FREE(source);
+            PK_FREE(data);
+        } else {
+            printf("Error: cannot open file '%s'\n", filename);
+            py_finalize();
+            return 1;
         }
     }
 

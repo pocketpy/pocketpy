@@ -149,6 +149,20 @@ bool py_exec(const char* source, const char* filename, enum py_CompileMode mode,
     return ok;
 }
 
+bool py_execo(const void* data, int size, const char* filename, py_Ref module) {
+    CodeObject co;
+    char* err = CodeObject__loads(data, size, filename, &co);
+    if(err == NULL) {
+        c11__rtassert(co.src->mode == EXEC_MODE);
+        c11__rtassert(co.src->is_dynamic == false);
+        bool ok = pk_exec(&co, module);
+        CodeObject__dtor(&co);
+        return ok;
+    } else {
+        return RuntimeError("bad code object %s: %s", filename, err);
+    }
+}
+
 bool py_eval(const char* source, py_Ref module) {
     return py_exec(source, "<string>", EVAL_MODE, module);
 }
