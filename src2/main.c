@@ -9,6 +9,20 @@
 #include <windows.h>
 #endif
 
+static char* readfile(const char* path, int* data_size) {
+    FILE* f = fopen(path, "rb");
+    if(f == NULL) return NULL;
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char* buffer = PK_MALLOC(size + 1);
+    size = fread(buffer, 1, size, f);
+    buffer[size] = 0;
+    fclose(f);
+    if(data_size) *data_size = (int)size;
+    return buffer;
+}
+
 static char buf[2048];
 
 int main(int argc, char** argv) {
@@ -101,7 +115,7 @@ int main(int argc, char** argv) {
         if(debug) py_debugger_waitforattach("127.0.0.1", 6110);
 
         int data_size;
-        char* data = py_callbacks()->importfile(filename, &data_size);
+        char* data = readfile(filename, &data_size);
         // check filename endswith .pyc
         bool is_pyc = false;
         int filename_len = (int)strlen(filename);
