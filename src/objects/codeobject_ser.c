@@ -115,33 +115,43 @@ static void CodeObject__serialize(c11_serializer* s,
     // codes
     _Static_assert(sizeof(Bytecode) == sizeof(uint16_t) * 2, "");
     c11_serializer__write_i32(s, co->codes.length);
+    c11_serializer__write_mark(s, '[');
     c11_serializer__write_bytes(s, co->codes.data, co->codes.length * sizeof(Bytecode));
+    c11_serializer__write_mark(s, ']');
 
     // codes_ex
     _Static_assert(sizeof(BytecodeEx) == sizeof(int32_t) * 2, "");
     c11_serializer__write_i32(s, co->codes_ex.length);
+    c11_serializer__write_mark(s, '[');
     c11_serializer__write_bytes(s, co->codes_ex.data, co->codes_ex.length * sizeof(BytecodeEx));
+    c11_serializer__write_mark(s, ']');
 
     // consts
     c11_serializer__write_i32(s, co->consts.length);
+    c11_serializer__write_mark(s, '[');
     for(int i = 0; i < co->consts.length; i++) {
         py_Ref val = c11__at(py_TValue, &co->consts, i);
         TValue__serialize(s, val);
     }
+    c11_serializer__write_mark(s, ']');
 
     // varnames (as cstr via py_name2str)
     c11_serializer__write_i32(s, co->varnames.length);
+    c11_serializer__write_mark(s, '[');
     for(int i = 0; i < co->varnames.length; i++) {
         py_Name name = c11__getitem(py_Name, &co->varnames, i);
         c11_serializer__write_cstr(s, py_name2str(name));
     }
+    c11_serializer__write_mark(s, ']');
 
     // names (as cstr via py_name2str)
     c11_serializer__write_i32(s, co->names.length);
+    c11_serializer__write_mark(s, '[');
     for(int i = 0; i < co->names.length; i++) {
         py_Name name = c11__getitem(py_Name, &co->names, i);
         c11_serializer__write_cstr(s, py_name2str(name));
     }
+    c11_serializer__write_mark(s, ']');
 
     // nlocals
     c11_serializer__write_i32(s, co->nlocals);
@@ -149,14 +159,19 @@ static void CodeObject__serialize(c11_serializer* s,
     // blocks
     _Static_assert(sizeof(CodeBlock) == sizeof(int32_t) * 5, "");
     c11_serializer__write_i32(s, co->blocks.length);
+    c11_serializer__write_mark(s, '[');
     c11_serializer__write_bytes(s, co->blocks.data, co->blocks.length * sizeof(CodeBlock));
+    c11_serializer__write_mark(s, ']');
 
     // func_decls
     c11_serializer__write_i32(s, co->func_decls.length);
+    c11_serializer__write_mark(s, '[');
     for(int i = 0; i < co->func_decls.length; i++) {
         const FuncDecl* decl = c11__getitem(FuncDecl_, &co->func_decls, i);
         FuncDecl__serialize(s, decl, co->src);
+        c11_serializer__write_mark(s, '|');
     }
+    c11_serializer__write_mark(s, ']');
 
     // start_line, end_line
     c11_serializer__write_i32(s, co->start_line);
@@ -190,54 +205,70 @@ static CodeObject CodeObject__deserialize(c11_deserializer* d, const char* filen
 
     // codes
     int codes_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
     c11_vector__extend(&co.codes,
                        c11_deserializer__read_bytes(d, codes_len * sizeof(Bytecode)),
                        codes_len);
+    c11_deserializer__consume_mark(d, ']');
     // codes_ex
     int codes_ex_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
     c11_vector__extend(&co.codes_ex,
                        c11_deserializer__read_bytes(d, codes_ex_len * sizeof(BytecodeEx)),
                        codes_ex_len);
+    c11_deserializer__consume_mark(d, ']');
 
     // consts
     int consts_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
     for(int i = 0; i < consts_len; i++) {
         py_Ref p_val = c11_vector__emplace(&co.consts);
         TValue__deserialize(d, p_val);
     }
+    c11_deserializer__consume_mark(d, ']');
 
     // varnames
     int varnames_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
     for(int i = 0; i < varnames_len; i++) {
         const char* s = c11_deserializer__read_cstr(d);
         py_Name n = py_name(s);
         c11_vector__push(py_Name, &co.varnames, n);
         c11_smallmap_n2d__set(&co.varnames_inv, n, i);
     }
+    c11_deserializer__consume_mark(d, ']');
 
     // names
     int names_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
     for(int i = 0; i < names_len; i++) {
         const char* s = c11_deserializer__read_cstr(d);
         py_Name n = py_name(s);
         c11_vector__push(py_Name, &co.names, n);
         c11_smallmap_n2d__set(&co.names_inv, n, i);
     }
+    c11_deserializer__consume_mark(d, ']');
 
     // nlocals
     co.nlocals = c11_deserializer__read_i32(d);
 
     // blocks
     int blocks_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
     c11_vector__extend(&co.blocks,
                        c11_deserializer__read_bytes(d, blocks_len * sizeof(CodeBlock)),
                        blocks_len);
+    c11_deserializer__consume_mark(d, ']');
+
     // func_decls
     int func_decls_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
     for(int i = 0; i < func_decls_len; i++) {
         FuncDecl_ decl = FuncDecl__deserialize(d, src);
         c11_vector__push(FuncDecl_, &co.func_decls, decl);
+        c11_deserializer__consume_mark(d, '|');
     }
+    c11_deserializer__consume_mark(d, ']');
 
     // start_line, end_line
     co.start_line = c11_deserializer__read_i32(d);
@@ -251,20 +282,26 @@ static void FuncDecl__serialize(c11_serializer* s,
                                 const FuncDecl* decl,
                                 const struct SourceData* parent_src) {
     // CodeObject (embedded)
+    c11_serializer__write_mark(s, '{');
     CodeObject__serialize(s, &decl->code, parent_src);
+    c11_serializer__write_mark(s, '}');
 
     // args
     c11_serializer__write_i32(s, decl->args.length);
+    c11_serializer__write_mark(s, '[');
     c11_serializer__write_bytes(s, decl->args.data, decl->args.length * sizeof(int32_t));
+    c11_serializer__write_mark(s, ']');
 
     // kwargs
     c11_serializer__write_i32(s, decl->kwargs.length);
+    c11_serializer__write_mark(s, '[');
     for(int i = 0; i < decl->kwargs.length; i++) {
         FuncDeclKwArg* kw = c11__at(FuncDeclKwArg, &decl->kwargs, i);
         c11_serializer__write_i32(s, kw->index);
         c11_serializer__write_cstr(s, py_name2str(kw->key));
         TValue__serialize(s, &kw->value);
     }
+    c11_serializer__write_mark(s, ']');
 
     // starred_arg, starred_kwarg
     c11_serializer__write_i32(s, decl->starred_arg);
@@ -293,16 +330,21 @@ static FuncDecl_ FuncDecl__deserialize(c11_deserializer* d, SourceData_ embedded
     c11_smallmap_n2d__ctor(&self->kw_to_index);
 
     // CodeObject (embedded)
+    c11_deserializer__consume_mark(d, '{');
     self->code = CodeObject__deserialize(d, NULL, embedded_src);
-
+    c11_deserializer__consume_mark(d, '}');
+    
     // args
     int args_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
     c11_vector__extend(&self->args,
                        c11_deserializer__read_bytes(d, args_len * sizeof(int32_t)),
                        args_len);
+    c11_deserializer__consume_mark(d, ']');
 
     // kwargs
     int kwargs_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
     for(int i = 0; i < kwargs_len; i++) {
         FuncDeclKwArg* kw = c11_vector__emplace(&self->kwargs);
         kw->index = c11_deserializer__read_i32(d);
@@ -311,6 +353,8 @@ static FuncDecl_ FuncDecl__deserialize(c11_deserializer* d, SourceData_ embedded
         TValue__deserialize(d, &kw->value);
         c11_smallmap_n2d__set(&self->kw_to_index, kw->key, kw->index);
     }
+    c11_deserializer__consume_mark(d, ']');
+
     // starred_arg
     self->starred_arg = c11_deserializer__read_i32(d);
     // starred_kwarg

@@ -25,6 +25,10 @@ void c11_serializer__dtor(c11_serializer* self){
     c11_vector__dtor(&self->data);
 }
 
+void c11_serializer__write_mark(c11_serializer *self, char mark) {
+    c11_serializer__write_i8(self, (int8_t)mark);
+}
+
 void c11_serializer__write_cstr(c11_serializer *self, const char* cstr) {
     int len = (int)strlen(cstr);
     c11_serializer__write_bytes(self, cstr, len + 1);
@@ -54,6 +58,13 @@ void c11_deserializer__dtor(c11_deserializer* self){
 bool c11_deserializer__error(c11_deserializer* self, const char* msg){
     snprintf(self->error_msg, sizeof(self->error_msg), "%s", msg);
     return false;
+}
+
+void c11_deserializer__consume_mark(c11_deserializer* self, char expected) {
+    int8_t mark = c11_deserializer__read_i8(self);
+    if (mark != (int8_t)expected) {
+        c11__abort("internal error: deserialize mark mismatch: expected %c but got %c", expected, (char)mark);
+    }
 }
 
 bool c11_deserializer__check_header(c11_deserializer* self, int16_t magic, int8_t major_ver, int8_t minor_ver_min){

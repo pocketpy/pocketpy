@@ -12,6 +12,7 @@ typedef struct c11_serializer {
 
 void c11_serializer__ctor(c11_serializer* self, int16_t magic, int8_t major_ver, int8_t minor_ver);
 void c11_serializer__dtor(c11_serializer* self);
+void c11_serializer__write_mark(c11_serializer* self, char mark);
 void c11_serializer__write_cstr(c11_serializer* self, const char*);
 void c11_serializer__write_bytes(c11_serializer* self, const void* data, int size);
 void* c11_serializer__submit(c11_serializer* self, int* size);
@@ -27,6 +28,7 @@ typedef struct c11_deserializer {
 
 void c11_deserializer__ctor(c11_deserializer* self, const void* data, int size);
 void c11_deserializer__dtor(c11_deserializer* self);
+void c11_deserializer__consume_mark(c11_deserializer* self, char expected);
 bool c11_deserializer__check_header(c11_deserializer* self, int16_t magic, int8_t major_ver, int8_t minor_ver_min);
 const char* c11_deserializer__read_cstr(c11_deserializer* self);
 void* c11_deserializer__read_bytes(c11_deserializer* self, int size);
