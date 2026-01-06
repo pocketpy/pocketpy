@@ -77,6 +77,7 @@ static int Ctx__enter_block(Ctx* self, CodeBlockType type);
 static void Ctx__exit_block(Ctx* self);
 static int Ctx__emit_(Ctx* self, Opcode opcode, uint16_t arg, int line);
 static int Ctx__emit_int(Ctx* self, int64_t value, int line);
+static int Ctx__emit_name(Ctx* self, py_Name name, int line);
 static void Ctx__patch_jump(Ctx* self, int index);
 static void Ctx__emit_jump(Ctx* self, int target, int line);
 static int Ctx__add_varname(Ctx* self, py_Name name);
@@ -1070,7 +1071,7 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
 
     c11__foreach(Expr*, &self->args, e) { vtemit_(*e, ctx); }
     c11__foreach(CallExprKwArg, &self->kwargs, e) {
-        Ctx__emit_int(ctx, (uintptr_t)e->key, self->line);
+        Ctx__emit_name(ctx, e->key, self->line);
         vtemit_(e->val, ctx);
     }
     int KWARGC = self->kwargs.length;
@@ -1194,6 +1195,12 @@ static int Ctx__emit_int(Ctx* self, int64_t value, int line) {
         py_newint(&tmp, value);
         return Ctx__emit_(self, OP_LOAD_CONST, Ctx__add_const(self, &tmp), line);
     }
+}
+
+static int Ctx__emit_name(Ctx* self, py_Name name, int line) {
+    int index = Ctx__add_name(self, name);
+    assert(index <= UINT16_MAX);
+    return Ctx__emit_(self, OP_LOAD_NAME_AS_INT, (uint16_t)index, line);
 }
 
 static void Ctx__patch_jump(Ctx* self, int index) {

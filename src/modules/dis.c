@@ -72,7 +72,7 @@ static bool disassemble(CodeObject* co) {
                     pk_sprintf(&ss, " (%q)", py_tosv(path));
                     break;
                 }
-                case OP_LOAD_NAME:
+                case OP_LOAD_NAME: case OP_LOAD_NAME_AS_INT:
                 case OP_LOAD_GLOBAL:
                 case OP_LOAD_NONLOCAL:
                 case OP_STORE_GLOBAL:

@@ -189,6 +189,11 @@ __NEXT_STEP:
             py_newint(SP()++, (int16_t)byte.arg);
             DISPATCH();
         }
+        case OP_LOAD_NAME_AS_INT: {
+            py_Name name = co_names[byte.arg];
+            py_newint(SP()++, (uintptr_t)name);
+            DISPATCH();
+        }
         /*****************************************/
         case OP_LOAD_ELLIPSIS: {
             py_newellipsis(SP()++);
