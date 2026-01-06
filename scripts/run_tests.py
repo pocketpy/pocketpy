@@ -3,14 +3,12 @@ import sys
 import time
 import subprocess
 
+pkpy_exe = 'main.exe' if sys.platform == 'win32' else './main'
 
 def test_file(filepath, cpython=False):
     if cpython:
         return os.system("python " + filepath) == 0
-    if sys.platform == 'win32':
-        code = os.system("main.exe " + filepath)
-    else:
-        code = os.system("./main " + filepath)
+    code = os.system(pkpy_exe + ' ' + filepath)
     if code != 0:
         print('Return code:', code)
     return code == 0
@@ -18,7 +16,7 @@ def test_file(filepath, cpython=False):
 def test_dir(path):
     print("Testing directory:", path)
     for filename in sorted(os.listdir(path)):
-        if not filename.endswith('.py'):
+        if not filename.endswith('.py') and not filename.endswith('.pyc'):
             continue
         filepath = os.path.join(path, filename)
         print("> " + filepath, flush=True)
@@ -76,6 +74,8 @@ exit()
             print(res.stdout)
             exit(1)
 
+code = os.system(f'python compileall.py {pkpy_exe} tests tmp/tests')
+assert code == 0
 
 if len(sys.argv) == 2:
     assert 'benchmark' in sys.argv[1]
@@ -83,6 +83,12 @@ if len(sys.argv) == 2:
 else:
     test_dir('tests/')
     test_repl()
+
+    if os.path.exists('tmp/tests'):
+        print('-' * 50)
+        time.sleep(3)
+        test_dir('tmp/tests/')
+    
 
 
 print("ALL TESTS PASSED")

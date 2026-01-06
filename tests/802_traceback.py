@@ -1,4 +1,8 @@
 import traceback
+import sys
+
+if sys.argv[0].endswith('.pyc'):
+    exit()
 
 try:
     a = {'123': 4}
@@ -7,7 +11,7 @@ except KeyError:
     actual = traceback.format_exc()
 
 expected = '''Traceback (most recent call last):
-  File "tests/802_traceback.py", line 5
+  File "tests/802_traceback.py", line 9
     b = a[6]
 KeyError: 6'''
 
