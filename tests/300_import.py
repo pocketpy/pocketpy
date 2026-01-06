@@ -3,7 +3,14 @@ try:
 except ImportError:
     exit(0)
 
-os.chdir('tests')
+import sys
+is_pyc = sys.argv[0].endswith('.pyc')
+
+if is_pyc:
+    os.chdir('tmp/tests')
+else:
+    os.chdir('tests')
+
 assert os.getcwd().endswith('tests')
 
 import test1
@@ -49,8 +56,11 @@ from math import (
     cos
 )
 
-# test reload (dummy)
-import importlib
-importlib.reload(test2.a)
-
 assert __import__('math').pi > 3
+
+# test reload (dummy)
+if not is_pyc:
+    import importlib
+    importlib.reload(test2.a)
+
+    
