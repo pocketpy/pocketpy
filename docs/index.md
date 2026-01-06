@@ -44,6 +44,7 @@ These platforms are officially tested.
 + iOS 64-bit
 + Emscripten 32-bit
 + Raspberry Pi OS 64-bit
++ [Luckfox Pico SDK](https://github.com/LuckfoxTECH/luckfox-pico) 32-bit
 
 ## Star the repo
 

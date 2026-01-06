@@ -6,12 +6,7 @@ label: Quick Start
 
 You have two options to integrate pkpy into your project.
 
-#### Use the single header file
-
-Download the `pocketpy.h` and `pocketpy.c` on our [GitHub Release](https://github.com/pocketpy/pocketpy/releases) page.
-And `#include` it in your project.
-
-#### Use CMake
+#### Use CMake (Recommended)
 
 Clone the whole repository as a submodule into your project,
 In your CMakelists.txt, add the following lines:
@@ -24,6 +19,11 @@ target_link_libraries(<your_target> pocketpy)
 See [CMakeLists.txt](https://github.com/pocketpy/pocketpy/blob/main/CMakeLists.txt) for details.
 
 It is safe to use `main` branch in production if CI badge is green.
+
+#### Use the single header file
+
+Download the `pocketpy.h` and `pocketpy.c` on our [GitHub Release](https://github.com/pocketpy/pocketpy/releases) page.
+And `#include` it in your project.
 
 ### Compile flags
 

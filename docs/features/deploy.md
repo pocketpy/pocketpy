@@ -8,9 +8,9 @@ order: 81
 The feature requires pocketpy version >= `2.1.7`
 !!!
 
-You can deploy your pocketpy program as bytecode files.
-It provides some sort of code obfuscation and may slightly improve the loading speed of your program.
-It makes your users unable to get your source code directly, unless they do expensive reverse engineering.
+You can deploy your pocketpy program as bytecode files, which slightly improves the loading speed of your program.
+
+It also makes your users unable to get your source code directly, unless they do expensive reverse engineering.
 
 To compile a `.py` file into a `.pyc` bytecode file, you need the command-line executable `main`,
 which can be simply built by running `python cmake_build.py` in the repository root.

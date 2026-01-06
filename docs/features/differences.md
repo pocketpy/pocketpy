@@ -22,7 +22,7 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 
 1. Descriptor protocol `__get__` and `__set__`. However, `@property` is implemented.
 2. `__slots__` in class definition.
-3. `else` clause in try..except.
+3. `else` and `finally` clause in try..except.
 4. Inplace methods like `__iadd__` and `__imul__`.
 5. `__del__` in class definition.
 6. Multiple inheritance.
