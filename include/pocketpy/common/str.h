@@ -56,6 +56,7 @@ c11_sv c11_sv__slice2(c11_sv sv, int start, int stop);
 c11_sv c11_sv__strip(c11_sv sv, c11_sv chars, bool left, bool right);
 int c11_sv__index(c11_sv self, char c);
 int c11_sv__rindex(c11_sv self, char c);
+c11_sv c11_sv__filename(c11_sv self);
 int c11_sv__index2(c11_sv self, c11_sv sub, int start);
 int c11_sv__count(c11_sv self, c11_sv sub);
 bool c11_sv__startswith(c11_sv self, c11_sv prefix);

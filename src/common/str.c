@@ -147,6 +147,14 @@ int c11_sv__rindex(c11_sv self, char c) {
     return -1;
 }
 
+c11_sv c11_sv__filename(c11_sv self) {
+    int sep_index_1 = c11_sv__rindex(self, '/');
+    int sep_index_2 = c11_sv__rindex(self, '\\');
+    int sep_index = c11__max(sep_index_1, sep_index_2);
+    if(sep_index == -1) return self;
+    return c11_sv__slice(self, sep_index + 1);
+}
+
 int c11_sv__index2(c11_sv self, c11_sv sub, int start) {
     if(sub.size == 0) return start;
     int max_end = self.size - sub.size;

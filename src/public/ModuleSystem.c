@@ -78,8 +78,10 @@ int py_import(const char* path_cstr) {
         while(dot_count < path.size && path.data[dot_count] == '.')
             dot_count++;
 
-        c11_sv top_filename = c11_string__sv(vm->top_frame->co->src->filename);
-        int is_init = c11_sv__endswith(top_filename, (c11_sv){"__init__.py", 11});
+        // */__init__.py[c]
+        c11_sv top_filepath = c11_string__sv(vm->top_frame->co->src->filename);
+        c11_sv top_filename = c11_sv__filename(top_filepath);
+        int is_init = c11__sveq2(top_filename, "__init__.py") || c11__sveq2(top_filename, "__init__.pyc");
 
         py_ModuleInfo* mi = py_touserdata(vm->top_frame->module);
         c11_sv package_sv = c11_string__sv(mi->path);
