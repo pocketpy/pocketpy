@@ -1071,7 +1071,12 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
 
     c11__foreach(Expr*, &self->args, e) { vtemit_(*e, ctx); }
     c11__foreach(CallExprKwArg, &self->kwargs, e) {
-        Ctx__emit_name(ctx, e->key, self->line);
+        if(e->key == 0) {
+            // special key for **kwargs
+            Ctx__emit_int(ctx, 0, self->line);
+        } else {
+            Ctx__emit_name(ctx, e->key, self->line);
+        }
         vtemit_(e->val, ctx);
     }
     int KWARGC = self->kwargs.length;
@@ -1221,7 +1226,10 @@ static int Ctx__add_varname(Ctx* self, py_Name name) {
     return CodeObject__add_varname(self->co, name);
 }
 
-static int Ctx__add_name(Ctx* self, py_Name name) { return CodeObject__add_name(self->co, name); }
+static int Ctx__add_name(Ctx* self, py_Name name) {
+    assert(name != 0);
+    return CodeObject__add_name(self->co, name);
+}
 
 static int Ctx__add_const_string(Ctx* self, c11_sv key) {
     if(key.size > 100) {
