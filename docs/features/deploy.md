@@ -8,7 +8,8 @@ order: 81
 The feature requires pocketpy version >= `2.1.7`
 !!!
 
-You can deploy your pocketpy program as bytecode files, which slightly improves the loading speed of your program.
+You can deploy your pocketpy program as `.pyc` files, which are compiled bytecodes with necessary metadata.
+This slightly improves the loading speed of your program.
 
 It also makes your users unable to get your source code directly, unless they do expensive reverse engineering.
 
@@ -30,3 +31,23 @@ It compiles all `.py` files in the specified directory into `.pyc` files.
 ```sh
 python compileall.py ./main input_path output_path
 ```
+
+## Running `.pyc` files
+
+The command-line executable `main` can run `.pyc` files directly:
+
+```sh
+./main output_file.pyc
+```
+
+If you are using C-APIs, you can use the `py_execo()` function.
+
+```c
+/// Run a compiled code object.
+PK_API bool py_execo(const void* data, int size, const char* filename, py_Ref module) PY_RAISE PY_RETURN;
+```
+
+## Trackback Support
+
+Since `.pyc` files do not contain raw sources,
+trackbacks will show line numbers but not the actual source code lines.
