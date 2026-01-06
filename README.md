@@ -51,6 +51,8 @@ These platforms are officially tested.
 + Raspberry Pi OS 64-bit
 + [Luckfox Pico SDK](https://github.com/LuckfoxTECH/luckfox-pico) 32-bit
 
+On Windows platform, only MSVC compiler is officially supported.
+
 ## Quick Start
 
 You have two options to integrate pkpy into your project.
