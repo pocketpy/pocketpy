@@ -12,8 +12,9 @@ output_dir = sys.argv[3]
 def do_compile(src_path, dst_path):
     assert os.path.isfile(src_path)
     cmd = f'{pkpy_exe} --compile "{src_path}" "{dst_path}"'
-    print(src_path)
-    assert os.system(cmd) == 0
+    if os.system(cmd) != 0:
+        print(src_path)
+        exit(1)
 
 if os.path.isfile(source_dir):
     if output_dir.endswith('.py'):
