@@ -7,6 +7,7 @@ order: 17
 ## Quick Start
 
 pkpy provides a [pybind11](https://pybind11.readthedocs.io/en/stable/) compatible layer which allows users to do convenient bindings.
+Header files are located in the `include/pybind11` directory. Make sure you have added `-Iinclude` to your compiler flags.
 
 To begin with, use `py::scoped_interpreter guard{}` to start the interpreter before using any Python objects.
 Or explicitly call `py::interpreter::initialize()` and `py::interpreter::finalize()`.
