@@ -18,6 +18,15 @@
         return true;                                                                               \
     }
 
+#define ONE_ARG_BOOL_FUNC(name, func)                                                              \
+    static bool math_##name(int argc, py_Ref argv) {                                               \
+        PY_CHECK_ARGC(1);                                                                          \
+        double x;                                                                                  \
+        if(!py_castfloat(py_arg(0), &x)) return false;                                             \
+        py_newbool(py_retval(), func(x));                                                          \
+        return true;                                                                               \
+    }
+
 #define TWO_ARG_FUNC(name, func)                                                                   \
     static bool math_##name(int argc, py_Ref argv) {                                               \
         PY_CHECK_ARGC(2);                                                                          \
@@ -69,9 +78,9 @@ static bool math_gcd(int argc, py_Ref argv) {
     return true;
 }
 
-ONE_ARG_FUNC(isfinite, isfinite)
-ONE_ARG_FUNC(isinf, isinf)
-ONE_ARG_FUNC(isnan, isnan)
+ONE_ARG_BOOL_FUNC(isfinite, isfinite)
+ONE_ARG_BOOL_FUNC(isinf, isinf)
+ONE_ARG_BOOL_FUNC(isnan, isnan)
 
 static bool math_isclose(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
@@ -206,4 +215,5 @@ void pk__add_module_math() {
 }
 
 #undef ONE_ARG_FUNC
+#undef ONE_ARG_BOOL_FUNC
 #undef TWO_ARG_FUNC
