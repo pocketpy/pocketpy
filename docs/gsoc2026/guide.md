@@ -15,8 +15,8 @@ To apply for this project, you need to satisfy the following prerequisites:
 
 + You are a student enrolled in an accredited institution (university, college, etc.) pursuing a degree in computer science or a related field. And this is your first time participating in Google Summer of Code.
 + You have interest in vibe coding and mobile game development.
-+ You are experienced in Python and backend technologies, such as FastAPI or Flask.
-+ You are glad to learn mobile app development using frameworks like Flutter.
++ You are experienced in [Python](https://www.python.org/) and backend technologies, such as [FastAPI](https://fastapi.tiangolo.com/) or [Flask](https://flask.palletsprojects.com/).
++ You are glad to learn mobile app development using frameworks like [Flutter](https://flutter.dev/).
 
 ## Application steps
 
@@ -34,6 +34,7 @@ send an email to `blueloveth@foxmail.com` with the following information.
 After you get a positive reply from us,
 you need to complete 1~2 pull requests to pocketpy's repository on GitHub.
 This is mandatory as it demonstrates your coding skills and commitment to the project.
+We will provide you a few good first issues to work on.
 
 ### Step 3
 
