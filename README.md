@@ -36,6 +36,7 @@ Please see https://pocketpy.dev for details and try the following resources.
 + [Godot Extension](https://github.com/pocketpy/godot-pocketpy): Use pocketpy in Godot Engine
 + [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy): Debug and profile pocketpy scripts in VSCode
 + [Flutter Plugin](https://pub.dev/packages/pocketpy): Use pocketpy in Flutter apps
++ [Raylib Bindings](https://github.com/pocketpy/raylib-bindings): Use raylib with pocketpy
 
 ## Supported Platforms
 
