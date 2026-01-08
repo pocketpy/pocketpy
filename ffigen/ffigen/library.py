@@ -19,14 +19,14 @@ class Library:
         self.functions = [] # type: list[Function]
         self.callbacks = set() # type: set[str]
 
-    def unalias(self, name: str) -> c_ast.Node:
+    def unalias(self, name: str) -> c_ast.Node | str:
         while name in self.aliases:
             node = self.aliases[name]
             if isinstance(node, str):
                 name = node
             else:
                 return node
-        assert False, f'alias {name} not found'
+        return name
 
     def build(self, *, glue_dir='.', stub_dir='.', includes: list[str] | None = None):
         self.remove_unsupported()
