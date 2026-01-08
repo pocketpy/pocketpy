@@ -85,7 +85,7 @@ int main() {
     if(!ok) goto __ERROR;
 
     // Create a list: [1, 2, 3]
-    py_Ref r0 = py_getreg(0);
+    py_Ref r0 = py_tmpr0();
     py_newlistn(r0, 3);
     py_newint(py_list_getitem(r0, 0), 1);
     py_newint(py_list_getitem(r0, 1), 2);
