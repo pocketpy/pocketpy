@@ -218,12 +218,21 @@ static bool Random_randint(int argc, py_Ref argv) {
 static bool Random_choice(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     mt19937* ud = py_touserdata(py_arg(0));
-    py_TValue* p;
-    int length = pk_arrayview(py_arg(1), &p);
-    if(length == -1) return TypeError("choice(): argument must be a list or tuple");
-    if(length == 0) return IndexError("cannot choose from an empty sequence");
-    int index = mt19937__randint(ud, 0, length - 1);
-    py_assign(py_retval(), p + index);
+    if (py_isstr(py_arg(1))) {
+        c11_sv sv = py_tosv(py_arg(1));
+        int length = c11_sv__u8_length(sv);
+        if(length == 0) return IndexError("cannot choose from an empty sequence");
+        int index = mt19937__randint(ud, 0, length - 1);
+        c11_sv ch = c11_sv__u8_getitem(sv, index);
+        py_newstrv(py_retval(), ch);
+    } else {
+        py_TValue* p;
+        int length = pk_arrayview(py_arg(1), &p);
+        if(length == -1) return TypeError("choice(): argument must be a list, tuple or str");
+        if(length == 0) return IndexError("cannot choose from an empty sequence");
+        int index = mt19937__randint(ud, 0, length - 1);
+        py_assign(py_retval(), p + index);
+    }
     return true;
 }
 

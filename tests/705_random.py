@@ -21,6 +21,9 @@ for i in range(10):
     assert r.choice(tuple(a)) in a
 
 for i in range(10):
+    assert r.choice('hello') in 'hello'
+
+for i in range(10):
     assert r.randint(1, 1) == 1
 
 # test choices

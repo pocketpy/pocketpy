@@ -170,6 +170,13 @@ b = a.copy(); del b[-1:]; assert b == [1, 2, 3]
 b = a.copy(); del b[:]; assert b == []
 assert a == [1, 2, 3, 4]
 
+# test extend with iterable
+c = [1]
+c.extend('123')
+assert c == [1, '1', '2', '3']
+c.extend(range(1, 6))
+assert c == [1, '1', '2', '3', 1, 2, 3, 4, 5]
+
 # test cyclic reference
 # a = []
 # a.append(0)
