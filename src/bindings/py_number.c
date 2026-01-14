@@ -567,6 +567,66 @@ static bool bool__invert__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool bool_try_cast_i64(py_Ref arg, py_i64* out) {
+    if (arg->type == tp_int) {
+        *out = py_toint(arg);
+        return true;
+    } else if (arg->type == tp_bool) {
+        *out = py_tobool(arg);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+static bool bool__add__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_i64 lhs = py_tobool(py_arg(0));
+    py_i64 rhs;
+    if (bool_try_cast_i64(py_arg(1), &rhs)) {
+        py_newint(py_retval(), lhs + rhs);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
+static bool bool__sub__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_i64 lhs = py_tobool(py_arg(0));
+    py_i64 rhs;
+    if (bool_try_cast_i64(py_arg(1), &rhs)) {
+        py_newint(py_retval(), lhs - rhs);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
+static bool bool__rsub__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_i64 lhs = py_tobool(py_arg(0));
+    py_i64 rhs;
+    if (bool_try_cast_i64(py_arg(1), &rhs)) {
+        py_newint(py_retval(), rhs - lhs);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
+static bool bool__mul__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_i64 lhs = py_tobool(py_arg(0));
+    py_i64 rhs;
+    if (bool_try_cast_i64(py_arg(1), &rhs)) {
+        py_newint(py_retval(), lhs * rhs);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
 void pk_number__register() {
     /****** tp_int & tp_float ******/
     py_bindmagic(tp_int, __add__, int__add__);
@@ -651,6 +711,12 @@ void pk_number__register() {
     py_bindmagic(tp_bool, __or__, bool__or__);
     py_bindmagic(tp_bool, __xor__, bool__xor__);
     py_bindmagic(tp_bool, __invert__, bool__invert__);
+    py_bindmagic(tp_bool, __add__, bool__add__);
+    py_bindmagic(tp_bool, __sub__, bool__sub__);
+    py_bindmagic(tp_bool, __mul__, bool__mul__);
+    py_bindmagic(tp_bool, __radd__, bool__add__);
+    py_bindmagic(tp_bool, __rsub__, bool__rsub__);
+    py_bindmagic(tp_bool, __rmul__, bool__mul__);
 }
 
 #undef DEF_NUM_BINARY_OP

@@ -31,3 +31,9 @@ assert NotImplemented is NotImplemented
 assert True is True
 assert False is False
 
+assert True + 1 == 2
+assert True - 1 == 0
+assert True * 3 == 3
+assert 1 + True == 2
+assert 1 - True == 0
+assert 3 * True == 3
