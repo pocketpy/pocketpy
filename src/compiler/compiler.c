@@ -580,6 +580,7 @@ typedef struct CompExpr {
 
     Opcode op0;
     Opcode op1;
+    bool convert_to_tuple;
 } CompExpr;
 
 void CompExpr__dtor(Expr* self_) {
@@ -612,6 +613,11 @@ void CompExpr__emit_(Expr* self_, Ctx* ctx) {
     }
     Ctx__emit_jump(ctx, block_start, BC_KEEPLINE);
     Ctx__exit_block(ctx);
+    if(self->convert_to_tuple) {
+        int index = Ctx__add_name(ctx, py_name("tuple"));
+        Ctx__emit_(ctx, OP_LOAD_GLOBAL, index, BC_KEEPLINE);
+        Ctx__emit_(ctx, OP_CALL, 1, BC_KEEPLINE);
+    }
 }
 
 CompExpr* CompExpr__new(int line, Opcode op0, Opcode op1) {
@@ -621,6 +627,7 @@ CompExpr* CompExpr__new(int line, Opcode op0, Opcode op1) {
     self->line = line;
     self->op0 = op0;
     self->op1 = op1;
+    self->convert_to_tuple = false;
     self->expr = NULL;
     self->vars = NULL;
     self->iter = NULL;
@@ -1769,6 +1776,10 @@ static Error* exprGroup(Compiler* self) {
     check(EXPR_TUPLE(self));  // () is just for change precedence
     consume(TK_RPAREN);
     if(Ctx__s_top(ctx())->vt->is_tuple) return NULL;
+    if(match(TK_FOR)) {
+        check(consume_comp(self, OP_BUILD_LIST, OP_LIST_APPEND, true));
+        return NULL;
+    }
     GroupedExpr* g = GroupedExpr__new(line, Ctx__s_popx(ctx()));
     Ctx__s_push(ctx(), (Expr*)g);
     return NULL;
@@ -1801,7 +1812,7 @@ static Error* exprLiteral0(Compiler* self) {
     return NULL;
 }
 
-static Error* consume_comp(Compiler* self, Opcode op0, Opcode op1) {
+static Error* consume_comp(Compiler* self, Opcode op0, Opcode op1, bool convert_to_tuple) {
     // [expr]
     Error* err;
     int line = prev()->line;
@@ -1814,6 +1825,7 @@ static Error* consume_comp(Compiler* self, Opcode op0, Opcode op1) {
         has_cond = true;
     }
     CompExpr* ce = CompExpr__new(line, op0, op1);
+    ce->convert_to_tuple = convert_to_tuple;
     if(has_cond) ce->cond = Ctx__s_popx(ctx());
     ce->iter = Ctx__s_popx(ctx());
     ce->vars = Ctx__s_popx(ctx());
@@ -1831,7 +1843,7 @@ static Error* exprList(Compiler* self) {
         check(EXPR(self));
         count += 1;
         if(count == 1 && match(TK_FOR)) {
-            check(consume_comp(self, OP_BUILD_LIST, OP_LIST_APPEND));
+            check(consume_comp(self, OP_BUILD_LIST, OP_LIST_APPEND, false));
             consume(TK_RBRACKET);
             return NULL;
         }
@@ -1865,9 +1877,9 @@ static Error* exprMap(Compiler* self) {
         count += 1;  // key-value pair count
         if(count == 1 && match(TK_FOR)) {
             if(parsing_dict) {
-                check(consume_comp(self, OP_BUILD_DICT, OP_DICT_ADD));
+                check(consume_comp(self, OP_BUILD_DICT, OP_DICT_ADD, false));
             } else {
-                check(consume_comp(self, OP_BUILD_SET, OP_SET_ADD));
+                check(consume_comp(self, OP_BUILD_SET, OP_SET_ADD, false));
             }
             consume(TK_RBRACE);
             return NULL;

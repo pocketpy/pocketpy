@@ -48,6 +48,16 @@ assert (1,2) < (1,3)
 assert (1,2) < (2,1)
 assert (1,2) < (2,2)
 assert (1,2) < (1,2,3)
+
+# test tuple comprehension
+a = (x for x in range(5))
+assert a == (0, 1, 2, 3, 4)
+
+a = (x*2 for x in range(3))
+assert a == (0, 2, 4)
+
+a = (x for x in range(10) if x % 2 == 0)
+assert a == (0, 2, 4, 6, 8)
 assert (1,2) < (1,2,1)
 assert (1,2) < (1,2,2)
 
