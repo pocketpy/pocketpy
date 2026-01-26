@@ -41,6 +41,116 @@ static bool str__len__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool str__mod__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    c11_string* self = pk_tostr(&argv[0]);
+    // %s
+    // %d %i
+    // %f
+    // %r
+    // %%
+    py_TValue* args;
+    int args_count;
+    if(py_istype(&argv[1], tp_tuple)) {
+        args_count = py_tuple_len(&argv[1]);
+        args = py_tuple_data(&argv[1]);
+    } else {
+        args_count = 1;
+        args = &argv[1];
+    }
+
+    int arg_index = 0;
+    const char* p = self->data;
+    const char* p_end = self->data + self->size;
+
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+
+    while(p < p_end) {
+        if(*p == '%') {
+            p++;
+            if(p >= p_end) {
+                c11_sbuf__dtor(&buf);
+                return ValueError("incomplete format");
+            }
+            char spec = *p;
+            p++;
+            if(spec == '%') {
+                // %% -> %
+                c11_sbuf__write_char(&buf, '%');
+            } else if(spec == 's') {
+                // %s -> string
+                if(arg_index >= args_count) {
+                    c11_sbuf__dtor(&buf);
+                    return TypeError("not enough arguments for format string");
+                }
+                if(!py_str(&args[arg_index])) {
+                    c11_sbuf__dtor(&buf);
+                    return false;
+                }
+                c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
+                arg_index++;
+            } else if(spec == 'd' || spec == 'i') {
+                // %d or %i -> integer
+                if(arg_index >= args_count) {
+                    c11_sbuf__dtor(&buf);
+                    return TypeError("not enough arguments for format string");
+                }
+                if(!py_checktype(&args[arg_index], tp_int)) {
+                    c11_sbuf__dtor(&buf);
+                    return false;
+                }
+                py_i64 val = py_toint(&args[arg_index]);
+                c11_sbuf__write_i64(&buf, val);
+                arg_index++;
+            } else if(spec == 'f') {
+                // %f -> float
+                if(arg_index >= args_count) {
+                    c11_sbuf__dtor(&buf);
+                    return TypeError("not enough arguments for format string");
+                }
+                py_f64 val;
+                if(py_istype(&args[arg_index], tp_float)) {
+                    val = py_tofloat(&args[arg_index]);
+                } else if(py_istype(&args[arg_index], tp_int)) {
+                    val = (py_f64)py_toint(&args[arg_index]);
+                } else {
+                    c11_sbuf__dtor(&buf);
+                    return TypeError("a float is required");
+                }
+                c11_sbuf__write_f64(&buf, val, 6);
+                arg_index++;
+            } else if(spec == 'r') {
+                // %r -> repr
+                if(arg_index >= args_count) {
+                    c11_sbuf__dtor(&buf);
+                    return TypeError("not enough arguments for format string");
+                }
+                if(!py_repr(&args[arg_index])) {
+                    c11_sbuf__dtor(&buf);
+                    return false;
+                }
+                c11_sbuf__write_sv(&buf, py_tosv(py_retval()));
+                arg_index++;
+            } else {
+                c11_sbuf__dtor(&buf);
+                return ValueError("unsupported format character '%c'", spec);
+            }
+        } else {
+            c11_sbuf__write_char(&buf, *p);
+            p++;
+        }
+    }
+
+    if(arg_index != args_count) {
+        c11_sbuf__dtor(&buf);
+        return TypeError("not all arguments converted during string formatting");
+    }
+
+    c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
 static bool str__add__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = pk_tostr(&argv[0]);
@@ -503,6 +613,7 @@ py_Type pk_str__register() {
     py_bindmagic(tp_str, __new__, str__new__);
     py_bindmagic(tp_str, __hash__, str__hash__);
     py_bindmagic(tp_str, __len__, str__len__);
+    py_bindmagic(tp_str, __mod__, str__mod__);
     py_bindmagic(tp_str, __add__, str__add__);
     py_bindmagic(tp_str, __mul__, str__mul__);
     py_bindmagic(tp_str, __rmul__, str__rmul__);
