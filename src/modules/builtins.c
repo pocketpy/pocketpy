@@ -465,10 +465,12 @@ static bool builtins_compile(int argc, py_Ref argv) {
 static bool builtins__import__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
-    int res = py_import(py_tostr(argv));
+    const char* path = py_tostr(py_arg(0));
+    if(path[0] == '.') return ValueError("relative import not allowed here");
+    int res = py_import(path);
     if(res == -1) return false;
     if(res) return true;
-    return ImportError("module '%s' not found", py_tostr(argv));
+    return ImportError("module '%s' not found", path);
 }
 
 static bool NoneType__repr__(int argc, py_Ref argv) {

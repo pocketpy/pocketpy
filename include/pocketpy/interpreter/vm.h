@@ -35,7 +35,6 @@ typedef struct TypePointer {
 } TypePointer;
 
 typedef struct py_ModuleInfo {
-    c11_string* name;
     c11_string* package;
     c11_string* path;
     py_GlobalRef self;  // weakref to the original module object

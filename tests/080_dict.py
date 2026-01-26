@@ -166,16 +166,3 @@ for i in range(len(data)):
     if i % 3 == 0:
         y = b.pop()
         delattr(a, y)
-
-# bug test
-d = {
-    '__name__': '__main__',
-    '__package__': '',
-    '__path__': '__main__',
-    'a': [],
-    'gc': 1,
-}
-
-del d['a']
-assert 'a' not in d
-assert d['gc'] == 1

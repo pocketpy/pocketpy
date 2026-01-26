@@ -13,20 +13,18 @@ py_Ref py_getmodule(const char* path) {
     return BinTree__try_get(&vm->modules, (void*)path);
 }
 
-py_Ref py_newmodule(const char* path) {
-    int path_len = strlen(path);
-    if(path_len > PK_MAX_MODULE_PATH_LEN) c11__abort("module path too long: %s", path);
-    if(path_len == 0) c11__abort("module path cannot be empty");
+static py_Ref pk_newmodule(const char* path, bool is_init) {
+    c11_sv pathv = {path, strlen(path)};
+    if(pathv.size > PK_MAX_MODULE_PATH_LEN) c11__abort("module path too long: %s", path);
+    if(pathv.size == 0) c11__abort("module path cannot be empty");
 
     py_ModuleInfo* mi = py_newobject(py_retval(), tp_module, -1, sizeof(py_ModuleInfo));
-
-    int last_dot = c11_sv__rindex((c11_sv){path, path_len}, '.');
-    if(last_dot == -1) {
-        mi->name = c11_string__new(path);
-        mi->package = c11_string__new("");
+    
+    int last_dot = c11_sv__rindex(pathv, '.');
+    if(last_dot == -1 || is_init) {
+        mi->package = c11_string__new(path);
     } else {
-        const char* start = path + last_dot + 1;
-        mi->name = c11_string__new(start);
+        // a.b.c -> a.b
         mi->package = c11_string__new2(path, last_dot);
     }
 
@@ -43,16 +41,17 @@ py_Ref py_newmodule(const char* path) {
     mi->self = retval;
 
     // setup __name__
-    py_newstrv(py_emplacedict(retval, __name__), c11_string__sv(mi->name));
+    py_newstrv(py_emplacedict(retval, __name__), c11_string__sv(mi->path));
     // setup __package__
     py_newstrv(py_emplacedict(retval, __package__), c11_string__sv(mi->package));
-    // setup __path__
-    py_newstrv(py_emplacedict(retval, __path__), c11_string__sv(mi->path));
     return retval;
 }
 
+py_Ref py_newmodule(const char* path) {
+    return pk_newmodule(path, false);
+}
+
 static void py_ModuleInfo__dtor(py_ModuleInfo* mi) {
-    c11_string__delete(mi->name);
     c11_string__delete(mi->package);
     c11_string__delete(mi->path);
 }
@@ -71,27 +70,28 @@ int py_import(const char* path_cstr) {
         ValueError("empty module name");
         return -1;
     }
+    if(path.size > PK_MAX_MODULE_PATH_LEN) {
+        ValueError("module name too long: %v", path);
+        return -1;
+    }
 
     if(path.data[0] == '.') {
+        c11__rtassert(vm->top_frame != NULL && vm->top_frame->module != NULL);
+
         // try relative import
         int dot_count = 1;
         while(dot_count < path.size && path.data[dot_count] == '.')
             dot_count++;
 
-        // */__init__.py[c]
-        c11_sv top_filepath = c11_string__sv(vm->top_frame->co->src->filename);
-        c11_sv top_filename = c11_sv__filename(top_filepath);
-        int is_init = c11__sveq2(top_filename, "__init__.py") || c11__sveq2(top_filename, "__init__.pyc");
-
         py_ModuleInfo* mi = py_touserdata(vm->top_frame->module);
-        c11_sv package_sv = c11_string__sv(mi->path);
+        c11_sv package_sv = c11_string__sv(mi->package);
         if(package_sv.size == 0) {
             ImportError("attempted relative import with no known parent package");
             return -1;
         }
 
         c11_vector /* T=c11_sv */ cpnts = c11_sv__split(package_sv, '.');
-        for(int i = is_init; i < dot_count; i++) {
+        for(int i = 1; i < dot_count; i++) {
             if(cpnts.length == 0){
                 ImportError("attempted relative import beyond top-level package");
                 return -1;
@@ -119,7 +119,22 @@ int py_import(const char* path_cstr) {
         return res;
     }
 
-    assert(path.data[0] != '.' && path.data[path.size - 1] != '.');
+    c11__rtassert(path.data[0] != '.' && path.data[path.size - 1] != '.');
+
+    // import parent module (implicit recursion)
+    int last_dot_index = c11_sv__rindex(path, '.');
+    if(last_dot_index >= 0) {
+        c11_sv ppath = c11_sv__slice2(path, 0, last_dot_index);
+        py_GlobalRef ext_mod = py_getmodule(ppath.data);
+        if(!ext_mod) {
+            char buf[PK_MAX_MODULE_PATH_LEN + 1];
+            memcpy(buf, ppath.data, ppath.size);
+            buf[ppath.size] = '\0';
+            int res = py_import(buf);
+            if(res != 1) return res;
+            py_newnil(py_retval());
+        }
+    }
 
     // check existing module
     py_GlobalRef ext_mod = py_getmodule(path.data);
@@ -143,6 +158,7 @@ int py_import(const char* path_cstr) {
 
     bool need_free = true;
     bool is_pyc = false;
+    bool is_init = false;
     const char* data = load_kPythonLib(path_cstr);
     int data_size = -1;
 
@@ -165,13 +181,17 @@ int py_import(const char* path_cstr) {
     c11_string__delete(filename);
     filename = c11_string__new3("%s%c__init__.py", slashed_path->data, PK_PLATFORM_SEP);
     data = vm->callbacks.importfile(filename->data, &data_size);
-    if(data != NULL) goto __SUCCESS;
+    if(data != NULL) {
+        is_init = true;
+        goto __SUCCESS;
+    }
 
     c11_string__delete(filename);
     filename = c11_string__new3("%s%c__init__.pyc", slashed_path->data, PK_PLATFORM_SEP);
     data = vm->callbacks.importfile(filename->data, &data_size);
     if(data != NULL) {
         is_pyc = true;
+        is_init = true;
         goto __SUCCESS;
     }
 
@@ -184,7 +204,7 @@ __SUCCESS:
     do {
     } while(0);
     
-    py_GlobalRef mod = py_newmodule(path_cstr);
+    py_GlobalRef mod = pk_newmodule(path_cstr, is_init);
 
     bool ok;
     if(is_pyc) {
