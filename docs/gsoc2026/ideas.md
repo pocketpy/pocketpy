@@ -7,7 +7,7 @@ label: "Project Ideas"
 
 ## Idea Title
 
-Developing a Vibe Coding Agent for Mobile Games in Python
+Build a Vibe Coding Agent in Python for Creating Mobile Games
 
 ## Project Size
 
