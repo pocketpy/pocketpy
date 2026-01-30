@@ -47,3 +47,9 @@ def ior(a, b): a |= b; return a
 def ixor(a, b): a ^= b; return a
 def ilshift(a, b): a <<= b; return a
 def irshift(a, b): a >>= b; return a
+
+class attrgetter:
+    def __init__(self, attr):
+        self.attr = attr
+    def __call__(self, obj):
+        return getattr(obj, self.attr)

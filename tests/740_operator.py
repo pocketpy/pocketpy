@@ -50,3 +50,14 @@ assert op.ior(0b01, 0b11) == 0b11
 assert op.ixor(0b01, 0b11) == 0b10
 assert op.ilshift(0b01, 1) == 0b10
 assert op.irshift(0b10, 1) == 0b01
+
+
+# https://github.com/pocketpy/pocketpy/issues/455
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+person = Person("Alice", 30)
+res = op.attrgetter('name')(person)
+assert res == "Alice"
