@@ -201,6 +201,11 @@ for i in range(6):
             a.append(i)
 assert a == [0, 1, 3, 4, 5]
 
+try:
+    result = 10 / 0
+except (ZeroDivisionError, TypeError) as e:
+    assert type(e) == ZeroDivisionError
+
 """
 # finally, only
 def finally_only():

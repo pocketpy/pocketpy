@@ -1143,9 +1143,7 @@ __NEXT_STEP:
         }
         case OP_EXCEPTION_MATCH: {
             bool ok = false;
-            if(TOP()->type == tp_type) {
-                ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
-            } else if(TOP()->type == tp_tuple) {
+            if(TOP()->type == tp_tuple) {
                 int len = py_tuple_len(TOP());
                 py_ObjectRef data = py_tuple_data(TOP());
                 for(int i = 0; i < len; i++) {
@@ -1155,8 +1153,10 @@ __NEXT_STEP:
                         break;
                     }
                 }
-            } else
-                goto __ERROR;
+            } else {
+                if(!py_checktype(TOP(), tp_type)) goto __ERROR;
+                ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
+            }
             py_newbool(TOP(), ok);
             DISPATCH();
         }
