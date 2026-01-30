@@ -1142,8 +1142,21 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_EXCEPTION_MATCH: {
-            if(!py_checktype(TOP(), tp_type)) goto __ERROR;
-            bool ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
+            bool ok = false;
+            if(TOP()->type == tp_type) {
+                ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
+            } else if(TOP()->type == tp_tuple) {
+                int len = py_tuple_len(TOP());
+                py_ObjectRef data = py_tuple_data(TOP());
+                for(int i = 0; i < len; i++) {
+                    if(!py_checktype(data + i, tp_type)) goto __ERROR;
+                    if(py_isinstance(&self->unhandled_exc, py_totype(data + i))) {
+                        ok = true;
+                        break;
+                    }
+                }
+            } else
+                goto __ERROR;
             py_newbool(TOP(), ok);
             DISPATCH();
         }
