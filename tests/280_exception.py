@@ -206,6 +206,14 @@ try:
 except (ZeroDivisionError, TypeError) as e:
     assert type(e) == ZeroDivisionError
 
+try:
+    try:
+        result = 10 / 0
+    except (ZeroDivisionError, 1) as e:
+        assert type(e) == ZeroDivisionError
+except Exception as e:
+    print(e)
+
 """
 # finally, only
 def finally_only():
