@@ -1143,19 +1143,24 @@ __NEXT_STEP:
         }
         case OP_EXCEPTION_MATCH: {
             bool ok = false;
-            if(TOP()->type == tp_tuple) {
+            if(TOP()->type == tp_type) {
+                ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
+            } else if(TOP()->type == tp_tuple) {
                 int len = py_tuple_len(TOP());
                 py_ObjectRef data = py_tuple_data(TOP());
                 for(int i = 0; i < len; i++) {
-                    if(!py_checktype(data + i, tp_type)) goto __ERROR;
-                    if(py_isinstance(&self->unhandled_exc, py_totype(data + i))) {
-                        ok = true;
+                    if(data[i].type != tp_type) {
+                        py_clearexc(TOP());
+                        TypeError(
+                            "catching classes that do not inherit from BaseException is not allowed");
+                        ok = false;
                         break;
                     }
+                    ok = py_isinstance(data + i, py_totype(TOP()));
                 }
             } else {
-                if(!py_checktype(TOP(), tp_type)) goto __ERROR;
-                ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
+                py_clearexc(TOP());
+                TypeError("catching classes that do not inherit from BaseException is not allowed");
             }
             py_newbool(TOP(), ok);
             DISPATCH();
