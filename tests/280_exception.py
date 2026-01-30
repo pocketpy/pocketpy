@@ -212,7 +212,7 @@ try:
     except (ZeroDivisionError, 1) as e:
         assert type(e) == ZeroDivisionError
 except Exception as e:
-    print(e)
+    assert type(e) == TypeError
 
 """
 # finally, only
