@@ -143,7 +143,7 @@ void Function__ctor(Function* self, FuncDecl_ decl, py_GlobalRef module, py_Ref 
     PK_INCREF(decl);
     self->decl = decl;
     self->module = module;
-    self->globals = globals;
+    self->globals = globals != NULL ? *globals : *py_NIL();
     self->closure = NULL;
     self->clazz = NULL;
     self->cfunc = NULL;

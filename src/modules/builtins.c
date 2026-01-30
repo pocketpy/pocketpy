@@ -538,7 +538,7 @@ py_GlobalRef pk_builtins__register() {
 
 void function__gc_mark(void* ud, c11_vector* p_stack) {
     Function* func = ud;
-    if(func->globals) pk__mark_value(func->globals);
+    pk__mark_value(&func->globals);
     if(func->closure) {
         NameDict* dict = func->closure;
         for(int i = 0; i < dict->capacity; i++) {

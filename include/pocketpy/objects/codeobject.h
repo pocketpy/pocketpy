@@ -135,7 +135,7 @@ void FuncDecl__dtor(FuncDecl* self);
 typedef struct Function {
     FuncDecl_ decl;
     py_GlobalRef module;    // maybe NULL, weak ref
-    py_Ref globals;         // maybe NULL, strong ref
+    py_TValue globals;      // maybe nil, strong ref
     NameDict* closure;      // maybe NULL, strong ref
     PyObject* clazz;        // weak ref; for super()
     py_CFunction cfunc;     // wrapped C function; for decl-based binding
@@ -143,3 +143,8 @@ typedef struct Function {
 
 void Function__ctor(Function* self, FuncDecl_ decl, py_GlobalRef module, py_Ref globals);
 void Function__dtor(Function* self);
+
+
+// https://github.com/pocketpy/pocketpy/issues/456
+// Function may be created from `execdyn` and return
+// Weakrefs like `.globals` and `.clazz` may invalidate
