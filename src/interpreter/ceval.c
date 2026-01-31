@@ -1169,9 +1169,12 @@ __NEXT_STEP:
             if(has_invalid) {
                 py_clearexc(NULL);
                 TypeError("catching classes that do not inherit from BaseException is not allowed");
+                c11_vector__pop(&frame->exc_stack);
+                goto __ERROR_RE_RAISE;
+            } else {
+                py_newbool(TOP(), ok);
+                DISPATCH();
             }
-            py_newbool(TOP(), ok);
-            DISPATCH();
         }
         case OP_HANDLE_EXCEPTION: {
             FrameExcInfo* info = Frame__top_exc_info(frame);
