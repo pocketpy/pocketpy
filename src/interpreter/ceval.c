@@ -1167,10 +1167,10 @@ __NEXT_STEP:
                 has_invalid = true;
             }
             if(has_invalid) {
-                py_clearexc(NULL);
+                py_newnil(&self->unhandled_exc);
                 TypeError("catching classes that do not inherit from BaseException is not allowed");
                 c11_vector__pop(&frame->exc_stack);
-                goto __ERROR_RE_RAISE;
+                goto __ERROR;
             } else {
                 py_newbool(TOP(), ok);
                 DISPATCH();
