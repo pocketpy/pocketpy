@@ -210,7 +210,9 @@ try:
     try:
         result = 10 / 0
     except (ZeroDivisionError, 1) as e:
-        assert type(e) == ZeroDivisionError
+        assert False
+    except (TypeError) as e:
+        assert False
 except Exception as e:
     assert type(e) == TypeError
 
