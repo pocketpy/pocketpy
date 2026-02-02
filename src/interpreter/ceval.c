@@ -1142,10 +1142,39 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_EXCEPTION_MATCH: {
-            if(!py_checktype(TOP(), tp_type)) goto __ERROR;
-            bool ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
-            py_newbool(TOP(), ok);
-            DISPATCH();
+            bool ok = false;
+            bool has_invalid = false;
+            if(TOP()->type == tp_type) {
+                ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
+            } else if(TOP()->type == tp_tuple) {
+                int len = py_tuple_len(TOP());
+                py_ObjectRef data = py_tuple_data(TOP());
+                for(int i = 0; i < len; i++) {
+                    if((data + i)->type != tp_type) {
+                        has_invalid = true;
+                        break;
+                    }
+                }
+                if(!has_invalid) {
+                    for(int i = 0; i < len; i++) {
+                        if(py_isinstance(&self->unhandled_exc, py_totype(data + i))) {
+                            ok = true;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                has_invalid = true;
+            }
+            if(has_invalid) {
+                py_newnil(&self->unhandled_exc);
+                TypeError("catching classes that do not inherit from BaseException is not allowed");
+                c11_vector__pop(&frame->exc_stack);
+                goto __ERROR;
+            } else {
+                py_newbool(TOP(), ok);
+                DISPATCH();
+            }
         }
         case OP_HANDLE_EXCEPTION: {
             FrameExcInfo* info = Frame__top_exc_info(frame);
