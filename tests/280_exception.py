@@ -203,18 +203,22 @@ assert a == [0, 1, 3, 4, 5]
 
 try:
     result = 10 / 0
+    exit(1)
 except (ZeroDivisionError, TypeError) as e:
-    assert type(e) == ZeroDivisionError
+    if type(e) != ZeroDivisionError:
+        exit(1)
 
 try:
     try:
         result = 10 / 0
+        exit(1)
     except (ZeroDivisionError, 1) as e:
-        assert False
+        exit(1)
     except (TypeError) as e:
-        assert False
+        exit(1)
 except Exception as e:
-    assert type(e) == TypeError
+    if type(e) != TypeError:
+        exit(1)
 
 """
 # finally, only
