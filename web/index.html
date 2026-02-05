@@ -187,10 +187,27 @@ DEALINGS IN THE SOFTWARE.
     }
 
     #run-button {
-      padding-left: 10px;
-      padding-right: 10px;
+      padding-left: 20px;
+      padding-right: 20px;
+      padding-bottom: 1px;
       font-weight: bold;
       cursor: pointer;
+      background-color: #007bff;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      outline: none;
+      user-select: none;
+    }
+    #run-button:hover,
+    #run-button:focus {
+      background-color: #0056b3;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    #run-button:active {
+      background-color: #004085;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      transform: translateY(1px);
     }
 
     #code-editor.hljs {
