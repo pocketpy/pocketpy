@@ -60,16 +60,18 @@ def filter(f, iterable):
         if f(i):
             yield i
 
-def zip(a, b):
-    a = iter(a)
-    b = iter(b)
-    while True:
-        try:
-            ai = next(a)
-            bi = next(b)
-        except StopIteration:
-            break
-        yield ai, bi
+class zip:
+    def __init__(self, *iterables):
+        self.iterables = [iter(it) for it in iterables]
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        result = []
+        for it in self.iterables:
+            result.append(next(it))
+        return tuple(result)
 
 def reversed(iterable):
     a = list(iterable)

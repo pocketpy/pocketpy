@@ -381,6 +381,21 @@ for x, y in zip(d, e):
     # verify that original order and values are retained.
     assertEqual(x is y, True)
 
+# https://github.com/pocketpy/pocketpy/issues/447
+names = ["Alice", "Bob", "Charlie"]
+ages = [25, 30, 35]
+cities = ["NY", "LA", "SF"]
+result = []
+for name, age, city in zip(names, ages, cities):
+    result.append((name, age, city))
+assertEqual(result, [("Alice", 25, "NY"), ("Bob", 30, "LA"), ("Charlie", 35, "SF")])
+
+cities.pop()
+result = []
+for name, age, city in zip(names, ages, cities):
+    result.append((name, age, city))
+assertEqual(result, [("Alice", 25, "NY"), ("Bob", 30, "LA")])
+
 ########### test repr#############
 d = deque(range(200))
 e = eval(repr(d))
