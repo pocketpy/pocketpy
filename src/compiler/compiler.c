@@ -2301,6 +2301,9 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool is_lambda) {
     int state = 0;  // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
     Error* err;
     do {
+        // allow trailing comma
+        if(!is_lambda && curr()->type == TK_RPAREN) break;
+
         if(state >= 3) return SyntaxError(self, "**kwargs should be the last argument");
         if(match(TK_MUL)) {
             if(state < 1)
