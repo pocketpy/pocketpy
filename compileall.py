@@ -1,5 +1,6 @@
 import sys
 import os
+import subprocess
 
 if len(sys.argv) != 4:
     print('Usage: python compileall.py <pocketpy_executable> <source_dir> <output_dir>')
@@ -10,9 +11,10 @@ source_dir = sys.argv[2]
 output_dir = sys.argv[3]
 
 def do_compile(src_path, dst_path):
-    assert os.path.isfile(src_path)
-    cmd = f'{pkpy_exe} --compile "{src_path}" "{dst_path}"'
-    if os.system(cmd) != 0:
+    if not os.path.isfile(src_path):
+        raise FileNotFoundError(f"Source file not found: {src_path}")
+    result = subprocess.run([pkpy_exe, '--compile', src_path, dst_path])
+    if result.returncode != 0:
         print(src_path)
         exit(1)
 
