@@ -3,9 +3,10 @@ import shutil
 import os
 import sys
 import time
+import subprocess
 from typing import List, Dict
 
-assert os.system("python prebuild.py") == 0
+subprocess.run([sys.executable, "prebuild.py"], check=True)
 
 ROOT = 'include/pocketpy'
 PUBLIC_HEADERS = ['config.h', 'export.h', 'vmath.h', 'pocketpy.h']
@@ -161,8 +162,9 @@ write_file('amalgamated/pocketpy.h', merge_h_files())
 shutil.copy("src2/main.c", "amalgamated/main.c")
 
 def checked_sh(cmd):
-	ok = os.system(cmd)
-	assert ok == 0, f"command failed: {cmd}"
+	result = subprocess.run(cmd, shell=True)
+	if result.returncode != 0:
+		raise RuntimeError(f"command failed (exit code {result.returncode}): {cmd}")
 
 if sys.platform in ['linux', 'darwin']:
 	common_flags = "-O1 --std=c11 -lm -ldl -lpthread -Iamalgamated"

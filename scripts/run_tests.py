@@ -7,11 +7,12 @@ pkpy_exe = 'main.exe' if sys.platform == 'win32' else './main'
 
 def test_file(filepath, cpython=False):
     if cpython:
-        return os.system("python " + filepath) == 0
-    code = os.system(pkpy_exe + ' ' + filepath)
-    if code != 0:
-        print('Return code:', code)
-    return code == 0
+        result = subprocess.run([sys.executable, filepath])
+        return result.returncode == 0
+    result = subprocess.run([pkpy_exe, filepath])
+    if result.returncode != 0:
+        print('Return code:', result.returncode)
+    return result.returncode == 0
 
 def test_dir(path):
     print("Testing directory:", path)
@@ -74,11 +75,11 @@ exit()
             print(res.stdout)
             exit(1)
 
-code = os.system(f'python compileall.py {pkpy_exe} tests tmp/tests')
-assert code == 0
+subprocess.run([sys.executable, 'compileall.py', pkpy_exe, 'tests', 'tmp/tests'], check=True)
 
 if len(sys.argv) == 2:
-    assert 'benchmark' in sys.argv[1]
+    if 'benchmark' not in sys.argv[1]:
+        raise ValueError(f"Expected 'benchmark' in argument, got: {sys.argv[1]!r}")
     test_dir('benchmarks/')
 else:
     test_dir('tests/')
