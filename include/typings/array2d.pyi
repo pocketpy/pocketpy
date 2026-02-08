@@ -135,7 +135,7 @@ class chunked_array2d[T, TContext]:
     def __new__(
             cls,
             chunk_size: int,
-            default: T = None,
+            default: T | None = None,
             context_builder: Callable[[vec2i], TContext] | None = None,
             ): ...
     
