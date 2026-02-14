@@ -104,7 +104,9 @@ static bool mpack_write_dict_kv(py_Ref k, py_Ref v, void* ctx) {
     if(k->type != tp_str) return TypeError("msgpack: key must be strings");
     c11_sv sv = py_tosv(k);
     mpack_write_str(writer, sv.data, (size_t)sv.size);
-    return py_to_mpack(v, writer);
+    bool ok = py_to_mpack(v, writer);
+    if(!ok) mpack_write_nil(writer);
+    return ok;
 }
 
 static bool py_to_mpack(py_Ref object, mpack_writer_t* writer) {
