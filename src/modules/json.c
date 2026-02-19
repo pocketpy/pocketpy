@@ -5,6 +5,221 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+typedef struct {
+    const char* cur;
+    const char* end;
+} json_Parser;
+
+static bool json_Parser__match(json_Parser* self, char c) {
+    if(self->cur == self->end) return false;
+    if(*self->cur == c) {
+        self->cur++;
+        return true;
+    }
+    return false;
+}
+
+static void json_Parser__skip_whitespace(json_Parser* self) {
+    while(self->cur < self->end) {
+        char c = *self->cur;
+        if(c == ' ' || c == '\n' || c == '\r' || c == '\t') {
+            self->cur++;
+        } else {
+            break;
+        }
+    }
+}
+
+static bool json_Parser__parse_value(json_Parser* self, py_Ref out);
+
+static bool json_Parser__parse_object(json_Parser* self, py_Ref out) {
+    if(!json_Parser__match(self, '{')) return false;
+    py_newdict(out);
+    json_Parser__skip_whitespace(self);
+    if(json_Parser__match(self, '}')) return true;
+
+    while(true) {
+        json_Parser__skip_whitespace(self);
+        py_Ref key = py_pushtmp();
+        if(!json_Parser__parse_value(self, key)) return false;
+        if(!py_isstr(key)) return ValueError("json: expecting string as key");
+
+        json_Parser__skip_whitespace(self);
+        if(!json_Parser__match(self, ':')) return ValueError("json: expecting ':'");
+
+        json_Parser__skip_whitespace(self);
+        py_Ref value = py_pushtmp();
+        if(!json_Parser__parse_value(self, value)) return false;
+
+        py_dict_setitem(out, key, value);
+        py_pop();  // value
+        py_pop();  // key
+
+        json_Parser__skip_whitespace(self);
+        if(json_Parser__match(self, '}')) return true;
+        if(!json_Parser__match(self, ',')) return ValueError("json: expecting ',' or '}'");
+    }
+}
+
+static bool json_Parser__parse_array(json_Parser* self, py_Ref out) {
+    if(!json_Parser__match(self, '[')) return false;
+    py_newlist(out);
+    json_Parser__skip_whitespace(self);
+    if(json_Parser__match(self, ']')) return true;
+
+    while(true) {
+        json_Parser__skip_whitespace(self);
+        py_Ref value = py_pushtmp();
+        if(!json_Parser__parse_value(self, value)) return false;
+        py_list_append(out, value);
+        py_pop();  // value
+
+        json_Parser__skip_whitespace(self);
+        if(json_Parser__match(self, ']')) return true;
+        if(!json_Parser__match(self, ',')) return ValueError("json: expecting ',' or ']'");
+    }
+}
+
+static bool json_Parser__parse_string(json_Parser* self, py_Ref out) {
+    if(!json_Parser__match(self, '"')) return false;
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+
+    while(self->cur < self->end) {
+        char c = *self->cur++;
+        if(c == '"') {
+            c11_sbuf__py_submit(&buf, out);
+            return true;
+        }
+        if(c == '\\') {
+            if(self->cur == self->end) break;
+            c = *self->cur++;
+            switch(c) {
+                case '"': c11_sbuf__write_char(&buf, '"'); break;
+                case '\\': c11_sbuf__write_char(&buf, '\\'); break;
+                case '/': c11_sbuf__write_char(&buf, '/'); break;
+                case 'b': c11_sbuf__write_char(&buf, '\b'); break;
+                case 'f': c11_sbuf__write_char(&buf, '\f'); break;
+                case 'n': c11_sbuf__write_char(&buf, '\n'); break;
+                case 'r': c11_sbuf__write_char(&buf, '\r'); break;
+                case 't': c11_sbuf__write_char(&buf, '\t'); break;
+                case 'u': {
+                    // TODO: support unicode escape \uXXXX
+                    // For now we just write \u and continue to avoid crash
+                    c11_sbuf__write_char(&buf, '\\');
+                    c11_sbuf__write_char(&buf, 'u');
+                    break;
+                }
+                default: c11_sbuf__write_char(&buf, c); break;
+            }
+        } else {
+            c11_sbuf__write_char(&buf, c);
+        }
+    }
+    c11_sbuf__dtor(&buf);
+    return ValueError("json: expecting '\"'");
+}
+
+static void json_Parser__ctor_true(py_Ref out) { py_newbool(out, true); }
+
+static void json_Parser__ctor_false(py_Ref out) { py_newbool(out, false); }
+
+static bool json_Parser__parse_keyword(json_Parser* self,
+                                       const char* keyword,
+                                       py_Ref out,
+                                       void (*ctor)(py_Ref)) {
+    int len = strlen(keyword);
+    if(self->end - self->cur >= len && memcmp(self->cur, keyword, len) == 0) {
+        self->cur += len;
+        ctor(out);
+        return true;
+    }
+    return false;
+}
+
+static bool json_Parser__parse_number(json_Parser* self, py_Ref out) {
+    const char* start = self->cur;
+    if(self->cur < self->end && *self->cur == '-') self->cur++;
+
+    if(self->cur == self->end) return false;
+
+    if(*self->cur == '0') {
+        self->cur++;
+        // do not allow leading zeros like 0123
+    } else if(isdigit(*self->cur)) {
+        self->cur++;
+        while(self->cur < self->end && isdigit(*self->cur))
+            self->cur++;
+    } else {
+        return false;
+    }
+
+    bool is_float = false;
+
+    // fraction
+    if(self->cur < self->end && *self->cur == '.') {
+        is_float = true;
+        self->cur++;
+        if(self->cur == self->end || !isdigit(*self->cur)) return false;
+        while(self->cur < self->end && isdigit(*self->cur))
+            self->cur++;
+    }
+
+    // exponent
+    if(self->cur < self->end && (*self->cur == 'e' || *self->cur == 'E')) {
+        is_float = true;
+        self->cur++;
+        if(self->cur < self->end && (*self->cur == '+' || *self->cur == '-')) self->cur++;
+        if(self->cur == self->end || !isdigit(*self->cur)) return false;
+        while(self->cur < self->end && isdigit(*self->cur))
+            self->cur++;
+    }
+
+    // parse
+    char* endptr;
+    if(is_float) {
+        double val = strtod(start, &endptr);
+        if(endptr != self->cur) return false;
+        py_newfloat(out, val);
+    } else {
+        long long val = strtoll(start, &endptr, 10);
+        if(endptr != self->cur) return false;
+        py_newint(out, val);
+    }
+    return true;
+}
+
+static bool json_Parser__parse_value(json_Parser* self, py_Ref out) {
+    json_Parser__skip_whitespace(self);
+    if(self->cur == self->end) return ValueError("json: unexpected end of input");
+
+    char c = *self->cur;
+    if(c == '{') return json_Parser__parse_object(self, out);
+    if(c == '[') return json_Parser__parse_array(self, out);
+    if(c == '"') return json_Parser__parse_string(self, out);
+    if(c == 't') return json_Parser__parse_keyword(self, "true", out, json_Parser__ctor_true);
+    if(c == 'f') return json_Parser__parse_keyword(self, "false", out, json_Parser__ctor_false);
+    if(c == 'n') return json_Parser__parse_keyword(self, "null", out, py_newnone);
+    if(c == '-' || isdigit(c)) return json_Parser__parse_number(self, out);
+
+    return ValueError("json: unexpected character '%c'", c);
+}
+
+bool py_json_loads(const char* source) {
+    json_Parser parser;
+    parser.cur = source;
+    parser.end = source + strlen(source);
+
+    if(!json_Parser__parse_value(&parser, py_retval())) return false;
+
+    json_Parser__skip_whitespace(&parser);
+    if(parser.cur != parser.end) return ValueError("json: extra data");
+    return true;
+}
 
 static bool json_loads(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -183,9 +398,3 @@ bool py_json_dumps(py_Ref val, int indent) {
     c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
-
-bool py_json_loads(const char* source) {
-    py_GlobalRef mod = py_getmodule("json");
-    return py_exec(source, "<json>", EVAL_MODE, mod);
-}
-
