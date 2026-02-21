@@ -8,7 +8,7 @@ endif()
 # system features
 option(PK_ENABLE_OS "" ON)
 option(PK_ENABLE_THREADS "" ON)
-option(PK_ENABLE_DETERMINISM "" OFF)
+option(PK_ENABLE_DETERMINISM "" ON)
 option(PK_ENABLE_WATCHDOG "" OFF)
 option(PK_ENABLE_CUSTOM_SNAME "" OFF)
 option(PK_ENABLE_MIMALLOC "" OFF)
