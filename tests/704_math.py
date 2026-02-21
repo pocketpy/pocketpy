@@ -124,6 +124,7 @@ assert isclose(math.sin(0), 0.0)
 assert isclose(math.sin(math.pi / 2), 1.0)
 assert isclose(math.sin(math.pi), 0.0)
 assert isclose(math.sin(-math.pi / 2), -1.0)
+assert isclose(math.sin(-math.pi / 4), -0.7071067811865476)
 
 # cos - cosine
 assert isclose(math.cos(0), 1.0)

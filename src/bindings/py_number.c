@@ -1,8 +1,8 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
+#include "pocketpy/common/dmath.h"
 #include "pocketpy/pocketpy.h"
 
-#include <math.h>
 
 static bool try_castfloat(py_Ref self, double* out) {
     switch(self->type) {
@@ -100,7 +100,7 @@ static bool number__pow__(int argc, py_Ref argv) {
             if(lhs == 0) {
                 return ZeroDivisionError("0.0 cannot be raised to a negative power");
             } else {
-                py_newfloat(py_retval(), pow(lhs, rhs));
+                py_newfloat(py_retval(), dmath_pow(lhs, rhs));
             }
         } else {
             // rhs >= 0
@@ -117,7 +117,7 @@ static bool number__pow__(int argc, py_Ref argv) {
         py_f64 lhs, rhs;
         if(!py_castfloat(&argv[0], &lhs)) return false;
         if(try_castfloat(&argv[1], &rhs)) {
-            py_newfloat(py_retval(), pow(lhs, rhs));
+            py_newfloat(py_retval(), dmath_pow(lhs, rhs));
         } else {
             py_newnotimplemented(py_retval());
         }
@@ -153,7 +153,7 @@ static py_i64 cpy11__fast_mod(py_i64 a, py_i64 b) {
 static void cpy11__float_div_mod(double vx, double wx, double *floordiv, double *mod)
 {
     double div;
-    *mod = fmod(vx, wx);
+    *mod = dmath_fmod(vx, wx);
     /* fmod is typically exact, so vx-mod is *mathematically* an
        exact multiple of wx.  But this is fp arithmetic, and fp
        vx - mod is an approximation; the result is that div may
@@ -172,18 +172,18 @@ static void cpy11__float_div_mod(double vx, double wx, double *floordiv, double 
         /* the remainder is zero, and in the presence of signed zeroes
            fmod returns different results across platforms; ensure
            it has the same sign as the denominator. */
-        *mod = copysign(0.0, wx);
+        *mod = dmath_copysign(0.0, wx);
     }
     /* snap quotient to nearest integral value */
     if (div) {
-        *floordiv = floor(div);
+        *floordiv = dmath_floor(div);
         if (div - *floordiv > 0.5) {
             *floordiv += 1.0;
         }
     }
     else {
         /* div is zero - get the same sign as the true quotient */
-        *floordiv = copysign(0.0, vx / wx); /* zero w/ sign of vx/wx */
+        *floordiv = dmath_copysign(0.0, vx / wx); /* zero w/ sign of vx/wx */
     }
 }
 
@@ -471,11 +471,11 @@ static bool float__new__(int argc, py_Ref argv) {
             c11_sv sv = py_tosv(py_arg(1));
 
             if(c11__sveq2(sv, "inf")) {
-                py_newfloat(py_retval(), INFINITY);
+                py_newfloat(py_retval(), DMATH_INFINITY);
                 return true;
             }
             if(c11__sveq2(sv, "-inf")) {
-                py_newfloat(py_retval(), -INFINITY);
+                py_newfloat(py_retval(), -DMATH_INFINITY);
                 return true;
             }
 

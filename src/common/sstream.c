@@ -1,13 +1,13 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/utils.h"
+#include "pocketpy/common/dmath.h"
 #include "pocketpy/pocketpy.h"
 
 #include <stdarg.h>
 #include <assert.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <math.h>
 
 void c11_sbuf__ctor(c11_sbuf* self) {
     c11_vector__ctor(&self->data, sizeof(char));
@@ -42,11 +42,11 @@ void c11_sbuf__write_i64(c11_sbuf* self, int64_t val) {
 }
 
 void c11_sbuf__write_f64(c11_sbuf* self, double val, int precision) {
-    if(isinf(val)) {
+    if(dmath_isinf(val)) {
         c11_sbuf__write_cstr(self, val > 0 ? "inf" : "-inf");
         return;
     }
-    if(isnan(val)) {
+    if(dmath_isnan(val)) {
         c11_sbuf__write_cstr(self, "nan");
         return;
     }

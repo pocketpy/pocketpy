@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include "pocketpy/common/utils.h"
 
 #define c11__less(a, b) ((a) < (b))
 

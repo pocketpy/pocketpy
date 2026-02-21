@@ -1,10 +1,10 @@
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
+#include "pocketpy/common/dmath.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
-#include <math.h>
 
 static bool json_loads(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -27,9 +27,9 @@ void pk__add_module_json() {
     py_setdict(mod, py_name("true"), py_True());
     py_setdict(mod, py_name("false"), py_False());
     py_TValue tmp;
-    py_newfloat(&tmp, NAN);
+    py_newfloat(&tmp, DMATH_NAN);
     py_setdict(mod, py_name("NaN"), &tmp);
-    py_newfloat(&tmp, INFINITY);
+    py_newfloat(&tmp, DMATH_INFINITY);
     py_setdict(mod, py_name("Infinity"), &tmp);
 
     py_bindfunc(mod, "loads", json_loads);
@@ -104,9 +104,9 @@ static bool json__write_object(c11_sbuf* buf, py_TValue* obj, int indent, int de
         case tp_NoneType: c11_sbuf__write_cstr(buf, "null"); return true;
         case tp_int: c11_sbuf__write_int(buf, obj->_i64); return true;
         case tp_float: {
-            if(isnan(obj->_f64)) {
+            if(dmath_isnan(obj->_f64)) {
                 c11_sbuf__write_cstr(buf, "NaN");
-            } else if(isinf(obj->_f64)) {
+            } else if(dmath_isinf(obj->_f64)) {
                 c11_sbuf__write_cstr(buf, obj->_f64 < 0 ? "-Infinity" : "Infinity");
             } else {
                 c11_sbuf__write_f64(buf, obj->_f64, -1);

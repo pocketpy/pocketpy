@@ -62,7 +62,6 @@ else()
 endif()
 
 if(PK_ENABLE_DETERMINISM)
-    add_subdirectory(3rd/dmath/dmath)
     add_definitions(-DPK_ENABLE_DETERMINISM=1)
 else()
     add_definitions(-DPK_ENABLE_DETERMINISM=0)
@@ -149,24 +148,12 @@ target_include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/include
 )
 
-if(PK_ENABLE_DETERMINISM)
-    target_link_libraries(${PROJECT_NAME} dmath)
-    if(MSVC)
-        target_link_options(${PROJECT_NAME} PRIVATE /FORCE:MULTIPLE)
-    endif()
-endif()
-
 if(PK_ENABLE_THREADS)
     find_package(Threads REQUIRED)
     target_link_libraries(${PROJECT_NAME} Threads::Threads)
 endif()
 
 if(UNIX AND NOT APPLE)
-    if(NOT PK_ENABLE_DETERMINISM)
-        # use platform libm
-        target_link_libraries(${PROJECT_NAME} m)
-    endif()
-
     if(PK_ENABLE_OS)
         target_link_libraries(${PROJECT_NAME} dl)
     endif()

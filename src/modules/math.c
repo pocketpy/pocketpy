@@ -1,13 +1,7 @@
 #include "pocketpy/pocketpy.h"
+#include "pocketpy/common/dmath.h"
 #include "pocketpy/interpreter/vm.h"
 
-#include <math.h>
-
-#if PK_ENABLE_DETERMINISM
-    #ifndef _DMATH_H
-        #error "_DMATH_H not defined"
-    #endif
-#endif
 
 #define ONE_ARG_FUNC(name, func)                                                                   \
     static bool math_##name(int argc, py_Ref argv) {                                               \
@@ -37,10 +31,10 @@
         return true;                                                                               \
     }
 
-ONE_ARG_FUNC(ceil, ceil)
-ONE_ARG_FUNC(fabs, fabs)
-ONE_ARG_FUNC(floor, floor)
-ONE_ARG_FUNC(trunc, trunc)
+ONE_ARG_FUNC(ceil, dmath_ceil)
+ONE_ARG_FUNC(fabs, dmath_fabs)
+ONE_ARG_FUNC(floor, dmath_floor)
+ONE_ARG_FUNC(trunc, dmath_trunc)
 
 static bool math_fsum(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -78,58 +72,58 @@ static bool math_gcd(int argc, py_Ref argv) {
     return true;
 }
 
-ONE_ARG_BOOL_FUNC(isfinite, isfinite)
-ONE_ARG_BOOL_FUNC(isinf, isinf)
-ONE_ARG_BOOL_FUNC(isnan, isnan)
+ONE_ARG_BOOL_FUNC(isfinite, dmath_isfinite)
+ONE_ARG_BOOL_FUNC(isinf, dmath_isinf)
+ONE_ARG_BOOL_FUNC(isnan, dmath_isnan)
 
 static bool math_isclose(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     double a, b;
     if(!py_castfloat(py_arg(0), &a)) return false;
     if(!py_castfloat(py_arg(1), &b)) return false;
-    py_newbool(py_retval(), fabs(a - b) < 1e-9);
+    py_newbool(py_retval(), dmath_fabs(a - b) < 1e-9);
     return true;
 }
 
-ONE_ARG_FUNC(exp, exp)
+ONE_ARG_FUNC(exp, dmath_exp)
 
 static bool math_log(int argc, py_Ref argv) {
     double x;
     if(!py_castfloat(py_arg(0), &x)) return false;
     if(argc == 1) {
-        py_newfloat(py_retval(), log(x));
+        py_newfloat(py_retval(), dmath_log(x));
     } else if(argc == 2) {
         double base;
         if(!py_castfloat(py_arg(1), &base)) return false;
-        py_newfloat(py_retval(), log(x) / log(base));
+        py_newfloat(py_retval(), dmath_log2(x) / dmath_log2(base));
     } else {
         return TypeError("log() takes 1 or 2 arguments");
     }
     return true;
 }
 
-ONE_ARG_FUNC(log2, log2)
-ONE_ARG_FUNC(log10, log10)
+ONE_ARG_FUNC(log2, dmath_log2)
+ONE_ARG_FUNC(log10, dmath_log10)
 
-TWO_ARG_FUNC(pow, pow)
+TWO_ARG_FUNC(pow, dmath_pow)
 
-ONE_ARG_FUNC(sqrt, sqrt)
+ONE_ARG_FUNC(sqrt, dmath_sqrt)
 
-ONE_ARG_FUNC(acos, acos)
-ONE_ARG_FUNC(asin, asin)
-ONE_ARG_FUNC(atan, atan)
+ONE_ARG_FUNC(acos, dmath_acos)
+ONE_ARG_FUNC(asin, dmath_asin)
+ONE_ARG_FUNC(atan, dmath_atan)
 
-ONE_ARG_FUNC(cos, cos)
-ONE_ARG_FUNC(sin, sin)
-ONE_ARG_FUNC(tan, tan)
+ONE_ARG_FUNC(cos, dmath_cos)
+ONE_ARG_FUNC(sin, dmath_sin)
+ONE_ARG_FUNC(tan, dmath_tan)
 
-TWO_ARG_FUNC(atan2, atan2)
+TWO_ARG_FUNC(atan2, dmath_atan2)
 
 static bool math_degrees(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     double x;
     if(!py_castfloat(py_arg(0), &x)) return false;
-    py_newfloat(py_retval(), x * PK_M_RAD2DEG);
+    py_newfloat(py_retval(), x * DMATH_RAD2DEG);
     return true;
 }
 
@@ -137,17 +131,17 @@ static bool math_radians(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     double x;
     if(!py_castfloat(py_arg(0), &x)) return false;
-    py_newfloat(py_retval(), x * PK_M_DEG2RAD);
+    py_newfloat(py_retval(), x * DMATH_DEG2RAD);
     return true;
 }
 
-TWO_ARG_FUNC(fmod, fmod)
-TWO_ARG_FUNC(copysign, copysign)
+TWO_ARG_FUNC(fmod, dmath_fmod)
+TWO_ARG_FUNC(copysign, dmath_copysign)
 
 static bool math_modf(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     double i;
-    double f = modf(py_tofloat(py_arg(0)), &i);
+    double f = dmath_modf(py_tofloat(py_arg(0)), &i);
     py_Ref p = py_newtuple(py_retval(), 2);
     py_newfloat(&p[0], f);
     py_newfloat(&p[1], i);
@@ -169,10 +163,10 @@ static bool math_factorial(int argc, py_Ref argv) {
 void pk__add_module_math() {
     py_Ref mod = py_newmodule("math");
 
-    py_newfloat(py_emplacedict(mod, py_name("pi")), PK_M_PI);
-    py_newfloat(py_emplacedict(mod, py_name("e")), PK_M_E);
-    py_newfloat(py_emplacedict(mod, py_name("inf")), INFINITY);
-    py_newfloat(py_emplacedict(mod, py_name("nan")), NAN);
+    py_newfloat(py_emplacedict(mod, py_name("pi")), DMATH_PI);
+    py_newfloat(py_emplacedict(mod, py_name("e")), DMATH_E);
+    py_newfloat(py_emplacedict(mod, py_name("inf")), DMATH_INFINITY);
+    py_newfloat(py_emplacedict(mod, py_name("nan")), DMATH_NAN);
 
     py_bindfunc(mod, "ceil", math_ceil);
     py_bindfunc(mod, "fabs", math_fabs);

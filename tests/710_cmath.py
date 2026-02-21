@@ -10,7 +10,7 @@ assert isclose(c1 - c2, complex(1, -0.5))
 assert isclose(c1*4, complex(12, 16))
 assert isclose(c1*c2, complex(-12, 21.5))
 assert isclose(c2/c1, complex(0.96, 0.22))
-assert isclose(c2**2, complex(-16.25, 17.99999999999999))
+assert isclose(c2**2, complex(-16.25, 18))
 
 assert 1+2j == complex(1, 2) == 2j+1
 

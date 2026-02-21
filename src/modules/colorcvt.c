@@ -1,40 +1,40 @@
 #include "pocketpy/pocketpy.h"
 
 #include "pocketpy/common/utils.h"
+#include "pocketpy/common/dmath.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
-#include <math.h>
 
 // https://bottosson.github.io/posts/gamutclipping/#oklab-to-linear-srgb-conversion
 
 // clang-format off
 static c11_vec3 linear_srgb_to_oklab(c11_vec3 c)
 {
-	float l = 0.4122214708f * c.x + 0.5363325363f * c.y + 0.0514459929f * c.z;
-	float m = 0.2119034982f * c.x + 0.6806995451f * c.y + 0.1073969566f * c.z;
-	float s = 0.0883024619f * c.x + 0.2817188376f * c.y + 0.6299787005f * c.z;
+	double l = 0.4122214708 * c.x + 0.5363325363 * c.y + 0.0514459929 * c.z;
+	double m = 0.2119034982 * c.x + 0.6806995451 * c.y + 0.1073969566 * c.z;
+	double s = 0.0883024619 * c.x + 0.2817188376 * c.y + 0.6299787005 * c.z;
 
-	float l_ = cbrtf(l);
-	float m_ = cbrtf(m);
-	float s_ = cbrtf(s);
+	double l_ = dmath_cbrt(l);
+	double m_ = dmath_cbrt(m);
+	double s_ = dmath_cbrt(s);
 
 	return (c11_vec3){{
-		0.2104542553f * l_ + 0.7936177850f * m_ - 0.0040720468f * s_,
-		1.9779984951f * l_ - 2.4285922050f * m_ + 0.4505937099f * s_,
-		0.0259040371f * l_ + 0.7827717662f * m_ - 0.8086757660f * s_,
+		0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+		1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+		0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_,
 	}};
 }
 
 static c11_vec3 oklab_to_linear_srgb(c11_vec3 c)
 {
-    float l_ = c.x + 0.3963377774f * c.y + 0.2158037573f * c.z;
-    float m_ = c.x - 0.1055613458f * c.y - 0.0638541728f * c.z;
-    float s_ = c.x - 0.0894841775f * c.y - 1.2914855480f * c.z;
+    double l_ = c.x + 0.3963377774 * c.y + 0.2158037573 * c.z;
+    double m_ = c.x - 0.1055613458 * c.y - 0.0638541728 * c.z;
+    double s_ = c.x - 0.0894841775 * c.y - 1.2914855480 * c.z;
 
-    float l = l_ * l_ * l_;
-    float m = m_ * m_ * m_;
-    float s = s_ * s_ * s_;
+    double l = l_ * l_ * l_;
+    double m = m_ * m_ * m_;
+    double s = s_ * s_ * s_;
 
     return (c11_vec3){{
         +4.0767416621f * l - 3.3077115913f * m + 0.2309699292f * s,
@@ -45,12 +45,12 @@ static c11_vec3 oklab_to_linear_srgb(c11_vec3 c)
 
 // clang-format on
 
-static float _gamma_correct_inv(float x) {
-    return (x <= 0.04045f) ? (x / 12.92f) : powf((x + 0.055f) / 1.055f, 2.4f);
+static double _gamma_correct_inv(double x) {
+    return (x <= 0.04045) ? (x / 12.92) : dmath_pow((x + 0.055) / 1.055, 2.4);
 }
 
-static float _gamma_correct(float x) {
-    return (x <= 0.0031308f) ? (12.92f * x) : (1.055f * powf(x, 1.0f / 2.4f) - 0.055f);
+static double _gamma_correct(double x) {
+    return (x <= 0.0031308) ? (12.92 * x) : (1.055 * dmath_pow(x, 1.0 / 2.4) - 0.055);
 }
 
 static c11_vec3 srgb_to_linear_srgb(c11_vec3 c) {
@@ -70,17 +70,17 @@ static c11_vec3 linear_srgb_to_srgb(c11_vec3 c) {
 static c11_vec3 _oklab_to_oklch(c11_vec3 c) {
     c11_vec3 res;
     res.x = c.x;
-    res.y = sqrtf(c.y * c.y + c.z * c.z);
-    res.z = fmodf(atan2f(c.z, c.y), 2 * (float)PK_M_PI);
-    res.z = res.z * PK_M_RAD2DEG;
+    res.y = dmath_sqrt(c.y * c.y + c.z * c.z);
+    res.z = dmath_fmod(dmath_atan2(c.z, c.y), 2 * DMATH_PI);
+    res.z = res.z * DMATH_RAD2DEG;
     return res;
 }
 
 static c11_vec3 _oklch_to_oklab(c11_vec3 c) {
     c11_vec3 res;
     res.x = c.x;
-    res.y = c.y * cosf(c.z * PK_M_DEG2RAD);
-    res.z = c.y * sinf(c.z * PK_M_DEG2RAD);
+    res.y = c.y * dmath_cos(c.z * DMATH_DEG2RAD);
+    res.z = c.y * dmath_sin(c.z * DMATH_DEG2RAD);
     return res;
 }
 
@@ -105,9 +105,9 @@ static c11_vec3 oklch_to_linear_srgb(c11_vec3 c) {
     // fall back to RGB clamping
     candidate = oklab_to_linear_srgb(_oklch_to_oklab(clamped));
     if(!_is_valid_srgb(candidate)) {
-        candidate.x = fmaxf(0.0f, fminf(1.0f, candidate.x));
-        candidate.y = fmaxf(0.0f, fminf(1.0f, candidate.y));
-        candidate.z = fmaxf(0.0f, fminf(1.0f, candidate.z));
+        candidate.x = dmath_fmax(0.0, dmath_fmin(1.0, candidate.x));
+        candidate.y = dmath_fmax(0.0, dmath_fmin(1.0, candidate.y));
+        candidate.z = dmath_fmax(0.0, dmath_fmin(1.0, candidate.z));
         return candidate;
     }
 
@@ -116,7 +116,7 @@ static c11_vec3 oklch_to_linear_srgb(c11_vec3 c) {
     float start = 0.0f;
     float end = c.y;
     float range[2] = {0.0f, 0.4f};
-    float resolution = (range[1] - range[0]) / powf(2, 13);
+    float resolution = (range[1] - range[0]) / dmath_pow(2, 13);
     float _last_good_c = clamped.y;
 
     while(end - start > resolution) {
@@ -142,8 +142,8 @@ static c11_vec3 srgb_to_hsv(c11_vec3 c) {
     float g = c.y;
     float b = c.z;
 
-    float maxc = fmaxf(r, fmaxf(g, b));
-    float minc = fminf(r, fminf(g, b));
+    float maxc = dmath_fmax(r, dmath_fmax(g, b));
+    float minc = dmath_fmin(r, dmath_fmin(g, b));
     float v = maxc;
     if(minc == maxc) {
         return (c11_vec3){
@@ -163,7 +163,7 @@ static c11_vec3 srgb_to_hsv(c11_vec3 c) {
     } else {
         h = 4.0f + gc - rc;
     }
-    h = fmodf(h / 6.0f, 1.0f);
+    h = dmath_fmod(h / 6.0, 1.0);
     return (c11_vec3){
         {h, s, v}
     };
