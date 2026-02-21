@@ -242,7 +242,7 @@ void VM__ctor(VM* self) {
     pk__add_module_stdc();
     pk__add_module_vmath();
     pk__add_module_array2d();
-    pk__add_module_colorcvt();
+    // pk__add_module_colorcvt();
 
     // add modules
     pk__add_module_os();

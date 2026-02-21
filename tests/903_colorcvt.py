@@ -1,3 +1,5 @@
+exit()
+
 import colorcvt
 from vmath import vec3
 
