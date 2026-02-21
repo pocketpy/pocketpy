@@ -1,3 +1,5 @@
+#pragma once
+
 /* 
    Copyright (c) 2012,2013   Axel Kohlmeyer <akohlmey@gmail.com> 
    All rights reserved.
