@@ -775,12 +775,14 @@ PK_API void py_newvec2(py_OutRef out, c11_vec2);
 PK_API void py_newvec3(py_OutRef out, c11_vec3);
 PK_API void py_newvec2i(py_OutRef out, c11_vec2i);
 PK_API void py_newvec3i(py_OutRef out, c11_vec3i);
+PK_API void py_newvec4i(py_OutRef out, c11_vec4i);
 PK_API void py_newcolor32(py_OutRef out, c11_color32);
 PK_API c11_mat3x3* py_newmat3x3(py_OutRef out);
 PK_API c11_vec2 py_tovec2(py_Ref self);
 PK_API c11_vec3 py_tovec3(py_Ref self);
 PK_API c11_vec2i py_tovec2i(py_Ref self);
 PK_API c11_vec3i py_tovec3i(py_Ref self);
+PK_API c11_vec4i py_tovec4i(py_Ref self);
 PK_API c11_mat3x3* py_tomat3x3(py_Ref self);
 PK_API c11_color32 py_tocolor32(py_Ref self);
 
@@ -901,6 +903,7 @@ enum py_PredefinedType {
     tp_vec3,
     tp_vec2i,
     tp_vec3i,
+    tp_vec4i,
     tp_mat3x3,
     tp_color32,
     /* array2d */

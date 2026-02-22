@@ -77,6 +77,17 @@ c11_vec3i py_tovec3i(py_Ref self) {
     return self->_vec3i;
 }
 
+void py_newvec4i(py_OutRef out, c11_vec4i v) {
+    out->type = tp_vec4i;
+    out->is_ptr = false;
+    out->_vec4i = v;
+}
+
+c11_vec4i py_tovec4i(py_Ref self) {
+    assert(self->type == tp_vec4i);
+    return self->_vec4i;
+}
+
 c11_mat3x3* py_newmat3x3(py_OutRef out) {
     return py_newobject(out, tp_mat3x3, 0, sizeof(c11_mat3x3));
 }
@@ -310,6 +321,7 @@ DEF_VECTOR_OPS(3)
 
 DEF_VECTOR_INT_OPS(2)
 DEF_VECTOR_INT_OPS(3)
+DEF_VECTOR_INT_OPS(4)
 
 static bool vec2i__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -328,6 +340,18 @@ static bool vec3i__hash__(int argc, py_Ref argv) {
     uint64_t y_part = (uint32_t)v.y & 0xFFFFFF;
     uint64_t z_part = (uint32_t)v.z & 0xFFFF;
     uint64_t hash = (x_part << 40) | (y_part << 16) | z_part;
+    py_newint(py_retval(), (py_i64)hash);
+    return true;
+}
+
+static bool vec4i__hash__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_vec4i v = py_tovec4i(argv);
+    uint64_t x_part = (uint32_t)v.x & 0xFFFF;
+    uint64_t y_part = (uint32_t)v.y & 0xFFFF;
+    uint64_t z_part = (uint32_t)v.z & 0xFFFF;
+    uint64_t w_part = (uint32_t)v.w & 0xFFFF;
+    uint64_t hash = (x_part << 48) | (y_part << 32) | (z_part << 16) | w_part;
     py_newint(py_retval(), (py_i64)hash);
     return true;
 }
@@ -799,6 +823,21 @@ DEFINE_VEC_FIELD(vec3i, int, py_i64, x)
 DEFINE_VEC_FIELD(vec3i, int, py_i64, y)
 DEFINE_VEC_FIELD(vec3i, int, py_i64, z)
 
+/* vec4i */
+static bool vec4i__repr__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_vec4i data = py_tovec4i(argv);
+    char buf[64];
+    int size = snprintf(buf, 64, "vec4i(%d, %d, %d, %d)", data.x, data.y, data.z, data.w);
+    py_newstrv(py_retval(), (c11_sv){buf, size});
+    return true;
+}
+
+DEFINE_VEC_FIELD(vec4i, int, py_i64, x)
+DEFINE_VEC_FIELD(vec4i, int, py_i64, y)
+DEFINE_VEC_FIELD(vec4i, int, py_i64, z)
+DEFINE_VEC_FIELD(vec4i, int, py_i64, w)
+
 /* vec3 */
 static bool vec3__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -1113,6 +1152,7 @@ void pk__add_module_vmath() {
     py_Type vec3 = pk_newtype("vec3", tp_object, mod, NULL, false, true);
     py_Type vec2i = pk_newtype("vec2i", tp_object, mod, NULL, false, true);
     py_Type vec3i = pk_newtype("vec3i", tp_object, mod, NULL, false, true);
+    py_Type vec4i = pk_newtype("vec4i", tp_object, mod, NULL, false, true);
     py_Type mat3x3 = pk_newtype("mat3x3", tp_object, mod, NULL, false, true);
     py_Type color32 = pk_newtype("color32", tp_object, mod, NULL, false, true);
 
@@ -1120,15 +1160,17 @@ void pk__add_module_vmath() {
     py_setdict(mod, py_name("vec3"), py_tpobject(vec3));
     py_setdict(mod, py_name("vec2i"), py_tpobject(vec2i));
     py_setdict(mod, py_name("vec3i"), py_tpobject(vec3i));
+    py_setdict(mod, py_name("vec4i"), py_tpobject(vec4i));
     py_setdict(mod, py_name("mat3x3"), py_tpobject(mat3x3));
     py_setdict(mod, py_name("color32"), py_tpobject(color32));
 
-    assert(vec2 == tp_vec2);
-    assert(vec3 == tp_vec3);
-    assert(vec2i == tp_vec2i);
-    assert(vec3i == tp_vec3i);
-    assert(mat3x3 == tp_mat3x3);
-    assert(color32 == tp_color32);
+    c11__rtassert(vec2 == tp_vec2);
+    c11__rtassert(vec3 == tp_vec3);
+    c11__rtassert(vec2i == tp_vec2i);
+    c11__rtassert(vec3i == tp_vec3i);
+    c11__rtassert(vec4i == tp_vec4i);
+    c11__rtassert(mat3x3 == tp_mat3x3);
+    c11__rtassert(color32 == tp_color32);
 
     /* vec2 */
     py_bindmagic(vec2, __new__, vec2__new__);
@@ -1238,6 +1280,35 @@ void pk__add_module_vmath() {
     py_newvec3i(_const(vec3i, "ONE"),
                 (c11_vec3i){
                     {1, 1, 1}
+    });
+
+    /* vec4i */
+    py_bindmagic(vec4i, __new__, vec4i__new__);
+    py_bindmagic(vec4i, __repr__, vec4i__repr__);
+    py_bindmagic(vec4i, __add__, vec4i__add__);
+    py_bindmagic(vec4i, __sub__, vec4i__sub__);
+    py_bindmagic(vec4i, __mul__, vec4i__mul__);
+    py_bindmagic(vec4i, __floordiv__, vec4i__floordiv__);
+    py_bindmagic(vec4i, __eq__, vec4i__eq__);
+    py_bindmagic(vec4i, __ne__, vec4i__ne__);
+    py_bindmagic(vec4i, __hash__, vec4i__hash__);
+    py_bindproperty(vec4i, "x", vec4i__x, NULL);
+    py_bindproperty(vec4i, "y", vec4i__y, NULL);
+    py_bindproperty(vec4i, "z", vec4i__z, NULL);
+    py_bindproperty(vec4i, "w", vec4i__w, NULL);
+    py_bindmethod(vec4i, "with_x", vec4i__with_x);
+    py_bindmethod(vec4i, "with_y", vec4i__with_y);
+    py_bindmethod(vec4i, "with_z", vec4i__with_z);
+    py_bindmethod(vec4i, "with_w", vec4i__with_w);
+    py_bindmethod(vec4i, "dot", vec4i_dot);
+
+    py_newvec4i(_const(vec4i, "ZERO"),
+                (c11_vec4i){
+                    {0, 0, 0, 0}
+    });
+    py_newvec4i(_const(vec4i, "ONE"),
+                (c11_vec4i){
+                    {1, 1, 1, 1}
     });
 
     /* vec3 */
