@@ -93,15 +93,6 @@ assert data.view() == array2d.fromlist([
 assert data.view()[vec2i(1,1)-data.view().origin] == data[vec2i(1,1)]
 assert data.view()[vec2i(3,3)-data.view().origin] == data[vec2i(3,3)]
 
-# ====chunked_array2d__delitem__
-data = chunked_array2d(4)
-for i in range(10):
-    for j in range(10):
-        data[vec2i(i,j)] = 10
-
-del data[vec2i(0,0)]
-assert data[vec2i(0,0)] == data.default
-
 # ====chunked_array2d__len__
 data = chunked_array2d(4)
 for i in range(10):

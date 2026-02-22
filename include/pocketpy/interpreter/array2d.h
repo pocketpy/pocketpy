@@ -51,7 +51,7 @@ typedef struct c11_chunked_array2d {
     c11_chunked_array2d_chunks_KV last_visited;
 
     py_TValue default_T;
-    py_TValue context_builder;
+    bool auto_add_chunk;
 } c11_chunked_array2d;
 
 py_Ref c11_chunked_array2d__get(c11_chunked_array2d* self, int col, int row);
