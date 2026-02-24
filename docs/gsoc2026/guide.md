@@ -7,7 +7,7 @@ label: "Application Guide"
 Welcome to the Google Summer of Code 2026 application guide for pocketpy.
 We are recruiting a student who is passionate about vibe coding and mobile game development.
 
-See [Project Ideas (TBA)](./ideas.md) for more details about the project.
+See [Project Ideas](./ideas.md) for more details about the project.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ To apply for this project, you need to satisfy the following prerequisites:
 + You are a student enrolled in an accredited institution (university, college, etc.) pursuing a degree in computer science or a related field. And this is your first time participating in Google Summer of Code.
 + You have interest in vibe coding and mobile game development.
 + You are experienced in [Python](https://www.python.org/) and backend technologies, such as [FastAPI](https://fastapi.tiangolo.com/) or [Flask](https://flask.palletsprojects.com/).
-+ You are glad to learn mobile app development using frameworks like [Flutter](https://flutter.dev/).
++ You are glad to learn game engines like [Godot](https://godotengine.org/).
 
 ## Application steps
 
