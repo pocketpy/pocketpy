@@ -28,26 +28,6 @@ typedef double py_f64;
 /// A generic destructor function.
 typedef void (*py_Dtor)(void*);
 
-#ifndef PK_IS_AMALGAMATED_C
-#ifdef PK_IS_PUBLIC_INCLUDE
-typedef struct py_TValue {
-    py_Type type;
-    bool is_ptr;
-    int extra;
-
-    union {
-        int64_t _i64;
-        double _f64;
-        bool _bool;
-        py_CFunction _cfunc;
-        void* _obj;
-        void* _ptr;
-        char _chars[16];
-    };
-} py_TValue;
-#endif
-#endif
-
 /// A string view type. It is helpful for passing strings which are not null-terminated.
 typedef struct c11_sv {
     const char* data;
@@ -918,6 +898,26 @@ enum py_PredefinedType {
     tp_array2d_view,
     tp_chunked_array2d,
 };
+
+#ifndef PK_IS_AMALGAMATED_C
+#ifdef PK_IS_PUBLIC_INCLUDE
+typedef struct py_TValue {
+    py_Type type;
+    bool is_ptr;
+    int extra;
+
+    union {
+        int64_t _i64;
+        double _f64;
+        bool _bool;
+        py_CFunction _cfunc;
+        void* _obj;
+        void* _ptr;
+        char _chars[16];
+    };
+} py_TValue;
+#endif
+#endif
 
 #ifdef __cplusplus
 }
