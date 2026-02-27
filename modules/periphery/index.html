@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="turbo-cache-control" content="no-cache" data-turbo-track="reload" data-track-token="4.0.1.825502595379">
+
+    <!-- See retype.com -->
+    <meta name="generator" content="Retype 4.0.1">
+
+    <!-- Primary Meta Tags -->
+    <title>periphery | Portable Python 3.x Interpreter in Modern C</title>
+    <meta name="title" content="periphery | Portable Python 3.x Interpreter in Modern C">
+    <meta name="description" content="This module is optional. Set option PK_BUILD_MODULE_PERIPHERY to ON in your CMakeLists.txt to enable it.">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://pocketpy.dev/modules/periphery/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://pocketpy.dev/modules/periphery/">
+    <meta property="og:title" content="periphery | Portable Python 3.x Interpreter in Modern C">
+    <meta property="og:description" content="This module is optional. Set option PK_BUILD_MODULE_PERIPHERY to ON in your CMakeLists.txt to enable it.">
+    <meta property="og:site_name" content="pocketpy">
+    <meta property="og:locale" content="en_US">
+
+    <script data-cfasync="false">(function(){var cl=document.documentElement.classList,ls=localStorage.getItem("retype_scheme"),hd=cl.contains("dark"),hl=cl.contains("light"),wm=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;if(ls==="dark"||(!ls&&wm&&!hd&&!hl)){cl.remove("light");cl.add("dark")}else if(ls==="light"||(!ls&&!wm&&!hd&&!hl)){cl.remove("dark");cl.add("light")}})();</script>
+
+    <link id="retype-favicon" rel="icon" href="../../static/logo.png" />
+    <link href="../../resources/css/retype.css?v=4.0.1.825502595379" rel="stylesheet">
+
+    <script data-cfasync="false" src="../../resources/js/config.js?v=4.0.1.825502595379" data-turbo-eval="false" defer></script>
+    <script data-cfasync="false" src="../../resources/js/retype.js?v=4.0.1" data-turbo-eval="false" defer></script>
+    <script id="lunr-js" data-cfasync="false" src="../../resources/js/lunr.js?v=4.0.1.825502595379" data-turbo-eval="false" defer></script>
+    <script id="prism-js" data-cfasync="false" src="../../resources/js/prism.js?v=4.0.1.825502595379" defer></script>
+</head>
+<body>
+    <div id="retype-app" class="relative text-base antialiased text-base-text bg-base-bg font-body">
+    <div class="absolute bottom-0 left-0" style="top: 5rem; right: 50%"></div>
+
+    <header id="retype-header" class="sticky top-0 z-30 flex w-full h-16 bg-header-bg border-b border-header-border md:h-20">
+        <div class="container relative flex items-center justify-between pr-6 grow md:justify-start">
+            <!-- Mobile menu button skeleton -->
+            <button v-cloak class="skeleton retype-mobile-menu-button flex items-center justify-center shrink-0 overflow-hidden dark:text-white focus:outline-hidden rounded-full w-10 h-10 ml-3.5 md:hidden"><svg xmlns="http://www.w3.org/2000/svg" class="mb-px shrink-0" width="24" height="24" viewBox="0 0 24 24" role="presentation" style="margin-bottom: 0px;"><g fill="currentColor"><path d="M2 4h20v2H2zM2 11h20v2H2zM2 18h20v2H2z"></path></g></svg></button>
+            <div v-cloak id="retype-sidebar-left-toggle-button"></div>
+    
+            <!-- Logo -->
+            <div class="flex items-center justify-between h-full py-2 md:w-75">
+                <div class="flex items-center px-2 md:px-6">
+                    <a id="retype-branding-logo" href="../../" class="flex items-center leading-snug text-2xl">
+                        <span class="w-10 mr-2 grow-0 shrink-0 overflow-hidden">
+                            <img class="max-h-10 dark:hidden md:inline-block" src="../../static/logo.png">
+                            <img class="max-h-10 hidden dark:inline-block" src="../../static/logo.png">
+                        </span>
+                        <span class="dark:text-white font-bold line-clamp-1 md:line-clamp-2">pocketpy</span>
+                    </a><span id="retype-branding-label" class="inline-flex mt-1 px-2 py-1 ml-4 text-xs font-medium leading-none items-center rounded-md bg-branding-label-bg text-branding-label-text ring-1 ring-branding-label-border ring-inset md:inline-block">v2.1.8</span>
+                </div>
+    
+                <span class="hidden h-8 border-r md:inline-block border-base-border"></span>
+            </div>
+    
+            <div class="flex justify-between md:grow">
+                <!-- Top Nav -->
+                <nav id="retype-header-nav" class="hidden md:flex">
+                    <ul class="flex flex-col mb-4 md:pl-16 md:mb-0 md:flex-row md:items-center">
+                        <li class="mr-6">
+                            <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                    <g fill="currentColor">
+                                        <path d="M11.03 2.59a1.501 1.501 0 0 1 1.94 0l7.5 6.363a1.5 1.5 0 0 1 .53 1.144V19.5a1.5 1.5 0 0 1-1.5 1.5h-5.75a.75.75 0 0 1-.75-.75V14h-2v6.25a.75.75 0 0 1-.75.75H4.5A1.5 1.5 0 0 1 3 19.5v-9.403c0-.44.194-.859.53-1.144ZM12 3.734l-7.5 6.363V19.5h5v-6.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v6.25h5v-9.403Z"/>
+                                    </g>
+                                </svg>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="mr-6">
+                            <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://pocketpy.dev/static/web/" target="_blank">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                    <g fill="currentColor">
+                                        <path d="M9.5 15.584V8.416a.5.5 0 0 1 .77-.42l5.576 3.583a.5.5 0 0 1 0 .842l-5.576 3.584a.5.5 0 0 1-.77-.42Z"/><path d="M1 12C1 5.925 5.925 1 12 1s11 4.925 11 11-4.925 11-11 11S1 18.075 1 12Zm11-9.5A9.5 9.5 0 0 0 2.5 12a9.5 9.5 0 0 0 9.5 9.5 9.5 9.5 0 0 0 9.5-9.5A9.5 9.5 0 0 0 12 2.5Z"/>
+                                    </g>
+                                </svg>
+                                <span>Live Demo</span>
+                            </a>
+                        </li>
+                        <li class="mr-6">
+                            <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://pocketpy.github.io/examples/" target="_blank">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                    <g fill="currentColor">
+                                        <path d="M15.22 4.97a.75.75 0 0 1 1.06 0l6.5 6.5a.75.75 0 0 1 0 1.06l-6.5 6.5a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L21.19 12l-5.97-5.97a.75.75 0 0 1 0-1.06Zm-6.44 0a.75.75 0 0 1 0 1.06L2.81 12l5.97 5.97a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-6.5-6.5a.75.75 0 0 1 0-1.06l6.5-6.5a.75.75 0 0 1 1.06 0Z"/>
+                                    </g>
+                                </svg>
+                                <span>Live Examples</span>
+                            </a>
+                        </li>
+                        <li class="mr-6">
+                            <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://github.com/blueloveth/pocketpy" target="_blank">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                    <g fill="currentColor">
+                                        <path d="M10.303 16.652c-2.837-.344-4.835-2.385-4.835-5.028 0-1.074.387-2.235 1.031-3.008-.279-.709-.236-2.214.086-2.837.86-.107 2.02.344 2.708.967.816-.258 1.676-.386 2.728-.386 1.053 0 1.913.128 2.686.365.666-.602 1.848-1.053 2.708-.946.3.581.344 2.085.064 2.815.688.817 1.053 1.913 1.053 3.03 0 2.643-1.998 4.641-4.877 5.006.73.473 1.224 1.504 1.224 2.686v2.235c0 .644.537 1.01 1.182.752 3.889-1.483 6.94-5.372 6.94-10.185 0-6.081-4.942-11.044-11.022-11.044-6.081 0-10.98 4.963-10.98 11.044a10.84 10.84 0 0 0 7.112 10.206c.58.215 1.139-.172 1.139-.752v-1.719a2.768 2.768 0 0 1-1.032.215c-1.418 0-2.256-.773-2.857-2.213-.237-.58-.495-.924-.989-.988-.258-.022-.344-.129-.344-.258 0-.258.43-.451.86-.451.623 0 1.16.386 1.719 1.181.43.623.881.903 1.418.903.537 0 .881-.194 1.375-.688.365-.365.645-.687.903-.902Z"/>
+                                    </g>
+                                </svg>
+                                <span>Github</span>
+                            </a>
+                        </li>
+                        <li class="mr-6">
+                            <a class="py-2 md:mb-0 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://discord.gg/WWaq72GzXv" target="_blank">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                    <g fill="currentColor">
+                                        <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0 1 14.25 14H8.061l-2.574 2.573A1.458 1.458 0 0 1 3 15.543V14H1.75A1.75 1.75 0 0 1 0 12.25v-9.5C0 1.784.784 1 1.75 1ZM1.5 2.75v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25Z"/><path d="M22.5 8.75a.25.25 0 0 0-.25-.25h-3.5a.75.75 0 0 1 0-1.5h3.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0 1 22.25 20H21v1.543a1.457 1.457 0 0 1-2.487 1.03L15.939 20H10.75A1.75 1.75 0 0 1 9 18.25v-1.465a.75.75 0 0 1 1.5 0v1.465c0 .138.112.25.25.25h5.5a.75.75 0 0 1 .53.22l2.72 2.72v-2.19a.75.75 0 0 1 .75-.75h2a.25.25 0 0 0 .25-.25v-9.5Z"/>
+                                    </g>
+                                </svg>
+                                <span>Discord</span>
+                            </a>
+                        </li>
+    
+                    </ul>
+                </nav>
+    
+                <div v-cloak class="flex justify-end grow">
+                    <div id="retype-mobile-search-button"></div>
+                    <doc-search-desktop></doc-search-desktop>
+    
+                    <doc-theme-switch class="lg:ml-2"></doc-theme-switch>
+                    <doc-history></doc-history>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <div id="retype-container" class="container relative flex bg-white">
+        <!-- Sidebar Skeleton -->
+        <div v-cloak class="fixed flex flex-col shrink-0 duration-300 ease-in-out bg-sidebar-left-bg border-sidebar-left-border sidebar top-20 w-75 border-r h-screen md:sticky transition-transform skeleton">
+        
+            <div class="flex items-center h-16 px-6">
+                <input id="retype-filter-input-mock" class="w-full h-10 pl-8 px-3 py-2 transition-colors duration-200 ease-linear bg-filter-bg border border-filter-border rounded-lg shadow-none md:text-sm hover:border-filter-border-hover focus:outline-hidden focus:border-filter-border-focus placeholder-filter-placeholder" type="text">
+            </div>
+        
+            <div class="pl-6 mt-1 mb-4">
+                <div class="w-32 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                <div class="w-48 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                <div class="w-40 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                <div class="w-32 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                <div class="w-48 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+                <div class="w-40 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+            </div>
+        
+            <div class="shrink-0 mt-auto bg-transparent dark:border-base-border">
+                <a class="flex items-center justify-center flex-nowrap h-16 text-gray-350 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 transition-colors duration-150 ease-in docs-powered-by" target="_blank" href="https://retype.com/" rel="noopener">
+                    <span class="text-xs whitespace-nowrap">Powered by</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="ml-2" fill="currentColor" width="96" height="20" overflow="visible"><path d="M0 0v20h13.59V0H0zm11.15 17.54H2.44V2.46h8.71v15.08zM15.8 20h2.44V4.67L15.8 2.22zM20.45 6.89V20h2.44V9.34z"/><g><path d="M40.16 8.44c0 1.49-.59 2.45-1.75 2.88l2.34 3.32h-2.53l-2.04-2.96h-1.43v2.96h-2.06V5.36h3.5c1.43 0 2.46.24 3.07.73s.9 1.27.9 2.35zm-2.48 1.1c.26-.23.38-.59.38-1.09 0-.5-.13-.84-.4-1.03s-.73-.28-1.39-.28h-1.54v2.75h1.5c.72 0 1.2-.12 1.45-.35zM51.56 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92h4.74v1.83h-6.79V5.36h6.64zM60.09 7.15v7.48h-2.06V7.15h-2.61V5.36h7.28v1.79h-2.61zM70.81 14.64h-2.06v-3.66l-3.19-5.61h2.23l1.99 3.45 1.99-3.45H74l-3.19 5.61v3.66zM83.99 6.19c.65.55.97 1.4.97 2.55s-.33 1.98-1 2.51-1.68.8-3.04.8h-1.23v2.59h-2.06V5.36h3.26c1.42 0 2.45.28 3.1.83zm-1.51 3.65c.25-.28.37-.69.37-1.22s-.16-.92-.48-1.14c-.32-.23-.82-.34-1.5-.34H79.7v3.12h1.38c.68 0 1.15-.14 1.4-.42zM95.85 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92H96v1.83h-6.79V5.36h6.64z"/></g></svg>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Sidebar component -->
+        <doc-sidebar v-cloak>
+            <template #sidebar-footer>
+                <div class="shrink-0 mt-auto border-t md:bg-transparent md:border-none dark:border-base-border">
+        
+                    <div class="py-3 px-6 md:hidden border-b dark:border-base-border">
+                        <nav>
+                            <ul class="flex flex-wrap justify-center items-center">
+                                <li class="mr-6">
+                                    <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                            <g fill="currentColor">
+                                                <path d="M11.03 2.59a1.501 1.501 0 0 1 1.94 0l7.5 6.363a1.5 1.5 0 0 1 .53 1.144V19.5a1.5 1.5 0 0 1-1.5 1.5h-5.75a.75.75 0 0 1-.75-.75V14h-2v6.25a.75.75 0 0 1-.75.75H4.5A1.5 1.5 0 0 1 3 19.5v-9.403c0-.44.194-.859.53-1.144ZM12 3.734l-7.5 6.363V19.5h5v-6.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v6.25h5v-9.403Z"/>
+                                            </g>
+                                        </svg>
+                                        <span>Home</span>
+                                    </a>
+                                </li>
+                                <li class="mr-6">
+                                    <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://pocketpy.dev/static/web/" target="_blank">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                            <g fill="currentColor">
+                                                <path d="M9.5 15.584V8.416a.5.5 0 0 1 .77-.42l5.576 3.583a.5.5 0 0 1 0 .842l-5.576 3.584a.5.5 0 0 1-.77-.42Z"/><path d="M1 12C1 5.925 5.925 1 12 1s11 4.925 11 11-4.925 11-11 11S1 18.075 1 12Zm11-9.5A9.5 9.5 0 0 0 2.5 12a9.5 9.5 0 0 0 9.5 9.5 9.5 9.5 0 0 0 9.5-9.5A9.5 9.5 0 0 0 12 2.5Z"/>
+                                            </g>
+                                        </svg>
+                                        <span>Live Demo</span>
+                                    </a>
+                                </li>
+                                <li class="mr-6">
+                                    <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://pocketpy.github.io/examples/" target="_blank">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                            <g fill="currentColor">
+                                                <path d="M15.22 4.97a.75.75 0 0 1 1.06 0l6.5 6.5a.75.75 0 0 1 0 1.06l-6.5 6.5a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L21.19 12l-5.97-5.97a.75.75 0 0 1 0-1.06Zm-6.44 0a.75.75 0 0 1 0 1.06L2.81 12l5.97 5.97a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-6.5-6.5a.75.75 0 0 1 0-1.06l6.5-6.5a.75.75 0 0 1 1.06 0Z"/>
+                                            </g>
+                                        </svg>
+                                        <span>Live Examples</span>
+                                    </a>
+                                </li>
+                                <li class="mr-6">
+                                    <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://github.com/blueloveth/pocketpy" target="_blank">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                            <g fill="currentColor">
+                                                <path d="M10.303 16.652c-2.837-.344-4.835-2.385-4.835-5.028 0-1.074.387-2.235 1.031-3.008-.279-.709-.236-2.214.086-2.837.86-.107 2.02.344 2.708.967.816-.258 1.676-.386 2.728-.386 1.053 0 1.913.128 2.686.365.666-.602 1.848-1.053 2.708-.946.3.581.344 2.085.064 2.815.688.817 1.053 1.913 1.053 3.03 0 2.643-1.998 4.641-4.877 5.006.73.473 1.224 1.504 1.224 2.686v2.235c0 .644.537 1.01 1.182.752 3.889-1.483 6.94-5.372 6.94-10.185 0-6.081-4.942-11.044-11.022-11.044-6.081 0-10.98 4.963-10.98 11.044a10.84 10.84 0 0 0 7.112 10.206c.58.215 1.139-.172 1.139-.752v-1.719a2.768 2.768 0 0 1-1.032.215c-1.418 0-2.256-.773-2.857-2.213-.237-.58-.495-.924-.989-.988-.258-.022-.344-.129-.344-.258 0-.258.43-.451.86-.451.623 0 1.16.386 1.719 1.181.43.623.881.903 1.418.903.537 0 .881-.194 1.375-.688.365-.365.645-.687.903-.902Z"/>
+                                            </g>
+                                        </svg>
+                                        <span>Github</span>
+                                    </a>
+                                </li>
+                                <li class="mr-6">
+                                    <a class="block py-1 inline-flex items-center text-sm whitespace-nowrap transition-colors duration-200 ease-linear md:text-header-text font-header-text hover:text-header-text-hover" href="https://discord.gg/WWaq72GzXv" target="_blank">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="mb-px mr-1" width="18" height="18" viewBox="0 0 24 24" role="presentation">
+                                            <g fill="currentColor">
+                                                <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0 1 14.25 14H8.061l-2.574 2.573A1.458 1.458 0 0 1 3 15.543V14H1.75A1.75 1.75 0 0 1 0 12.25v-9.5C0 1.784.784 1 1.75 1ZM1.5 2.75v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25Z"/><path d="M22.5 8.75a.25.25 0 0 0-.25-.25h-3.5a.75.75 0 0 1 0-1.5h3.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0 1 22.25 20H21v1.543a1.457 1.457 0 0 1-2.487 1.03L15.939 20H10.75A1.75 1.75 0 0 1 9 18.25v-1.465a.75.75 0 0 1 1.5 0v1.465c0 .138.112.25.25.25h5.5a.75.75 0 0 1 .53.22l2.72 2.72v-2.19a.75.75 0 0 1 .75-.75h2a.25.25 0 0 0 .25-.25v-9.5Z"/>
+                                            </g>
+                                        </svg>
+                                        <span>Discord</span>
+                                    </a>
+                                </li>
+        
+                            </ul>
+                        </nav>
+                    </div>
+        
+                    <a class="flex items-center justify-center flex-nowrap h-16 text-gray-350 dark:text-dark-400 hover:text-gray-600 dark:hover:text-dark-300 transition-colors duration-150 ease-in docs-powered-by" target="_blank" href="https://retype.com/" rel="noopener">
+                        <span class="text-xs whitespace-nowrap">Powered by</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="ml-2" fill="currentColor" width="96" height="20" overflow="visible"><path d="M0 0v20h13.59V0H0zm11.15 17.54H2.44V2.46h8.71v15.08zM15.8 20h2.44V4.67L15.8 2.22zM20.45 6.89V20h2.44V9.34z"/><g><path d="M40.16 8.44c0 1.49-.59 2.45-1.75 2.88l2.34 3.32h-2.53l-2.04-2.96h-1.43v2.96h-2.06V5.36h3.5c1.43 0 2.46.24 3.07.73s.9 1.27.9 2.35zm-2.48 1.1c.26-.23.38-.59.38-1.09 0-.5-.13-.84-.4-1.03s-.73-.28-1.39-.28h-1.54v2.75h1.5c.72 0 1.2-.12 1.45-.35zM51.56 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92h4.74v1.83h-6.79V5.36h6.64zM60.09 7.15v7.48h-2.06V7.15h-2.61V5.36h7.28v1.79h-2.61zM70.81 14.64h-2.06v-3.66l-3.19-5.61h2.23l1.99 3.45 1.99-3.45H74l-3.19 5.61v3.66zM83.99 6.19c.65.55.97 1.4.97 2.55s-.33 1.98-1 2.51-1.68.8-3.04.8h-1.23v2.59h-2.06V5.36h3.26c1.42 0 2.45.28 3.1.83zm-1.51 3.65c.25-.28.37-.69.37-1.22s-.16-.92-.48-1.14c-.32-.23-.82-.34-1.5-.34H79.7v3.12h1.38c.68 0 1.15-.14 1.4-.42zM95.85 5.36V7.2h-4.59v1.91h4.13v1.76h-4.13v1.92H96v1.83h-6.79V5.36h6.64z"/></g></svg>
+                    </a>
+                </div>
+            </template>
+        </doc-sidebar>
+
+        <div class="grow min-w-0 bg-body-bg">
+            <!-- Render "toolbar" template here on api pages --><!-- Render page content -->
+<div class="flex">
+    <div id="retype-main" class="min-w-0 p-4 grow md:px-16">
+        <main class="relative pb-12 lg:pt-2">
+            <div class="retype-markdown" id="retype-content">
+                <!-- Rendered if sidebar right is enabled -->
+                <div id="retype-sidebar-right-toggle"></div>
+                <!-- Page content  -->
+<doc-anchor-target id="periphery" class="break-words">
+    <h1>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#periphery">#</doc-anchor-trigger>
+        <span>periphery</span>
+    </h1>
+</doc-anchor-target>
+<div class="flex mb-6">
+    <div class="shrink-0 w-1.5 rounded-tl-lg rounded-bl-lg bg-callout-primary"></div>
+    <div class="flex w-full py-4 border border-l-0 rounded-tr-lg rounded-br-lg doc-callout bg-callout-base-bg border-callout-base-border" role="alert">
+        <div class="flex items-center ml-4 h-7">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mb-px text-callout-primary" width="22" height="22" viewBox="0 0 24 24" role="presentation">
+                <g fill="currentColor"><g>
+                    <path d="M12 1C5.93 1 1 5.93 1 12s4.93 11 11 11 11-4.93 11-11S18.07 1 12 1zm0 20c-4.96 0-9-4.04-9-9s4.04-9 9-9 9 4.04 9 9-4.04 9-9 9z"></path>
+                    <path d="M12 11c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1s1-.45 1-1v-4c0-.55-.45-1-1-1zM12.01 7c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"></path>
+                    <path fill="none" d="M0 0h24v24H0z"></path>
+                </g></g>
+            </svg>
+        </div>
+        <div class="pr-5 ml-3 w-full">
+<p>This module is optional. Set option <code translate="no" v-pre>PK_BUILD_MODULE_PERIPHERY</code> to <code translate="no" v-pre>ON</code> in your <code translate="no" v-pre>CMakeLists.txt</code> to enable it.</p>
+        </div>
+    </div>
+</div>
+<doc-anchor-target id="source-code">
+    <h4>
+        <doc-anchor-trigger class="header-anchor-trigger" to="#source-code">#</doc-anchor-trigger>
+        <span>Source code</span>
+    </h4>
+</doc-anchor-target>
+<div class="codeblock-wrapper"><doc-codeblock>
+<pre translate="no" class="language-python"><code v-pre class="language-python">from typing import overload
+from stdc import intptr
+
+class gpio_config:
+    direction: int #  (gpio_direction_t)
+    edge: int #  (gpio_edge_t)
+    event_clock: int #  (gpio_event_clock_t)
+    debounce_us: int #  (uint32_t)
+    bias: int #  (gpio_bias_t)
+    drive: int #  (gpio_drive_t)
+    inverted: bool #  (bool)
+    label: str #  (const char*)
+
+    @overload
+    def __init__(self): ...
+    @overload
+    def __init__(self, direction: int, edge: int, event_clock: int, debounce_us: int, bias: int, drive: int, inverted: bool, label: str): ...
+
+class spi_msg:
+    txbuf: intptr #  (const uint8_t*)
+    rxbuf: intptr #  (uint8_t*)
+    len: int #  (size_t)
+    deselect: bool #  (bool)
+    deselect_delay_us: int #  (uint16_t)
+    word_delay_us: int #  (uint8_t)
+
+    @overload
+    def __init__(self): ...
+    @overload
+    def __init__(self, txbuf: intptr, rxbuf: intptr, len: int, deselect: bool, deselect_delay_us: int, word_delay_us: int): ...
+
+class periphery_version:
+    major: int #  (unsigned)
+    minor: int #  (unsigned)
+    patch: int #  (unsigned)
+    commit_id: str #  (const char*)
+
+    @overload
+    def __init__(self): ...
+    @overload
+    def __init__(self, major: int, minor: int, patch: int, commit_id: str): ...
+
+def gpio_new() -&gt; intptr:
+    &quot;&quot;&quot;Wraps `gpio_t* gpio_new()`&quot;&quot;&quot;
+
+def gpio_open(gpio: intptr, path: str, line: int, direction: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_open(gpio_t* gpio, const char* path, unsigned line, gpio_direction_t direction)`&quot;&quot;&quot;
+
+def gpio_open_name(gpio: intptr, path: str, name: str, direction: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_open_name(gpio_t* gpio, const char* path, const char* name, gpio_direction_t direction)`&quot;&quot;&quot;
+
+def gpio_open_advanced(gpio: intptr, path: str, line: int, config: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_open_advanced(gpio_t* gpio, const char* path, unsigned line, const gpio_config_t* config)`&quot;&quot;&quot;
+
+def gpio_open_name_advanced(gpio: intptr, path: str, name: str, config: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_open_name_advanced(gpio_t* gpio, const char* path, const char* name, const gpio_config_t* config)`&quot;&quot;&quot;
+
+def gpio_open_sysfs(gpio: intptr, line: int, direction: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_open_sysfs(gpio_t* gpio, unsigned line, gpio_direction_t direction)`&quot;&quot;&quot;
+
+def gpio_read(gpio: intptr, value: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_read(gpio_t* gpio, bool* value)`&quot;&quot;&quot;
+
+def gpio_write(gpio: intptr, value: bool, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_write(gpio_t* gpio, bool value)`&quot;&quot;&quot;
+
+def gpio_poll(gpio: intptr, timeout_ms: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_poll(gpio_t* gpio, int timeout_ms)`&quot;&quot;&quot;
+
+def gpio_close(gpio: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_close(gpio_t* gpio)`&quot;&quot;&quot;
+
+def gpio_free(gpio: intptr, /) -&gt; None:
+    &quot;&quot;&quot;Wraps `void gpio_free(gpio_t* gpio)`&quot;&quot;&quot;
+
+def gpio_read_event(gpio: intptr, edge: intptr, timestamp: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_read_event(gpio_t* gpio, gpio_edge_t* edge, uint64_t* timestamp)`&quot;&quot;&quot;
+
+def gpio_poll_multiple(gpios: intptr, count: int, timeout_ms: int, gpios_ready: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_poll_multiple(gpio_t** gpios, size_t count, int timeout_ms, bool* gpios_ready)`&quot;&quot;&quot;
+
+def gpio_get_direction(gpio: intptr, direction: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_get_direction(gpio_t* gpio, gpio_direction_t* direction)`&quot;&quot;&quot;
+
+def gpio_get_edge(gpio: intptr, edge: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_get_edge(gpio_t* gpio, gpio_edge_t* edge)`&quot;&quot;&quot;
+
+def gpio_get_event_clock(gpio: intptr, event_clock: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_get_event_clock(gpio_t* gpio, gpio_event_clock_t* event_clock)`&quot;&quot;&quot;
+
+def gpio_get_debounce_us(gpio: intptr, debounce_us: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_get_debounce_us(gpio_t* gpio, uint32_t* debounce_us)`&quot;&quot;&quot;
+
+def gpio_get_bias(gpio: intptr, bias: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_get_bias(gpio_t* gpio, gpio_bias_t* bias)`&quot;&quot;&quot;
+
+def gpio_get_drive(gpio: intptr, drive: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_get_drive(gpio_t* gpio, gpio_drive_t* drive)`&quot;&quot;&quot;
+
+def gpio_get_inverted(gpio: intptr, inverted: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_get_inverted(gpio_t* gpio, bool* inverted)`&quot;&quot;&quot;
+
+def gpio_set_direction(gpio: intptr, direction: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_set_direction(gpio_t* gpio, gpio_direction_t direction)`&quot;&quot;&quot;
+
+def gpio_set_edge(gpio: intptr, edge: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_set_edge(gpio_t* gpio, gpio_edge_t edge)`&quot;&quot;&quot;
+
+def gpio_set_event_clock(gpio: intptr, event_clock: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_set_event_clock(gpio_t* gpio, gpio_event_clock_t event_clock)`&quot;&quot;&quot;
+
+def gpio_set_debounce_us(gpio: intptr, debounce_us: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_set_debounce_us(gpio_t* gpio, uint32_t debounce_us)`&quot;&quot;&quot;
+
+def gpio_set_bias(gpio: intptr, bias: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_set_bias(gpio_t* gpio, gpio_bias_t bias)`&quot;&quot;&quot;
+
+def gpio_set_drive(gpio: intptr, drive: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_set_drive(gpio_t* gpio, gpio_drive_t drive)`&quot;&quot;&quot;
+
+def gpio_set_inverted(gpio: intptr, inverted: bool, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_set_inverted(gpio_t* gpio, bool inverted)`&quot;&quot;&quot;
+
+def gpio_line(gpio: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `unsigned gpio_line(gpio_t* gpio)`&quot;&quot;&quot;
+
+def gpio_fd(gpio: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_fd(gpio_t* gpio)`&quot;&quot;&quot;
+
+def gpio_name(gpio: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_name(gpio_t* gpio, char* str, size_t len)`&quot;&quot;&quot;
+
+def gpio_label(gpio: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_label(gpio_t* gpio, char* str, size_t len)`&quot;&quot;&quot;
+
+def gpio_chip_fd(gpio: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_chip_fd(gpio_t* gpio)`&quot;&quot;&quot;
+
+def gpio_chip_name(gpio: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_chip_name(gpio_t* gpio, char* str, size_t len)`&quot;&quot;&quot;
+
+def gpio_chip_label(gpio: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_chip_label(gpio_t* gpio, char* str, size_t len)`&quot;&quot;&quot;
+
+def gpio_tostring(gpio: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_tostring(gpio_t* gpio, char* str, size_t len)`&quot;&quot;&quot;
+
+def gpio_errno(gpio: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int gpio_errno(gpio_t* gpio)`&quot;&quot;&quot;
+
+def gpio_errmsg(gpio: intptr, /) -&gt; str:
+    &quot;&quot;&quot;Wraps `const char* gpio_errmsg(gpio_t* gpio)`&quot;&quot;&quot;
+
+def led_new() -&gt; intptr:
+    &quot;&quot;&quot;Wraps `led_t* led_new()`&quot;&quot;&quot;
+
+def led_open(led: intptr, name: str, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_open(led_t* led, const char* name)`&quot;&quot;&quot;
+
+def led_read(led: intptr, value: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_read(led_t* led, bool* value)`&quot;&quot;&quot;
+
+def led_write(led: intptr, value: bool, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_write(led_t* led, bool value)`&quot;&quot;&quot;
+
+def led_close(led: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_close(led_t* led)`&quot;&quot;&quot;
+
+def led_free(led: intptr, /) -&gt; None:
+    &quot;&quot;&quot;Wraps `void led_free(led_t* led)`&quot;&quot;&quot;
+
+def led_get_brightness(led: intptr, brightness: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_get_brightness(led_t* led, unsigned* brightness)`&quot;&quot;&quot;
+
+def led_get_max_brightness(led: intptr, max_brightness: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_get_max_brightness(led_t* led, unsigned* max_brightness)`&quot;&quot;&quot;
+
+def led_get_trigger(led: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_get_trigger(led_t* led, char* str, size_t len)`&quot;&quot;&quot;
+
+def led_get_triggers_entry(led: intptr, index: int, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_get_triggers_entry(led_t* led, unsigned index, char* str, size_t len)`&quot;&quot;&quot;
+
+def led_get_triggers_count(led: intptr, count: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_get_triggers_count(led_t* led, unsigned* count)`&quot;&quot;&quot;
+
+def led_set_brightness(led: intptr, brightness: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_set_brightness(led_t* led, unsigned brightness)`&quot;&quot;&quot;
+
+def led_set_trigger(led: intptr, trigger: str, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_set_trigger(led_t* led, const char* trigger)`&quot;&quot;&quot;
+
+def led_name(led: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_name(led_t* led, char* str, size_t len)`&quot;&quot;&quot;
+
+def led_tostring(led: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_tostring(led_t* led, char* str, size_t len)`&quot;&quot;&quot;
+
+def led_errno(led: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int led_errno(led_t* led)`&quot;&quot;&quot;
+
+def led_errmsg(led: intptr, /) -&gt; str:
+    &quot;&quot;&quot;Wraps `const char* led_errmsg(led_t* led)`&quot;&quot;&quot;
+
+def mmio_new() -&gt; intptr:
+    &quot;&quot;&quot;Wraps `mmio_t* mmio_new()`&quot;&quot;&quot;
+
+def mmio_open(mmio: intptr, base: int, size: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_open(mmio_t* mmio, uintptr_t base, size_t size)`&quot;&quot;&quot;
+
+def mmio_open_advanced(mmio: intptr, base: int, size: int, path: str, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_open_advanced(mmio_t* mmio, uintptr_t base, size_t size, const char* path)`&quot;&quot;&quot;
+
+def mmio_ptr(mmio: intptr, /) -&gt; intptr:
+    &quot;&quot;&quot;Wraps `void* mmio_ptr(mmio_t* mmio)`&quot;&quot;&quot;
+
+def mmio_read64(mmio: intptr, offset: int, value: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_read64(mmio_t* mmio, uintptr_t offset, uint64_t* value)`&quot;&quot;&quot;
+
+def mmio_read32(mmio: intptr, offset: int, value: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_read32(mmio_t* mmio, uintptr_t offset, uint32_t* value)`&quot;&quot;&quot;
+
+def mmio_read16(mmio: intptr, offset: int, value: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_read16(mmio_t* mmio, uintptr_t offset, uint16_t* value)`&quot;&quot;&quot;
+
+def mmio_read8(mmio: intptr, offset: int, value: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_read8(mmio_t* mmio, uintptr_t offset, uint8_t* value)`&quot;&quot;&quot;
+
+def mmio_read(mmio: intptr, offset: int, buf: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_read(mmio_t* mmio, uintptr_t offset, uint8_t* buf, size_t len)`&quot;&quot;&quot;
+
+def mmio_write64(mmio: intptr, offset: int, value: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_write64(mmio_t* mmio, uintptr_t offset, uint64_t value)`&quot;&quot;&quot;
+
+def mmio_write32(mmio: intptr, offset: int, value: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_write32(mmio_t* mmio, uintptr_t offset, uint32_t value)`&quot;&quot;&quot;
+
+def mmio_write16(mmio: intptr, offset: int, value: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_write16(mmio_t* mmio, uintptr_t offset, uint16_t value)`&quot;&quot;&quot;
+
+def mmio_write8(mmio: intptr, offset: int, value: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_write8(mmio_t* mmio, uintptr_t offset, uint8_t value)`&quot;&quot;&quot;
+
+def mmio_write(mmio: intptr, offset: int, buf: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_write(mmio_t* mmio, uintptr_t offset, const uint8_t* buf, size_t len)`&quot;&quot;&quot;
+
+def mmio_close(mmio: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_close(mmio_t* mmio)`&quot;&quot;&quot;
+
+def mmio_free(mmio: intptr, /) -&gt; None:
+    &quot;&quot;&quot;Wraps `void mmio_free(mmio_t* mmio)`&quot;&quot;&quot;
+
+def mmio_base(mmio: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `uintptr_t mmio_base(mmio_t* mmio)`&quot;&quot;&quot;
+
+def mmio_size(mmio: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `size_t mmio_size(mmio_t* mmio)`&quot;&quot;&quot;
+
+def mmio_tostring(mmio: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_tostring(mmio_t* mmio, char* str, size_t len)`&quot;&quot;&quot;
+
+def mmio_errno(mmio: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int mmio_errno(mmio_t* mmio)`&quot;&quot;&quot;
+
+def mmio_errmsg(mmio: intptr, /) -&gt; str:
+    &quot;&quot;&quot;Wraps `const char* mmio_errmsg(mmio_t* mmio)`&quot;&quot;&quot;
+
+def pwm_new() -&gt; intptr:
+    &quot;&quot;&quot;Wraps `pwm_t* pwm_new()`&quot;&quot;&quot;
+
+def pwm_open(pwm: intptr, chip: int, channel: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_open(pwm_t* pwm, unsigned chip, unsigned channel)`&quot;&quot;&quot;
+
+def pwm_enable(pwm: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_enable(pwm_t* pwm)`&quot;&quot;&quot;
+
+def pwm_disable(pwm: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_disable(pwm_t* pwm)`&quot;&quot;&quot;
+
+def pwm_close(pwm: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_close(pwm_t* pwm)`&quot;&quot;&quot;
+
+def pwm_free(pwm: intptr, /) -&gt; None:
+    &quot;&quot;&quot;Wraps `void pwm_free(pwm_t* pwm)`&quot;&quot;&quot;
+
+def pwm_get_enabled(pwm: intptr, enabled: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_get_enabled(pwm_t* pwm, bool* enabled)`&quot;&quot;&quot;
+
+def pwm_get_period_ns(pwm: intptr, period_ns: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_get_period_ns(pwm_t* pwm, uint64_t* period_ns)`&quot;&quot;&quot;
+
+def pwm_get_duty_cycle_ns(pwm: intptr, duty_cycle_ns: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_get_duty_cycle_ns(pwm_t* pwm, uint64_t* duty_cycle_ns)`&quot;&quot;&quot;
+
+def pwm_get_period(pwm: intptr, period: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_get_period(pwm_t* pwm, double* period)`&quot;&quot;&quot;
+
+def pwm_get_duty_cycle(pwm: intptr, duty_cycle: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_get_duty_cycle(pwm_t* pwm, double* duty_cycle)`&quot;&quot;&quot;
+
+def pwm_get_frequency(pwm: intptr, frequency: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_get_frequency(pwm_t* pwm, double* frequency)`&quot;&quot;&quot;
+
+def pwm_get_polarity(pwm: intptr, polarity: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_get_polarity(pwm_t* pwm, pwm_polarity_t* polarity)`&quot;&quot;&quot;
+
+def pwm_set_enabled(pwm: intptr, enabled: bool, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_set_enabled(pwm_t* pwm, bool enabled)`&quot;&quot;&quot;
+
+def pwm_set_period_ns(pwm: intptr, period_ns: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_set_period_ns(pwm_t* pwm, uint64_t period_ns)`&quot;&quot;&quot;
+
+def pwm_set_duty_cycle_ns(pwm: intptr, duty_cycle_ns: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_set_duty_cycle_ns(pwm_t* pwm, uint64_t duty_cycle_ns)`&quot;&quot;&quot;
+
+def pwm_set_period(pwm: intptr, period: float, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_set_period(pwm_t* pwm, double period)`&quot;&quot;&quot;
+
+def pwm_set_duty_cycle(pwm: intptr, duty_cycle: float, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_set_duty_cycle(pwm_t* pwm, double duty_cycle)`&quot;&quot;&quot;
+
+def pwm_set_frequency(pwm: intptr, frequency: float, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_set_frequency(pwm_t* pwm, double frequency)`&quot;&quot;&quot;
+
+def pwm_set_polarity(pwm: intptr, polarity: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_set_polarity(pwm_t* pwm, pwm_polarity_t polarity)`&quot;&quot;&quot;
+
+def pwm_chip(pwm: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `unsigned pwm_chip(pwm_t* pwm)`&quot;&quot;&quot;
+
+def pwm_channel(pwm: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `unsigned pwm_channel(pwm_t* pwm)`&quot;&quot;&quot;
+
+def pwm_tostring(pwm: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_tostring(pwm_t* pwm, char* str, size_t len)`&quot;&quot;&quot;
+
+def pwm_errno(pwm: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int pwm_errno(pwm_t* pwm)`&quot;&quot;&quot;
+
+def pwm_errmsg(pwm: intptr, /) -&gt; str:
+    &quot;&quot;&quot;Wraps `const char* pwm_errmsg(pwm_t* pwm)`&quot;&quot;&quot;
+
+def serial_new() -&gt; intptr:
+    &quot;&quot;&quot;Wraps `serial_t* serial_new()`&quot;&quot;&quot;
+
+def serial_open(serial: intptr, path: str, baudrate: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_open(serial_t* serial, const char* path, uint32_t baudrate)`&quot;&quot;&quot;
+
+def serial_open_advanced(serial: intptr, path: str, baudrate: int, databits: int, parity: int, stopbits: int, xonxoff: bool, rtscts: bool, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_open_advanced(serial_t* serial, const char* path, uint32_t baudrate, unsigned databits, serial_parity_t parity, unsigned stopbits, bool xonxoff, bool rtscts)`&quot;&quot;&quot;
+
+def serial_read(serial: intptr, buf: intptr, len: int, timeout_ms: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_read(serial_t* serial, uint8_t* buf, size_t len, int timeout_ms)`&quot;&quot;&quot;
+
+def serial_write(serial: intptr, buf: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_write(serial_t* serial, const uint8_t* buf, size_t len)`&quot;&quot;&quot;
+
+def serial_flush(serial: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_flush(serial_t* serial)`&quot;&quot;&quot;
+
+def serial_input_waiting(serial: intptr, count: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_input_waiting(serial_t* serial, unsigned* count)`&quot;&quot;&quot;
+
+def serial_output_waiting(serial: intptr, count: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_output_waiting(serial_t* serial, unsigned* count)`&quot;&quot;&quot;
+
+def serial_poll(serial: intptr, timeout_ms: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_poll(serial_t* serial, int timeout_ms)`&quot;&quot;&quot;
+
+def serial_close(serial: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_close(serial_t* serial)`&quot;&quot;&quot;
+
+def serial_free(serial: intptr, /) -&gt; None:
+    &quot;&quot;&quot;Wraps `void serial_free(serial_t* serial)`&quot;&quot;&quot;
+
+def serial_get_baudrate(serial: intptr, baudrate: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_get_baudrate(serial_t* serial, uint32_t* baudrate)`&quot;&quot;&quot;
+
+def serial_get_databits(serial: intptr, databits: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_get_databits(serial_t* serial, unsigned* databits)`&quot;&quot;&quot;
+
+def serial_get_parity(serial: intptr, parity: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_get_parity(serial_t* serial, serial_parity_t* parity)`&quot;&quot;&quot;
+
+def serial_get_stopbits(serial: intptr, stopbits: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_get_stopbits(serial_t* serial, unsigned* stopbits)`&quot;&quot;&quot;
+
+def serial_get_xonxoff(serial: intptr, xonxoff: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_get_xonxoff(serial_t* serial, bool* xonxoff)`&quot;&quot;&quot;
+
+def serial_get_rtscts(serial: intptr, rtscts: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_get_rtscts(serial_t* serial, bool* rtscts)`&quot;&quot;&quot;
+
+def serial_get_vmin(serial: intptr, vmin: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_get_vmin(serial_t* serial, unsigned* vmin)`&quot;&quot;&quot;
+
+def serial_get_vtime(serial: intptr, vtime: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_get_vtime(serial_t* serial, float* vtime)`&quot;&quot;&quot;
+
+def serial_set_baudrate(serial: intptr, baudrate: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_set_baudrate(serial_t* serial, uint32_t baudrate)`&quot;&quot;&quot;
+
+def serial_set_databits(serial: intptr, databits: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_set_databits(serial_t* serial, unsigned databits)`&quot;&quot;&quot;
+
+def serial_set_parity(serial: intptr, parity: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_set_parity(serial_t* serial, serial_parity_t parity)`&quot;&quot;&quot;
+
+def serial_set_stopbits(serial: intptr, stopbits: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_set_stopbits(serial_t* serial, unsigned stopbits)`&quot;&quot;&quot;
+
+def serial_set_xonxoff(serial: intptr, enabled: bool, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_set_xonxoff(serial_t* serial, bool enabled)`&quot;&quot;&quot;
+
+def serial_set_rtscts(serial: intptr, enabled: bool, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_set_rtscts(serial_t* serial, bool enabled)`&quot;&quot;&quot;
+
+def serial_set_vmin(serial: intptr, vmin: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_set_vmin(serial_t* serial, unsigned vmin)`&quot;&quot;&quot;
+
+def serial_set_vtime(serial: intptr, vtime: float, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_set_vtime(serial_t* serial, float vtime)`&quot;&quot;&quot;
+
+def serial_fd(serial: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_fd(serial_t* serial)`&quot;&quot;&quot;
+
+def serial_tostring(serial: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_tostring(serial_t* serial, char* str, size_t len)`&quot;&quot;&quot;
+
+def serial_errno(serial: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int serial_errno(serial_t* serial)`&quot;&quot;&quot;
+
+def serial_errmsg(serial: intptr, /) -&gt; str:
+    &quot;&quot;&quot;Wraps `const char* serial_errmsg(serial_t* serial)`&quot;&quot;&quot;
+
+def spi_new() -&gt; intptr:
+    &quot;&quot;&quot;Wraps `spi_t* spi_new()`&quot;&quot;&quot;
+
+def spi_open(spi: intptr, path: str, mode: int, max_speed: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_open(spi_t* spi, const char* path, unsigned mode, uint32_t max_speed)`&quot;&quot;&quot;
+
+def spi_open_advanced(spi: intptr, path: str, mode: int, max_speed: int, bit_order: int, bits_per_word: int, extra_flags: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_open_advanced(spi_t* spi, const char* path, unsigned mode, uint32_t max_speed, spi_bit_order_t bit_order, uint8_t bits_per_word, uint8_t extra_flags)`&quot;&quot;&quot;
+
+def spi_open_advanced2(spi: intptr, path: str, mode: int, max_speed: int, bit_order: int, bits_per_word: int, extra_flags: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_open_advanced2(spi_t* spi, const char* path, unsigned mode, uint32_t max_speed, spi_bit_order_t bit_order, uint8_t bits_per_word, uint32_t extra_flags)`&quot;&quot;&quot;
+
+def spi_transfer(spi: intptr, txbuf: intptr, rxbuf: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_transfer(spi_t* spi, const uint8_t* txbuf, uint8_t* rxbuf, size_t len)`&quot;&quot;&quot;
+
+def spi_transfer_advanced(spi: intptr, msgs: intptr, count: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_transfer_advanced(spi_t* spi, const spi_msg_t* msgs, size_t count)`&quot;&quot;&quot;
+
+def spi_close(spi: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_close(spi_t* spi)`&quot;&quot;&quot;
+
+def spi_free(spi: intptr, /) -&gt; None:
+    &quot;&quot;&quot;Wraps `void spi_free(spi_t* spi)`&quot;&quot;&quot;
+
+def spi_get_mode(spi: intptr, mode: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_get_mode(spi_t* spi, unsigned* mode)`&quot;&quot;&quot;
+
+def spi_get_max_speed(spi: intptr, max_speed: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_get_max_speed(spi_t* spi, uint32_t* max_speed)`&quot;&quot;&quot;
+
+def spi_get_bit_order(spi: intptr, bit_order: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_get_bit_order(spi_t* spi, spi_bit_order_t* bit_order)`&quot;&quot;&quot;
+
+def spi_get_bits_per_word(spi: intptr, bits_per_word: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_get_bits_per_word(spi_t* spi, uint8_t* bits_per_word)`&quot;&quot;&quot;
+
+def spi_get_extra_flags(spi: intptr, extra_flags: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_get_extra_flags(spi_t* spi, uint8_t* extra_flags)`&quot;&quot;&quot;
+
+def spi_get_extra_flags32(spi: intptr, extra_flags: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_get_extra_flags32(spi_t* spi, uint32_t* extra_flags)`&quot;&quot;&quot;
+
+def spi_set_mode(spi: intptr, mode: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_set_mode(spi_t* spi, unsigned mode)`&quot;&quot;&quot;
+
+def spi_set_max_speed(spi: intptr, max_speed: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_set_max_speed(spi_t* spi, uint32_t max_speed)`&quot;&quot;&quot;
+
+def spi_set_bit_order(spi: intptr, bit_order: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_set_bit_order(spi_t* spi, spi_bit_order_t bit_order)`&quot;&quot;&quot;
+
+def spi_set_bits_per_word(spi: intptr, bits_per_word: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_set_bits_per_word(spi_t* spi, uint8_t bits_per_word)`&quot;&quot;&quot;
+
+def spi_set_extra_flags(spi: intptr, extra_flags: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_set_extra_flags(spi_t* spi, uint8_t extra_flags)`&quot;&quot;&quot;
+
+def spi_set_extra_flags32(spi: intptr, extra_flags: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_set_extra_flags32(spi_t* spi, uint32_t extra_flags)`&quot;&quot;&quot;
+
+def spi_fd(spi: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_fd(spi_t* spi)`&quot;&quot;&quot;
+
+def spi_tostring(spi: intptr, str: intptr, len: int, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_tostring(spi_t* spi, char* str, size_t len)`&quot;&quot;&quot;
+
+def spi_errno(spi: intptr, /) -&gt; int:
+    &quot;&quot;&quot;Wraps `int spi_errno(spi_t* spi)`&quot;&quot;&quot;
+
+def spi_errmsg(spi: intptr, /) -&gt; str:
+    &quot;&quot;&quot;Wraps `const char* spi_errmsg(spi_t* spi)`&quot;&quot;&quot;
+
+def periphery_version() -&gt; str:
+    &quot;&quot;&quot;Wraps `const char* periphery_version()`&quot;&quot;&quot;
+
+def periphery_version_info() -&gt; intptr:
+    &quot;&quot;&quot;Wraps `const periphery_version_t* periphery_version_info()`&quot;&quot;&quot;
+
+# aliases
+gpio_direction_t = int
+gpio_edge_t = int
+gpio_event_clock_t = int
+gpio_bias_t = int
+gpio_drive_t = int
+pwm_polarity_t = int
+serial_parity_t = int
+spi_bit_order_t = int
+# enums
+GPIO_ERROR_ARG: int
+GPIO_ERROR_OPEN: int
+GPIO_ERROR_NOT_FOUND: int
+GPIO_ERROR_QUERY: int
+GPIO_ERROR_CONFIGURE: int
+GPIO_ERROR_UNSUPPORTED: int
+GPIO_ERROR_INVALID_OPERATION: int
+GPIO_ERROR_IO: int
+GPIO_ERROR_CLOSE: int
+GPIO_DIR_IN: int
+GPIO_DIR_OUT: int
+GPIO_DIR_OUT_LOW: int
+GPIO_DIR_OUT_HIGH: int
+GPIO_EDGE_NONE: int
+GPIO_EDGE_RISING: int
+GPIO_EDGE_FALLING: int
+GPIO_EDGE_BOTH: int
+GPIO_EVENT_CLOCK_REALTIME: int
+GPIO_EVENT_CLOCK_MONOTONIC: int
+GPIO_EVENT_CLOCK_HTE: int
+GPIO_BIAS_DEFAULT: int
+GPIO_BIAS_PULL_UP: int
+GPIO_BIAS_PULL_DOWN: int
+GPIO_BIAS_DISABLE: int
+GPIO_DRIVE_DEFAULT: int
+GPIO_DRIVE_OPEN_DRAIN: int
+GPIO_DRIVE_OPEN_SOURCE: int
+LED_ERROR_ARG: int
+LED_ERROR_OPEN: int
+LED_ERROR_QUERY: int
+LED_ERROR_IO: int
+LED_ERROR_CLOSE: int
+MMIO_ERROR_ARG: int
+MMIO_ERROR_OPEN: int
+MMIO_ERROR_CLOSE: int
+PWM_ERROR_ARG: int
+PWM_ERROR_OPEN: int
+PWM_ERROR_QUERY: int
+PWM_ERROR_CONFIGURE: int
+PWM_ERROR_CLOSE: int
+PWM_POLARITY_NORMAL: int
+PWM_POLARITY_INVERSED: int
+SERIAL_ERROR_ARG: int
+SERIAL_ERROR_OPEN: int
+SERIAL_ERROR_QUERY: int
+SERIAL_ERROR_CONFIGURE: int
+SERIAL_ERROR_IO: int
+SERIAL_ERROR_CLOSE: int
+PARITY_NONE: int
+PARITY_ODD: int
+PARITY_EVEN: int
+SPI_ERROR_ARG: int
+SPI_ERROR_OPEN: int
+SPI_ERROR_QUERY: int
+SPI_ERROR_CONFIGURE: int
+SPI_ERROR_TRANSFER: int
+SPI_ERROR_CLOSE: int
+SPI_ERROR_UNSUPPORTED: int
+MSB_FIRST: int
+LSB_FIRST: int</code></pre>
+</doc-codeblock></div>
+
+                
+                <!-- Required only on API pages -->
+                <doc-toolbar-member-filter-no-results></doc-toolbar-member-filter-no-results>
+            </div>
+            <footer id="retype-content-footer" class="clear-both">
+            
+                <nav id="retype-nextprev" class="print:hidden flex mt-14">
+                    <div class="w-1/2">
+                        <a class="px-5 py-4 h-full flex items-center break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-l-lg transition-colors duration-150 relative hover:z-5" href="../../modules/operator/">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="mr-3" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" overflow="visible"><path d="M19 11H7.41l5.29-5.29a.996.996 0 10-1.41-1.41l-7 7a1 1 0 000 1.42l7 7a1.024 1.024 0 001.42-.01.996.996 0 000-1.41L7.41 13H19c.55 0 1-.45 1-1s-.45-1-1-1z" /><path fill="none" d="M0 0h24v24H0z" /></svg>
+                            <span>
+                                <span class="block text-xs font-normal text-base-text-muted">Previous</span>
+                                <span class="block mt-1">operator</span>
+                            </span>
+                        </a>
+                    </div>
+            
+                    <div class="w-1/2">
+                        <a class="px-5 py-4 -mx-px h-full flex items-center justify-end break-normal font-medium text-body-link border border-base-border hover:border-base-border-hover rounded-r-lg transition-colors duration-150 relative hover:z-5" href="../../modules/pickle/">
+                            <span>
+                                <span class="block text-xs font-normal text-right text-base-text-muted">Next</span>
+                                <span class="block mt-1">pickle</span>
+                            </span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="ml-3" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" overflow="visible"><path d="M19.92 12.38a1 1 0 00-.22-1.09l-7-7a.996.996 0 10-1.41 1.41l5.3 5.3H5c-.55 0-1 .45-1 1s.45 1 1 1h11.59l-5.29 5.29a.996.996 0 000 1.41c.19.2.44.3.7.3s.51-.1.71-.29l7-7c.09-.09.16-.21.21-.33z" /><path fill="none" d="M0 0h24v24H0z" /></svg>
+                        </a>
+                    </div>
+                </nav>
+            </footer>
+        </main>
+
+        <div id="retype-page-footer" class="print:border-none border-t border-base-border pt-6 mb-8">
+            <footer class="flex flex-wrap items-center justify-between print:justify-center">
+                <div id="retype-footer-links" class="print:hidden">
+                    <ul class="flex flex-wrap items-center text-sm">
+                    </ul>
+                </div>
+                <div id="retype-copyright" class="print:justify-center py-2 text-footer-text font-footer-link text-sm leading-relaxed"><p>© Copyright 2026 - <a href="https://github.com/blueloveTH">blueloveTH</a> - All rights reserved.</p></div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Rendered if sidebar right is enabled -->
+    <!-- Sidebar right skeleton-->
+    <div v-cloak class="fixed top-0 bottom-0 right-0 translate-x-full bg-sidebar-right-bg border-sidebar-right-border lg:sticky lg:border-l lg:shrink-0 lg:pt-6 lg:translate-x-0 sm:w-1/2 lg:w-64 lg:z-0 md:w-104 sidebar-right skeleton">
+        <div class="pl-5">
+            <div class="w-32 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+            <div class="w-48 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+            <div class="w-40 h-3 mb-4 bg-skeleton-bg rounded-full loading"></div>
+        </div>
+    </div>
+
+    <!-- User should be able to hide sidebar right -->
+    <doc-sidebar-right v-cloak></doc-sidebar-right>
+</div>
+
+        </div>
+    </div>
+
+    <doc-search-mobile></doc-search-mobile>
+    <doc-back-to-top></doc-back-to-top>
+</div>
+
+
+    <div id="retype-overlay-target"></div>
+
+    <script data-cfasync="false">window.__DOCS__ = { "title": "periphery", level: 2, icon: "file", hasPrism: true, hasMermaid: false, hasMath: false, tocDepth: 23 }</script>
+</body>
+</html>
