@@ -37,6 +37,11 @@ typedef struct py_TValue {
 
     union {
         int64_t _i64;
+        double _f64;
+        bool _bool;
+        py_CFunction _cfunc;
+        void* _obj;
+        void* _ptr;
         char _chars[16];
     };
 } py_TValue;
