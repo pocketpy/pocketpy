@@ -2801,6 +2801,8 @@ static Error* compile_stmt(Compiler* self) {
         case TK_WITH: {
             check(EXPR(self));  // [ <expr> ]
             Ctx__s_emit_top(ctx());
+            // Save context manager for later __exit__ call
+            Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, prev()->line);
             Ctx__enter_block(ctx(), CodeBlockType_WITH);
             NameExpr* as_name = NULL;
             if(match(TK_AS)) {
@@ -2809,17 +2811,33 @@ static Error* compile_stmt(Compiler* self) {
                 as_name = NameExpr__new(prev()->line, name, name_scope(self));
             }
             Ctx__emit_(ctx(), OP_WITH_ENTER, BC_NOARG, prev()->line);
-            // [ <expr> <expr>.__enter__() ]
             if(as_name) {
                 bool ok = vtemit_store((Expr*)as_name, ctx());
                 vtdelete((Expr*)as_name);
                 if(!ok) return SyntaxError(self, "invalid syntax");
             } else {
-                // discard `__enter__()`'s return value
                 Ctx__emit_(ctx(), OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
             }
+            // Wrap body in try-except to ensure __exit__ is called even on exception
+            Ctx__enter_block(ctx(), CodeBlockType_TRY);
+            Ctx__emit_(ctx(), OP_BEGIN_TRY, BC_NOARG, prev()->line);
             check(compile_block_body(self));
+            Ctx__emit_(ctx(), OP_END_TRY, BC_NOARG, BC_KEEPLINE);
+            // Normal exit: call __exit__(None, None, None)
+            Ctx__emit_(ctx(), OP_LOAD_NONE, BC_NOARG, prev()->line);
+            Ctx__emit_(ctx(), OP_LOAD_NONE, BC_NOARG, prev()->line);
+            Ctx__emit_(ctx(), OP_LOAD_NONE, BC_NOARG, prev()->line);
             Ctx__emit_(ctx(), OP_WITH_EXIT, BC_NOARG, prev()->line);
+            int jump_patch = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
+            Ctx__exit_block(ctx());
+            // Exception handler: call __exit__ with exception info, then re-raise
+            Ctx__emit_(ctx(), OP_PUSH_EXCEPTION, BC_NOARG, BC_KEEPLINE);
+            Ctx__emit_(ctx(), OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);  // exc_type
+            Ctx__emit_(ctx(), OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);     // reorder: [cm, None, exc]
+            Ctx__emit_(ctx(), OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);  // exc_tb
+            Ctx__emit_(ctx(), OP_WITH_EXIT, BC_NOARG, prev()->line);
+            Ctx__emit_(ctx(), OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
+            Ctx__patch_jump(ctx(), jump_patch);
             Ctx__exit_block(ctx());
         } break;
         /*************************************************/
