@@ -568,7 +568,22 @@ static bool dict_pop(int argc, py_Ref argv) {
     if(res == 0) py_assign(py_retval(), default_val);
     return true;
 }
-
+static bool dict_popitem(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Dict* self = py_touserdata(argv);
+    if(self->length == 0) return KeyError(py_None());
+    for(int i = self->entries.length - 1; i >= 0; i--) {
+        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+        if(py_isnil(&entry->key)) continue;
+        py_Ref p = py_newtuple(py_retval(), 2);
+        p[0] = entry->key;
+        p[1] = entry->val;
+        py_TValue key_copy = entry->key;
+        Dict__pop(self, &key_copy);
+        return true;
+    }
+    return KeyError(py_None());
+}
 static bool dict_keys(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Dict* self = py_touserdata(argv);
@@ -616,6 +631,7 @@ py_Type pk_dict__register() {
     py_bindmethod(type, "update", dict_update);
     py_bindmethod(type, "get", dict_get);
     py_bindmethod(type, "pop", dict_pop);
+    py_bindmethod(type, "popitem", dict_popitem);
     py_bindmethod(type, "keys", dict_keys);
     py_bindmethod(type, "values", dict_values);
     py_bindmethod(type, "items", dict_items);
