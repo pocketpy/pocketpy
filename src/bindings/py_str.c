@@ -477,12 +477,14 @@ static bool str_rjust(int argc, py_Ref argv) { return str__widthjust_impl(false,
 
 static bool str_find(int argc, py_Ref argv) {
     if(argc > 3) return TypeError("find() takes at most 3 arguments");
+    c11_string* self = pk_tostr(&argv[0]);
     int start = 0;
     if(argc == 3) {
         PY_CHECK_ARG_TYPE(2, tp_int);
         start = py_toint(py_arg(2));
+        if(start < 0) start += c11_sv__u8_length(c11_string__sv(self));
+        if(start < 0) start = 0;
     }
-    c11_string* self = pk_tostr(&argv[0]);
     PY_CHECK_ARG_TYPE(1, tp_str);
     c11_string* sub = pk_tostr(&argv[1]);
     int res = c11_sv__index2(c11_string__sv(self), c11_string__sv(sub), start);

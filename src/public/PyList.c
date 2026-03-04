@@ -317,6 +317,8 @@ static bool list_index(int argc, py_Ref argv) {
     if(argc == 3) {
         PY_CHECK_ARG_TYPE(2, tp_int);
         start = py_toint(py_arg(2));
+        if(start < 0) start += py_list_len(py_arg(0));
+        if(start < 0) start = 0;
     }
     for(int i = start; i < py_list_len(py_arg(0)); i++) {
         int res = py_equal(py_list_getitem(py_arg(0), i), py_arg(1));

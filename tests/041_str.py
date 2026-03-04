@@ -169,6 +169,7 @@ assert a.index('23') == 1
 
 assert a.index('2', 1) == 1
 assert a.index('1', 0) == 0
+assert a.index('2', -2) == 1
 
 assert a.find('1') == 0
 assert a.find('1', 1) == -1

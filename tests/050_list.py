@@ -75,6 +75,7 @@ assert a.index(3) == 2
 
 assert a.index(2, 1) == 1
 assert a.index(1, 0) == 0
+assert a.index(2, -2) == 1
 
 a, b = [1, 2]
 assert a == 1 and b == 2
