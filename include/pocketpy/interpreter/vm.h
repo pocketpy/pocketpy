@@ -63,7 +63,8 @@ typedef struct VM {
     CachedNames cached_names;
 
     py_StackRef curr_class;
-    py_StackRef curr_decl_based_function;   // this is for get current function without frame
+    py_StackRef curr_function;
+    
     TraceInfo trace_info;
     WatchdogInfo watchdog_info;
     LineProfiler line_profiler;

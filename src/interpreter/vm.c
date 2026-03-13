@@ -103,7 +103,8 @@ void VM__ctor(VM* self) {
 
     self->ctx = NULL;
     self->curr_class = NULL;
-    self->curr_decl_based_function = NULL;
+    self->curr_function = NULL;
+
     memset(&self->trace_info, 0, sizeof(TraceInfo));
     memset(&self->watchdog_info, 0, sizeof(WatchdogInfo));
     LineProfiler__ctor(&self->line_profiler);
@@ -482,8 +483,8 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
     }
 #endif
 
-    py_Ref p1 = self->stack.sp - kwargc * 2;
-    py_Ref p0 = p1 - argc - 2;
+    py_StackRef p1 = self->stack.sp - kwargc * 2;
+    py_StackRef p0 = p1 - argc - 2;
     // [callable, <self>, args..., kwargs...]
     //      ^p0                    ^p1      ^_sp
 
@@ -496,7 +497,8 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         // [unbound, self, args..., kwargs...]
     }
 
-    py_Ref argv = p0 + 1 + (int)py_isnil(p0 + 1);
+    py_StackRef argv = p0 + 1 + (int)py_isnil(p0 + 1);
+    self->curr_function = p0;  // set current function for inspection
 
     if(p0->type == tp_function) {
         Function* fn = py_touserdata(p0);
@@ -516,10 +518,8 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
-                    self->curr_decl_based_function = p0;
                     bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
                     self->stack.sp = p0;
-                    self->curr_decl_based_function = NULL;
                     return ok ? RES_RETURN : RES_ERROR;
                 }
             }
@@ -545,10 +545,8 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                     return opcall ? RES_CALL : VM__run_top_frame(self);
                 } else {
                     // decl-based binding
-                    self->curr_decl_based_function = p0;
                     bool ok = py_callcfunc(fn->cfunc, co->nlocals, argv);
                     self->stack.sp = p0;
-                    self->curr_decl_based_function = NULL;
                     return ok ? RES_RETURN : RES_ERROR;
                 }
             case FuncType_GENERATOR: {

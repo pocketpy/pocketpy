@@ -3,10 +3,8 @@
 
 py_StackRef py_inspect_currentfunction() {
     VM* vm = pk_current_vm;
-    if(vm->curr_decl_based_function) return vm->curr_decl_based_function;
-    py_Frame* frame = vm->top_frame;
-    if(!frame || frame->is_locals_special) return NULL;
-    return frame->p0;
+    if(vm->curr_function >= vm->stack.sp) return NULL;
+    return vm->curr_function;
 }
 
 py_GlobalRef py_inspect_currentmodule() {

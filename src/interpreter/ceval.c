@@ -1244,7 +1244,7 @@ __ERROR:
 __ERROR_RE_RAISE:
     do {
         self->curr_class = NULL;
-        self->curr_decl_based_function = NULL;
+        self->curr_function = NULL;
     } while(0);
 
     int target = Frame__goto_exception_handler(frame, &self->stack, &self->unhandled_exc);

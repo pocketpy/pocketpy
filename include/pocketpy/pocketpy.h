@@ -391,9 +391,9 @@ PK_API void py_tphookattributes(py_Type type,
 
 /************* Inspection *************/
 
-/// Get the current `function` object on the stack.
+/// Get the current `Callable` object on the stack of the most recent vectorcall.
 /// Return `NULL` if not available.
-/// NOTE: This function should be placed at the beginning of your decl-based bindings.
+/// NOTE: This function should be placed at the beginning of your bindings or you will get wrong result.
 PK_API py_StackRef py_inspect_currentfunction();
 /// Get the current `module` object where the code is executed.
 /// Return `NULL` if not available.
