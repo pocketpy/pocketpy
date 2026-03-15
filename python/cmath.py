@@ -134,10 +134,10 @@ def atan(z: complex):
     return 1j / 2 * log((1 - 1j * z) / (1 + 1j * z))
 
 def cos(z: complex):
-    return (exp(z) + exp(-z)) / 2
+    return (exp(1j * z) + exp(-1j * z)) / 2
 
 def sin(z: complex):
-    return (exp(z) - exp(-z)) / (2 * 1j)
+    return (exp(1j * z) - exp(-1j * z)) / (2 * 1j)
 
 def tan(z: complex):
     return sin(z) / cos(z)
