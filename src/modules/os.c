@@ -215,7 +215,31 @@ static bool io_FileIO_flush(int argc, py_Ref argv) {
     py_newnone(py_retval());
     return true;
 }
-
+static bool io_FileIO_readlines(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    io_FileIO* ud = py_touserdata(py_arg(0));
+    py_newlist(py_retval()); 
+    char* buf = NULL;
+    size_t buf_size = 0;
+    size_t len = 0;
+    int c;
+    while(true) {
+        len = 0;
+        while((c = fgetc(ud->file)) != EOF) {
+            if(len + 1 >= buf_size) {
+                buf_size = (buf_size == 0) ? 64 : buf_size * 2;
+                buf = PK_REALLOC(buf, buf_size);
+            }
+            buf[len++] = (char)c;
+            if(c == '\n') break;
+        }
+        if(len == 0) break;
+        py_newstrv(py_getreg(0), (c11_sv){buf, len});
+        py_list_append(py_retval(), py_getreg(0));
+    }
+    if(buf) PK_FREE(buf);
+    return true;
+}
 void pk__add_module_io() {
     py_Ref mod = py_newmodule("io");
 
@@ -230,6 +254,7 @@ void pk__add_module_io() {
     py_bindmethod(FileIO, "tell", io_FileIO_tell);
     py_bindmethod(FileIO, "seek", io_FileIO_seek);
     py_bindmethod(FileIO, "flush", io_FileIO_flush);
+    py_bindmethod(FileIO, "readlines", io_FileIO_readlines);
 
     py_newint(py_emplacedict(mod, py_name("SEEK_SET")), SEEK_SET);
     py_newint(py_emplacedict(mod, py_name("SEEK_CUR")), SEEK_CUR);
