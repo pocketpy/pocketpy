@@ -9,6 +9,15 @@
 #include <windows.h>
 #endif
 
+/*PocketPy Command Line Interface
+
+-command line arguments: profile, debug, compile
+-Initialize pocketpy runtime
+-Runs either the REPL (Python interactive shell) or a Python file(.py/.pyc)
+-Handles errors and debugging
+-Finalises pocketpy runtime before exiting
+*/
+
 static char* readfile(const char* path, int* data_size) {
     FILE* f = fopen(path, "rb");
     if(f == NULL) return NULL;
@@ -71,6 +80,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // Initializes the pocketpy runtime and creates the default VM instance.
+    // Must be called before executing any Python code.
     py_initialize();
     py_sys_setargv(argc, argv);
 
@@ -155,6 +166,8 @@ int main(int argc, char** argv) {
     }
 
     int code = py_checkexc() ? 1 : 0;
+    // Cleans up the pocketpy runtime and frees all allocated resources.
+    // Should be called before program exit to avoid memory leaks.
     py_finalize();
 
     if(debug) py_debugger_exit(code);
