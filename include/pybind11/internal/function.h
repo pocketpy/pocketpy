@@ -70,6 +70,7 @@ args_proxy interface<Derived>::operator* () const {
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object interface<Derived>::operator() (Args&&... args) const {
+    py_StackRef pc = py_peek(0);  // Save checkpoint BEFORE push
     py_push(ptr());
     py_pushnil();
 
@@ -108,7 +109,16 @@ object interface<Derived>::operator() (Args&&... args) const {
 
     (foreach(std::forward<Args>(args)), ...);
 
-    raise_call<py_vectorcall>(argc, kwargsc);
+    // Don't use raise_call here - it saves checkpoint AFTER push, which causes
+    // an assertion failure in py_clearexc when py_vectorcall fails (because
+    // py_vectorcall pops 2+argc items on both success and failure).
+    // Instead, we save checkpoint BEFORE push and handle error explicitly.
+    if(!py_vectorcall(argc, kwargsc)) {
+        char* what = py_formatexc();
+        object e = object::from_ret();
+        py_clearexc(pc);  // pc is now at or below current sp, assertion safe
+        throw python_error(what, std::move(e));
+    }
 
     return object::from_ret();
 }

@@ -410,4 +410,57 @@ TEST_F(PYBIND11_TEST, overload_cast) {
     EXPECT_EVAL_EQ("X().add(1, 2, 3)", 6);
 }
 
+// Test for GitHub issue: calling Python function that raises exception
+// from C++ via py::object::operator() should not crash with assertion failure
+// in py_clearexc. The bug was that raise_call saved the stack checkpoint
+// AFTER pushing callable + nil + args, but py_vectorcall pops 2+argc items
+// on both success and failure, causing the checkpoint to be below the
+// current stack pointer when py_clearexc is called.
+TEST_F(PYBIND11_TEST, vectorcall_exception) {
+    auto m = py::module::__main__();
+
+    // Define a Python function that raises an exception
+    py::exec(R"(
+def raise_error(msg):
+    raise ValueError(msg)
+)");
+
+    // Get the function object
+    py::object raise_error = m.attr("raise_error");
+
+    // Call the function from C++ - this should catch the exception
+    // without crashing due to assertion failure in py_clearexc
+    try {
+        raise_error("test error");
+        FAIL() << "Expected py::python_error to be thrown";
+    } catch (py::python_error& e) {
+        // Expected: we should catch the exception
+        EXPECT_TRUE(e.match(tp_ValueError));
+    }
+
+    // Test with arguments
+    try {
+        py::str msg("error with arg");
+        raise_error(msg);
+        FAIL() << "Expected py::python_error to be thrown";
+    } catch (py::python_error& e) {
+        // Expected: we should catch the exception
+        EXPECT_TRUE(e.match(tp_ValueError));
+    }
+
+    // Test multiple arguments
+    py::exec(R"(
+def raise_error2(a, b, c):
+    raise RuntimeError(f'{a}-{b}-{c}')
+)");
+    py::object raise_error2 = m.attr("raise_error2");
+
+    try {
+        raise_error2(1, 2, 3);
+        FAIL() << "Expected py::python_error to be thrown";
+    } catch (py::python_error& e) {
+        EXPECT_TRUE(e.match(tp_RuntimeError));
+    }
+}
+
 }  // namespace
