@@ -32,23 +32,23 @@ int load_module_from_dll_desktop_only(const char* path) PY_RAISE PY_RETURN {
     size_t path_len = strlen(path);
     
     // Try path.so
-    path_with_so = (char*)malloc(path_len + 4); // .so + null terminator
+    path_with_so = py_malloc(path_len + 4); // .so + null terminator
     if(path_with_so != NULL) {
         strcpy(path_with_so, path);
         strcat(path_with_so, ".so");
         dll = dlopen(path_with_so, RTLD_LAZY);
-        free(path_with_so);
+        py_free(path_with_so);
     }
     
     // Try libpath.so if path.so didn't work
     if(dll == NULL) {
-        path_with_lib = (char*)malloc(path_len + 7); // lib + .so + null terminator
+        path_with_lib = py_malloc(path_len + 7); // lib + .so + null terminator
         if(path_with_lib != NULL) {
             strcpy(path_with_lib, "lib");
             strcat(path_with_lib, path);
             strcat(path_with_lib, ".so");
             dll = dlopen(path_with_lib, RTLD_LAZY);
-            free(path_with_lib);
+            py_free(path_with_lib);
         }
     }
     
