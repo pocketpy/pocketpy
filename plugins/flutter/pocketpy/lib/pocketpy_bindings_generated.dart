@@ -1530,9 +1530,9 @@ class PocketpyBindings {
               ffi.NativeFunction<
                   ffi.Bool Function(py_Ref self, py_Name name)>>)>();
 
-  /// Get the current `function` object on the stack.
+  /// Get the current `Callable` object on the stack of the most recent vectorcall.
   /// Return `NULL` if not available.
-  /// NOTE: This function should be placed at the beginning of your decl-based bindings.
+  /// NOTE: This function should be placed at the beginning of your bindings or you will get wrong result.
   py_StackRef py_inspect_currentfunction() {
     return _py_inspect_currentfunction();
   }
@@ -3635,6 +3635,22 @@ class PocketpyBindings {
   late final _py_newvec3i =
       _py_newvec3iPtr.asFunction<void Function(py_OutRef, c11_vec3i)>();
 
+  void py_newvec4i(
+    py_OutRef out,
+    c11_vec4i arg1,
+  ) {
+    return _py_newvec4i(
+      out,
+      arg1,
+    );
+  }
+
+  late final _py_newvec4iPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(py_OutRef, c11_vec4i)>>(
+          'py_newvec4i');
+  late final _py_newvec4i =
+      _py_newvec4iPtr.asFunction<void Function(py_OutRef, c11_vec4i)>();
+
   void py_newcolor32(
     py_OutRef out,
     c11_color32 arg1,
@@ -3714,6 +3730,19 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<c11_vec3i Function(py_Ref)>>('py_tovec3i');
   late final _py_tovec3i =
       _py_tovec3iPtr.asFunction<c11_vec3i Function(py_Ref)>();
+
+  c11_vec4i py_tovec4i(
+    py_Ref self,
+  ) {
+    return _py_tovec4i(
+      self,
+    );
+  }
+
+  late final _py_tovec4iPtr =
+      _lookup<ffi.NativeFunction<c11_vec4i Function(py_Ref)>>('py_tovec4i');
+  late final _py_tovec4i =
+      _py_tovec4iPtr.asFunction<c11_vec4i Function(py_Ref)>();
 
   ffi.Pointer<c11_mat3x3> py_tomat3x3(
     py_Ref self,
@@ -3932,9 +3961,31 @@ final class UnnamedUnion1 extends ffi.Union {
   @ffi.Int64()
   external int _i64;
 
+  @ffi.Double()
+  external double _f64;
+
+  @ffi.Bool()
+  external bool _bool;
+
+  external py_CFunction _cfunc;
+
+  external ffi.Pointer<ffi.Void> _obj;
+
+  external ffi.Pointer<ffi.Void> _ptr;
+
   @ffi.Array.multi([16])
   external ffi.Array<ffi.Char> _chars;
 }
+
+/// Native function signature.
+/// @param argc number of arguments.
+/// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
+/// @return `true` if the function is successful or `false` if an exception is raised.
+typedef py_CFunction = ffi.Pointer<
+    ffi.NativeFunction<ffi.Bool Function(ffi.Int argc, py_StackRef argv)>>;
+
+/// A specific location in the value stack of the VM.
+typedef py_StackRef = ffi.Pointer<py_TValue>;
 
 /// A string view type. It is helpful for passing strings which are not null-terminated.
 final class c11_sv extends ffi.Struct {
@@ -4027,21 +4078,11 @@ typedef py_TraceFunc = ffi.Pointer<
 /// An output reference for returning a value. Only use this for function arguments.
 typedef py_OutRef = ffi.Pointer<py_TValue>;
 
-/// A specific location in the value stack of the VM.
-typedef py_StackRef = ffi.Pointer<py_TValue>;
-
 /// A 64-bit integer type. Corresponds to `int` in python.
 typedef py_i64 = ffi.Int64;
 
 /// A 64-bit floating-point type. Corresponds to `float` in python.
 typedef py_f64 = ffi.Double;
-
-/// Native function signature.
-/// @param argc number of arguments.
-/// @param argv array of arguments. Use `py_arg(i)` macro to get the i-th argument.
-/// @return `true` if the function is successful or `false` if an exception is raised.
-typedef py_CFunction = ffi.Pointer<
-    ffi.NativeFunction<ffi.Bool Function(ffi.Int argc, py_StackRef argv)>>;
 
 /// A pointer that represents a python identifier. For fast name resolution.
 typedef py_Name = ffi.Pointer<py_OpaqueName>;
@@ -4125,8 +4166,29 @@ final class UnnamedStruct4 extends ffi.Struct {
   external int z;
 }
 
-final class c11_color32 extends ffi.Union {
+final class c11_vec4i extends ffi.Union {
   external UnnamedStruct5 unnamed;
+
+  @ffi.Array.multi([4])
+  external ffi.Array<ffi.Int> data;
+}
+
+final class UnnamedStruct5 extends ffi.Struct {
+  @ffi.Int()
+  external int x;
+
+  @ffi.Int()
+  external int y;
+
+  @ffi.Int()
+  external int z;
+
+  @ffi.Int()
+  external int w;
+}
+
+final class c11_color32 extends ffi.Union {
+  external UnnamedStruct6 unnamed;
 
   @ffi.Array.multi([4])
   external ffi.Array<ffi.UnsignedChar> data;
@@ -4135,7 +4197,7 @@ final class c11_color32 extends ffi.Union {
   external int u32;
 }
 
-final class UnnamedStruct5 extends ffi.Struct {
+final class UnnamedStruct6 extends ffi.Struct {
   @ffi.UnsignedChar()
   external int r;
 
@@ -4150,7 +4212,7 @@ final class UnnamedStruct5 extends ffi.Struct {
 }
 
 final class c11_mat3x3 extends ffi.Union {
-  external UnnamedStruct6 unnamed;
+  external UnnamedStruct7 unnamed;
 
   @ffi.Array.multi([3, 3])
   external ffi.Array<ffi.Array<ffi.Float>> m;
@@ -4159,7 +4221,7 @@ final class c11_mat3x3 extends ffi.Union {
   external ffi.Array<ffi.Float> data;
 }
 
-final class UnnamedStruct6 extends ffi.Struct {
+final class UnnamedStruct7 extends ffi.Struct {
   @ffi.Float()
   external double _11;
 
@@ -4306,13 +4368,14 @@ abstract class py_PredefinedType {
   static const int tp_vec3 = 71;
   static const int tp_vec2i = 72;
   static const int tp_vec3i = 73;
-  static const int tp_mat3x3 = 74;
-  static const int tp_color32 = 75;
+  static const int tp_vec4i = 74;
+  static const int tp_mat3x3 = 75;
+  static const int tp_color32 = 76;
 
   /// array2d
-  static const int tp_array2d_like = 76;
-  static const int tp_array2d_like_iterator = 77;
-  static const int tp_array2d = 78;
-  static const int tp_array2d_view = 79;
-  static const int tp_chunked_array2d = 80;
+  static const int tp_array2d_like = 77;
+  static const int tp_array2d_like_iterator = 78;
+  static const int tp_array2d = 79;
+  static const int tp_array2d_view = 80;
+  static const int tp_chunked_array2d = 81;
 }
