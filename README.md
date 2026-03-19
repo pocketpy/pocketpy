@@ -60,8 +60,7 @@ You have two options to integrate pkpy into your project.
 
 #### Use CMake (Recommended)
 
-Clone the whole repository as a submodule into your project,
-In your CMakelists.txt, add the following lines:
+Clone the whole repository as a submodule into your project. In your CMakelists.txt, add the following lines:
 
 ```cmake
 add_subdirectory(pocketpy)
@@ -182,7 +181,7 @@ Performance results for cpython 3.9 are applicable to for pkpy.
 
 See https://pocketpy.dev/performance/ for details.
 
-And these are the results of the primes benchmark on Intel i5-12400F, WSL (Ubuntu 20.04 LTS), which *roughly* reflects the performance among c++, lua, pkpy and cpython.
+These are the results of the primes benchmark on Intel i5-12400F, WSL (Ubuntu 20.04 LTS), which *roughly* reflect the performance among c++, lua, pkpy and cpython.
 
 | name | version | time | file |
 | ---- | ---- | ---- | ---- |
