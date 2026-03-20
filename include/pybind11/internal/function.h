@@ -70,6 +70,7 @@ args_proxy interface<Derived>::operator* () const {
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object interface<Derived>::operator() (Args&&... args) const {
+    py_StackRef p0 = py_peek(0); // checkpoint before pushing so py_clearexc can safely rewind
     py_push(ptr());
     py_pushnil();
 
@@ -108,7 +109,13 @@ object interface<Derived>::operator() (Args&&... args) const {
 
     (foreach(std::forward<Args>(args)), ...);
 
-    raise_call<py_vectorcall>(argc, kwargsc);
+    if(!py_vectorcall(argc, kwargsc)) {
+        py_matchexc(tp_Exception);
+        object e = object::from_ret();
+        auto what = py_formatexc();
+        py_clearexc(p0);
+        throw python_error(what, std::move(e));
+    }
 
     return object::from_ret();
 }
