@@ -159,7 +159,7 @@ __ERROR:
 | Subclass        | `class A(B):`                   | ✅       |
 | List            | `[1, 2, 'a']`                   | ✅       |
 | ListComp        | `[i for i in range(5)]`         | ✅       |
-| Slice           | `a[1:2], a[:2], a[1:]`          | ✅       |
+| Slice           | `a[1:2], a[:2], a[1:] a[::2]`   | ✅       |
 | Tuple           | `(1, 2, 'a')`                   | ✅       |
 | Dict            | `{'a': 1, 'b': 2}`              | ✅       |
 | F-String        | `f'value is {x}'`               | ✅       |
