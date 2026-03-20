@@ -79,3 +79,18 @@ TEST_F(PYBIND11_TEST, exception_cpp_to_python) {
     TEST_EXCEPTION(attribute_error, AttributeError);
     TEST_EXCEPTION(runtime_error, RuntimeError);
 }
+
+// Regression test: operator() must throw python_error instead of crashing when Python raises (#469)
+TEST_F(PYBIND11_TEST, operator_call_propagates_python_error) {
+    py::exec("def f(x):\n    raise ValueError('intentional error')");
+    py::object fn = py::eval("f");
+
+    bool caught = false;
+    try {
+        fn(py::int_(1));
+    } catch(py::python_error& e) {
+        caught = true;
+        EXPECT_TRUE(e.match(tp_ValueError));
+    }
+    EXPECT_TRUE(caught);
+}
