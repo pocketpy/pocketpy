@@ -1,4 +1,4 @@
-# pocketpy: portable python 3.x interpreter
+# Pocketpy: portable python 3.x interpreter
 
 <p>
 <!-- Build -->
@@ -25,18 +25,18 @@
 <a href="https://deepwiki.com/pocketpy/pocketpy"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
-pocketpy is a portable Python 3.x interpreter, written in C11.
-It aims to be an alternative to Lua for game scripting, with elegant syntax, powerful features and competitive performance.
-pocketpy has no dependencies other than the C standard library, which can be easily integrated into your C/C++ project.
-Developers are able to write Python bindings via C-API or pybind11 compatible interfaces.
+PocketPy is a portable Python 3.x interpreter written in C11.
+It aims to be an alternative to Lua for game scripting, with elegant syntax, powerful features, and competitive performance.
+PocketPy has no dependencies other than the C standard library, which can be easily integrated into your C/C++ project.
+Developers can write Python bindings via C-API or pybind11-compatible interfaces.
 
 Please see https://pocketpy.dev for details and try the following resources.
 + [Live Python Demo](https://pocketpy.dev/static/web/): Run Python code in your browser
-+ [Live C Examples](https://pocketpy.github.io/examples/): Explore C-APIs in your browser
-+ [Godot Extension](https://github.com/pocketpy/godot-pocketpy): Use pocketpy in Godot Engine
-+ [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy): Debug and profile pocketpy scripts in VSCode
-+ [Flutter Plugin](https://pub.dev/packages/pocketpy): Use pocketpy in Flutter apps
-+ [Raylib Bindings](https://github.com/pocketpy/raylib-bindings): Use raylib with pocketpy
++ [Live C Examples](https://pocketpy.github.io/examples/): Explore C APIs in your browser
++ [Godot Extension](https://github.com/pocketpy/godot-pocketpy): Use PocketPy in Godot Engine
++ [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy): Debug and profile PocketPy scripts in VSCode
++ [Flutter Plugin](https://pub.dev/packages/pocketpy): Use PocketPy in Flutter apps
++ [Raylib Bindings](https://github.com/pocketpy/raylib-bindings): Use raylib with PocketPy
 
 ## Supported Platforms
 
