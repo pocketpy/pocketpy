@@ -796,6 +796,28 @@ static bool bytes__len__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool bytes__iter__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_bytes* self = py_touserdata(&argv[0]);
+    bytes_iterator* ud = py_newobject(py_retval(), tp_bytes_iterator, 1, sizeof(bytes_iterator));
+    ud->data = self->data;
+    ud->length = self->size;
+    ud->index = 0;
+    py_setslot(py_retval(), 0, argv);  // keep a reference to the bytes object
+    return true;
+}
+
+static bool bytes_iterator__next__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    bytes_iterator* ud = py_touserdata(argv);
+    if(ud->index < ud->length) {
+        py_newint(py_retval(), ud->data[ud->index]);
+        ud->index++;
+        return true;
+    }
+    return StopIteration();
+}
+
 py_Type pk_bytes__register() {
     py_Type type = pk_newtype("bytes", tp_object, NULL, NULL, false, true);
     // no need to dtor because the memory is controlled by the object
@@ -808,8 +830,16 @@ py_Type pk_bytes__register() {
     py_bindmagic(tp_bytes, __add__, bytes__add__);
     py_bindmagic(tp_bytes, __hash__, bytes__hash__);
     py_bindmagic(tp_bytes, __len__, bytes__len__);
+    py_bindmagic(tp_bytes, __iter__, bytes__iter__);
 
     py_bindmethod(tp_bytes, "decode", bytes_decode);
+    return type;
+}
+
+py_Type pk_bytes_iterator__register() {
+    py_Type type = pk_newtype("bytes_iterator", tp_object, NULL, NULL, false, true);
+    py_bindmagic(type, __iter__, pk_wrapper__self);
+    py_bindmagic(type, __next__, bytes_iterator__next__);
     return type;
 }
 

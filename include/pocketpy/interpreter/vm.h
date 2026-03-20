@@ -133,6 +133,7 @@ void pk_number__register();
 py_Type pk_str__register();
 py_Type pk_str_iterator__register();
 py_Type pk_bytes__register();
+py_Type pk_bytes_iterator__register();
 py_Type pk_dict__register();
 py_Type pk_dict_items__register();
 py_Type pk_list__register();

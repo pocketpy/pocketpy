@@ -13,3 +13,9 @@ typedef struct list_iterator {
     c11_vector* vec;
     int index;
 } list_iterator;
+
+typedef struct bytes_iterator {
+    unsigned char* data;
+    int length;
+    int index;
+} bytes_iterator;
