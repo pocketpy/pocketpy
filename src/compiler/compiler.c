@@ -1766,7 +1766,28 @@ static Error* exprGroup(Compiler* self) {
         Ctx__s_push(ctx(), (Expr*)TupleExpr__new(line, 0));
         return NULL;
     }
-    check(EXPR_TUPLE(self));  // () is just for change precedence
+    check(EXPR(self));  // parse first expression
+    // check for generator expression
+    if(match(TK_FOR)) {
+        check(consume_comp(self, OP_BUILD_LIST, OP_LIST_APPEND));
+        consume(TK_RPAREN);
+        return NULL;
+    }
+    // not a generator, continue with tuple/grouped expression logic
+    if(match(TK_COMMA)) {
+        // tuple expression
+        int count = 1;
+        do {
+            if(curr()->type == TK_RPAREN) break;
+            check(EXPR(self));
+            count += 1;
+        } while(match(TK_COMMA));
+        SequenceExpr* e = TupleExpr__new(line, count);
+        for(int i = count - 1; i >= 0; i--) {
+            e->items[i] = Ctx__s_popx(ctx());
+        }
+        Ctx__s_push(ctx(), (Expr*)e);
+    }
     consume(TK_RPAREN);
     if(Ctx__s_top(ctx())->vt->is_tuple) return NULL;
     GroupedExpr* g = GroupedExpr__new(line, Ctx__s_popx(ctx()));

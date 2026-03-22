@@ -128,3 +128,15 @@ def f():
     yield a
 
 assert list(f()) == [1, 2, 3]
+
+
+# Generator expressions
+squares = (x**2 for x in range(5))
+assert list(squares) == [0, 1, 4, 9, 16]
+
+evens = (x for x in range(10) if x % 2 == 0)
+assert list(evens) == [0, 2, 4, 6, 8]
+
+# Generator expression with nested iteration
+pairs = ((i, j) for i in range(3) for j in range(2))
+assert list(pairs) == [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]
