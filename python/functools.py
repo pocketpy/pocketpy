@@ -9,7 +9,7 @@ class cache:
         return self.cache[args]
     
 class lru_cache:
-    def __init__(self, maxsize=128):
+    def __init__(self, maxsize=128, typed=False, **kwargs):
         self.maxsize = maxsize
         self.cache = {}
 

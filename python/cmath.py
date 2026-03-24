@@ -81,7 +81,22 @@ class complex:
             return complex(self.real / other, self.imag / other)
         return NotImplemented
     
-    def __pow__(self, other: int | float):
+    def __pow__(self, other):
+        if type(other) is complex and other.imag == 0:
+            other = other.real
+        if type(other) is complex:
+            r = self.__abs__()
+            th = phase(self)
+            lr = math.log(r) if r > 0 else float("-inf")
+            ox, oy = other.real, other.imag
+            wx = ox * lr - oy * th
+            wy = ox * th + oy * lr
+            if r == 0:
+                if oy == 0 and ox > 0:
+                    return complex(0.0, 0.0)
+                return complex(float("nan"), float("nan"))
+            ex = math.exp(wx)
+            return complex(ex * math.cos(wy), ex * math.sin(wy))
         if type(other) in (int, float):
             return complex(self.__abs__() ** other * math.cos(other * phase(self)),
                            self.__abs__() ** other * math.sin(other * phase(self)))
@@ -92,6 +107,39 @@ class complex:
 
     def __neg__(self):
         return complex(-self.real, -self.imag)
+    
+    # New methods added below
+    def __rtruediv__(self, other):
+        if type(other) is complex:
+            return other / self
+        if type(other) in (int, float):
+            return complex(other) / self
+        return NotImplemented
+    
+    def __rpow__(self, other):
+        if type(other) in (int, float):
+            return complex(other) ** self
+        if type(other) is complex:
+            return other ** self
+        return NotImplemented
+    
+    def __pos__(self):
+        return complex(self.real, self.imag)
+    
+    def __bool__(self):
+        return self.real != 0 or self.imag != 0
+    
+    def __complex__(self):
+        return complex(self.real, self.imag)
+    
+    def __float__(self):
+        raise TypeError("can't convert complex to float")
+    
+    def __int__(self):
+        raise TypeError("can't convert complex to int")
+    
+    def __index__(self):
+        raise TypeError("complex cannot be used as an index")
     
     def __hash__(self):
         return hash((self.real, self.imag))

@@ -50,3 +50,28 @@ assert repr(-infj) == '(-0.0-infj)', -infj
 
 assert math.log(1) == 0.0
 assert isclose(log(10+5j), 2.4141568686511508+0.4636476090008061j)
+
+# __rtruediv__, __rpow__, __pos__, __bool__, coercions, __hash__
+assert isclose(10 / c1, complex(1.2, -1.6))
+assert isclose(2 ** complex(3, 0), complex(8, 0))
+ref_i = complex(math.cos(math.log(2)), math.sin(math.log(2)))
+assert isclose(2 ** 1j, ref_i)
+assert isclose((1 + 1j) ** (0.5 + 0.5j), complex(0.6777725052404345, 0.4306022701168375))
+
+assert not complex(0, 0)
+assert complex(0, 1)
+assert +c1 == c1
+
+try:
+    float(1 + 2j)
+    assert False, "expect TypeError for float(complex)"
+except TypeError:
+    pass
+
+try:
+    int(1 + 2j)
+    assert False, "expect TypeError for int(complex)"
+except TypeError:
+    pass
+
+assert len({c1, complex(3, 4)}) == 1
