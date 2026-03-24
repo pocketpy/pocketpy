@@ -1,6 +1,6 @@
 #include "pocketpy/pocketpy.h"
 
-#if PK_IS_DESKTOP_PLATFORM && PK_ENABLE_OS
+#if PK_IS_DESKTOP_PLATFORM && PK_ENABLE_OS && PK_ENABLE_DLL
 
 #ifdef _WIN32
 

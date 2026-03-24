@@ -1,18 +1,22 @@
 #pragma once
 // clang-format off
 
-#define PK_VERSION				"2.1.8"
+#define PK_VERSION				"2.1.9"
 #define PK_VERSION_MAJOR            2
 #define PK_VERSION_MINOR            1
-#define PK_VERSION_PATCH            8
+#define PK_VERSION_PATCH            9
 
 /*************** feature settings ***************/
 #ifndef PK_ENABLE_OS                // can be overridden by cmake
 #define PK_ENABLE_OS                1
 #endif
 
-#ifndef PK_ENABLE_THREADS           // can be overridden by cmake
-#define PK_ENABLE_THREADS           1
+#ifndef PK_ENABLE_THREADS           // must be enabled from cmake
+#define PK_ENABLE_THREADS           0
+#endif
+
+#ifndef PK_ENABLE_DLL               // must be enabled from cmake
+#define PK_ENABLE_DLL               0
 #endif
 
 #ifndef PK_ENABLE_DETERMINISM       // must be enabled from cmake
