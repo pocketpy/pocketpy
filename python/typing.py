@@ -57,5 +57,7 @@ assert_never = lambda x: x
 
 TypedDict = dict
 NotRequired = _PLACEHOLDER
+ReadOnly = _PLACEHOLDER
+Required = _PLACEHOLDER
 
 cast = lambda _, val: val
