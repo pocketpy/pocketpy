@@ -53,3 +53,9 @@ class attrgetter:
         self.attr = attr
     def __call__(self, obj):
         return getattr(obj, self.attr)
+
+class itemgetter:
+    def __init__(self, item):
+        self.item = item
+    def __call__(self, obj):
+        return obj[self.item]
