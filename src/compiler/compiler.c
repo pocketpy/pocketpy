@@ -717,6 +717,36 @@ GroupedExpr* GroupedExpr__new(int line, Expr* child) {
     return self;
 }
 
+// NamedExpr: walrus operator (x := expr)
+typedef struct NamedExpr {
+    EXPR_COMMON_HEADER
+    NameExpr* name;
+    Expr* rhs;
+} NamedExpr;
+
+static void NamedExpr__dtor(Expr* self_) {
+    NamedExpr* self = (NamedExpr*)self_;
+    vtdelete((Expr*)self->name);
+    vtdelete(self->rhs);
+}
+
+static void NamedExpr__emit_(Expr* self_, Ctx* ctx) {
+    NamedExpr* self = (NamedExpr*)self_;
+    vtemit_(self->rhs, ctx);                              // [value]
+    Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, self->line);   // [value, value]
+    vtemit_store((Expr*)self->name, ctx);                 // [value]
+}
+
+static NamedExpr* NamedExpr__new(int line, NameExpr* name, Expr* rhs) {
+    const static ExprVt Vt = {.dtor = NamedExpr__dtor, .emit_ = NamedExpr__emit_};
+    NamedExpr* self = PK_MALLOC(sizeof(NamedExpr));
+    self->vt = &Vt;
+    self->line = line;
+    self->name = name;
+    self->rhs = rhs;
+    return self;
+}
+
 typedef struct BinaryExpr {
     EXPR_COMMON_HEADER
     Expr* lhs;
@@ -1676,6 +1706,22 @@ static Error* exprAnd(Compiler* self) {
     LogicBinaryExpr* e = LogicBinaryExpr__new(line, OP_JUMP_IF_FALSE_OR_POP);
     e->rhs = Ctx__s_popx(ctx());
     e->lhs = Ctx__s_popx(ctx());
+    Ctx__s_push(ctx(), (Expr*)e);
+    return NULL;
+}
+
+static Error* exprWalrus(Compiler* self) {
+    Error* err;
+    int line = prev()->line;
+    // LHS is on the stack; verify it's a simple name
+    Expr* lhs = Ctx__s_top(ctx());
+    if(!lhs->vt->is_name) {
+        return SyntaxError(self, "':=' target must be a simple name");
+    }
+    check(parse_expression(self, PREC_NAMED_EXPR + 1, false));
+    Expr* rhs = Ctx__s_popx(ctx());
+    NameExpr* name = (NameExpr*)Ctx__s_popx(ctx());
+    NamedExpr* e = NamedExpr__new(line, name, rhs);
     Ctx__s_push(ctx(), (Expr*)e);
     return NULL;
 }
@@ -2977,6 +3023,7 @@ const static PrattRule rules[TK__COUNT__] = {
     [TK_AND_KW ] =     { NULL,          exprAnd,            PREC_LOGICAL_AND   },
     [TK_OR_KW] =       { NULL,          exprOr,             PREC_LOGICAL_OR    },
     [TK_NOT_KW] =      { exprNot,       NULL,               PREC_LOGICAL_NOT   },
+    [TK_WALRUS] =      { NULL,          exprWalrus,         PREC_NAMED_EXPR    },
     [TK_TRUE] =        { exprLiteral0 },
     [TK_FALSE] =       { exprLiteral0 },
     [TK_NONE] =        { exprLiteral0 },

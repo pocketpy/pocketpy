@@ -74,6 +74,7 @@ typedef enum TokenIndex {
     TK_GE,
     TK_LE,
     TK_INVERT,
+    TK_WALRUS,
     /***************/
     TK_FALSE,
     TK_NONE,
@@ -141,6 +142,7 @@ typedef struct Token {
 // https://docs.python.org/3/reference/expressions.html#operator-precedence
 enum Precedence {
     PREC_LOWEST = 0,
+    PREC_NAMED_EXPR,   // :=
     PREC_LAMBDA,       // lambda
     PREC_TERNARY,      // ?:
     PREC_LOGICAL_OR,   // or

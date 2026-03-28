@@ -469,7 +469,11 @@ static Error* lex_one_token(Lexer* self, bool* eof, bool is_fstring) {
                     // BUG: f"{stack[2:]}"
                     return eat_fstring_spec(self, eof);
                 }
-                add_token(self, TK_COLON);
+                if(matchchar(self, '=')) {
+                    add_token(self, TK_WALRUS);
+                } else {
+                    add_token(self, TK_COLON);
+                }
                 return NULL;
             }
             case ';': add_token(self, TK_SEMICOLON); return NULL;
@@ -694,6 +698,7 @@ const char* TokenSymbols[] = {
     ">=",
     "<=",
     "~",
+    ":=",
     /** KW_BEGIN **/
     // NOTE: These keywords should be sorted in ascending order!!
     "False",
