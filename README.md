@@ -1,4 +1,4 @@
-# pocketpy: portable python 3.x interpreter
+# Pocketpy: portable python 3.x interpreter
 
 <p>
 <!-- Build -->
@@ -25,10 +25,10 @@
 <a href="https://deepwiki.com/pocketpy/pocketpy"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
-pocketpy is a portable Python 3.x interpreter, written in C11.
+Pocketpy is a portable Python 3.x interpreter, written in C11.
 It aims to be an alternative to Lua for game scripting, with elegant syntax, powerful features and competitive performance.
-pocketpy has no dependencies other than the C standard library, which can be easily integrated into your C/C++ project.
-Developers are able to write Python bindings via C-API or pybind11 compatible interfaces.
+pocketpy has no dependencies other than the C standard library, which can be easily integrated into C/C++ project.
+Developers can write Python bindings using the C-API or pybind11-compatible interfaces.
 
 Please see https://pocketpy.dev for details and try the following resources.
 + [Live Python Demo](https://pocketpy.dev/static/web/): Run Python code in your browser
@@ -215,7 +215,7 @@ All kinds of contributions are welcome.
   - any suggestions
   - any questions
 
-If you find pkpy useful, consider star this repository (●'◡'●)
+If you find pkpy useful, consider starring this repository (●'◡'●)
 
 ## Sponsor this project
 
