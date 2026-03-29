@@ -148,6 +148,16 @@ __ERROR:
     return 1;
 }
 ```
+## Basic Python Usage Example
+
+Here is a simple example demonstrating Python execution in PocketPy:
+
+```python
+print("Hello from PocketPy!")
+
+for i in range(3):
+    print(i)
+```
 
 ## Features
 
