@@ -88,3 +88,19 @@ assert not {1,2,3}.isdisjoint({2,3,4})
 # a = set()
 # b = {*a, 1, 2, 3, *a, *a}
 # assert b == {1, 2, 3}
+a = {1, 2, 3}
+b = a.pop()
+assert b in {1, 2, 3}
+assert len(a) == 2
+
+a = {1, 2, 3}
+a.difference_update({2, 3, 4})
+assert a == {1}
+
+a = {1, 2, 3}
+a.intersection_update({2, 3, 4})
+assert a == {2, 3}
+
+a = {1, 2, 3}
+a.symmetric_difference_update({2, 3, 4})
+assert a == {1, 4}

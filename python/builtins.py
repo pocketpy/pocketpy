@@ -190,6 +190,29 @@ class set:
     def __contains__(self, elem):
         return elem in self._a
     
+    def pop(self):
+        if not self._a:
+            raise KeyError('pop from an empty set')
+        # dict.popitem() returns (key, value) tuple
+        k, _ = self._a.popitem()
+        return k
+
+    def difference_update(self, other):
+        for elem in other:
+            self.discard(elem)
+
+    def intersection_update(self, other):
+        to_remove = [elem for elem in self if elem not in other]
+        for elem in to_remove:
+            self.remove(elem)
+
+    def symmetric_difference_update(self, other):
+        for elem in other:
+            if elem in self:
+                self.remove(elem)
+            else:
+                self.add(elem)
+
     def __repr__(self):
         if len(self) == 0:
             return 'set()'
