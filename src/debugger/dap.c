@@ -371,21 +371,21 @@ void c11_dap_send_initialized_event() { c11_dap_send_event("initialized", "{}");
 int c11_dap_read_content_length(const char* buffer, int* header_length) {
     const char* length_begin = strstr(buffer, "Content-Length: ");
     if(!length_begin) {
-        printf("[DEBUGGER ERROR] : no Content-Length filed found\n");
+        printf("[DEBUGGER ERROR] : no Content-Length field found\n");
         *header_length = 0;
         return -1;
     }
     length_begin += strlen("Content-Length: ");
     const char* length_end = strstr(length_begin, "\r\n\r\n");
     if(!length_end) {
-        printf("[DEBUGGER ERROR] : the seperator should br \\r\\n\\r\\n\n");
+        printf("[DEBUGGER ERROR] : the separator should be \\r\\n\\r\\n\n");
         *header_length = 0;
         return -1;
     }
     char* endptr = NULL;
     long value = strtol(length_begin, &endptr, 10);
     if(endptr == length_begin) {
-        printf("[DEBUGGER EORRO] : the length field is empty\n");
+        printf("[DEBUGGER ERROR] : the length field is empty\n");
         *header_length = 0;
         return -1;
     }
