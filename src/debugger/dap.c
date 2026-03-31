@@ -508,7 +508,7 @@ void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
             case C11_DEBUGGER_FILEPATH_ERROR:
                 message = "Invalid py_file path: '..' forbidden, './' only allowed at start.";
                 break;
-            case C11_DEBUGGER_UNKNOW_ERROR:
+            case C11_DEBUGGER_UNKNOWN_ERROR:
             default: message = "Unknown debugger failure."; break;
         }
         if(message) { c11_dap_send_fatal_event(message); }
