@@ -1,0 +1,1 @@
+print(list('Hello'.encode()))

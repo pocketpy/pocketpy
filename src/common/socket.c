@@ -3,11 +3,33 @@
 #if PK_ENABLE_OS
 
 #include <stddef.h>
+#include <string.h>
+#include <stdio.h>
 
 #if defined (_WIN32) || defined (_WIN64)
 #include <WinSock2.h>
 #include <ws2tcpip.h>
 typedef SOCKET socket_fd;
+/* Fallback inet_pton/inet_ntop for MinGW */
+#ifndef inet_pton
+static int inet_pton(int af, const char *src, void *dst) {
+    if (af != AF_INET) return -1;
+    unsigned char *bytes = (unsigned char *)dst;
+    int a, b, c, d;
+    if (sscanf(src, "%d.%d.%d.%d", &a, &b, &c, &d) != 4) return 0;
+    if (a < 0 || a > 255 || b < 0 || b > 255 || c < 0 || c > 255 || d < 0 || d > 255) return 0;
+    bytes[0] = a; bytes[1] = b; bytes[2] = c; bytes[3] = d;
+    return 1;
+}
+#endif
+#ifndef inet_ntop
+static const char *inet_ntop(int af, const void *src, char *dst, socklen_t size) {
+    if (af != AF_INET) return NULL;
+    const unsigned char *bytes = (const unsigned char *)src;
+    snprintf(dst, size, "%d.%d.%d.%d", bytes[0], bytes[1], bytes[2], bytes[3]);
+    return dst;
+}
+#endif
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
