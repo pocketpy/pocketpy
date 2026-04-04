@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(pocketpy)
+project(pocketpy VERSION 2.1.8)
 
 if(PK_BUILD_SHARED_LIB OR NOT PK_BUILD_STATIC_MAIN)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -193,4 +193,28 @@ endif()
 
 if(PK_ENABLE_MIMALLOC)
     target_link_libraries(${PROJECT_NAME} mimalloc-static)
+endif()
+
+if(PK_IS_MAIN)
+    include(GNUInstallDirs)
+
+    if(PK_BUILD_SHARED_LIB OR (NOT PK_BUILD_STATIC_LIB AND NOT PK_BUILD_STATIC_MAIN))
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            VERSION ${PROJECT_VERSION}
+            SOVERSION ${PROJECT_VERSION_MAJOR}
+        )
+    endif()
+
+    install(TARGETS ${PROJECT_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+
+    install(FILES include/pocketpy.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+
+    install(DIRECTORY include/pocketpy
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endif()
