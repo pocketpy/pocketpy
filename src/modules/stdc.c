@@ -124,12 +124,19 @@ static bool stdc_free(int argc, py_Ref argv) {
 
 static bool stdc_memcpy(int argc, py_Ref argv) {
     PY_CHECK_ARGC(3);
-    PY_CHECK_ARG_TYPE(0, tp_int);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
+    PY_CHECK_ARG_TYPE(0, tp_int);   // dst
     void* dst = (void*)(intptr_t)py_toint(&argv[0]);
-    void* src = (void*)(intptr_t)py_toint(&argv[1]);
+    PY_CHECK_ARG_TYPE(2, tp_int);   // n
     py_i64 n = py_toint(&argv[2]);
+    void* src;
+    if(py_istype(&argv[1], tp_bytes)) {
+        int size;
+        src = py_tobytes(&argv[1], &size);
+        if(size < n) n = size;
+    } else {
+        PY_CHECK_ARG_TYPE(1, tp_int);   // src
+        src = (void*)(intptr_t)py_toint(&argv[1]);
+    }
     memcpy(dst, src, (size_t)n);
     py_newnone(py_retval());
     return true;
