@@ -60,8 +60,7 @@ You have two options to integrate pkpy into your project.
 
 #### Use CMake (Recommended)
 
-Clone the whole repository as a submodule into your project,
-In your CMakelists.txt, add the following lines:
+Clone the whole repository as a submodule into your project. In your `CMakeLists.txt`, add the following lines:
 
 ```cmake
 add_subdirectory(pocketpy)
