@@ -159,7 +159,9 @@ bool py_execo(const void* data, int size, const char* filename, py_Ref module) {
         CodeObject__dtor(&co);
         return ok;
     } else {
-        return RuntimeError("bad code object %s: %s", filename, err);
+        bool ok = RuntimeError("bad code object %s: %s", filename, err);
+        PK_FREE(err);
+        return ok;
     }
 }
 
