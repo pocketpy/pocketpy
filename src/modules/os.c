@@ -136,6 +136,7 @@ static bool io_FileIO__exit__(int argc, py_Ref argv) {
 
 static bool io_FileIO_read(int argc, py_Ref argv) {
     io_FileIO* ud = py_touserdata(py_arg(0));
+    if(ud->file == NULL) return ValueError("I/O operation on closed file");
     bool is_binary = ud->mode[strlen(ud->mode) - 1] == 'b';
     int size;
     if(argc == 1) {
@@ -146,24 +147,37 @@ static bool io_FileIO_read(int argc, py_Ref argv) {
     } else if(argc == 2) {
         PY_CHECK_ARG_TYPE(1, tp_int);
         size = py_toint(py_arg(1));
+        if (size < 0) {
+            long current = ftell(ud->file);
+            fseek(ud->file, 0, SEEK_END);
+            size = ftell(ud->file);
+            fseek(ud->file, current, SEEK_SET);
+        }
     } else {
         return TypeError("read() takes at most 2 arguments (%d given)", argc);
     }
     if(is_binary) {
         void* dst = py_newbytes(py_retval(), size);
-        int actual_size = fread(dst, 1, size, ud->file);
-        py_bytes_resize(py_retval(), actual_size);
+        if(size > 0) {
+            int actual_size = fread(dst, 1, size, ud->file);
+            py_bytes_resize(py_retval(), actual_size);
+        }
     } else {
-        void* dst = PK_MALLOC(size);
-        int actual_size = fread(dst, 1, size, ud->file);
-        py_newstrv(py_retval(), (c11_sv){dst, actual_size});
-        PK_FREE(dst);
+        if(size > 0) {
+            void* dst = PK_MALLOC(size);
+            int actual_size = fread(dst, 1, size, ud->file);
+            py_newstrv(py_retval(), (c11_sv){dst, actual_size});
+            PK_FREE(dst);
+        } else {
+            py_newstr(py_retval(), "");
+        }
     }
     return true;
 }
 
 static bool io_FileIO_tell(int argc, py_Ref argv) {
     io_FileIO* ud = py_touserdata(py_arg(0));
+    if(ud->file == NULL) return ValueError("I/O operation on closed file");
     py_newint(py_retval(), ftell(ud->file));
     return true;
 }
@@ -173,6 +187,7 @@ static bool io_FileIO_seek(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
     io_FileIO* ud = py_touserdata(py_arg(0));
+    if(ud->file == NULL) return ValueError("I/O operation on closed file");
     long cookie = py_toint(py_arg(1));
     int whence = py_toint(py_arg(2));
     py_newint(py_retval(), fseek(ud->file, cookie, whence));
@@ -193,6 +208,7 @@ static bool io_FileIO_close(int argc, py_Ref argv) {
 static bool io_FileIO_write(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     io_FileIO* ud = py_touserdata(py_arg(0));
+    if(ud->file == NULL) return ValueError("I/O operation on closed file");
     size_t written_size;
     if(ud->mode[strlen(ud->mode) - 1] == 'b') {
         PY_CHECK_ARG_TYPE(1, tp_bytes);
@@ -211,6 +227,7 @@ static bool io_FileIO_write(int argc, py_Ref argv) {
 static bool io_FileIO_flush(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     io_FileIO* ud = py_touserdata(py_arg(0));
+    if(ud->file == NULL) return ValueError("I/O operation on closed file");
     fflush(ud->file);
     py_newnone(py_retval());
     return true;

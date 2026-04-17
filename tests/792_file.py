@@ -38,7 +38,7 @@ with open('123.txt', 'rt') as f:
     assert f.read() == ''
     f.seek(3, io.SEEK_SET)
     assert f.tell() == 3
-    assert f.read() == '456'
+    assert f.read(-1) == '456'
     assert f.tell() == 6
 
 with open('123.txt', 'a') as f:
