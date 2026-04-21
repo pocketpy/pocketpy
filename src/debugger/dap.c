@@ -115,6 +115,7 @@ void c11_dap_handle_setBreakpoints(py_Ref arguments, c11_sbuf* buffer) {
     const char* sourcename = c11_strdup(py_tostr(py_retval()));
     if(!py_smarteval("[bp['line'] for bp in _0['breakpoints']]", NULL, arguments)) {
         py_printexc();
+        PK_FREE((void*)sourcename);
         return;
     }
     int bp_numbers = c11_debugger_reset_breakpoints_by_source(sourcename);
