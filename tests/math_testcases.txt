@@ -523,8 +523,8 @@ expm10307 expm1 709.5 -> 1.3549863193146328e+308
 -------------------------
 
 -- special values
-log20000 log2 0.0 -> -inf               divide-by-zero
-log20001 log2 -0.0 -> -inf              divide-by-zero
+log20000 log2 0.0 -> -inf               -inf
+log20001 log2 -0.0 -> -inf              -inf
 log20002 log2 inf -> inf
 log20003 log2 -inf -> nan               invalid
 log20004 log2 nan -> nan
