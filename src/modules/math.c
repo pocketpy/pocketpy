@@ -2,13 +2,21 @@
 #include "pocketpy/common/dmath.h"
 #include "pocketpy/interpreter/vm.h"
 
-
 #define ONE_ARG_FUNC(name, func)                                                                   \
     static bool math_##name(int argc, py_Ref argv) {                                               \
         PY_CHECK_ARGC(1);                                                                          \
         double x;                                                                                  \
         if(!py_castfloat(py_arg(0), &x)) return false;                                             \
         py_newfloat(py_retval(), func(x));                                                         \
+        return true;                                                                               \
+    }
+
+#define ONE_ARG_INT_FUNC(name, func)                                                               \
+    static bool math_##name(int argc, py_Ref argv) {                                               \
+        PY_CHECK_ARGC(1);                                                                          \
+        double x;                                                                                  \
+        if(!py_castfloat(py_arg(0), &x)) return false;                                             \
+        py_newint(py_retval(), (py_i64)func(x));                                                   \
         return true;                                                                               \
     }
 
@@ -31,10 +39,10 @@
         return true;                                                                               \
     }
 
-ONE_ARG_FUNC(ceil, dmath_ceil)
+ONE_ARG_INT_FUNC(ceil, dmath_ceil)
+ONE_ARG_INT_FUNC(floor, dmath_floor)
+ONE_ARG_INT_FUNC(trunc, dmath_trunc)
 ONE_ARG_FUNC(fabs, dmath_fabs)
-ONE_ARG_FUNC(floor, dmath_floor)
-ONE_ARG_FUNC(trunc, dmath_trunc)
 
 static bool math_fsum(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -90,6 +98,10 @@ ONE_ARG_FUNC(exp, dmath_exp)
 static bool math_log(int argc, py_Ref argv) {
     double x;
     if(!py_castfloat(py_arg(0), &x)) return false;
+    if(x <= 0) {
+        py_newfloat(py_retval(), DMATH_NAN);
+        return true;
+    }
     if(argc == 1) {
         py_newfloat(py_retval(), dmath_log(x));
     } else if(argc == 2) {
@@ -104,9 +116,7 @@ static bool math_log(int argc, py_Ref argv) {
 
 ONE_ARG_FUNC(log2, dmath_log2)
 ONE_ARG_FUNC(log10, dmath_log10)
-
 TWO_ARG_FUNC(pow, dmath_pow)
-
 ONE_ARG_FUNC(sqrt, dmath_sqrt)
 
 ONE_ARG_FUNC(acos, dmath_acos)
@@ -135,8 +145,8 @@ static bool math_radians(int argc, py_Ref argv) {
     return true;
 }
 
-TWO_ARG_FUNC(fmod, dmath_fmod)
 TWO_ARG_FUNC(copysign, dmath_copysign)
+TWO_ARG_FUNC(fmod, dmath_fmod)
 
 static bool math_modf(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);

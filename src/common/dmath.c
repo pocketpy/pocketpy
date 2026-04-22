@@ -126,10 +126,11 @@ double dmath_log10(double x) {
 }
 
 double dmath_pow(double base, double exp) {
-    int exp_int = (int)exp;
+    int64_t exp_int = (int64_t)exp;
     if(exp_int == exp) {
         if(exp_int == 0) return 1;
         if(exp_int < 0) {
+			if(base == 0) return DMATH_NAN;
             base = 1 / base;
             exp_int = -exp_int;
         }
@@ -142,6 +143,7 @@ double dmath_pow(double base, double exp) {
         return res;
     }
     if (base > 0) {
+		if(base == 1.0) return 1.0;
         return dmath_exp(exp * dmath_log(base));
     }
     if (base == 0) {
@@ -462,6 +464,7 @@ static double zig_r64(double z) {
 
 // https://github.com/ziglang/zig/blob/master/lib/std/math/asin.zig
 double dmath_asin(double x) {
+	if(!(x >= -1 && x <= 1)) return DMATH_NAN;
     const double pio2_hi = 1.57079632679489655800e+00;
     const double pio2_lo = 6.12323399573676603587e-17;
 
@@ -526,20 +529,78 @@ double dmath_atan(double x) {
     return dmath_asin(x / dmath_sqrt(1 + x * x));
 }
 
-double dmath_atan2(double y, double x) {
-    if (x > 0) {
-        return dmath_atan(y / x);
-    } else if (x < 0 && y >= 0) {
-        return dmath_atan(y / x) + DMATH_PI;
-    } else if (x < 0 && y < 0) {
-        return dmath_atan(y / x) - DMATH_PI;
-    } else if (x == 0 && y > 0) {
-        return DMATH_PI / 2;
-    } else if (x == 0 && y < 0) {
-        return -DMATH_PI / 2;
-    } else {
-        return DMATH_NAN;
-    }
+double dmath_atan2(double y, double x)
+{
+	const double
+	pi     = 3.1415926535897931160E+00, /* 0x400921FB, 0x54442D18 */
+	pi_lo  = 1.2246467991473531772E-16; /* 0x3CA1A626, 0x33145C07 */
+
+	double z;
+	uint32_t m,lx,ly,ix,iy;
+
+	if (dmath_isnan(x) || dmath_isnan(y))
+		return x+y;
+
+	// EXTRACT_WORDS(ix, lx, x);
+	// EXTRACT_WORDS(iy, ly, y);
+	union Float64Bits ux = { .f = x }, uy = { .f = y };
+	ix = (uint32_t)(ux.i >> 32);
+	iy = (uint32_t)(uy.i >> 32);
+	lx = (uint32_t)(ux.i & 0xFFFFFFFF);
+	ly = (uint32_t)(uy.i & 0xFFFFFFFF);
+
+	if ((ix-0x3ff00000 | lx) == 0)  /* x = 1.0 */
+		return dmath_atan(y);
+	m = ((iy>>31)&1) | ((ix>>30)&2);  /* 2*sign(x)+sign(y) */
+	ix = ix & 0x7fffffff;
+	iy = iy & 0x7fffffff;
+
+	/* when y = 0 */
+	if ((iy|ly) == 0) {
+		switch(m) {
+		case 0:
+		case 1: return y;   /* atan(+-0,+anything)=+-0 */
+		case 2: return  pi; /* atan(+0,-anything) = pi */
+		case 3: return -pi; /* atan(-0,-anything) =-pi */
+		}
+	}
+	/* when x = 0 */
+	if ((ix|lx) == 0)
+		return m&1 ? -pi/2 : pi/2;
+	/* when x is INF */
+	if (ix == 0x7ff00000) {
+		if (iy == 0x7ff00000) {
+			switch(m) {
+			case 0: return  pi/4;   /* atan(+INF,+INF) */
+			case 1: return -pi/4;   /* atan(-INF,+INF) */
+			case 2: return  3*pi/4; /* atan(+INF,-INF) */
+			case 3: return -3*pi/4; /* atan(-INF,-INF) */
+			}
+		} else {
+			switch(m) {
+			case 0: return  0.0; /* atan(+...,+INF) */
+			case 1: return -0.0; /* atan(-...,+INF) */
+			case 2: return  pi;  /* atan(+...,-INF) */
+			case 3: return -pi;  /* atan(-...,-INF) */
+			}
+		}
+	}
+	/* |y/x| > 0x1p64 */
+	if (ix+(64<<20) < iy || iy == 0x7ff00000)
+		return m&1 ? -pi/2 : pi/2;
+
+	/* z = atan(|y/x|) without spurious underflow */
+	if ((m&2) && iy+(64<<20) < ix)  /* |y/x| < 0x1p-64, x<0 */
+		z = 0;
+	else
+		z = dmath_atan(dmath_fabs(y/x));
+	switch (m) {
+	case 0: return z;              /* atan(+,+) */
+	case 1: return -z;             /* atan(-,+) */
+	case 2: return pi - (z-pi_lo); /* atan(+,-) */
+	default: /* case 3 */
+		return (z-pi_lo) - pi; /* atan(-,-) */
+	}
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -566,6 +627,8 @@ int dmath_isfinite(double x) {
 
 // https://github.com/kraj/musl/blob/kraj/master/src/math/fmod.c
 double dmath_fmod(double x, double y) {
+	if(y == 0) return DMATH_NAN;
+	
 	union Float64Bits ux = { .f = x }, uy = { .f = y };
 	int ex = ux.i>>52 & 0x7ff;
 	int ey = uy.i>>52 & 0x7ff;
@@ -644,7 +707,7 @@ double dmath_fabs(double x) {
 
 double dmath_ceil(double x) {
 	if(!dmath_isfinite(x)) return x;
-    int int_part = (int)x;
+    int64_t int_part = (int64_t)x;
     if (x > 0 && x != (double)int_part) {
         return (double)(int_part + 1);
     }
@@ -653,7 +716,7 @@ double dmath_ceil(double x) {
 
 double dmath_floor(double x) {
 	if(!dmath_isfinite(x)) return x;
-    int int_part = (int)x;
+    int64_t int_part = (int64_t)x;
     if (x < 0 && x != (double)int_part) {
         return (double)(int_part - 1);
     }
@@ -661,7 +724,7 @@ double dmath_floor(double x) {
 }
 
 double dmath_trunc(double x) {
-    return (double)((int)x);
+    return (double)((int64_t)x);
 }
 
 // https://github.com/kraj/musl/blob/kraj/master/src/math/modf.c
