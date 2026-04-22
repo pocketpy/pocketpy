@@ -986,7 +986,6 @@ class MathTests(TestCase):
 
     @requires_IEEE_754
     def test_mtestfile(self):
-        return
         fail_fmt = "{}:{}({}): expected {}, got {}"
 
         failures = []
