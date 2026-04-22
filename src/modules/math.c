@@ -98,7 +98,7 @@ ONE_ARG_FUNC(exp, dmath_exp)
 static bool math_log(int argc, py_Ref argv) {
     double x;
     if(!py_castfloat(py_arg(0), &x)) return false;
-    if(x <= 0) {
+    if(x < 0) {
         py_newfloat(py_retval(), DMATH_NAN);
         return true;
     }
@@ -220,4 +220,5 @@ void pk__add_module_math() {
 
 #undef ONE_ARG_FUNC
 #undef ONE_ARG_BOOL_FUNC
+#undef ONE_ARG_INT_FUNC
 #undef TWO_ARG_FUNC
