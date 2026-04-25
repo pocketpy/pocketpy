@@ -1164,10 +1164,18 @@ static void mpack_growable_writer_flush(mpack_writer_t* writer, const char* data
             (int)count, (int)mpack_writer_buffer_left(writer), (int)used, (int)size);
 
     // grow to fit the data
-    // TODO: this really needs to correctly test for overflow
-    size_t new_size = size * 2;
-    while (new_size < used + count)
+    if (count > SIZE_MAX - used) {
+        mpack_writer_flag_error(writer, mpack_error_memory);
+        return;
+    }
+    size_t new_size = (size > SIZE_MAX / 2) ? SIZE_MAX : size * 2;
+    while (new_size < used + count) {
+        if (new_size > SIZE_MAX / 2) {
+            new_size = SIZE_MAX;
+            break;
+        }
         new_size *= 2;
+    }
 
     mpack_log("flush growing buffer size from %i to %i\n", (int)size, (int)new_size);
 
