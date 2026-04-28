@@ -81,6 +81,19 @@ static bool unpack_dict_to_buffer(py_Ref key, py_Ref val, void* ctx) {
     return TypeError("keywords must be strings, not '%t'", key->type);
 }
 
+static bool object__ne__default(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_Ref eq_slot = py_tpfindmagic(py_arg(0)->type, __eq__);
+    if(!eq_slot) {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    if(!py_call(eq_slot, 2, argv)) return false;
+    if(py_istype(py_retval(), tp_NotImplementedType)) return true;
+    py_newbool(py_retval(), !py_tobool(py_retval()));
+    return true;
+}
+
 FrameResult VM__run_top_frame(VM* self) {
     py_Frame* frame = self->top_frame;
     Bytecode* co_codes;
@@ -1081,8 +1094,7 @@ __NEXT_STEP:
                 py_TValue* slot_eq = py_getdict(&ti->self, __eq__);
                 py_TValue* slot_ne = py_getdict(&ti->self, __ne__);
                 if(slot_eq && !slot_ne) {
-                    TypeError("'%n' implements '__eq__' but not '__ne__'", ti->name);
-                    goto __ERROR;
+                    py_bindmagic(ti->index, __ne__, object__ne__default);
                 }
             }
             // class with decorator is unsafe currently
