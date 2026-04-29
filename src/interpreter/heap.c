@@ -202,8 +202,8 @@ int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
     int large_living_count = 0;
     for(int i = 0; i < self->large_objects.length; i++) {
         PyObject* obj = c11__getitem(PyObject*, &self->large_objects, i);
-        if(obj->gc_marked) {
-            obj->gc_marked = false;
+        if(obj->gc_marked & 0b01) {
+            obj->gc_marked &= 0b10;
             c11__setitem(PyObject*, &self->large_objects, large_living_count, obj);
             large_living_count++;
         } else {
@@ -238,7 +238,7 @@ PyObject* ManagedHeap__gcnew(ManagedHeap* self, py_Type type, int slots, int uds
     }
     obj->type = type;
     obj->size_8b = size_8b;
-    obj->gc_marked = false;
+    obj->gc_marked = 0;
     obj->slots = slots;
 
     // initialize slots or dict

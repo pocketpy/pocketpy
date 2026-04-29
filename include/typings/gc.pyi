@@ -25,3 +25,16 @@ def collect_hint() -> int:
 
 def setup_debug_callback(cb: Callable[[Literal['start', 'stop'], str], None] | None) -> None:
     """Setup a callback that will be triggered at the end of each collection."""
+
+def is_tracked(obj: object) -> bool:
+    """Return true if the object is tracked recursively."""
+
+def track(obj: object) -> None:
+    """Start tracking this object recursively."""
+
+def untrack(obj: object) -> None:
+    """Stop tracking this object recursively.
+    
+    This improves performance for container objects with value types like `list[int]`.
+    """
+
