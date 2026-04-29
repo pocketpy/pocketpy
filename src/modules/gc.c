@@ -54,7 +54,7 @@ static bool gc_is_tracked(int argc, py_Ref argv) {
         py_newbool(py_retval(), false);
         return true;
     }
-    bool res = argv->_obj->gc_marked &= 0b10;
+    bool res = argv->_obj->gc_marked & 0b10;
     py_newbool(py_retval(), res);
     return true;
 }

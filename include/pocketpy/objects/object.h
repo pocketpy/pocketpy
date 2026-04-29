@@ -6,7 +6,7 @@
 typedef struct PyObject {
     py_Type type;  // we have a duplicated type here for convenience
     uint8_t size_8b;
-    uint8_t gc_marked;  // lsb (self is marked), 2nd lsb (ignore children)
+    uint8_t gc_marked;  // lsb (self is marked), 2nd lsb (no recursively mark)
     int slots;          // number of slots in the object
     char flex[];
 } PyObject;
