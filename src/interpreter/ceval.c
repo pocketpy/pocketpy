@@ -539,11 +539,15 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_BUILD_TUPLE: {
+            bool need_track = false;
             py_TValue tmp;
             py_Ref p = py_newtuple(&tmp, byte.arg);
             py_TValue* begin = SP() - byte.arg;
-            for(int i = 0; i < byte.arg; i++)
+            for(int i = 0; i < byte.arg; i++) {
                 p[i] = begin[i];
+                if(p[i].is_ptr) need_track = true;
+            }
+            if(!need_track) tmp._obj->gc_marked |= 0b10;
             SP() = begin;
             PUSH(&tmp);
             DISPATCH();

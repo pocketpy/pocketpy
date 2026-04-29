@@ -48,6 +48,33 @@ static bool gc_setup_debug_callback(int argc, py_Ref argv) {
     return true;
 }
 
+static bool gc_is_tracked(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    if(!argv->is_ptr) {
+        py_newbool(py_retval(), false);
+        return true;
+    }
+    bool res = !(argv->_obj->gc_marked & 0b10);
+    py_newbool(py_retval(), res);
+    return true;
+}
+
+static bool gc_track(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    if(!argv->is_ptr) return TypeError("gc.track() only accepts objects");
+    argv->_obj->gc_marked &= 0b01;
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool gc_untrack(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    if(!argv->is_ptr) return TypeError("gc.untrack() only accepts objects");
+    argv->_obj->gc_marked |= 0b10;
+    py_newnone(py_retval());
+    return true;
+}
+
 void pk__add_module_gc() {
     py_Ref mod = py_newmodule("gc");
 
@@ -58,4 +85,8 @@ void pk__add_module_gc() {
     py_bindfunc(mod, "collect", gc_collect);
     py_bindfunc(mod, "collect_hint", gc_collect_hint);
     py_bindfunc(mod, "setup_debug_callback", gc_setup_debug_callback);
+
+    py_bindfunc(mod, "is_tracked", gc_is_tracked);
+    py_bindfunc(mod, "track", gc_track);
+    py_bindfunc(mod, "untrack", gc_untrack);
 }

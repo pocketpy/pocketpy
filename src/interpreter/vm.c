@@ -265,10 +265,10 @@ void VM__ctor(VM* self) {
     pk__add_module_unicodedata();
 
     pk__add_module_conio();
-    pk__add_module_lz4();       // optional
-    pk__add_module_cute_png();  // optional
-    pk__add_module_msgpack();   // optional
-    py__add_module_periphery(); // optional
+    pk__add_module_lz4();        // optional
+    pk__add_module_cute_png();   // optional
+    pk__add_module_msgpack();    // optional
+    py__add_module_periphery();  // optional
     pk__add_module_pkpy();
     pk__add_module_picoterm();
 
@@ -697,7 +697,7 @@ void ManagedHeap__mark(ManagedHeap* self) {
         PyObject* obj = c11_vector__back(PyObject*, p_stack);
         c11_vector__pop(p_stack);
 
-        assert(obj->gc_marked);
+        assert(obj->gc_marked & 0b01);
 
         if(obj->slots > 0) {
             py_TValue* p = PyObject__slots(obj);
