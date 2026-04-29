@@ -12,4 +12,10 @@ gc.collect()
 
 create_garbage()
 create_garbage()
-create_garbage()
+c = create_garbage()
+
+assert gc.is_tracked(c) == True
+gc.untrack(c)
+assert gc.is_tracked(c) == False
+gc.track(c)
+assert gc.is_tracked(c) == True
