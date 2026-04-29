@@ -8,6 +8,9 @@
 
 static bool isclose(float a, float b) { return dmath_fabs(a - b) < 1e-4; }
 
+py_i64 cpy11__fast_floor_div(py_i64 a, py_i64 b);
+py_i64 cpy11__fast_mod(py_i64 a, py_i64 b);
+
 #define DEFINE_VEC_FIELD(name, T, Tc, field)                                                       \
     static bool name##__##field(int argc, py_Ref argv) {                                           \
         PY_CHECK_ARGC(1);                                                                          \
@@ -204,7 +207,7 @@ static py_Ref _const(py_Type type, const char* name) {
         float sum = 0;                                                                             \
         for(int i = 0; i < D; i++)                                                                 \
             sum += v.data[i] * v.data[i];                                                          \
-        py_newfloat(py_retval(), dmath_sqrt(sum));                                                \
+        py_newfloat(py_retval(), dmath_sqrt(sum));                                                 \
         return true;                                                                               \
     }                                                                                              \
     static bool vec##D##_length_squared(int argc, py_Ref argv) {                                   \
@@ -234,7 +237,7 @@ static py_Ref _const(py_Type type, const char* name) {
         for(int i = 0; i < D; i++)                                                                 \
             len += self.data[i] * self.data[i];                                                    \
         if(isclose(len, 0)) return ZeroDivisionError("cannot normalize zero vector");              \
-        len = dmath_sqrt(len);                                                                          \
+        len = dmath_sqrt(len);                                                                     \
         c11_vec##D res;                                                                            \
         for(int i = 0; i < D; i++)                                                                 \
             res.data[i] = self.data[i] / len;                                                      \
@@ -314,7 +317,17 @@ DEF_VECTOR_OPS(3)
         c11_vec##D##i a = py_tovec##D##i(&argv[0]);                                                \
         py_i64 b = py_toint(&argv[1]);                                                             \
         for(int i = 0; i < D; i++)                                                                 \
-            a.data[i] /= b;                                                                        \
+            a.data[i] = cpy11__fast_floor_div(a.data[i], b);                                       \
+        py_newvec##D##i(py_retval(), a);                                                           \
+        return true;                                                                               \
+    }                                                                                              \
+    static bool vec##D##i##__mod__(int argc, py_Ref argv) {                                        \
+        PY_CHECK_ARGC(2);                                                                          \
+        PY_CHECK_ARG_TYPE(1, tp_int);                                                              \
+        c11_vec##D##i a = py_tovec##D##i(&argv[0]);                                                \
+        py_i64 b = py_toint(&argv[1]);                                                             \
+        for(int i = 0; i < D; i++)                                                                 \
+            a.data[i] = cpy11__fast_mod(a.data[i], b);                                             \
         py_newvec##D##i(py_retval(), a);                                                           \
         return true;                                                                               \
     }
@@ -381,7 +394,8 @@ static bool vec2_angle_STATIC(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(0, tp_vec2);
     PY_CHECK_ARG_TYPE(1, tp_vec2);
-    float val = dmath_atan2(argv[1]._vec2.y, argv[1]._vec2.x) - dmath_atan2(argv[0]._vec2.y, argv[0]._vec2.x);
+    float val = dmath_atan2(argv[1]._vec2.y, argv[1]._vec2.x) -
+                dmath_atan2(argv[0]._vec2.y, argv[0]._vec2.x);
     if(val > DMATH_PI) val -= 2 * (float)DMATH_PI;
     if(val < -DMATH_PI) val += 2 * (float)DMATH_PI;
     py_newfloat(py_retval(), val);
@@ -1237,6 +1251,7 @@ void pk__add_module_vmath() {
     py_bindmagic(vec2i, __sub__, vec2i__sub__);
     py_bindmagic(vec2i, __mul__, vec2i__mul__);
     py_bindmagic(vec2i, __floordiv__, vec2i__floordiv__);
+    py_bindmagic(vec2i, __mod__, vec2i__mod__);
     py_bindmagic(vec2i, __eq__, vec2i__eq__);
     py_bindmagic(vec2i, __ne__, vec2i__ne__);
     py_bindmagic(vec2i, __hash__, vec2i__hash__);
@@ -1262,6 +1277,7 @@ void pk__add_module_vmath() {
     py_bindmagic(vec3i, __sub__, vec3i__sub__);
     py_bindmagic(vec3i, __mul__, vec3i__mul__);
     py_bindmagic(vec3i, __floordiv__, vec3i__floordiv__);
+    py_bindmagic(vec3i, __mod__, vec3i__mod__);
     py_bindmagic(vec3i, __eq__, vec3i__eq__);
     py_bindmagic(vec3i, __ne__, vec3i__ne__);
     py_bindmagic(vec3i, __hash__, vec3i__hash__);
@@ -1289,6 +1305,7 @@ void pk__add_module_vmath() {
     py_bindmagic(vec4i, __sub__, vec4i__sub__);
     py_bindmagic(vec4i, __mul__, vec4i__mul__);
     py_bindmagic(vec4i, __floordiv__, vec4i__floordiv__);
+    py_bindmagic(vec4i, __mod__, vec4i__mod__);
     py_bindmagic(vec4i, __eq__, vec4i__eq__);
     py_bindmagic(vec4i, __ne__, vec4i__ne__);
     py_bindmagic(vec4i, __hash__, vec4i__hash__);

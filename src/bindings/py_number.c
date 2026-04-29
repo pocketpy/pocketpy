@@ -127,7 +127,7 @@ static bool number__pow__(int argc, py_Ref argv) {
 
 static py_i64 i64_abs(py_i64 x) { return x < 0 ? -x : x; }
 
-static py_i64 cpy11__fast_floor_div(py_i64 a, py_i64 b) {
+py_i64 cpy11__fast_floor_div(py_i64 a, py_i64 b) {
     assert(b != 0);
     if(a == 0) return 0;
     if((a < 0) == (b < 0)) {
@@ -137,7 +137,7 @@ static py_i64 cpy11__fast_floor_div(py_i64 a, py_i64 b) {
     }
 }
 
-static py_i64 cpy11__fast_mod(py_i64 a, py_i64 b) {
+py_i64 cpy11__fast_mod(py_i64 a, py_i64 b) {
     assert(b != 0);
     if(a == 0) return 0;
     py_i64 res;
