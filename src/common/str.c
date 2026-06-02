@@ -104,6 +104,7 @@ c11_sv c11_sv__slice(c11_sv sv, int start) { return c11_sv__slice2(sv, start, sv
 
 c11_sv c11_sv__slice2(c11_sv sv, int start, int stop) {
     if(start < 0) start = 0;
+    if(start > sv.size) start = sv.size;
     if(stop < start) stop = start;
     if(stop > sv.size) stop = sv.size;
     return (c11_sv){sv.data + start, stop - start};
