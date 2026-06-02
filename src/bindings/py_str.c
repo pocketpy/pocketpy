@@ -228,7 +228,8 @@ static bool str__getitem__(int argc, py_Ref argv) {
     py_Ref _1 = py_arg(1);
     if(_1->type == tp_int) {
         int index = py_toint(py_arg(1));
-        if(!pk__normalize_index(&index, self.size)) return false;
+        int u8_len = c11_sv__u8_length(self);
+        if(!pk__normalize_index(&index, u8_len)) return false;
         c11_sv res = c11_sv__u8_getitem(self, index);
         py_newstrv(py_retval(), res);
         return true;

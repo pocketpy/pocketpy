@@ -104,8 +104,10 @@ c11_sv c11_sv__slice(c11_sv sv, int start) { return c11_sv__slice2(sv, start, sv
 
 c11_sv c11_sv__slice2(c11_sv sv, int start, int stop) {
     if(start < 0) start = 0;
-    if(stop < start) stop = start;
+    if(start > sv.size) start = sv.size;
+    if(stop < 0) stop = 0;
     if(stop > sv.size) stop = sv.size;
+    if(stop < start) stop = start;
     return (c11_sv){sv.data + start, stop - start};
 }
 
@@ -997,7 +999,6 @@ const static c11_u32_range kLoRanges[] = {
 // clang-format on
 
 bool c11__is_unicode_Lo_char(int c) {
-    if(c == 0x1f955) return true;
     const char* data =
         c11__search_u32_ranges(c, kLoRanges, sizeof(kLoRanges) / sizeof(c11_u32_range));
     return data != NULL;

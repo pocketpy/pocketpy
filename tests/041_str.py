@@ -221,6 +221,11 @@ assert chr(0x1f955) == '🥕'
 assert ord('测') == 27979
 assert chr(27979) == '测'
 
+assert '测试'[0] == '测'
+assert '测试'[1] == '试'
+assert '测试'[-1] == '试'
+assert '测试'[-2] == '测'
+
 # test format()
 assert "Hello, {}!".format("World") == "Hello, World!"
 assert "{} {} {}".format("I", "love", "Python") == "I love Python"
