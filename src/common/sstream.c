@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 
 void c11_sbuf__ctor(c11_sbuf* self) {
@@ -53,11 +54,14 @@ void c11_sbuf__write_f64(c11_sbuf* self, double val, int precision) {
     char b[32];
     int size;
     if(precision < 0) {
-        size = snprintf(b, sizeof(b), "%.17g", val);
+        size = snprintf(b, sizeof(b), "%.*g", 15, val);
+        if(strtod(b, NULL) != val) {
+            size = snprintf(b, sizeof(b), "%.*g", 17, val);
+        }
         c11_sbuf__write_cstr(self, b);
         bool all_is_digit = true;
         for(int i = 1; i < size; i++) {
-            if(!isdigit((unsigned char)b[i])) {
+            if(!isdigit(b[i])) {
                 all_is_digit = false;
                 break;
             }
