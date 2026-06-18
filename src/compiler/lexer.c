@@ -37,24 +37,16 @@ static void Lexer__dtor(Lexer* self) {
     c11_vector__dtor(&self->indents);
 }
 
-static const char* lexer_source_end(Lexer* self) {
-    return self->src->source->data + self->src->source->size;
-}
-
 static char eatchar(Lexer* self) {
-    const char* end = lexer_source_end(self);
-    if(self->curr_char > end) return '\0';
     char c = *self->curr_char;
     assert(c != '\n');  // eatchar() cannot consume a newline
-    self->curr_char = (self->curr_char < end) ? self->curr_char + 1 : end + 1;
+    self->curr_char++;
     return c;
 }
 
 static char eatchar_include_newline(Lexer* self) {
-    const char* end = lexer_source_end(self);
-    if(self->curr_char > end) return '\0';
     char c = *self->curr_char;
-    self->curr_char = (self->curr_char < end) ? self->curr_char + 1 : end + 1;
+    self->curr_char++;
     if(c == '\n') {
         self->current_line++;
         c11_vector__push(const char*, &self->src->line_starts, self->curr_char);
@@ -197,7 +189,7 @@ static Error* LexerError(Lexer* self, const char* fmt, ...) {
     err->src = self->src;
     PK_INCREF(self->src);
     err->lineno = self->current_line;
-    const char* end = lexer_source_end(self);
+    const char* end = self->src->source->data + self->src->source->size;
     if(self->curr_char <= end && *self->curr_char == '\n') { err->lineno--; }
     va_list args;
     va_start(args, fmt);
