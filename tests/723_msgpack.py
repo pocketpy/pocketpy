@@ -65,11 +65,8 @@ assert msgpack.dumps([]) == b'\x90'
 assert msgpack.dumps([1, 2, 3]) == b'\x93\x01\x02\x03'
 assert msgpack.dumps([1]) == b'\x91\x01'
 
-try:
-    msgpack.dumps({1: 2})
-    assert False
-except TypeError:
-    assert True
+_o = msgpack.dumps({1: 2})
+assert msgpack.loads(_o) == {1: 2}
 
 try:
     msgpack.dumps(type)
