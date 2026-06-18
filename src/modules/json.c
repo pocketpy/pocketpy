@@ -102,7 +102,7 @@ static bool json__write_namedict_kv(py_Name k, py_Ref v, void* ctx_) {
 static bool json__write_object(c11_sbuf* buf, py_TValue* obj, int indent, int depth) {
     switch(obj->type) {
         case tp_NoneType: c11_sbuf__write_cstr(buf, "null"); return true;
-        case tp_int: c11_sbuf__write_int(buf, obj->_i64); return true;
+        case tp_int: c11_sbuf__write_i64(buf, obj->_i64); return true;
         case tp_float: {
             if(dmath_isnan(obj->_f64)) {
                 c11_sbuf__write_cstr(buf, "NaN");

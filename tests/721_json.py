@@ -48,6 +48,9 @@ _j = json.dumps(c)
 _c = json.loads(_j)
 assert c == _c
 
+assert json.dumps(9223372036854775807) == '9223372036854775807'
+assert json.loads(json.dumps(0.1 + 0.2)) == 0.1 + 0.2
+
 d = True
 _j = json.dumps(d)
 _d = json.loads(_j)

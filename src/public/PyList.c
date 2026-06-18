@@ -384,7 +384,10 @@ static bool list_insert(int argc, py_Ref argv) {
     return true;
 }
 
-static int lt_with_key(py_TValue* a, py_TValue* b, py_TValue* key) {
+static int lt_with_key(const void* a_, const void* b_, void* extra) {
+    py_TValue* a = (py_TValue*)a_;
+    py_TValue* b = (py_TValue*)b_;
+    py_TValue* key = (py_TValue*)extra;
     if(!key) return py_less(a, b);
     VM* vm = pk_current_vm;
     // project a
@@ -416,7 +419,7 @@ static bool list_sort(int argc, py_Ref argv) {
     bool ok = c11__stable_sort(self->data,
                                self->length,
                                sizeof(py_TValue),
-                               (int (*)(const void*, const void*, void*))lt_with_key,
+                               lt_with_key,
                                key);
     if(!ok) return false;
 

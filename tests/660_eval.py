@@ -76,3 +76,10 @@ assert x == 33
 
 # test removing trailing newlines
 assert eval('[1, 2, 3]\n  \n') == [1, 2, 3]
+
+# lexer doesn't read past NUL on error at end of input
+try:
+    eval('"\\x4')
+    exit(1)
+except SyntaxError:
+    pass

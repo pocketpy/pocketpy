@@ -189,7 +189,8 @@ static Error* LexerError(Lexer* self, const char* fmt, ...) {
     err->src = self->src;
     PK_INCREF(self->src);
     err->lineno = self->current_line;
-    if(*self->curr_char == '\n') { err->lineno--; }
+    const char* end = self->src->source->data + self->src->source->size;
+    if(self->curr_char <= end && *self->curr_char == '\n') { err->lineno--; }
     va_list args;
     va_start(args, fmt);
     vsnprintf(err->msg, sizeof(err->msg), fmt, args);

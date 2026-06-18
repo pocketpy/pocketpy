@@ -235,8 +235,8 @@ static bool io_FileIO_flush(int argc, py_Ref argv) {
 
 void pk__add_module_io() {
     py_Ref mod = py_newmodule("io");
-
-    py_Type FileIO = pk_newtype("FileIO", tp_object, mod, NULL, false, true);
+    py_Type FileIO = py_newtype("FileIO", tp_object, mod, NULL);
+    py_tpsetfinal(FileIO);
 
     py_bindmagic(FileIO, __new__, io_FileIO__new__);
     py_bindmagic(FileIO, __enter__, io_FileIO__enter__);

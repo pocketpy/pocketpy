@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 
 void c11_sbuf__ctor(c11_sbuf* self) {
@@ -53,21 +54,23 @@ void c11_sbuf__write_f64(c11_sbuf* self, double val, int precision) {
     char b[32];
     int size;
     if(precision < 0) {
-        int prec = 17 - 1;  // std::numeric_limits<double>::max_digits10 == 17
-        size = snprintf(b, sizeof(b), "%.*g", prec, val);
-    } else {
-        int prec = precision;
-        size = snprintf(b, sizeof(b), "%.*f", prec, val);
-    }
-    c11_sbuf__write_cstr(self, b);
-    bool all_is_digit = true;
-    for(int i = 1; i < size; i++) {
-        if(!isdigit(b[i])) {
-            all_is_digit = false;
-            break;
+        for(int g = 15; g <= 17; g++) {
+            size = snprintf(b, sizeof(b), "%.*g", g, val);
+            if(strtod(b, NULL) == val) break;
         }
+        c11_sbuf__write_cstr(self, b);
+        bool all_is_digit = true;
+        for(int i = 1; i < size; i++) {
+            if(!isdigit(b[i])) {
+                all_is_digit = false;
+                break;
+            }
+        }
+        if(all_is_digit) c11_sbuf__write_cstr(self, ".0");
+    } else {
+        size = snprintf(b, sizeof(b), "%.*f", precision, val);
+        c11_sbuf__write_cstr(self, b);
     }
-    if(all_is_digit) c11_sbuf__write_cstr(self, ".0");
 }
 
 void c11_sbuf__write_sv(c11_sbuf* self, c11_sv sv) {
