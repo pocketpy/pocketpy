@@ -54,9 +54,9 @@ void c11_sbuf__write_f64(c11_sbuf* self, double val, int precision) {
     char b[32];
     int size;
     if(precision < 0) {
-        size = snprintf(b, sizeof(b), "%.*g", 15, val);
-        if(strtod(b, NULL) != val) {
-            size = snprintf(b, sizeof(b), "%.*g", 17, val);
+        for(int g = 15; g <= 17; g++) {
+            size = snprintf(b, sizeof(b), "%.*g", g, val);
+            if(strtod(b, NULL) == val) break;
         }
         c11_sbuf__write_cstr(self, b);
         bool all_is_digit = true;
