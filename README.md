@@ -206,7 +206,7 @@ Submit a pull request to add your project here.
 
 ## Contribution
 
-All kinds of contributions are welcome.
+All kinds of contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, build, testing, and PR guidance.
 
 - Submit a Pull Request
   - fix a bug
