@@ -800,6 +800,9 @@ PK_API char* py_profiler_report();
 /************* Others *************/
 int64_t time_ns();
 int64_t time_monotonic_ns();
+py_i64 cpy11__int_floordiv(py_i64 a, py_i64 b);
+py_i64 cpy11__int_mod(py_i64 a, py_i64 b);
+void cpy11__float_divmod(double vx, double wx, double *floordiv, double *mod);
 
 /// An utility function to read a line from stdin for REPL.
 PK_API int py_replinput(char* buf, int max_size);

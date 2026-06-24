@@ -8,8 +8,8 @@
 
 static bool isclose(float a, float b) { return dmath_fabs(a - b) < 1e-4; }
 
-py_i64 cpy11__fast_floor_div(py_i64 a, py_i64 b);
-py_i64 cpy11__fast_mod(py_i64 a, py_i64 b);
+py_i64 cpy11__int_floordiv(py_i64 a, py_i64 b);
+py_i64 cpy11__int_mod(py_i64 a, py_i64 b);
 
 #define DEFINE_VEC_FIELD(name, T, Tc, field)                                                       \
     static bool name##__##field(int argc, py_Ref argv) {                                           \
@@ -317,7 +317,7 @@ DEF_VECTOR_OPS(3)
         c11_vec##D##i a = py_tovec##D##i(&argv[0]);                                                \
         py_i64 b = py_toint(&argv[1]);                                                             \
         for(int i = 0; i < D; i++)                                                                 \
-            a.data[i] = cpy11__fast_floor_div(a.data[i], b);                                       \
+            a.data[i] = cpy11__int_floordiv(a.data[i], b);                                       \
         py_newvec##D##i(py_retval(), a);                                                           \
         return true;                                                                               \
     }                                                                                              \
@@ -327,7 +327,7 @@ DEF_VECTOR_OPS(3)
         c11_vec##D##i a = py_tovec##D##i(&argv[0]);                                                \
         py_i64 b = py_toint(&argv[1]);                                                             \
         for(int i = 0; i < D; i++)                                                                 \
-            a.data[i] = cpy11__fast_mod(a.data[i], b);                                             \
+            a.data[i] = cpy11__int_mod(a.data[i], b);                                             \
         py_newvec##D##i(py_retval(), a);                                                           \
         return true;                                                                               \
     }
