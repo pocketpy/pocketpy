@@ -384,6 +384,25 @@ static bool str_split(int argc, py_Ref argv) {
     return true;
 }
 
+static bool str_splitlines(int argc, py_Ref argv) {
+    c11_sv self = c11_string__sv(pk_tostr(&argv[0]));
+    c11_vector res;
+    bool keepends = false;
+    if(argc > 2) return TypeError("splitlines() takes at most 2 arguments");
+    if(argc == 2) {
+        if(!py_checkbool(&argv[1])) return false;
+        keepends = py_tobool(&argv[1]);
+    }
+    res = c11_sv__splitlines(self, keepends);
+    py_newlist(py_retval());
+    for(int i = 0; i < res.length; i++) {
+        c11_sv part = c11__getitem(c11_sv, &res, i);
+        py_newstrv(py_list_emplace(py_retval()), part);
+    }
+    c11_vector__dtor(&res);
+    return true;
+}
+
 static bool str_count(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     c11_string* self = pk_tostr(&argv[0]);
@@ -640,6 +659,7 @@ py_Type pk_str__register() {
     py_bindmethod(tp_str, "join", str_join);
     py_bindmethod(tp_str, "replace", str_replace);
     py_bindmethod(tp_str, "split", str_split);
+    py_bindmethod(tp_str, "splitlines", str_splitlines);
     py_bindmethod(tp_str, "count", str_count);
     py_bindmethod(tp_str, "strip", str_strip);
     py_bindmethod(tp_str, "lstrip", str_lstrip);
