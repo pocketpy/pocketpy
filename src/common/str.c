@@ -219,6 +219,44 @@ c11_vector /* T=c11_sv */ c11_sv__splitwhitespace(c11_sv self) {
     return retval;
 }
 
+c11_vector /* T=c11_sv */ c11_sv__splitlines(c11_sv self, bool keepends) {
+    c11_vector retval;
+    c11_vector__ctor(&retval, sizeof(c11_sv));
+    const char* data = self.data;
+    int i = 0;
+    int eol = 0;
+    int eol_size = 1;
+    for(int j = 0; j < self.size; ) {
+        while(j < self.size) {
+            const char c = data[j];
+            eol_size = c11__u8_header(c, false);
+            if(c == '\n' || c == '\r' || c == '\v' || c == '\f' || c == '\x1c' || c == '\x1d' || c == '\x1e')
+                break;
+            if(eol_size == 3 && j + 2 < self.size) {
+                int val = c11__u8_value(eol_size, &data[j]);
+                if(val == 0x2028 || val == 0x2029)
+                    break;
+            }
+            j += eol_size;
+        }
+
+        eol = j;
+        if(j < self.size) {
+            // CRLF treated as one line break
+            if(data[j] == '\r' && j + 1 < self.size && data[j+1] == '\n')
+                j += 2;
+            else
+                j += eol_size;
+            if(keepends)
+                eol = j;
+        }
+        c11_sv tmp = {data + i, eol - i};
+        c11_vector__push(c11_sv, &retval, tmp);
+        i = j;
+    }
+    return retval;
+}
+
 c11_vector /* T=c11_sv */ c11_sv__split(c11_sv self, char sep) {
     c11_vector retval;
     c11_vector__ctor(&retval, sizeof(c11_sv));

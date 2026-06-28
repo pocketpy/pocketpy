@@ -69,6 +69,7 @@ c11_string* c11_sv__replace2(c11_sv self, c11_sv old, c11_sv new_);
 c11_vector /* T=c11_sv */ c11_sv__split(c11_sv self, char sep);
 c11_vector /* T=c11_sv */ c11_sv__split2(c11_sv self, c11_sv sep);
 c11_vector /* T=c11_sv */ c11_sv__splitwhitespace(c11_sv self);
+c11_vector /* T=c11_sv */ c11_sv__splitlines(c11_sv self, bool keepends);
 
 // misc
 int c11__unicode_index_to_byte(const char* data, int i);
