@@ -14,19 +14,20 @@ assert ''.splitlines() == []
 assert ''.splitlines(False) == []
 assert ''.splitlines(True) == []
 
-assert '\n'.splitlines() == ['']
-assert '\r'.splitlines() == ['']
-assert '\r\n'.splitlines() == ['']
-assert '\v'.splitlines() == ['']
-assert '\f'.splitlines() == ['']
-assert '\x1c'.splitlines() == ['']
-assert '\x1d'.splitlines() == ['']
-assert '\x1e'.splitlines() == ['']
-assert b'\xe2\x80\xa8'.decode().splitlines() == ['']
-assert b'\xe2\x80\xa9'.decode().splitlines() == ['']
+assert '\n'.splitlines() == ['']                        # Line Feed
+assert '\r'.splitlines() == ['']                        # Carriage return
+assert '\r\n'.splitlines() == ['']                      # Line feed + carriage return
+assert '\v'.splitlines() == ['']                        # Line tabulation
+assert '\f'.splitlines() == ['']                        # Form field
+assert '\x1c'.splitlines() == ['']                      # File separator
+assert '\x1d'.splitlines() == ['']                      # Group separator
+assert '\x1e'.splitlines() == ['']                      # Record separator
+assert b'\xc2\x85'.decode().splitlines() == ['']        # \u85   Next line (C1 control code)
+assert b'\xe2\x80\xa8'.decode().splitlines() == ['']    # \u2028 Unicode line separator
+assert b'\xe2\x80\xa9'.decode().splitlines() == ['']    # \u2029 Unicode paragraph separator
 assert '🥕'.splitlines() == ['🥕']
 
-all_ends = ['\n', '\r', '\r\n', '\v', '\f', '\x1c', '\x1d', '\x1e', b'\xe2\x80\xa8'.decode(), b'\xe2\x80\xa9'.decode()]
+all_ends = ['\n', '\r', '\r\n', '\v', '\f', '\x1c', '\x1d', '\x1e', b'\xc2\x85'.decode(), b'\xe2\x80\xa8'.decode(), b'\xe2\x80\xa9'.decode()]
 for eol in all_ends:
     assert (eol).splitlines() == ['']
     assert (eol).splitlines(False) == ['']

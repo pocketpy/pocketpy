@@ -232,9 +232,12 @@ c11_vector /* T=c11_sv */ c11_sv__splitlines(c11_sv self, bool keepends) {
             eol_size = c11__u8_header(c, false);
             if(c == '\n' || c == '\r' || c == '\v' || c == '\f' || c == '\x1c' || c == '\x1d' || c == '\x1e')
                 break;
-            if(eol_size == 3 && j + 2 < self.size) {
-                int val = c11__u8_value(eol_size, &data[j]);
-                if(val == 0x2028 || val == 0x2029)
+            else if(eol_size == 2 && j + 1 < self.size) {
+                if(c == '\xc2' && data[j+1] == '\x85')
+                    break;
+            }
+            else if(eol_size == 3 && j + 2 < self.size) {
+                if(c == '\xe2' && data[j+1] == '\x80' && (data[j+2] == '\xa8' || data[j+2] == '\xa9'))
                     break;
             }
             j += eol_size;
