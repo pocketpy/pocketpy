@@ -11,6 +11,7 @@ extern const char kPythonLibs_dataclasses[];
 extern const char kPythonLibs_datetime[];
 extern const char kPythonLibs_functools[];
 extern const char kPythonLibs_heapq[];
+extern const char kPythonLibs_inspect[];
 extern const char kPythonLibs_long_v1[];
 extern const char kPythonLibs_operator[];
 extern const char kPythonLibs_typing[];
