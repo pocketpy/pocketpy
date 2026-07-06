@@ -182,6 +182,8 @@ except TypeError:
     pass
 
 # ---------------- __annotations__ ----------------
+from inspect import Signature
+
 def h1(a: int, *args: int, b: str = 'x', c: float = 1.5, **kwargs: str) -> bool:
     pass
 
@@ -194,10 +196,16 @@ assert h1.__annotations__ == {
     'return': 'bool',
 }
 
+sig = signature(h1)
+assert sig.parameters['a'].annotation == 'int'
+assert sig.return_annotation == 'bool'
+assert str(sig) == "(a: int, *args: int, b: str = 'x', c: float = 1.5, **kwargs: str) -> bool"
+
 def h2(a, b: int, c=1):
     pass
 
 assert h2.__annotations__ == {'b': 'int'}
+assert str(signature(h2)) == '(a, b: int, c=1)'
 
 # complex annotation expressions are preserved as written
 def h3(p: list[int], q: dict[str, int]) -> 'A | None':
@@ -205,4 +213,15 @@ def h3(p: list[int], q: dict[str, int]) -> 'A | None':
 
 assert h3.__annotations__ == {'p': 'list[int]', 'q': 'dict[str, int]', 'return': "'A | None'"}
 
+class D:
+    def m(self, x: int) -> str:
+        return str(x)
+
+sig = signature(D().m)
+assert sig.parameters['x'].annotation == 'int'
+assert sig.return_annotation == 'str'
+
 assert (lambda x: x).__annotations__ == {}
+sig = signature(lambda x: x)
+assert sig.parameters['x'].annotation is Parameter.empty
+assert sig.return_annotation is Signature.empty
