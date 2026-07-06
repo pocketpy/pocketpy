@@ -180,3 +180,29 @@ try:
     exit(1)
 except TypeError:
     pass
+
+# ---------------- __annotations__ ----------------
+def h1(a: int, *args: int, b: str = 'x', c: float = 1.5, **kwargs: str) -> bool:
+    pass
+
+assert h1.__annotations__ == {
+    'a': 'int',
+    'args': 'int',
+    'b': 'str',
+    'c': 'float',
+    'kwargs': 'str',
+    'return': 'bool',
+}
+
+def h2(a, b: int, c=1):
+    pass
+
+assert h2.__annotations__ == {'b': 'int'}
+
+# complex annotation expressions are preserved as written
+def h3(p: list[int], q: dict[str, int]) -> 'A | None':
+    pass
+
+assert h3.__annotations__ == {'p': 'list[int]', 'q': 'dict[str, int]', 'return': "'A | None'"}
+
+assert (lambda x: x).__annotations__ == {}

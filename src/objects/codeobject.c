@@ -37,6 +37,7 @@ FuncDecl_ FuncDecl__rcnew(SourceData_ src, c11_sv name) {
     self->starred_arg = -1;
     self->starred_kwarg = -1;
     self->nested = false;
+    self->annotations = *py_NIL();
 
     self->docstring = NULL;
     self->type = FuncType_UNSET;
@@ -88,6 +89,13 @@ void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name) {
 void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name) {
     int index = CodeObject__add_varname(&self->code, name);
     self->starred_kwarg = index;
+}
+
+void FuncDecl__add_annotation(FuncDecl* self, py_Name name, c11_sv hint) {
+    if(py_isnil(&self->annotations)) py_newdict(&self->annotations);
+    py_TValue value;
+    py_newstrv(&value, hint);
+    py_dict_setitem_by_str(&self->annotations, py_name2str(name), &value);
 }
 
 void CodeObject__ctor(CodeObject* self, SourceData_ src, c11_sv name) {
