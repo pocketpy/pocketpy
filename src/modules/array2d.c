@@ -1023,7 +1023,7 @@ static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_
 }
 
 static void
-    cpy11__divmod_int_uint(int a, int b_log2, int b_mask, int* restrict q, int* restrict r) {
+    cpy312__divmod_int_uint(int a, int b_log2, int b_mask, int* restrict q, int* restrict r) {
     if(a >= 0) {
         *q = a >> b_log2;
         *r = a & b_mask;
@@ -1038,12 +1038,12 @@ static void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
                                                 int row,
                                                 c11_vec2i* restrict chunk_pos,
                                                 c11_vec2i* restrict local_pos) {
-    cpy11__divmod_int_uint(col,
+    cpy312__divmod_int_uint(col,
                            self->chunk_size_log2,
                            self->chunk_size_mask,
                            &chunk_pos->x,
                            &local_pos->x);
-    cpy11__divmod_int_uint(row,
+    cpy312__divmod_int_uint(row,
                            self->chunk_size_log2,
                            self->chunk_size_mask,
                            &chunk_pos->y,

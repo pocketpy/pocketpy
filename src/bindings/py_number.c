@@ -127,7 +127,7 @@ static bool number__pow__(int argc, py_Ref argv) {
 
 static py_i64 i64_abs(py_i64 x) { return x < 0 ? -x : x; }
 
-py_i64 cpy11__int_floordiv(py_i64 a, py_i64 b) {
+py_i64 cpy312__int_floordiv(py_i64 a, py_i64 b) {
     assert(b != 0);
     if(a == 0) return 0;
     if((a < 0) == (b < 0)) {
@@ -137,7 +137,7 @@ py_i64 cpy11__int_floordiv(py_i64 a, py_i64 b) {
     }
 }
 
-py_i64 cpy11__int_mod(py_i64 a, py_i64 b) {
+py_i64 cpy312__int_mod(py_i64 a, py_i64 b) {
     assert(b != 0);
     if(a == 0) return 0;
     py_i64 res;
@@ -150,7 +150,7 @@ py_i64 cpy11__int_mod(py_i64 a, py_i64 b) {
 }
 
 // https://github.com/python/cpython/blob/3.11/Objects/floatobject.c#L677
-void cpy11__float_divmod(double vx, double wx, double *floordiv, double *mod)
+void cpy312__float_divmod(double vx, double wx, double *floordiv, double *mod)
 {
     double div;
     *mod = dmath_fmod(vx, wx);
@@ -193,7 +193,7 @@ static bool int__floordiv__(int argc, py_Ref argv) {
     if(py_isint(&argv[1])) {
         py_i64 rhs = py_toint(&argv[1]);
         if(rhs == 0) return ZeroDivisionError("integer division by zero");
-        py_newint(py_retval(), cpy11__int_floordiv(lhs, rhs));
+        py_newint(py_retval(), cpy312__int_floordiv(lhs, rhs));
     } else {
         py_newnotimplemented(py_retval());
     }
@@ -206,7 +206,7 @@ static bool int__mod__(int argc, py_Ref argv) {
     if(py_isint(&argv[1])) {
         py_i64 rhs = py_toint(&argv[1]);
         if(rhs == 0) return ZeroDivisionError("integer modulo by zero");
-        py_newint(py_retval(), cpy11__int_mod(lhs, rhs));
+        py_newint(py_retval(), cpy312__int_mod(lhs, rhs));
     } else {
         py_newnotimplemented(py_retval());
     }
@@ -220,7 +220,7 @@ static bool float__floordiv__(int argc, py_Ref argv) {
     if(try_castfloat(&argv[1], &rhs)) {
         if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
         double q, r;
-        cpy11__float_divmod(lhs, rhs, &q, &r);
+        cpy312__float_divmod(lhs, rhs, &q, &r);
         py_newfloat(py_retval(), q);
         return true;
     }
@@ -235,7 +235,7 @@ static bool float__rfloordiv__(int argc, py_Ref argv) {
     if(try_castfloat(&argv[1], &lhs)) {
         if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
         double q, r;
-        cpy11__float_divmod(lhs, rhs, &q, &r);
+        cpy312__float_divmod(lhs, rhs, &q, &r);
         py_newfloat(py_retval(), q);
         return true;
     }
@@ -250,7 +250,7 @@ static bool float__mod__(int argc, py_Ref argv) {
     if(try_castfloat(&argv[1], &rhs)) {
         if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
         double q, r;
-        cpy11__float_divmod(lhs, rhs, &q, &r);
+        cpy312__float_divmod(lhs, rhs, &q, &r);
         py_newfloat(py_retval(), r);
         return true;
     }
@@ -265,7 +265,7 @@ static bool float__rmod__(int argc, py_Ref argv) {
     if(try_castfloat(&argv[1], &lhs)) {
         if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
         double q, r;
-        cpy11__float_divmod(lhs, rhs, &q, &r);
+        cpy312__float_divmod(lhs, rhs, &q, &r);
         py_newfloat(py_retval(), r);
         return true;
     }
@@ -280,7 +280,7 @@ static bool float__divmod__(int argc, py_Ref argv) {
     if(try_castfloat(&argv[1], &rhs)) {
         if(rhs == 0.0) return ZeroDivisionError("float modulo by zero");
         double q, r;
-        cpy11__float_divmod(lhs, rhs, &q, &r);
+        cpy312__float_divmod(lhs, rhs, &q, &r);
         py_Ref p = py_newtuple(py_retval(), 2);
         py_newfloat(&p[0], q);
         py_newfloat(&p[1], r);
@@ -296,8 +296,8 @@ static bool int__divmod__(int argc, py_Ref argv) {
     py_i64 rhs = py_toint(&argv[1]);
     if(rhs == 0) return ZeroDivisionError("integer division or modulo by zero");
     py_Ref p = py_newtuple(py_retval(), 2);
-    py_newint(&p[0], cpy11__int_floordiv(lhs, rhs));
-    py_newint(&p[1], cpy11__int_mod(lhs, rhs));
+    py_newint(&p[0], cpy312__int_floordiv(lhs, rhs));
+    py_newint(&p[1], cpy312__int_mod(lhs, rhs));
     return true;
 }
 
