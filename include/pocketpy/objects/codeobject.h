@@ -114,6 +114,8 @@ typedef struct FuncDecl {
     int starred_kwarg;  // index in co->varnames, -1 if no **kwarg
     bool nested;        // whether this function is nested
 
+    py_TValue annotations;  // dict[str, str], nil if empty
+
     char* docstring;
 
     FuncType type;
@@ -128,6 +130,7 @@ void FuncDecl__add_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value);
 void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name);
+void FuncDecl__add_annotation(FuncDecl* self, py_Name name, c11_sv hint);
 void FuncDecl__gc_mark(const FuncDecl* self, c11_vector* p_stack);
 void FuncDecl__dtor(FuncDecl* self);
 
