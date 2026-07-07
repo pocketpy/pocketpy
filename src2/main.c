@@ -9,6 +9,16 @@
 #include <windows.h>
 #endif
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <io.h>
+#define istty(fd) _isatty(_fileno(fd))
+#elif defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__)
+#include <unistd.h>
+#define istty(fd) isatty(fileno(fd))
+#else
+#define istty(fd) 1 
+#endif
+
 static char* readfile(const char* path, int* data_size) {
     FILE* f = fopen(path, "rb");
     if(f == NULL) return NULL;
@@ -86,19 +96,21 @@ int main(int argc, char** argv) {
         if(profile) printf("Warning: --profile is ignored in REPL mode.\n");
         if(debug) printf("Warning: --debug is ignored in REPL mode.\n");
 
-        printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
-        printf("[%d bit] on %s", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
+        if (istty(stdin)) {
+            printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
+            printf("[%d bit] on %s", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
 #ifndef NDEBUG
-        printf(" (DEBUG)");
+            printf(" (DEBUG)");
 #endif
-        printf("\n");
-        printf("https://github.com/pocketpy/pocketpy\n");
-        printf("Type \"exit()\" to exit.\n");
+            printf("\n");
+            printf("https://github.com/pocketpy/pocketpy\n");
+            printf("Type \"exit()\" to exit.\n");
+        }
 
         while(true) {
             int size = py_replinput(buf, sizeof(buf));
             if(size == -1) {  // Ctrl-D (i.e. EOF)
-                printf("\n");
+                if (istty(stdin)) printf("\n");
                 break;
             }
             assert(size < sizeof(buf));
@@ -160,3 +172,4 @@ int main(int argc, char** argv) {
     if(debug) py_debugger_exit(code);
     return code;
 }
+#undef istty
