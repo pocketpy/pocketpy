@@ -3,7 +3,7 @@
 
 // importing io.h for tty detection in replinput
 #if defined(_WIN32) || defined(_WIN64)
-#include <io.h>
+#include <windows.h>
 #elif defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__)
 #include <unistd.h>
 #endif
@@ -75,18 +75,23 @@ bool pk_wrapper__self(int argc, py_Ref argv) {
 
 // macro for tty-sensitiveness
 #if defined(_WIN32) || defined(_WIN64)
-#define istty(fd) _isatty(_fileno(fd))
+static inline int isatty_win(DWORD std_handle_id) {
+    HANDLE handle = GetStdHandle(std_handle_id); DWORD mode;
+    if (handle == INVALID_HANDLE_VALUE || handle == NULL) return 0; 
+    return GetConsoleMode(handle, &mode) != 0;
+}
+#define istty isatty_win(STD_INPUT_HANDLE)
 #elif defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__)
-#define istty(fd) isatty(fileno(fd))
+#define istty isatty(0)
 #else
-#define istty(fd) 1 
+#define istty 1 
 #endif
 int py_replinput(char* buf, int max_size) {
     buf[0] = '\0';  // reset first char because we check '@' at the beginning
 
     int size = 0;
     bool multiline = false;
-    if (istty(stdin)) printf(">>> ");
+    if (istty) printf(">>> ");
 
     while(true) {
         int c = pk_current_vm->callbacks.getchr();

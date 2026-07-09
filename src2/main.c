@@ -10,13 +10,17 @@
 #endif
 
 #if defined(_WIN32) || defined(_WIN64)
-#include <io.h>
-#define istty(fd) _isatty(_fileno(fd))
+static inline int isatty_win(DWORD std_handle_id) {
+    HANDLE handle = GetStdHandle(std_handle_id); DWORD mode;
+    if (handle == INVALID_HANDLE_VALUE || handle == NULL) return 0; 
+    return GetConsoleMode(handle, &mode) != 0;
+}
+#define istty isatty_win(STD_INPUT_HANDLE)
 #elif defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__)
 #include <unistd.h>
-#define istty(fd) isatty(fileno(fd))
+#define istty isatty(STDIN_FILENO)
 #else
-#define istty(fd) 1 
+#define istty 1 
 #endif
 
 static char* readfile(const char* path, int* data_size) {
@@ -96,7 +100,7 @@ int main(int argc, char** argv) {
         if(profile) printf("Warning: --profile is ignored in REPL mode.\n");
         if(debug) printf("Warning: --debug is ignored in REPL mode.\n");
 
-        if (istty(stdin)) {
+        if (istty) {
             printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
             printf("[%d bit] on %s", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
 #ifndef NDEBUG
@@ -110,7 +114,7 @@ int main(int argc, char** argv) {
         while(true) {
             int size = py_replinput(buf, sizeof(buf));
             if(size == -1) {  // Ctrl-D (i.e. EOF)
-                if (istty(stdin)) printf("\n");
+                if (istty) printf("\n");
                 break;
             }
             assert(size < sizeof(buf));
