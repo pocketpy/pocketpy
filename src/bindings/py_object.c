@@ -36,10 +36,13 @@ static bool object__ne__(int argc, py_Ref argv) {
 
 static bool object__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    assert(argv->is_ptr);
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
-    pk_sprintf(&buf, "<%t object at %p>", argv->type, argv->_obj);
+    if(argv->is_ptr) {
+        pk_sprintf(&buf, "<%t object at %p>", argv->type, argv->_obj);
+    } else {
+        pk_sprintf(&buf, "<%t trivial object>", argv->type);
+    }
     c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }
