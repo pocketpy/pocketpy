@@ -1,13 +1,6 @@
 #include "pocketpy/interpreter/vm.h"
 #include <assert.h>
 
-// importing io.h for tty detection in replinput
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#elif defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__)
-#include <unistd.h>
-#endif
-
 void pk_print_stack(VM* self, py_Frame* frame, Bytecode byte) {
     return;
     if(frame == NULL || !self->main || py_isnil(self->main)) return;
@@ -73,25 +66,12 @@ bool pk_wrapper__self(int argc, py_Ref argv) {
     return true;
 }
 
-// macro for tty-sensitiveness
-#if defined(_WIN32) || defined(_WIN64)
-static inline int isatty_win(DWORD std_handle_id) {
-    HANDLE handle = GetStdHandle(std_handle_id); DWORD mode;
-    if (handle == INVALID_HANDLE_VALUE || handle == NULL) return 0; 
-    return GetConsoleMode(handle, &mode) != 0;
-}
-#define istty isatty_win(STD_INPUT_HANDLE)
-#elif defined(__linux__) || defined(__APPLE__) || defined(__ANDROID__)
-#define istty isatty(0)
-#else
-#define istty 1 
-#endif
 int py_replinput(char* buf, int max_size) {
     buf[0] = '\0';  // reset first char because we check '@' at the beginning
 
     int size = 0;
     bool multiline = false;
-    if (istty) printf(">>> ");
+    printf(">>> ");
 
     while(true) {
         int c = pk_current_vm->callbacks.getchr();
@@ -127,7 +107,6 @@ int py_replinput(char* buf, int max_size) {
     buf[size] = '\0';
     return size;
 }
-#undef istty
 
 py_Ref py_name2ref(py_Name name) {
     assert(name != NULL);

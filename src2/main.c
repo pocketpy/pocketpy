@@ -97,10 +97,41 @@ int main(int argc, char** argv) {
 
     const char* filename = arg1;
     if(filename == NULL) {
-        if(profile) printf("Warning: --profile is ignored in REPL mode.\n");
-        if(debug) printf("Warning: --debug is ignored in REPL mode.\n");
+        if(!istty) {
+            // File mode: read stdin and execute as a script
+            if(profile) printf("Warning: --profile is ignored in stdin mode.\n");
+            if(debug) printf("Warning: --debug is ignored in stdin mode.\n");
 
-        if (istty) {
+            size_t cap = 4096;
+            size_t total = 0;
+            char* data = PK_MALLOC(cap);
+            if(!data) { fprintf(stderr, "Error: out of memory\n"); py_finalize(); return 1; }
+
+            int n;
+            while((n = fread(data + total, 1, cap - total - 1, stdin)) > 0) {
+                total += n;
+                if(total >= cap - 1) {
+                    cap *= 2;
+                    char* tmp = PK_REALLOC(data, cap);
+                    if(!tmp) { PK_FREE(data); fprintf(stderr, "Error: out of memory\n"); py_finalize(); return 1; }
+                    data = tmp;
+                }
+            }
+            data[total] = '\0';
+
+            if(total > 0) {
+                py_StackRef p0 = py_peek(0);
+                if(!py_exec(data, "<stdin>", EXEC_MODE, NULL)) {
+                    py_printexc();
+                    py_clearexc(p0);
+                }
+            }
+            PK_FREE(data);
+        } else {
+            // REPL mode
+            if(profile) printf("Warning: --profile is ignored in REPL mode.\n");
+            if(debug) printf("Warning: --debug is ignored in REPL mode.\n");
+
             printf("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
             printf("[%d bit] on %s", (int)(sizeof(void*) * 8), PY_SYS_PLATFORM_STRING);
 #ifndef NDEBUG
@@ -109,20 +140,20 @@ int main(int argc, char** argv) {
             printf("\n");
             printf("https://github.com/pocketpy/pocketpy\n");
             printf("Type \"exit()\" to exit.\n");
-        }
 
-        while(true) {
-            int size = py_replinput(buf, sizeof(buf));
-            if(size == -1) {  // Ctrl-D (i.e. EOF)
-                if (istty) printf("\n");
-                break;
-            }
-            assert(size < sizeof(buf));
-            if(size >= 0) {
-                py_StackRef p0 = py_peek(0);
-                if(!py_exec(buf, "<stdin>", SINGLE_MODE, NULL)) {
-                    py_printexc();
-                    py_clearexc(p0);
+            while(true) {
+                int size = py_replinput(buf, sizeof(buf));
+                if(size == -1) {  // Ctrl-D (i.e. EOF)
+                    printf("\n");
+                    break;
+                }
+                assert(size < sizeof(buf));
+                if(size >= 0) {
+                    py_StackRef p0 = py_peek(0);
+                    if(!py_exec(buf, "<stdin>", SINGLE_MODE, NULL)) {
+                        py_printexc();
+                        py_clearexc(p0);
+                    }
                 }
             }
         }
