@@ -2368,7 +2368,11 @@ static Error* _compile_f_args(Compiler* self, FuncDecl* decl, bool is_lambda) {
         }
 
         // eat type hints
-        if(!is_lambda && match(TK_COLON)) check(consume_type_hints(self));
+        if(!is_lambda && match(TK_COLON)) {
+            c11_sv hint;
+            check(consume_type_hints_sv(self, &hint));
+            FuncDecl__add_annotation(decl, name, hint);
+        }
         if(state == 0 && curr()->type == TK_ASSIGN) state = 2;
         switch(state) {
             case 0: FuncDecl__add_arg(decl, name); break;
@@ -2417,7 +2421,11 @@ static Error* compile_function(Compiler* self, int decorators) {
         check(_compile_f_args(self, decl, false));
         consume(TK_RPAREN);
     }
-    if(match(TK_ARROW)) check(consume_type_hints(self));
+    if(match(TK_ARROW)) {
+        c11_sv hint;
+        check(consume_type_hints_sv(self, &hint));
+        FuncDecl__add_annotation(decl, py_name("return"), hint);
+    }
     check(compile_block_body(self));
     check(pop_context(self));
 

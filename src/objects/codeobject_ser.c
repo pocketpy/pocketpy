@@ -5,8 +5,8 @@
 // Magic number for CodeObject serialization: "CO" = 0x434F
 #define CODEOBJECT_MAGIC 0x434F
 #define CODEOBJECT_VER_MAJOR 1
-#define CODEOBJECT_VER_MINOR 0
-#define CODEOBJECT_VER_MINOR_MIN 0
+#define CODEOBJECT_VER_MINOR 1
+#define CODEOBJECT_VER_MINOR_MIN 1
 
 // Forward declarations
 static void FuncDecl__serialize(c11_serializer* s,
@@ -277,6 +277,13 @@ static CodeObject CodeObject__deserialize(c11_deserializer* d, const char* filen
     return co;
 }
 
+static bool annotation__serialize(py_Ref key, py_Ref val, void* ctx) {
+    c11_serializer* s = ctx;
+    c11_serializer__write_cstr(s, py_tostr(key));
+    c11_serializer__write_cstr(s, py_tostr(val));
+    return true;
+}
+
 // Serialize FuncDecl
 static void FuncDecl__serialize(c11_serializer* s,
                                 const FuncDecl* decl,
@@ -317,6 +324,14 @@ static void FuncDecl__serialize(c11_serializer* s,
 
     // type
     c11_serializer__write_i8(s, (int8_t)decl->type);
+
+    // annotations
+    py_Ref annotations = (py_Ref)&decl->annotations;
+    bool empty = py_isnil(annotations);
+    c11_serializer__write_i32(s, empty ? 0 : py_dict_len(annotations));
+    c11_serializer__write_mark(s, '[');
+    if(!empty) py_dict_apply(annotations, annotation__serialize, s);
+    c11_serializer__write_mark(s, ']');
 }
 
 // Deserialize FuncDecl
@@ -374,6 +389,18 @@ static FuncDecl_ FuncDecl__deserialize(c11_deserializer* d, SourceData_ embedded
 
     // type
     self->type = (FuncType)c11_deserializer__read_i8(d);
+
+    // annotations
+    self->annotations = *py_NIL();
+    int annotations_len = c11_deserializer__read_i32(d);
+    c11_deserializer__consume_mark(d, '[');
+    for(int i = 0; i < annotations_len; i++) {
+        const char* name_str = c11_deserializer__read_cstr(d);
+        const char* hint_str = c11_deserializer__read_cstr(d);
+        c11_sv hint = {hint_str, (int)strlen(hint_str)};
+        FuncDecl__add_annotation(self, py_name(name_str), hint);
+    }
+    c11_deserializer__consume_mark(d, ']');
     return self;
 }
 

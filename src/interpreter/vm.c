@@ -636,6 +636,7 @@ void FuncDecl__gc_mark(const FuncDecl* self, c11_vector* p_stack) {
         FuncDeclKwArg* kw = c11__at(FuncDeclKwArg, &self->kwargs, j);
         pk__mark_value(&kw->value);
     }
+    pk__mark_value(&self->annotations);
 }
 
 void CodeObject__gc_mark(const CodeObject* self, c11_vector* p_stack) {
