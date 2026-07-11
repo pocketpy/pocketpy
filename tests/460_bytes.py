@@ -41,3 +41,28 @@ assert a[5:2:-2] == b",l"
 assert bytes() == b''
 assert bytes((65,)) == b'A'
 assert bytes([0, 1, 2, 3]) == b'\x00\x01\x02\x03'
+
+# bytes iterators testing
+assert list(b"abc") == [97, 98, 99]
+
+total = 0
+
+str = "\x01\x02\x03"
+byteStr = str.encode()
+
+for x in byteStr:
+    total += x
+
+assert total == sum(byteStr)
+
+a = iter(byteStr)
+
+assert next(a) == 1
+assert next(a) == 2
+assert next(a) == 3
+
+try:
+    next(a)
+    exit(1)
+except StopIteration:
+    pass

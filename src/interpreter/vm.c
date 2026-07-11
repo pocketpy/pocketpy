@@ -156,6 +156,7 @@ void VM__ctor(VM* self) {
     validate(tp_BaseException, pk_BaseException__register());
     validate(tp_Exception, pk_Exception__register());
     validate(tp_bytes, pk_bytes__register());
+    validate(tp_bytes_iterator, pk_bytes_iterator__register());
     validate(tp_namedict, pk_namedict__register());
     validate(tp_locals, pk_newtype("locals", tp_object, NULL, NULL, false, true));
     validate(tp_code, pk_code__register());
