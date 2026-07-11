@@ -259,3 +259,20 @@ assert f"{(1, 2, 3)}" == "(1, 2, 3)"
 
 assert id('1' * 16) is not None
 assert id('1' * 15) is None
+
+
+# iterator tests for string 
+text = "abc"
+it = iter(text)
+assert iter(it) is it
+
+
+assert next(it) == "a"
+assert next(it) == "b"
+assert next(it) == "c"
+
+try:
+    next(it)
+    exit(1)
+except StopIteration:
+    pass

@@ -30,6 +30,9 @@ a = Task(3)
 assert sum(a) == 6
 
 i = iter(Task(5))
+assert iter(i) is i
+
+
 assert next(i) == 1
 assert next(i) == 2
 assert next(i) == 3
@@ -49,4 +52,3 @@ try:
     exit(1)
 except StopIteration:
     pass
-

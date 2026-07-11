@@ -45,17 +45,20 @@ assert bytes([0, 1, 2, 3]) == b'\x00\x01\x02\x03'
 # bytes iterators testing
 assert list(b"abc") == [97, 98, 99]
 
+text = "\x01\x02\x03"
+byteStr = text.encode()
+assert byteStr == b'\x01\x02\x03'
+assert list(byteStr) == [1, 2, 3]
+
 total = 0
-
-str = "\x01\x02\x03"
-byteStr = str.encode()
-
 for x in byteStr:
     total += x
 
 assert total == sum(byteStr)
 
 a = iter(byteStr)
+
+assert iter(a) is a
 
 assert next(a) == 1
 assert next(a) == 2
