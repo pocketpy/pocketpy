@@ -156,6 +156,7 @@ py_Type pk_classmethod__register();
 py_Type pk_generator__register();
 py_Type pk_namedict__register();
 py_Type pk_code__register();
+py_Type pk_bytes_iterator__register();
 
 py_GlobalRef pk_builtins__register();
 
