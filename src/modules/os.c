@@ -71,6 +71,10 @@ static bool os_remove(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
     const char* path = py_tostr(py_arg(0));
+    // open_file policy hook: "delete" pseudo-mode for os.remove.
+    if(pk_current_vm->callbacks.open_file && !pk_current_vm->callbacks.open_file(path, "delete")) {
+        return OSError("os.remove not permitted: '%s'", path);
+    }
     int code = remove(path);
     if(code != 0) {
         const char* msg = strerror(errno);
@@ -111,6 +115,11 @@ static bool io_FileIO__new__(int argc, py_Ref argv) {
     io_FileIO* ud = py_newobject(py_retval(), cls, 0, sizeof(io_FileIO));
     ud->path = py_tostr(py_arg(1));
     ud->mode = py_tostr(py_arg(2));
+    // open_file policy hook: consulted with the fopen mode string before the open.
+    if(pk_current_vm->callbacks.open_file &&
+       !pk_current_vm->callbacks.open_file(ud->path, ud->mode)) {
+        return OSError("file open not permitted: '%s' (mode '%s')", ud->path, ud->mode);
+    }
     ud->file = fopen(ud->path, ud->mode);
     if(ud->file == NULL) {
         const char* msg = strerror(errno);
