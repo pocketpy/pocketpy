@@ -111,9 +111,7 @@ static bool mpack_write_dict_kv(py_Ref k, py_Ref v, void* ctx) {
     } else {
         return TypeError("msgpack: key must be string or integer");
     }
-    bool ok = py_to_mpack(v, writer);
-    if(!ok) mpack_write_nil(writer);
-    return ok;
+    return py_to_mpack(v, writer);
 }
 
 static bool py_to_mpack(py_Ref object, mpack_writer_t* writer) {
@@ -154,7 +152,10 @@ static bool py_to_mpack(py_Ref object, mpack_writer_t* writer) {
             if(!ok) return false;
             break;
         }
-        default: return TypeError("msgpack: unsupported type '%t'", object->type);
+        default: {
+            mpack_write_nil(writer);
+            return TypeError("msgpack: unsupported type '%t'", object->type);
+        }
     }
     return true;
 }
