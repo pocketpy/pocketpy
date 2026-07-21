@@ -384,7 +384,7 @@ static bool int__abs__(int argc, py_Ref argv) {
 static bool float__abs__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 val = py_tofloat(&argv[0]);
-    py_newfloat(py_retval(), val < 0 ? -val : val);
+    py_newfloat(py_retval(), dmath_fabs(val));
     return true;
 }
 

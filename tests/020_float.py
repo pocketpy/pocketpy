@@ -97,6 +97,9 @@ assert 3.4e+3 == 3400.0
 assert abs(1.0) == 1.0
 assert abs(-1.0) == 1.0
 assert abs(0.0) == 0.0
+# abs(-0.0) is 0.0, not -0.0. `==` cannot tell them apart, so check the sign.
+assert str(abs(-0.0)) == '0.0'
+assert str(abs(0.0)) == '0.0'
 
 # import math
 # assert math.isnan(0/0)
