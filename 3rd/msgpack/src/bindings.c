@@ -88,7 +88,7 @@ static bool mpack_to_py(mpack_node_t node) {
             if(!mpack_to_py_ext) {
                 return RuntimeError("msgpack: mpack_to_py_ext is not set, cannot handle ext type");
             }
-            if(!mpack_to_py_ext(node)) return false;
+            if(!mpack_to_py_ext(tmp, node)) return false;
             break;
         }
         default: return ValueError("msgpack: invalid node type");
