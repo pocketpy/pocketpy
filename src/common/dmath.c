@@ -701,8 +701,11 @@ double dmath_copysign(double x, double y) {
 	return ux.f;
 }
 
+// https://github.com/kraj/musl/blob/kraj/master/src/math/fabs.c
 double dmath_fabs(double x) {
-    return (x < 0) ? -x : x;
+	union Float64Bits u = { .f = x };
+	u.i &= -1ULL/2;
+	return u.f;
 }
 
 double dmath_ceil(double x) {
