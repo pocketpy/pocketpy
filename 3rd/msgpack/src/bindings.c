@@ -1,7 +1,21 @@
 #include "pocketpy.h"
 
-#include "mpack.h"
+#include "mpack1.h"
 #include <assert.h>
+
+_Static_assert(MPACK_EXTENSIONS == 1, "You should change MPACK_EXTENSIONS in mpack.h to 1");
+
+static is_mpack_ext_t is_mpack_ext;
+static py_to_mpack_ext_t py_to_mpack_ext;
+static mpack_to_py_ext_t mpack_to_py_ext;
+
+void mpack_config_exttype_callbacks(is_mpack_ext_t is_ext,
+                                    py_to_mpack_ext_t to_mpack,
+                                    mpack_to_py_ext_t to_py) {
+    is_mpack_ext = is_ext;
+    py_to_mpack_ext = to_mpack;
+    mpack_to_py_ext = to_py;
+}
 
 static bool mpack_to_py(mpack_node_t node) {
     py_StackRef tmp = py_pushtmp();
@@ -67,6 +81,14 @@ static bool mpack_to_py(mpack_node_t node) {
                 if(!ok) return false;
                 py_shrink(2);
             }
+            break;
+        }
+
+        case mpack_type_ext: {
+            if(!mpack_to_py_ext) {
+                return RuntimeError("msgpack: mpack_to_py_ext is not set, cannot handle ext type");
+            }
+            if(!mpack_to_py_ext(node)) return false;
             break;
         }
         default: return ValueError("msgpack: invalid node type");
@@ -153,6 +175,11 @@ static bool py_to_mpack(py_Ref object, mpack_writer_t* writer) {
             break;
         }
         default: {
+            if(is_mpack_ext && is_mpack_ext(object->type)) {
+                assert(py_to_mpack_ext != NULL);
+                return py_to_mpack_ext(object, writer);
+                break;
+            }
             mpack_write_nil(writer);
             return TypeError("msgpack: unsupported type '%t'", object->type);
         }

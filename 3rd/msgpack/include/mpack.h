@@ -251,7 +251,7 @@
  * types in @ref docs/protocol.md for more information.
  */
 #ifndef MPACK_EXTENSIONS
-#define MPACK_EXTENSIONS 0
+#define MPACK_EXTENSIONS 1
 #endif
 
 /**
