@@ -112,6 +112,9 @@ assert s2.join( seq ) == "runoob"
 
 assert 'x'.zfill(5) == '0000x'
 assert '568'.zfill(1) == '568'
+assert '-5'.zfill(4) == '-005'
+assert '+5'.zfill(4) == '+005'
+assert '-'.zfill(3) == '-00'
 
 num = 6
 assert str(num) == '6'

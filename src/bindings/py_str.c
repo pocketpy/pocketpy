@@ -447,6 +447,12 @@ static bool str_zfill(int argc, py_Ref argv) {
     }
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
+    // a leading sign is kept in front; the padding goes after it
+    if(self.size > 0 && (self.data[0] == '+' || self.data[0] == '-')) {
+        c11_sbuf__write_char(&buf, self.data[0]);
+        self.data++;
+        self.size--;
+    }
     for(int i = 0; i < delta; i++) {
         c11_sbuf__write_char(&buf, '0');
     }
