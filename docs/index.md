@@ -62,7 +62,7 @@ You can sponsor this project via these ways.
 
 Your sponsorship will help us develop pkpy continuously.
 
-## Premium Supporter
+## Premium supporter
 
 Special thanks to our premium supporter, Tesselmax, for sponsoring the development of pocketpy.
 
