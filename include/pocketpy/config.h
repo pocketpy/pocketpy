@@ -1,10 +1,10 @@
 #pragma once
 // clang-format off
 
-#define PK_VERSION				"2.1.9"
+#define PK_VERSION				"2.2.0"
 #define PK_VERSION_MAJOR            2
-#define PK_VERSION_MINOR            1
-#define PK_VERSION_PATCH            9
+#define PK_VERSION_MINOR            2
+#define PK_VERSION_PATCH            0
 
 /*************** feature settings ***************/
 #ifndef PK_ENABLE_OS                // can be overridden by cmake

@@ -195,6 +195,7 @@ And these are the results of the primes benchmark on Intel i5-12400F, WSL (Ubunt
 
 |                                                                 | Description                                                              |
 |-----------------------------------------------------------------|--------------------------------------------------------------------------|
+| [Tesselmax.EM](https://fdtd.io) | Distributed electromagnetic field simulator for silicon photonics and RF/interconnect design.            |
 | [godot-pocketpy](https://github.com/pocketpy/godot-pocketpy)    | Godot extension for using pocketpy in Godot Engine.                      |
 | [TIC-80](https://github.com/nesbox/TIC-80)                      | TIC-80 is a fantasy computer for making, playing and sharing tiny games. |
 | [py-js](https://github.com/shakfu/py-js)                        | Python3 externals for Max / MSP.                                         |
@@ -215,7 +216,7 @@ All kinds of contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTI
   - any suggestions
   - any questions
 
-If you find pkpy useful, consider star this repository (●'◡'●)
+If you find pkpy useful, consider star this repository.
 
 ## Sponsor this project
 
@@ -225,6 +226,17 @@ You can sponsor this project via these ways.
 + [Buy me a coffee](https://www.buymeacoffee.com/blueloveth)
 
 Your sponsorship will help us develop pkpy continuously.
+
+## Premium Supporter
+
+Special thanks to our premium supporter, Tesselmax, for sponsoring the development of pocketpy.
+
+Tesselmax builds Tesselmax.EM, a distributed electromagnetic field simulator for silicon
+photonics and RF/interconnect design (FDTD, FDFD, and mode solving across GPU clusters).
+Tesselmax embeds pocketpy as the scripting engine in our simulation console, so user scripts drive
+geometry, materials, sources, and post-processing.
+
+Website: [https://fdtd.io](https://fdtd.io)
 
 ## Reference
 

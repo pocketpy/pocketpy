@@ -51,7 +51,7 @@ On Windows platform, only MSVC compiler is officially supported.
 
 ## Star the repo
 
-If you find pkpy useful, consider [star this repository](https://github.com/blueloveth/pocketpy) (●'◡'●)
+If you find pkpy useful, consider [star this repository](https://github.com/blueloveth/pocketpy).
 
 ## Sponsor this project
 
@@ -61,6 +61,17 @@ You can sponsor this project via these ways.
 + [Buy me a coffee](https://www.buymeacoffee.com/blueloveth)
 
 Your sponsorship will help us develop pkpy continuously.
+
+## Premium Supporter
+
+Special thanks to our premium supporter, Tesselmax, for sponsoring the development of pocketpy.
+
+Tesselmax builds Tesselmax.EM, a distributed electromagnetic field simulator for silicon
+photonics and RF/interconnect design (FDTD, FDFD, and mode solving across GPU clusters).
+Tesselmax embeds pocketpy as the scripting engine in our simulation console, so user scripts drive
+geometry, materials, sources, and post-processing.
+
+Website: [https://fdtd.io](https://fdtd.io)
 
 ## Upgrade to v2.0
 
