@@ -998,18 +998,22 @@ void AttribExpr__dtor(Expr* self_) {
     vtdelete(self->child);
 }
 
-void AttribExpr__emit_(Expr* self_, Ctx* ctx) {
-    AttribExpr* self = (AttribExpr*)self_;
-    // fast path for self.xxx
-    if(self->child->vt->is_name) {
-        NameExpr* ne = (NameExpr*)self->child;
+static bool is_self_xxx(Expr* child, Ctx* ctx) {
+    if(child->vt->is_name) {
+        NameExpr* ne = (NameExpr*)child;
         if(ne->scope == NAME_LOCAL && ne->name == ctx->n_self) {
             int index = c11_smallmap_n2d__get(&ctx->co->varnames_inv, ne->name, -1);
-            if(index == 0) {
-                Ctx__emit_(ctx, OP_LOAD_SELF_ATTR, Ctx__add_name(ctx, self->name), self->line);
-                return;
-            }
+            if(index == 0) return true;
         }
+    }
+    return false;
+}
+
+void AttribExpr__emit_(Expr* self_, Ctx* ctx) {
+    AttribExpr* self = (AttribExpr*)self_;
+    if(is_self_xxx(self->child, ctx)) {
+        Ctx__emit_(ctx, OP_LOAD_SELF_ATTR, Ctx__add_name(ctx, self->name), self->line);
+        return;
     }
     vtemit_(self->child, ctx);
     Ctx__emit_(ctx, OP_LOAD_ATTR, Ctx__add_name(ctx, self->name), self->line);
@@ -1024,6 +1028,10 @@ bool AttribExpr__emit_del(Expr* self_, Ctx* ctx) {
 
 bool AttribExpr__emit_store(Expr* self_, Ctx* ctx) {
     AttribExpr* self = (AttribExpr*)self_;
+    if(is_self_xxx(self->child, ctx)) {
+        Ctx__emit_(ctx, OP_STORE_SELF_ATTR, Ctx__add_name(ctx, self->name), self->line);
+        return true;
+    }
     vtemit_(self->child, ctx);
     Ctx__emit_(ctx, OP_STORE_ATTR, Ctx__add_name(ctx, self->name), self->line);
     return true;
