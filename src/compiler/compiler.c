@@ -60,6 +60,7 @@ typedef struct Expr {
 typedef struct Ctx {
     CodeObject* co;  // 1 CodeEmitContext <=> 1 CodeObject*
     FuncDecl* func;  // optional, weakref
+    py_Name n_self;
     int level;
     int curr_iblock;
     bool is_compiling_class;
@@ -70,7 +71,7 @@ typedef struct Ctx {
 
 typedef struct Expr Expr;
 
-static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level);
+static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level, py_Name n_self);
 static void Ctx__dtor(Ctx* self);
 static int Ctx__prepare_loop_divert(Ctx* self, int line, bool is_break);
 static int Ctx__enter_block(Ctx* self, CodeBlockType type);
@@ -732,9 +733,9 @@ static void NamedExpr__dtor(Expr* self_) {
 
 static void NamedExpr__emit_(Expr* self_, Ctx* ctx) {
     NamedExpr* self = (NamedExpr*)self_;
-    vtemit_(self->rhs, ctx);                              // [value]
-    Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, self->line);   // [value, value]
-    vtemit_store((Expr*)self->name, ctx);                 // [value]
+    vtemit_(self->rhs, ctx);                            // [value]
+    Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, self->line);  // [value, value]
+    vtemit_store((Expr*)self->name, ctx);               // [value]
 }
 
 static NamedExpr* NamedExpr__new(int line, NameExpr* name, Expr* rhs) {
@@ -997,8 +998,23 @@ void AttribExpr__dtor(Expr* self_) {
     vtdelete(self->child);
 }
 
+static bool is_self_xxx(Expr* child, Ctx* ctx) {
+    if(child->vt->is_name) {
+        NameExpr* ne = (NameExpr*)child;
+        if(ne->scope == NAME_LOCAL && ne->name == ctx->n_self) {
+            int index = c11_smallmap_n2d__get(&ctx->co->varnames_inv, ne->name, -1);
+            if(index == 0) return true;
+        }
+    }
+    return false;
+}
+
 void AttribExpr__emit_(Expr* self_, Ctx* ctx) {
     AttribExpr* self = (AttribExpr*)self_;
+    if(is_self_xxx(self->child, ctx)) {
+        Ctx__emit_(ctx, OP_LOAD_SELF_ATTR, Ctx__add_name(ctx, self->name), self->line);
+        return;
+    }
     vtemit_(self->child, ctx);
     Ctx__emit_(ctx, OP_LOAD_ATTR, Ctx__add_name(ctx, self->name), self->line);
 }
@@ -1012,6 +1028,10 @@ bool AttribExpr__emit_del(Expr* self_, Ctx* ctx) {
 
 bool AttribExpr__emit_store(Expr* self_, Ctx* ctx) {
     AttribExpr* self = (AttribExpr*)self_;
+    if(is_self_xxx(self->child, ctx)) {
+        Ctx__emit_(ctx, OP_STORE_SELF_ATTR, Ctx__add_name(ctx, self->name), self->line);
+        return true;
+    }
     vtemit_(self->child, ctx);
     Ctx__emit_(ctx, OP_STORE_ATTR, Ctx__add_name(ctx, self->name), self->line);
     return true;
@@ -1127,9 +1147,10 @@ CallExpr* CallExpr__new(int line, Expr* callable) {
 }
 
 /* context.c */
-static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level) {
+static void Ctx__ctor(Ctx* self, CodeObject* co, FuncDecl* func, int level, py_Name n_self) {
     self->co = co;
     self->func = func;
+    self->n_self = n_self;
     self->level = level;
     self->curr_iblock = 0;
     self->is_compiling_class = false;
@@ -1361,6 +1382,7 @@ typedef struct Compiler {
 
     Token* tokens;
     int tokens_length;
+    py_Name n_self;
 
     int i;  // current token index
     c11_vector /*T=CodeEmitContext*/ contexts;
@@ -1370,6 +1392,7 @@ static void Compiler__ctor(Compiler* self, SourceData_ src, Token* tokens, int t
     self->src = src;
     self->tokens = tokens;
     self->tokens_length = tokens_length;
+    self->n_self = py_name("self");
     self->i = 0;
     c11_vector__ctor(&self->contexts, sizeof(Ctx));
 }
@@ -1540,7 +1563,7 @@ static Error* EXPR_VARS(Compiler* self) {
 static void push_global_context(Compiler* self, CodeObject* co) {
     co->start_line = self->i == 0 ? 1 : prev()->line;
     Ctx* ctx = c11_vector__emplace(&self->contexts);
-    Ctx__ctor(ctx, co, NULL, self->contexts.length);
+    Ctx__ctor(ctx, co, NULL, self->contexts.length, self->n_self);
 }
 
 static Error* pop_context(Compiler* self) {
@@ -1715,9 +1738,7 @@ static Error* exprWalrus(Compiler* self) {
     int line = prev()->line;
     // LHS is on the stack; verify it's a simple name
     Expr* lhs = Ctx__s_top(ctx());
-    if(!lhs->vt->is_name) {
-        return SyntaxError(self, "':=' target must be a simple name");
-    }
+    if(!lhs->vt->is_name) { return SyntaxError(self, "':=' target must be a simple name"); }
     check(parse_expression(self, PREC_NAMED_EXPR + 1, false));
     Expr* rhs = Ctx__s_popx(ctx());
     NameExpr* name = (NameExpr*)Ctx__s_popx(ctx());
@@ -1940,7 +1961,7 @@ static Error* exprCall(Compiler* self) {
     Error* err;
     Expr* callable = Ctx__s_popx(ctx());
     int line = prev()->line;
-    
+
     CallExpr* e = CallExpr__new(line, callable);
     Ctx__s_push(ctx(), (Expr*)e);  // push onto the stack in advance
     do {
@@ -2289,7 +2310,7 @@ static FuncDecl_ push_f_context(Compiler* self, c11_sv name, int* out_index) {
     *out_index = top_ctx->co->func_decls.length - 1;
     // push new context
     top_ctx = c11_vector__emplace(&self->contexts);
-    Ctx__ctor(top_ctx, &decl->code, decl, self->contexts.length);
+    Ctx__ctor(top_ctx, &decl->code, decl, self->contexts.length, self->n_self);
     return decl;
 }
 

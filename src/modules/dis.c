@@ -77,8 +77,10 @@ static bool disassemble(CodeObject* co) {
                 case OP_LOAD_NONLOCAL:
                 case OP_STORE_GLOBAL:
                 case OP_LOAD_ATTR:
+                case OP_LOAD_SELF_ATTR:
                 case OP_LOAD_METHOD:
                 case OP_STORE_ATTR:
+                case OP_STORE_SELF_ATTR:
                 case OP_DELETE_ATTR:
                 case OP_BEGIN_CLASS:
                 case OP_DELETE_GLOBAL:

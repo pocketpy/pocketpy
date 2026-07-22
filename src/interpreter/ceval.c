@@ -325,6 +325,23 @@ __NEXT_STEP:
             }
             DISPATCH();
         }
+        case OP_LOAD_SELF_ATTR: {
+            assert(!frame->is_locals_special);
+            py_Ref val = &frame->locals[0];
+            if(!py_isnil(val)) {
+                // LOAD_ATTR
+                py_Name name = co_names[byte.arg];
+                if(py_getattr(val, name)) {
+                    PUSH(py_retval());
+                } else {
+                    goto __ERROR;
+                }
+                DISPATCH();
+            }
+            py_Name name = c11__getitem(py_Name, &frame->co->varnames, byte.arg);
+            UnboundLocalError(name);
+            goto __ERROR;
+        }
         case OP_LOAD_CLASS_GLOBAL: {
             assert(self->curr_class);
             py_Name name = co_names[byte.arg];
@@ -426,6 +443,20 @@ __NEXT_STEP:
             if(!py_setattr(TOP(), name, SECOND())) goto __ERROR;
             STACK_SHRINK(2);
             DISPATCH();
+        }
+        case OP_STORE_SELF_ATTR: {
+            assert(!frame->is_locals_special);
+            py_Ref val = &frame->locals[0];
+            if(!py_isnil(val)) {
+                // [val, a] -> a.b = val
+                py_Name name = co_names[byte.arg];
+                if(!py_setattr(val, name, TOP())) goto __ERROR;
+                POP();
+                DISPATCH();
+            }
+            py_Name name = c11__getitem(py_Name, &frame->co->varnames, byte.arg);
+            UnboundLocalError(name);
+            goto __ERROR;
         }
         case OP_STORE_SUBSCR: {
             // [val, a, b] -> a[b] = val
