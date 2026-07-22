@@ -1,0 +1,11 @@
+### `datetime.now()`
+
+Returns the current date and time as a `datetime` object.
+
+### `date.today()`
+
+Returns the current local date as a `date` object.
+
+#### Source code
+
+:::code source="../../python/datetime.py" :::
