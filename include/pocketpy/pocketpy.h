@@ -8,6 +8,9 @@
 #include "pocketpy/export.h"
 #include "pocketpy/vmath.h"
 
+// for sandbox branch
+#include "pocketpy/sandbox.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
