@@ -713,53 +713,62 @@ void ManagedHeap__mark(ManagedHeap* self) {
             }
         }
 
-        void* ud = PyObject__userdata(obj);
-        switch(obj->type) {
-            case tp_list: {
-                List* self = ud;
-                for(int i = 0; i < self->length; i++) {
-                    py_TValue* val = c11__at(py_TValue, self, i);
-                    pk__mark_value(val);
+        if(obj->type > tp_object) {
+            // NOTE: `defaultdict` -> `dict` -> `object`
+            // NOTE: native types must extend from `object`.
+            py_TypeInfo* ti = pk_typeinfo(obj->type);
+            while(ti->base != tp_object) {
+                ti = ti->base_ti;
+            }
+
+            void* ud = PyObject__userdata(obj);
+            switch(ti->index) {
+                case tp_list: {
+                    List* self = ud;
+                    for(int i = 0; i < self->length; i++) {
+                        py_TValue* val = c11__at(py_TValue, self, i);
+                        pk__mark_value(val);
+                    }
+                    break;
                 }
-                break;
-            }
-            case tp_dict: {
-                Dict* self = ud;
-                for(int i = 0; i < self->entries.length; i++) {
-                    DictEntry* entry = c11__at(DictEntry, &self->entries, i);
-                    if(py_isnil(&entry->key)) continue;
-                    pk__mark_value(&entry->key);
-                    pk__mark_value(&entry->val);
+                case tp_dict: {
+                    Dict* self = ud;
+                    for(int i = 0; i < self->entries.length; i++) {
+                        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+                        if(py_isnil(&entry->key)) continue;
+                        pk__mark_value(&entry->key);
+                        pk__mark_value(&entry->val);
+                    }
+                    break;
                 }
-                break;
-            }
-            case tp_generator: {
-                Generator* self = ud;
-                if(self->frame) Frame__gc_mark(self->frame, p_stack);
-                break;
-            }
-            case tp_function: {
-                function__gc_mark(ud, p_stack);
-                break;
-            }
-            case tp_BaseException: {
-                BaseException* self = ud;
-                pk__mark_value(&self->args);
-                pk__mark_value(&self->inner_exc);
-                c11__foreach(BaseExceptionFrame, &self->stacktrace, frame) {
-                    pk__mark_value(&frame->locals);
-                    pk__mark_value(&frame->globals);
+                case tp_generator: {
+                    Generator* self = ud;
+                    if(self->frame) Frame__gc_mark(self->frame, p_stack);
+                    break;
                 }
-                break;
-            }
-            case tp_code: {
-                CodeObject* self = ud;
-                CodeObject__gc_mark(self, p_stack);
-                break;
-            }
-            case tp_chunked_array2d: {
-                c11_chunked_array2d__mark(ud, p_stack);
-                break;
+                case tp_function: {
+                    function__gc_mark(ud, p_stack);
+                    break;
+                }
+                case tp_BaseException: {
+                    BaseException* self = ud;
+                    pk__mark_value(&self->args);
+                    pk__mark_value(&self->inner_exc);
+                    c11__foreach(BaseExceptionFrame, &self->stacktrace, frame) {
+                        pk__mark_value(&frame->locals);
+                        pk__mark_value(&frame->globals);
+                    }
+                    break;
+                }
+                case tp_code: {
+                    CodeObject* self = ud;
+                    CodeObject__gc_mark(self, p_stack);
+                    break;
+                }
+                case tp_chunked_array2d: {
+                    c11_chunked_array2d__mark(ud, p_stack);
+                    break;
+                }
             }
         }
     }
