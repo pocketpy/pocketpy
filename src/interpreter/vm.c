@@ -579,8 +579,9 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
     }
 
     if(p0->type == tp_type) {
+        py_Type p0_type = py_totype(p0);
         // [cls, NULL, args..., kwargs...]
-        py_Ref new_f = py_tpfindmagic(py_totype(p0), __new__);
+        py_Ref new_f = py_tpfindmagic(p0_type, __new__);
         assert(new_f && py_isnil(p0 + 1));
         bool is_default_new = new_f->type == tp_nativefunc && new_f->_cfunc == pk__object_new;
 
@@ -598,14 +599,16 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         // NOTE: previously we use `get_unbound_method` but here we just use `tpfindmagic`
         // >> [cls, NULL, args..., kwargs...]
         // >> py_retval() is the new instance
-        py_Ref init_f = py_tpfindmagic(py_totype(p0), __init__);
+        py_Ref init_f = py_tpfindmagic(p0_type, __init__);
         if(init_f) {
-            // do an inplace patch
-            *p0 = *init_f;              // __init__
-            p0[1] = self->last_retval;  // self
-            // [__init__, self, args..., kwargs...]
-            if(VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
-            *py_retval() = p0[1];  // restore the new instance
+            if(py_isinstance(py_retval(), p0_type)) {
+                // do an inplace patch
+                *p0 = *init_f;              // __init__
+                p0[1] = self->last_retval;  // self
+                // [__init__, self, args..., kwargs...]
+                if(VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
+                *py_retval() = p0[1];  // restore the new instance
+            }
         } else {
             if(is_default_new) {
                 if(argc != 0 || kwargc != 0) {
