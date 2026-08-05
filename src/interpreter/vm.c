@@ -195,7 +195,7 @@ void VM__ctor(VM* self) {
     INJECT_BUILTIN_EXC(SyntaxError, tp_Exception);
     INJECT_BUILTIN_EXC(RecursionError, tp_Exception);
     INJECT_BUILTIN_EXC(OSError, tp_Exception);
-    INJECT_BUILTIN_EXC(PermissionError, tp_OSError);
+    INJECT_BUILTIN_EXC(PermissionError, tp_Exception);
     INJECT_BUILTIN_EXC(NotImplementedError, tp_Exception);
     INJECT_BUILTIN_EXC(TypeError, tp_Exception);
     INJECT_BUILTIN_EXC(IndexError, tp_Exception);
