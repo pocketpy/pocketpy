@@ -124,6 +124,11 @@ __NEXT_STEP:
     }
 #endif
 
+    if(atomic_exchange(&self->is_interrupted, false)) {
+        py_exception(tp_KeyboardInterrupt, "");
+        goto __ERROR;
+    }
+
 #ifndef NDEBUG
     pk_print_stack(self, frame, byte);
 #endif

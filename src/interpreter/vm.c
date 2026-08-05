@@ -94,6 +94,7 @@ void VM__ctor(VM* self) {
     self->callbacks.getchr = pk_default_getchr;
 
     memset(&self->capabilities, 0, sizeof(py_Capabilities));
+    atomic_store(&self->is_interrupted, false);
 
     self->last_retval = *py_NIL();
     self->unhandled_exc = *py_NIL();

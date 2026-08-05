@@ -12,6 +12,8 @@
 #include "pocketpy/interpreter/line_profiler.h"
 #include <time.h>
 
+#include <stdatomic.h>
+
 // TODO:
 // 1. __eq__ and __ne__ fallbacks
 // 2. un-cleared exception detection
@@ -51,6 +53,7 @@ typedef struct VM {
 
     py_Callbacks callbacks;
     py_Capabilities capabilities;
+    atomic_bool is_interrupted;
 
     py_TValue last_retval;
     py_TValue unhandled_exc;

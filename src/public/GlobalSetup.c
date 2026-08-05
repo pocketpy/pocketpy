@@ -112,6 +112,8 @@ py_Callbacks* py_callbacks() { return &pk_current_vm->callbacks; }
 
 py_Capabilities* py_capabilities() { return &pk_current_vm->capabilities; }
 
+void py_interrupt() { atomic_store(&pk_current_vm->is_interrupted, true); }
+
 py_AppCallbacks* py_appcallbacks() {
     static py_AppCallbacks _callbacks = {0};
     return &_callbacks;
