@@ -867,6 +867,7 @@ enum py_PredefinedType {
     tp_SyntaxError,
     tp_RecursionError,
     tp_OSError,
+    tp_PermissionError,
     tp_NotImplementedError,
     tp_TypeError,
     tp_IndexError,
