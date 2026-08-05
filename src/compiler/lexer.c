@@ -189,8 +189,8 @@ static Error* LexerError(Lexer* self, const char* fmt, ...) {
     err->src = self->src;
     PK_INCREF(self->src);
     err->lineno = self->current_line;
-    const char* end = self->src->source->data + self->src->source->size;
-    if(self->curr_char <= end && *self->curr_char == '\n') { err->lineno--; }
+    const char* p_end = self->src->source->data + self->src->source->size;
+    if(self->curr_char <= p_end && *self->curr_char == '\n') { err->lineno--; }
     va_list args;
     va_start(args, fmt);
     vsnprintf(err->msg, sizeof(err->msg), fmt, args);
@@ -282,9 +282,16 @@ static Error* _eat_string(Lexer* self, c11_sbuf* buff, char quote, enum StringTy
                 case 'b': c11_sbuf__write_char(buff, '\b'); break;
                 case 'f': c11_sbuf__write_char(buff, '\f'); break;
                 case 'v': c11_sbuf__write_char(buff, '\v'); break;
-                // Special case for the often used \0 while we don't have full support for octal literals.
+                // Special case for the often used \0 while we don't have full support for octal
+                // literals.
                 case '0': c11_sbuf__write_char(buff, '\0'); break;
                 case 'x': {
+                    // check there are at least 2 chars can read
+                    const char* p_end = self->src->source->data + self->src->source->size;
+                    if(p_end - self->curr_char < 2) {
+                        return LexerError(self, "invalid hex escape");
+                    }
+
                     char hex[3] = {eatchar(self), eatchar(self), '\0'};
                     int code;
                     if(sscanf(hex, "%x", &code) != 1 || code > 0xFF) {

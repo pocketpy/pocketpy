@@ -5,7 +5,7 @@
 #include "pocketpy/common/name.h"
 #include "pocketpy/interpreter/vm.h"
 
-_Thread_local VM* pk_current_vm;
+PK_THREAD_LOCAL VM* pk_current_vm;
 
 static bool pk_initialized;
 static bool pk_finalized;

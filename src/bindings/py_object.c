@@ -124,6 +124,20 @@ static bool type__annotations__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool type__subclasses__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_TypeInfo* base_ti = py_touserdata(argv);
+    py_newlist(py_retval());
+
+    for(py_Type i = 1; i < pk_current_vm->types.length; i++) {
+        py_TypeInfo* ti = pk_typeinfo(i);
+        if(ti->base == base_ti->index) {
+            py_list_append(py_retval(), &ti->self);
+        }
+    }
+    return true;
+}
+
 void pk_object__register() {
     py_bindmagic(tp_object, __new__, pk__object_new);
 
@@ -142,4 +156,5 @@ void pk_object__register() {
     py_bindproperty(tp_type, "__name__", type__name__, NULL);
     py_bindproperty(tp_object, "__dict__", object__dict__, NULL);
     py_bindproperty(tp_type, "__annotations__", type__annotations__, NULL);
+    py_bindmethod(tp_type, "__subclasses__", type__subclasses__);
 }

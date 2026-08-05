@@ -56,11 +56,11 @@ jobs:
     - name: Setup Clang
       uses: egor-tensin/setup-clang@v1
       with:
-        version: 17
+        version: 19
         platform: x64
     - name: Run Sanitizers
       run: |
-        sudo apt-get install -y libclang-rt-17-dev
+        sudo apt-get install -y libclang-rt-19-dev
         bash build_g.sh
         bash run_tests.sh
         rm -rf ./main

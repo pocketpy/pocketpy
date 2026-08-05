@@ -17,7 +17,7 @@ rm -rf .coverage
 mkdir .coverage
 
 UNITS=$(find ./ -name "*.gcno")
-llvm-cov-17 gcov ${UNITS} -r -s include/ -r -s src/ >> .coverage/coverage.txt
+llvm-cov-19 gcov ${UNITS} -r -s include/ -r -s src/ >> .coverage/coverage.txt
 
 mv *.gcov .coverage
 rm *.gcda

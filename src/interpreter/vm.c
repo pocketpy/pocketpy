@@ -579,8 +579,9 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
     }
 
     if(p0->type == tp_type) {
+        py_Type p0_type = py_totype(p0);
         // [cls, NULL, args..., kwargs...]
-        py_Ref new_f = py_tpfindmagic(py_totype(p0), __new__);
+        py_Ref new_f = py_tpfindmagic(p0_type, __new__);
         assert(new_f && py_isnil(p0 + 1));
         bool is_default_new = new_f->type == tp_nativefunc && new_f->_cfunc == pk__object_new;
 
@@ -598,14 +599,16 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         // NOTE: previously we use `get_unbound_method` but here we just use `tpfindmagic`
         // >> [cls, NULL, args..., kwargs...]
         // >> py_retval() is the new instance
-        py_Ref init_f = py_tpfindmagic(py_totype(p0), __init__);
+        py_Ref init_f = py_tpfindmagic(p0_type, __init__);
         if(init_f) {
-            // do an inplace patch
-            *p0 = *init_f;              // __init__
-            p0[1] = self->last_retval;  // self
-            // [__init__, self, args..., kwargs...]
-            if(VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
-            *py_retval() = p0[1];  // restore the new instance
+            if(py_isinstance(py_retval(), p0_type)) {
+                // do an inplace patch
+                *p0 = *init_f;              // __init__
+                p0[1] = self->last_retval;  // self
+                // [__init__, self, args..., kwargs...]
+                if(VM__vectorcall(self, argc, kwargc, false) == RES_ERROR) return RES_ERROR;
+                *py_retval() = p0[1];  // restore the new instance
+            }
         } else {
             if(is_default_new) {
                 if(argc != 0 || kwargc != 0) {
@@ -713,53 +716,62 @@ void ManagedHeap__mark(ManagedHeap* self) {
             }
         }
 
-        void* ud = PyObject__userdata(obj);
-        switch(obj->type) {
-            case tp_list: {
-                List* self = ud;
-                for(int i = 0; i < self->length; i++) {
-                    py_TValue* val = c11__at(py_TValue, self, i);
-                    pk__mark_value(val);
+        if(obj->type > tp_object) {
+            // NOTE: `defaultdict` -> `dict` -> `object`
+            // NOTE: native types must extend from `object`.
+            py_TypeInfo* ti = pk_typeinfo(obj->type);
+            while(ti->base != tp_object) {
+                ti = ti->base_ti;
+            }
+
+            void* ud = PyObject__userdata(obj);
+            switch(ti->index) {
+                case tp_list: {
+                    List* self = ud;
+                    for(int i = 0; i < self->length; i++) {
+                        py_TValue* val = c11__at(py_TValue, self, i);
+                        pk__mark_value(val);
+                    }
+                    break;
                 }
-                break;
-            }
-            case tp_dict: {
-                Dict* self = ud;
-                for(int i = 0; i < self->entries.length; i++) {
-                    DictEntry* entry = c11__at(DictEntry, &self->entries, i);
-                    if(py_isnil(&entry->key)) continue;
-                    pk__mark_value(&entry->key);
-                    pk__mark_value(&entry->val);
+                case tp_dict: {
+                    Dict* self = ud;
+                    for(int i = 0; i < self->entries.length; i++) {
+                        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+                        if(py_isnil(&entry->key)) continue;
+                        pk__mark_value(&entry->key);
+                        pk__mark_value(&entry->val);
+                    }
+                    break;
                 }
-                break;
-            }
-            case tp_generator: {
-                Generator* self = ud;
-                if(self->frame) Frame__gc_mark(self->frame, p_stack);
-                break;
-            }
-            case tp_function: {
-                function__gc_mark(ud, p_stack);
-                break;
-            }
-            case tp_BaseException: {
-                BaseException* self = ud;
-                pk__mark_value(&self->args);
-                pk__mark_value(&self->inner_exc);
-                c11__foreach(BaseExceptionFrame, &self->stacktrace, frame) {
-                    pk__mark_value(&frame->locals);
-                    pk__mark_value(&frame->globals);
+                case tp_generator: {
+                    Generator* self = ud;
+                    if(self->frame) Frame__gc_mark(self->frame, p_stack);
+                    break;
                 }
-                break;
-            }
-            case tp_code: {
-                CodeObject* self = ud;
-                CodeObject__gc_mark(self, p_stack);
-                break;
-            }
-            case tp_chunked_array2d: {
-                c11_chunked_array2d__mark(ud, p_stack);
-                break;
+                case tp_function: {
+                    function__gc_mark(ud, p_stack);
+                    break;
+                }
+                case tp_BaseException: {
+                    BaseException* self = ud;
+                    pk__mark_value(&self->args);
+                    pk__mark_value(&self->inner_exc);
+                    c11__foreach(BaseExceptionFrame, &self->stacktrace, frame) {
+                        pk__mark_value(&frame->locals);
+                        pk__mark_value(&frame->globals);
+                    }
+                    break;
+                }
+                case tp_code: {
+                    CodeObject* self = ud;
+                    CodeObject__gc_mark(self, p_stack);
+                    break;
+                }
+                case tp_chunked_array2d: {
+                    c11_chunked_array2d__mark(ud, p_stack);
+                    break;
+                }
             }
         }
     }

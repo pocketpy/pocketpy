@@ -168,3 +168,13 @@ class DerivedClass(BaseClass):
 
     
 assert DerivedClass.f() == 'BaseClass'
+
+# bad __init__
+class A:
+    def __new__(cls, *args, **kwargs):
+        return 1
+
+    def __init__(self):
+        assert False
+
+A()

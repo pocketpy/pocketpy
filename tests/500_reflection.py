@@ -50,3 +50,21 @@ assert hasattr(a, 'zzz')
 
 assert not hasattr(a, '')
 
+class Base:
+    pass
+
+class Child1(Base):
+    pass
+
+class Child2(Base):
+    pass
+
+class GrandChild(Child1):
+    pass
+
+subs = Base.__subclasses__()
+assert type(subs) is list
+assert Child1 in subs
+assert Child2 in subs
+assert GrandChild not in subs
+
