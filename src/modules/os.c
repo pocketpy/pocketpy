@@ -48,6 +48,7 @@ static bool os_chdir(int argc, py_Ref argv) {
 }
 
 static bool os_getcwd(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(0);
     char buf[1024];
     if(!platform_getcwd(buf, sizeof(buf))) return OSError("getcwd() failed");
     py_newstr(py_retval(), buf);
