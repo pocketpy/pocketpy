@@ -50,6 +50,7 @@ typedef struct VM {
     py_GlobalRef main;      // __main__ module
 
     py_Callbacks callbacks;
+    py_Capabilities capabilities;
 
     py_TValue last_retval;
     py_TValue unhandled_exc;

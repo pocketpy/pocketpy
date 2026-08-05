@@ -38,6 +38,12 @@ static bool os_chdir(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
     const char* path = py_tostr(py_arg(0));
+
+    py_Capabilities* caps = py_capabilities();
+    if(!caps->os_chdir || !caps->os_chdir(path)) {
+        return py_exception(tp_PermissionError, "disallowed capability");
+    }
+
     int code = platform_chdir(path);
     if(code != 0) {
         const char* msg = strerror(errno);
@@ -49,6 +55,12 @@ static bool os_chdir(int argc, py_Ref argv) {
 
 static bool os_getcwd(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
+
+    py_Capabilities* caps = py_capabilities();
+    if(!caps->os_getcwd || !caps->os_getcwd()) {
+        return py_exception(tp_PermissionError, "disallowed capability");
+    }
+
     char buf[1024];
     if(!platform_getcwd(buf, sizeof(buf))) return OSError("getcwd() failed");
     py_newstr(py_retval(), buf);
@@ -60,6 +72,12 @@ static bool os_system(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_str);
 #if PK_IS_DESKTOP_PLATFORM
     const char* cmd = py_tostr(py_arg(0));
+
+    py_Capabilities* caps = py_capabilities();
+    if(!caps->os_system || !caps->os_system(cmd)) {
+        return py_exception(tp_PermissionError, "disallowed capability");
+    }
+
     int code = system(cmd);
     py_newint(py_retval(), code);
     return true;
@@ -72,6 +90,12 @@ static bool os_remove(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_str);
     const char* path = py_tostr(py_arg(0));
+
+    py_Capabilities* caps = py_capabilities();
+    if(!caps->os_remove || !caps->os_remove(path)) {
+        return py_exception(tp_PermissionError, "disallowed capability");
+    }
+
     int code = remove(path);
     if(code != 0) {
         const char* msg = strerror(errno);
@@ -112,6 +136,12 @@ static bool io_FileIO__new__(int argc, py_Ref argv) {
     io_FileIO* ud = py_newobject(py_retval(), cls, 0, sizeof(io_FileIO));
     ud->path = py_tostr(py_arg(1));
     ud->mode = py_tostr(py_arg(2));
+
+    py_Capabilities* caps = py_capabilities();
+    if(!caps->file_open || !caps->file_open(ud->path, ud->mode)) {
+        return py_exception(tp_PermissionError, "disallowed capability");
+    }
+
     ud->file = fopen(ud->path, ud->mode);
     if(ud->file == NULL) {
         const char* msg = strerror(errno);

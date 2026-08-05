@@ -110,6 +110,8 @@ void py_setvmctx(void* ctx) { pk_current_vm->ctx = ctx; }
 
 py_Callbacks* py_callbacks() { return &pk_current_vm->callbacks; }
 
+py_Capabilities* py_capabilities() { return &pk_current_vm->capabilities; }
+
 py_AppCallbacks* py_appcallbacks() {
     static py_AppCallbacks _callbacks = {0};
     return &_callbacks;

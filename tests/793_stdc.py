@@ -1,3 +1,6 @@
+print('sandbox mode, module is disabled')
+exit()
+
 from stdc import *
 
 assert sizeof(Int8) == sizeof(UInt8) == 1

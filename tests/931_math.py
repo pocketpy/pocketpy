@@ -1,3 +1,6 @@
+print('sandbox mode, module is disabled')
+exit()
+
 # https://github.com/python/cpython/blob/v3.4.10/Lib/test/test_math.py
 
 # Python test set -- math module

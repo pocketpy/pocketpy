@@ -13,10 +13,7 @@ typedef struct py_Capabilities {
     bool (*os_system)(const char* command);
     bool (*os_remove)(const char* path);
     // stdc
-    bool stdc_write;    // memset, write_bytes, ...
-    bool stdc_read;     // memcmp, read_bytes, ...
-    bool stdc_malloc;   // malloc
-    bool stdc_free;     // free
+    bool stdc;
 } py_Capabilities;
 
 /// Setup the capabilities for the current VM.

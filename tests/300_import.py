@@ -1,3 +1,6 @@
+print('sandbox mode, module is disabled')
+exit()
+
 try:
     import os
 except ImportError:

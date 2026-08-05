@@ -2,8 +2,17 @@
 #include "pocketpy/interpreter/vm.h"
 #include <string.h>
 
+
+static bool check_stdc_cap() {
+    py_Capabilities* caps = py_capabilities();
+    if(caps->stdc) return true;
+    return py_exception(tp_PermissionError, "disallowed capability");
+}
+
+
 #define DEF_BUILTIN_MEMORY_T(Char_, char_, tp_int_, py_newint_, py_toint_, py_i64_)                \
     static bool stdc_##Char_##__new__(int argc, py_Ref argv) {                                     \
+        if(!check_stdc_cap()) return false;                                                        \
         char_* ud = py_newobject(py_retval(), tp_stdc_##Char_, 0, sizeof(char_));                  \
         if(argc == 2) {                                                                            \
             PY_CHECK_ARG_TYPE(1, tp_int_);                                                         \
@@ -14,12 +23,14 @@
         return true;                                                                               \
     }                                                                                              \
     static bool stdc_##Char_##__get_value(int argc, py_Ref argv) {                                 \
+        if(!check_stdc_cap()) return false;                                                        \
         PY_CHECK_ARGC(1);                                                                          \
         char_* ud = py_touserdata(argv);                                                           \
         py_newint_(py_retval(), (py_i64_)(*ud));                                                   \
         return true;                                                                               \
     }                                                                                              \
     static bool stdc_##Char_##__set_value(int argc, py_Ref argv) {                                 \
+        if(!check_stdc_cap()) return false;                                                        \
         PY_CHECK_ARGC(2);                                                                          \
         char_* ud = py_touserdata(argv);                                                           \
         PY_CHECK_ARG_TYPE(1, tp_int_);                                                             \
@@ -28,6 +39,7 @@
         return true;                                                                               \
     }                                                                                              \
     static bool stdc_##Char_##__read_STATIC(int argc, py_Ref argv) {                               \
+        if(!check_stdc_cap()) return false;                                                        \
         PY_CHECK_ARGC(2);                                                                          \
         PY_CHECK_ARG_TYPE(0, tp_int);                                                              \
         PY_CHECK_ARG_TYPE(1, tp_int);                                                              \
@@ -37,6 +49,7 @@
         return true;                                                                               \
     }                                                                                              \
     static bool stdc_##Char_##__write_STATIC(int argc, py_Ref argv) {                              \
+        if(!check_stdc_cap()) return false;                                                        \
         PY_CHECK_ARGC(3);                                                                          \
         PY_CHECK_ARG_TYPE(0, tp_int);                                                              \
         PY_CHECK_ARG_TYPE(1, tp_int);                                                              \
@@ -48,6 +61,7 @@
         return true;                                                                               \
     }                                                                                              \
     static bool stdc_##Char_##__array_STATIC(int argc, py_Ref argv) {                              \
+        if(!check_stdc_cap()) return false;                                                        \
         PY_CHECK_ARGC(1);                                                                          \
         PY_CHECK_ARG_TYPE(0, tp_int);                                                              \
         int length = py_toint(argv);                                                               \
@@ -56,6 +70,7 @@
         return true;                                                                               \
     }                                                                                              \
     static bool stdc_##Char_##__getitem__(int argc, py_Ref argv) {                                 \
+        if(!check_stdc_cap()) return false;                                                        \
         PY_CHECK_ARGC(2);                                                                          \
         char_* ud = py_touserdata(argv);                                                           \
         PY_CHECK_ARG_TYPE(1, tp_int);                                                              \
@@ -64,6 +79,7 @@
         return true;                                                                               \
     }                                                                                              \
     static bool stdc_##Char_##__setitem__(int argc, py_Ref argv) {                                 \
+        if(!check_stdc_cap()) return false;                                                        \
         PY_CHECK_ARGC(3);                                                                          \
         char_* ud = py_touserdata(argv);                                                           \
         PY_CHECK_ARG_TYPE(1, tp_int);                                                              \
@@ -105,6 +121,7 @@ DEF_BUILTIN_MEMORY_T(Bool, bool, tp_bool, py_newbool, py_tobool, bool)
 #undef DEF_BUILTIN_MEMORY_T
 
 static bool stdc_malloc(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_int);
     py_i64 size = py_toint(&argv[0]);
@@ -114,6 +131,7 @@ static bool stdc_malloc(int argc, py_Ref argv) {
 }
 
 static bool stdc_free(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_int);
     void* p = (void*)(intptr_t)py_toint(&argv[0]);
@@ -123,6 +141,7 @@ static bool stdc_free(int argc, py_Ref argv) {
 }
 
 static bool stdc_memcpy(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(0, tp_int);   // dst
     void* dst = (void*)(intptr_t)py_toint(&argv[0]);
@@ -143,6 +162,7 @@ static bool stdc_memcpy(int argc, py_Ref argv) {
 }
 
 static bool stdc_memset(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -156,6 +176,7 @@ static bool stdc_memset(int argc, py_Ref argv) {
 }
 
 static bool stdc_memcmp(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(3);
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -169,6 +190,7 @@ static bool stdc_memcmp(int argc, py_Ref argv) {
 }
 
 static bool stdc_addressof(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(1);
     if(!py_checkinstance(argv, tp_stdc_Memory)) return false;
     void* ud = py_touserdata(argv);
@@ -177,6 +199,7 @@ static bool stdc_addressof(int argc, py_Ref argv) {
 }
 
 static bool stdc_sizeof(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_type);
     py_Type type = py_totype(&argv[0]);
@@ -188,6 +211,7 @@ static bool stdc_sizeof(int argc, py_Ref argv) {
 }
 
 static bool stdc_read_cstr(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(1);
     PY_CHECK_ARG_TYPE(0, tp_int);
     char* p = (char*)(intptr_t)py_toint(&argv[0]);
@@ -196,6 +220,7 @@ static bool stdc_read_cstr(int argc, py_Ref argv) {
 }
 
 static bool stdc_write_cstr(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_str);
@@ -208,6 +233,7 @@ static bool stdc_write_cstr(int argc, py_Ref argv) {
 }
 
 static bool stdc_read_bytes(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -219,6 +245,7 @@ static bool stdc_read_bytes(int argc, py_Ref argv) {
 }
 
 static bool stdc_write_bytes(int argc, py_Ref argv) {
+    if(!check_stdc_cap()) return false;
     PY_CHECK_ARGC(2);
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_bytes);
