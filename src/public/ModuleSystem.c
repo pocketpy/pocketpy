@@ -56,8 +56,19 @@ static void py_ModuleInfo__dtor(py_ModuleInfo* mi) {
     c11_string__delete(mi->path);
 }
 
+static bool module__repr__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    py_ModuleInfo* self = py_touserdata(argv);
+    c11_sbuf buf;
+    c11_sbuf__ctor(&buf);
+    pk_sprintf(&buf, "<module '%s'>", self->path->data);
+    c11_sbuf__py_submit(&buf, py_retval());
+    return true;
+}
+
 py_Type pk_module__register() {
     py_Type type = pk_newtype("module", tp_object, NULL, (py_Dtor)py_ModuleInfo__dtor, false, true);
+    py_bindmagic(type, __repr__, module__repr__);
     return type;
 }
 

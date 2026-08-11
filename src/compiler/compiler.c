@@ -2547,6 +2547,8 @@ static Error* compile_normal_import(Compiler* self, c11_sbuf* buf) {
         }
 
         c11_string* path = c11_sbuf__submit(buf);
+        c11_sbuf__ctor(buf);
+        
         int path_index = Ctx__add_const_string(ctx(), c11_string__sv(path));
         c11_string__delete(path);
 
