@@ -18,7 +18,8 @@
 #ifndef __circle__
 
 int64_t time_ns() {
-#ifdef _WIN32
+#if _WIN32 && defined(_WIN32_WINNT) && _WIN32_WINNT >= 0x0602
+    // windows 8 and later have GetSystemTimePreciseAsFileTime
     FILETIME system_time;
     ULARGE_INTEGER large;
 
