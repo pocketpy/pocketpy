@@ -251,7 +251,7 @@ Website: [https://fdtd.io](https://fdtd.io)
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.dera.page/svg?repos=pocketpy/pocketpy&type=Date)](https://star-history.dera.page/#pocketpy/pocketpy&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=pocketpy/pocketpy&type=Date)](https://star-history.dera.page/#pocketpy/pocketpy&Date)
 
 
 ## License
