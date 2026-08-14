@@ -336,6 +336,31 @@ DEF_VECTOR_INT_OPS(2)
 DEF_VECTOR_INT_OPS(3)
 DEF_VECTOR_INT_OPS(4)
 
+// vec2i l1_norm, l2_norm, max_norm
+static bool vec2i_l1_norm(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_vec2i v = py_tovec2i(argv);
+    int norm = abs(v.x) + abs(v.y);
+    py_newint(py_retval(), norm);
+    return true;
+}
+
+static bool vec2i_l2_norm(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_vec2i v = py_tovec2i(argv);
+    double norm = dmath_sqrt(v.x * v.x + v.y * v.y);
+    py_newfloat(py_retval(), norm);
+    return true;
+}
+
+static bool vec2i_max_norm(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    c11_vec2i v = py_tovec2i(argv);
+    int norm = c11__max(abs(v.x), abs(v.y));
+    py_newint(py_retval(), norm);
+    return true;
+}
+
 static bool vec2i__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_vec2i v = py_tovec2i(argv);
@@ -1260,6 +1285,10 @@ void pk__add_module_vmath() {
     py_bindmethod(vec2i, "with_x", vec2i__with_x);
     py_bindmethod(vec2i, "with_y", vec2i__with_y);
     py_bindmethod(vec2i, "dot", vec2i_dot);
+    py_bindmethod(vec2i, "l1_norm", vec2i_l1_norm);
+    py_bindmethod(vec2i, "l2_norm", vec2i_l2_norm);
+    py_bindmethod(vec2i, "max_norm", vec2i_max_norm);
+    py_bindmethod(vec2i, "length", vec2i_l2_norm);
 
     // clang-format off
     py_newvec2i(_const(vec2i, "ZERO"), (c11_vec2i){{0, 0}});

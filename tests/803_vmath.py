@@ -425,3 +425,9 @@ for i in range(-1000, 10000):
     e[vec2i(i, 12)] = i
     e[vec2i(i, 11)] = i
     e[vec2i(i, 13)] = i
+
+# test vec2i
+v = vec2i(-3, 4)
+assert v.l1_norm() == 7
+assert v.l2_norm() == 5.0
+assert v.max_norm() == 4
