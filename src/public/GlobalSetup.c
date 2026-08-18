@@ -24,11 +24,6 @@ void py_initialize() {
 
     pk_names_initialize();
 
-    // check endianness
-    int x = 1;
-    bool is_little_endian = *(char*)&x == 1;
-    if(!is_little_endian) c11__abort("is_little_endian != true");
-
     _Static_assert(sizeof(py_TValue) == 24, "sizeof(py_TValue) != 24");
     _Static_assert(offsetof(py_TValue, extra) == 4, "offsetof(py_TValue, extra) != 4");
 
