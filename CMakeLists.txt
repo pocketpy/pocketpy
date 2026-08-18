@@ -45,6 +45,10 @@ else()
     endif()
 endif()
 
+if (CMAKE_C_BYTE_ORDER STREQUAL "BIG_ENDIAN")
+    add_compile_definitions(PK_BIG_ENDIAN)
+endif()
+
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 file(GLOB_RECURSE POCKETPY_SRC ${CMAKE_CURRENT_LIST_DIR}/src/*.c)
 

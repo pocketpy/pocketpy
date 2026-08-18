@@ -13,7 +13,11 @@ typedef union
 {
     double   f;
     uint64_t u;
+#ifdef PK_BIG_ENDIAN
+    struct {int32_t  i1,i0;} s;
+#else
     struct {int32_t  i0,i1;} s;
+#endif
 }  udi_t;
 
 // https://github.com/akohlmey/fastermath/blob/master/src/exp.c#L63
