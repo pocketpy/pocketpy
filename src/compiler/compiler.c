@@ -1399,12 +1399,7 @@ static void Compiler__ctor(Compiler* self, SourceData_ src, Token* tokens, int t
 
 static void Compiler__dtor(Compiler* self) {
     // free tokens
-    for(int i = 0; i < self->tokens_length; i++) {
-        if(self->tokens[i].value.index == TokenValue_STR) {
-            // PK_FREE internal string
-            c11_string__delete(self->tokens[i].value._str);
-        }
-    }
+    destruct_tokens(self->tokens, self->tokens_length);
     PK_FREE(self->tokens);
     // free contexts
     c11__foreach(Ctx, &self->contexts, ctx) Ctx__dtor(ctx);
