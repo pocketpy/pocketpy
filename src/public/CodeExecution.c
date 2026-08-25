@@ -22,7 +22,7 @@ static bool _py_compile(CodeObject* out,
     SourceData_ src = SourceData__rcnew(source, filename, mode, is_dynamic);
     Error* err = pk_compile(src, out);
     if(err) {
-        py_exception(tp_SyntaxError, err->msg);
+        py_exception(tp_SyntaxError, "%s", err->msg);
         py_BaseException__stpush(NULL, &vm->unhandled_exc, err->src, err->lineno, NULL);
         PK_DECREF(src);
 
