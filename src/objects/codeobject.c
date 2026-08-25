@@ -17,7 +17,8 @@ bool Bytecode__is_forward_jump(const Bytecode* self) {
            (op == OP_FOR_ITER || op == OP_FOR_ITER_YIELD_VALUE);
 }
 
-void FuncDecl__dtor(FuncDecl* self) {
+void FuncDecl__dtor(void* p) {
+    FuncDecl* self = p;
     CodeObject__dtor(&self->code);
     c11_vector__dtor(&self->args);
     c11_vector__dtor(&self->kwargs);
@@ -28,7 +29,7 @@ void FuncDecl__dtor(FuncDecl* self) {
 FuncDecl_ FuncDecl__rcnew(SourceData_ src, c11_sv name) {
     FuncDecl* self = PK_MALLOC(sizeof(FuncDecl));
     self->rc.count = 1;
-    self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
+    self->rc.dtor = FuncDecl__dtor;
     CodeObject__ctor(&self->code, src, name);
 
     c11_vector__ctor(&self->args, sizeof(int32_t));
