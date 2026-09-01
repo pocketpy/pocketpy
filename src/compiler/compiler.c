@@ -2486,6 +2486,10 @@ static Error* compile_class(Compiler* self, int decorators) {
             check(EXPR(self));
             has_base = true;  // [base]
         }
+        while(match(TK_COMMA)) {
+            // ignore extra bases
+            check(consume_type_hints(self));
+        }
         consume(TK_RPAREN);
     }
     if(!has_base) {
