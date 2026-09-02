@@ -2412,8 +2412,14 @@ static Error* consume_pep695_py312(Compiler* self) {
     Error* err;
     if(match(TK_LBRACKET)) {
         do {
-            consume(TK_ID);
-            if(match(TK_COLON)) check(consume_type_hints(self));
+            if(match(TK_POW)) {
+                // **P
+                consume(TK_ID);
+            } else {
+                // T: int
+                consume(TK_ID);
+                if(match(TK_COLON)) check(consume_type_hints(self));
+            }
         } while(match(TK_COMMA));
         consume(TK_RBRACKET);
     }
