@@ -7,7 +7,7 @@ pkpy_exe = 'main.exe' if sys.platform == 'win32' else './main'
 
 def test_file(filepath, cpython=False):
     if cpython:
-        return os.system("python " + filepath) == 0
+        return os.system(f'"{sys.executable}" {filepath}') == 0
     code = os.system(pkpy_exe + ' ' + filepath)
     if code != 0:
         print('Return code:', code)
@@ -74,7 +74,7 @@ exit()
             print(res.stdout)
             exit(1)
 
-code = os.system(f'python compileall.py {pkpy_exe} tests tmp/tests')
+code = os.system(f'"{sys.executable}" compileall.py {pkpy_exe} tests tmp/tests')
 assert code == 0
 
 if len(sys.argv) == 2:
