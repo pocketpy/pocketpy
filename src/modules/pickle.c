@@ -409,13 +409,14 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
                 if(!py_call(f_reduce, 1, obj)) return false;
                 // expected: (callable, args)
                 py_Ref reduced = py_retval();
-                if(!py_istuple(reduced)) { return TypeError("__reduce__ must return a tuple"); }
+                if(!py_istuple(reduced)) return TypeError("__reduce__ must return a tuple");
                 if(py_tuple_len(reduced) != 2) {
                     return TypeError("__reduce__ must return a tuple of length 2");
                 }
                 if(!pkl__write_object(buf, py_tuple_getitem(reduced, 0))) return false;
                 pkl__emit_op(buf, PKL_NIL);
                 py_Ref args_tuple = py_tuple_getitem(reduced, 1);
+                if(!py_istuple(args_tuple)) return TypeError("__reduce__ args must be a tuple");
                 int args_length = py_tuple_len(args_tuple);
                 for(int i = 0; i < args_length; i++) {
                     if(!pkl__write_object(buf, py_tuple_getitem(args_tuple, i))) return false;

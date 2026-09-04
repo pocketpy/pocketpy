@@ -1399,12 +1399,7 @@ static void Compiler__ctor(Compiler* self, SourceData_ src, Token* tokens, int t
 
 static void Compiler__dtor(Compiler* self) {
     // free tokens
-    for(int i = 0; i < self->tokens_length; i++) {
-        if(self->tokens[i].value.index == TokenValue_STR) {
-            // PK_FREE internal string
-            c11_string__delete(self->tokens[i].value._str);
-        }
-    }
+    destruct_tokens(self->tokens, self->tokens_length);
     PK_FREE(self->tokens);
     // free contexts
     c11__foreach(Ctx, &self->contexts, ctx) Ctx__dtor(ctx);
@@ -2417,8 +2412,14 @@ static Error* consume_pep695_py312(Compiler* self) {
     Error* err;
     if(match(TK_LBRACKET)) {
         do {
-            consume(TK_ID);
-            if(match(TK_COLON)) check(consume_type_hints(self));
+            if(match(TK_POW)) {
+                // **P
+                consume(TK_ID);
+            } else {
+                // T: int
+                consume(TK_ID);
+                if(match(TK_COLON)) check(consume_type_hints(self));
+            }
         } while(match(TK_COMMA));
         consume(TK_RBRACKET);
     }
@@ -2490,6 +2491,10 @@ static Error* compile_class(Compiler* self, int decorators) {
         if(is_expression(self, false)) {
             check(EXPR(self));
             has_base = true;  // [base]
+        }
+        while(match(TK_COMMA)) {
+            // ignore extra bases
+            check(consume_type_hints(self));
         }
         consume(TK_RPAREN);
     }

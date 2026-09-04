@@ -628,6 +628,7 @@ Error* Lexer__process(SourceData_ src, Token** out_tokens, int* out_length) {
     while(!eof) {
         void* err = lex_one_token(&lexer, &eof, false);
         if(err) {
+            destruct_tokens(lexer.nexts.data, lexer.nexts.length);
             Lexer__dtor(&lexer);
             return err;
         }
@@ -637,6 +638,16 @@ Error* Lexer__process(SourceData_ src, Token** out_tokens, int* out_length) {
 
     Lexer__dtor(&lexer);
     return NULL;
+}
+
+void destruct_tokens(Token* tokens, int length) {
+    // free tokens
+    for(int i = 0; i < length; i++) {
+        if(tokens[i].value.index == TokenValue_STR) {
+            // PK_FREE internal string
+            c11_string__delete(tokens[i].value._str);
+        }
+    }
 }
 
 const char* TokenSymbols[] = {

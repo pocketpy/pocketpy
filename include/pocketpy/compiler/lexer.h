@@ -168,6 +168,7 @@ enum Precedence {
 };
 
 Error* Lexer__process(SourceData_ src, Token** out_tokens, int* out_length);
+void destruct_tokens(Token* tokens, int length);
 
 #define Token__sv(self)                                                                            \
     (c11_sv) { (self)->start, (self)->length }

@@ -43,7 +43,8 @@ static void SourceData__ctor(struct SourceData* self,
     c11_vector__push(const char*, &self->line_starts, self->source->data);
 }
 
-static void SourceData__dtor(struct SourceData* self) {
+static void SourceData__dtor(void* p) {
+    struct SourceData* self = p;
     c11_string__delete(self->filename);
     if(self->source) c11_string__delete(self->source);
     c11_vector__dtor(&self->line_starts);
@@ -56,7 +57,7 @@ SourceData_ SourceData__rcnew(const char* source,
     SourceData_ self = PK_MALLOC(sizeof(struct SourceData));
     SourceData__ctor(self, source, filename, mode, is_dynamic);
     self->rc.count = 1;
-    self->rc.dtor = (void (*)(void*))SourceData__dtor;
+    self->rc.dtor = SourceData__dtor;
     return self;
 }
 

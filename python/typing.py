@@ -40,6 +40,7 @@ Iterator = _PLACEHOLDER
 Hashable = _PLACEHOLDER
 
 TypeVar = _PLACEHOLDER
+ParamSpec = _PLACEHOLDER
 Self = _PLACEHOLDER
 
 Protocol = object

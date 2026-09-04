@@ -129,7 +129,7 @@ void FuncDecl__add_kwarg(FuncDecl* self, py_Name name, const py_TValue* value);
 void FuncDecl__add_starred_arg(FuncDecl* self, py_Name name);
 void FuncDecl__add_starred_kwarg(FuncDecl* self, py_Name name);
 void FuncDecl__gc_mark(const FuncDecl* self, c11_vector* p_stack);
-void FuncDecl__dtor(FuncDecl* self);
+void FuncDecl__dtor(void* p);
 
 // runtime function
 typedef struct Function {

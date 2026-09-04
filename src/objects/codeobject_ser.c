@@ -323,7 +323,7 @@ static void FuncDecl__serialize(c11_serializer* s,
 static FuncDecl_ FuncDecl__deserialize(c11_deserializer* d, SourceData_ embedded_src) {
     FuncDecl_ self = PK_MALLOC(sizeof(FuncDecl));
     self->rc.count = 1;
-    self->rc.dtor = (void (*)(void*))FuncDecl__dtor;
+    self->rc.dtor = FuncDecl__dtor;
 
     c11_vector__ctor(&self->args, sizeof(int32_t));
     c11_vector__ctor(&self->kwargs, sizeof(FuncDeclKwArg));
