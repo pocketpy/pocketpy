@@ -1,6 +1,7 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/dmath.h"
+#include "pocketpy/common/floatconv.h"
 #include "pocketpy/pocketpy.h"
 
 
@@ -480,7 +481,7 @@ static bool float__new__(int argc, py_Ref argv) {
             }
 
             char* p_end;
-            py_f64 float_out = strtod(sv.data, &p_end);
+            py_f64 float_out = strtod1(sv.data, &p_end);
             if(p_end != sv.data + sv.size) return ValueError("invalid literal for float(): %q", sv);
             py_newfloat(py_retval(), float_out);
             return true;

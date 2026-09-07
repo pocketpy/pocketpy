@@ -1,4 +1,5 @@
 #include "pocketpy/common/sstream.h"
+#include "pocketpy/common/floatconv.h"
 #include "pocketpy/common/vector.h"
 #include "pocketpy/compiler/lexer.h"
 #include "pocketpy/objects/sourcedata.h"
@@ -416,7 +417,7 @@ static Error* eat_number(Lexer* self) {
     // try float
     double float_out;
     char* p_end;
-    float_out = strtod(text.data, &p_end);
+    float_out = strtod1(text.data, &p_end);
 
     if(p_end == text.data + text.size) {
         TokenValue value = {.index = TokenValue_F64, ._f64 = float_out};

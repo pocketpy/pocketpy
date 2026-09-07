@@ -2,6 +2,7 @@
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/common/dmath.h"
+#include "pocketpy/common/floatconv.h"
 #include "pocketpy/pocketpy.h"
 
 #include <stdarg.h>
@@ -51,25 +52,28 @@ void c11_sbuf__write_f64(c11_sbuf* self, double val, int precision) {
         c11_sbuf__write_cstr(self, "nan");
         return;
     }
-    char b[32];
-    int size;
     if(precision < 0) {
-        for(int g = 15; g <= 17; g++) {
-            size = snprintf(b, sizeof(b), "%.*g", g, val);
-            if(strtod(b, NULL) == val) break;
-        }
-        c11_sbuf__write_cstr(self, b);
+        char b[C11_F64_SHORTEST_BUF_SIZE];
+        int size = c11__f64_to_shortest(b, sizeof(b), val);
+        assert(size > 0);  // C11_F64_SHORTEST_BUF_SIZE is always enough
+        c11_sbuf__write_cstrn(self, b, size);
+        // a float should still look like a float once rendered
         bool all_is_digit = true;
-        for(int i = 1; i < size; i++) {
-            if(!isdigit(b[i])) {
+        for(int i = 0; i < size; i++) {
+            if(b[i] == '.' || b[i] == 'e') {
                 all_is_digit = false;
                 break;
             }
         }
         if(all_is_digit) c11_sbuf__write_cstr(self, ".0");
     } else {
-        size = snprintf(b, sizeof(b), "%.*f", precision, val);
-        c11_sbuf__write_cstr(self, b);
+        if(precision > C11_F64_MAX_PRECISION) precision = C11_F64_MAX_PRECISION;
+        // "%.*f" of a large value needs a lot of room, so render into the
+        // buffer itself instead of a fixed-size scratch array
+        int capacity = C11_F64_FIXED_BUF_SIZE(precision);
+        c11_vector__reserve(&self->data, self->data.length + capacity);
+        char* p = (char*)self->data.data + self->data.length;
+        self->data.length += c11__f64_to_fixed(p, capacity, val, precision);
     }
 }
 
