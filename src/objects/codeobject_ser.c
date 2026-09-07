@@ -5,8 +5,8 @@
 // Magic number for CodeObject serialization: "CO" = 0x434F
 #define CODEOBJECT_MAGIC 0x434F
 #define CODEOBJECT_VER_MAJOR 1
-#define CODEOBJECT_VER_MINOR 1
-#define CODEOBJECT_VER_MINOR_MIN 1
+#define CODEOBJECT_VER_MINOR 2
+#define CODEOBJECT_VER_MINOR_MIN 2
 
 // Forward declarations
 static void FuncDecl__serialize(c11_serializer* s,
