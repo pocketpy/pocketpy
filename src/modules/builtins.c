@@ -562,6 +562,17 @@ static bool function__doc__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool function__annotations__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    Function* func = py_touserdata(py_arg(0));
+    if(py_isnil(&func->decl->annotations)) {
+        py_newdict(py_retval());
+    } else {
+        py_assign(py_retval(), &func->decl->annotations);
+    }
+    return true;
+}
+
 static bool function__name__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     Function* func = py_touserdata(py_arg(0));
@@ -589,6 +600,7 @@ py_Type pk_function__register() {
         pk_newtype("function", tp_object, NULL, (void (*)(void*))Function__dtor, false, true);
     py_bindproperty(type, "__doc__", function__doc__, NULL);
     py_bindproperty(type, "__name__", function__name__, NULL);
+    py_bindproperty(type, "__annotations__", function__annotations__, NULL);
     py_bindmagic(type, __repr__, function__repr__);
     return type;
 }
