@@ -63,9 +63,10 @@ void Frame__delete(py_Frame* self) {
 int Frame__goto_exception_handler(py_Frame* self, ValueStack* value_stack, py_Ref exc) {
     FrameExcInfo* p = self->exc_stack.data;
     for(int i = self->exc_stack.length - 1; i >= 0; i--) {
-        if(py_isnil(&p[i].exc)) {
+        CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, p[i].iblock);
+        if(py_isnil(&p[i].exc) && self->ip >= block->start && self->ip < block->end) {
             value_stack->sp = (self->p0 + p[i].offset);  // unwind the stack
-            return c11__at(CodeBlock, &self->co->blocks, p[i].iblock)->end;
+            return block->end;
         } else {
             self->exc_stack.length--;
         }

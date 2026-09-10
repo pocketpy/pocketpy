@@ -220,6 +220,15 @@ except Exception as e:
     if type(e) != TypeError:
         exit(1)
 
+try:
+    try:
+        x, y = [1]
+        exit(1)
+    except undefinedfoo:
+        exit(1)
+except NameError:
+    pass
+
 """
 # finally, only
 def finally_only():
