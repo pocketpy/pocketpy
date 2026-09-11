@@ -308,3 +308,48 @@ def finally_return():
     
 assert finally_return() == 1
 """
+
+# An exception raised while evaluating an `except` clause must propagate to the
+# enclosing block, never be caught by the very handler that is being entered.
+def _boom():
+    raise TypeError('boom')
+
+# the clause expression itself raises
+try:
+    try:
+        x, y = [1]
+        exit(1)
+    except (IndexError, _boom()):
+        exit(1)
+except TypeError as e:
+    assert str(e) == 'boom'
+
+# a later clause is the one that fails
+try:
+    try:
+        x, y = [1]
+        exit(1)
+    except IndexError:
+        exit(1)
+    except undefinedbar:
+        exit(1)
+except NameError:
+    pass
+
+# a handler body that raises is not caught by its own try block either
+try:
+    try:
+        raise KeyError('k')
+    except KeyError:
+        raise IndexError('i')
+except IndexError as e:
+    assert str(e) == 'i'
+
+# a non-type in an `except` tuple is still a TypeError
+try:
+    try:
+        raise KeyError('k')
+    except (IndexError, 1):
+        exit(1)
+except TypeError:
+    pass

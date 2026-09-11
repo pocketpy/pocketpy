@@ -1175,10 +1175,14 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_EXCEPTION_MATCH: {
+            // OP_HANDLE_EXCEPTION at the handler entry already moved the
+            // exception into the frame, so nothing is in flight here
+            FrameExcInfo* info = Frame__top_exc_info(frame);
+            assert(info != NULL && !py_isnil(&info->exc));
             bool ok = false;
             bool has_invalid = false;
             if(TOP()->type == tp_type) {
-                ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
+                ok = py_isinstance(&info->exc, py_totype(TOP()));
             } else if(TOP()->type == tp_tuple) {
                 int len = py_tuple_len(TOP());
                 py_ObjectRef data = py_tuple_data(TOP());
@@ -1190,7 +1194,7 @@ __NEXT_STEP:
                 }
                 if(!has_invalid) {
                     for(int i = 0; i < len; i++) {
-                        if(py_isinstance(&self->unhandled_exc, py_totype(data + i))) {
+                        if(py_isinstance(&info->exc, py_totype(data + i))) {
                             ok = true;
                             break;
                         }
@@ -1200,7 +1204,7 @@ __NEXT_STEP:
                 has_invalid = true;
             }
             if(has_invalid) {
-                py_newnil(&self->unhandled_exc);
+                // raise first, so `py_raise` can chain `info->exc`, then drop it
                 TypeError("catching classes that do not inherit from BaseException is not allowed");
                 c11_vector__pop(&frame->exc_stack);
                 goto __ERROR;
@@ -1240,11 +1244,12 @@ __NEXT_STEP:
             goto __ERROR;
         }
         case OP_RE_RAISE: {
-            if(py_isnil(&self->unhandled_exc)) {
-                FrameExcInfo* info = Frame__top_exc_info(frame);
-                assert(info != NULL && !py_isnil(&info->exc));
-                self->unhandled_exc = info->exc;
-            }
+            // OP_HANDLE_EXCEPTION at the handler entry took the exception out of
+            // flight, so the frame is the one holding it and we put it back
+            assert(py_isnil(&self->unhandled_exc));
+            FrameExcInfo* info = Frame__top_exc_info(frame);
+            assert(info != NULL && !py_isnil(&info->exc));
+            self->unhandled_exc = info->exc;
             c11_vector__pop(&frame->exc_stack);
             goto __ERROR_RE_RAISE;
         }

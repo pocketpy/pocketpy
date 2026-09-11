@@ -2697,6 +2697,12 @@ static Error* compile_try_except(Compiler* self) {
     patches[patches_length++] = Ctx__emit_(ctx(), OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
     Ctx__exit_block(ctx());
 
+    // Take the exception out of flight here, at the handler entry, before any
+    // `except <expr>` is evaluated. Otherwise an expression that raises (an
+    // undefined name, a call that fails) would raise while the original
+    // exception is still pending.
+    Ctx__emit_(ctx(), OP_HANDLE_EXCEPTION, BC_NOARG, BC_KEEPLINE);
+
     do {
         if(patches_length == 8) {
             return SyntaxError(self, "maximum number of except clauses reached");
@@ -2719,7 +2725,6 @@ static Error* compile_try_except(Compiler* self) {
         }
         int patch = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
         // on match
-        Ctx__emit_(ctx(), OP_HANDLE_EXCEPTION, BC_NOARG, BC_KEEPLINE);
         if(as_name) {
             Ctx__emit_(ctx(), OP_PUSH_EXCEPTION, BC_NOARG, BC_KEEPLINE);
             Ctx__emit_store_name(ctx(), name_scope(self), as_name, BC_KEEPLINE);
