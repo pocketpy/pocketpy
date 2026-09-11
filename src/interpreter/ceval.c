@@ -1017,12 +1017,6 @@ __NEXT_STEP:
         case OP_UNPACK_SEQUENCE: {
             py_TValue* p;
             int length;
-
-            if(SP() + byte.arg > self->stack.end) {
-                py_exception(tp_RecursionError, "value stack overflow");
-                goto __ERROR;
-            }
-
             switch(TOP()->type) {
                 case tp_tuple: {
                     length = py_tuple_len(TOP());
@@ -1088,10 +1082,6 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_UNPACK_EX: {
-            if(SP() + byte.arg + 1 > self->stack.end) {
-                py_exception(tp_RecursionError, "value stack overflow");
-                goto __ERROR;
-            }
             py_TValue* p;
             int length = pk_arrayview(TOP(), &p);
             if(length == -1) {
