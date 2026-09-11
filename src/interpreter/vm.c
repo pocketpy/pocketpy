@@ -507,6 +507,13 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         Function* fn = py_touserdata(p0);
         const CodeObject* co = &fn->decl->code;
 
+        // the callee's locals live on the value stack; make room before any of
+        // the paths below writes there
+        if(argv + co->nlocals > self->stack.end) {
+            py_exception(tp_RecursionError, "value stack overflow");
+            return RES_ERROR;
+        }
+
         switch(fn->decl->type) {
             case FuncType_NORMAL: {
                 bool ok = prepare_py_call(self->vectorcall_buffer, argv, p1, kwargc, fn->decl);

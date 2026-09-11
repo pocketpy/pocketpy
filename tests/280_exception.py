@@ -353,3 +353,25 @@ try:
         exit(1)
 except TypeError:
     pass
+
+# A value stack overflow must raise, not corrupt memory. Recursion with many
+# locals exhausts the value stack well before the recursion-depth limit.
+def _deep(n):
+    a, b, c, d, e = 1, 2, 3, 4, 5
+    f, g, h, i, j = 1, 2, 3, 4, 5
+    k, l, m, o, p = 1, 2, 3, 4, 5
+    q, r, s, t, u = 1, 2, 3, 4, 5
+    if n == 0:
+        return a
+    return _deep(n - 1)
+
+try:
+    _deep(5000)
+    exit(1)
+except RecursionError:
+    pass
+
+# the VM has to stay usable afterwards
+assert sum(range(100)) == 4950
+assert [x * 2 for x in range(4)] == [0, 2, 4, 6]
+
