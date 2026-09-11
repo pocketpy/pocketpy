@@ -3,6 +3,7 @@
 #include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/interpreter/bindings.h"
 
 typedef struct Range {
     py_i64 start;
@@ -68,17 +69,19 @@ static bool range_iterator__new__(int argc, py_Ref argv) {
     return true;
 }
 
-bool range_iterator__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    RangeIterator* ud = py_touserdata(argv);
-    if(ud->range.step > 0) {
-        if(ud->current >= ud->range.stop) return StopIteration();
-    } else {
-        if(ud->current <= ud->range.stop) return StopIteration();
+PK_DEFINE_NEXT_WRAPPER(range_iterator)
+
+int range_iterator__iternext(py_Ref self) {
+    RangeIterator* ud = py_touserdata(self);
+    bool exhausted = ud->range.step > 0 ? ud->current >= ud->range.stop
+                                        : ud->current <= ud->range.stop;
+    if(exhausted) {
+        py_newnil(py_retval());
+        return 0;
     }
     py_newint(py_retval(), ud->current);
     ud->current += ud->range.step;
-    return true;
+    return 1;
 }
 
 py_Type pk_range_iterator__register() {

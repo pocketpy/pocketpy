@@ -1,5 +1,6 @@
 #include "pocketpy/interpreter/array2d.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/interpreter/bindings.h"
 #include "pocketpy/pocketpy.h"
 #include <limits.h>
 
@@ -884,10 +885,14 @@ static void register_array2d_like(py_Ref mod) {
     }
 }
 
-bool array2d_like_iterator__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_array2d_like_iterator* self = py_touserdata(argv);
-    if(self->j >= self->array->n_rows) return StopIteration();
+PK_DEFINE_NEXT_WRAPPER(array2d_like_iterator)
+
+int array2d_like_iterator__iternext(py_Ref self_) {
+    c11_array2d_like_iterator* self = py_touserdata(self_);
+    if(self->j >= self->array->n_rows) {
+        py_newnil(py_retval());
+        return 0;
+    }
     py_TValue* data = py_newtuple(py_retval(), 2);
     py_newvec2i(&data[0],
                 (c11_vec2i){
@@ -899,7 +904,7 @@ bool array2d_like_iterator__next__(int argc, py_Ref argv) {
         self->i = 0;
         self->j++;
     }
-    return true;
+    return 1;
 }
 
 static void register_array2d_like_iterator(py_Ref mod) {

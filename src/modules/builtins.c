@@ -7,6 +7,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/interpreter/bindings.h"
 #include "pocketpy/common/_generated.h"
 
 
@@ -123,8 +124,8 @@ static bool builtins_next(int argc, py_Ref argv) {
     if(res == -1) return false;
     if(res) return true;
     if(argc == 1) {
-        // StopIteration stored in py_retval()
-        return py_raise(py_retval());
+        // py_retval() holds the StopIteration value, or nil if there is none
+        return pk__raise_stopiteration();
     } else {
         py_assign(py_retval(), py_arg(1));
         return true;

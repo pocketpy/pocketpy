@@ -1,6 +1,7 @@
 #include "pocketpy/pocketpy.h"
 #include "pocketpy/objects/object.h"
 #include "pocketpy/objects/iterator.h"
+#include "pocketpy/interpreter/bindings.h"
 #include "pocketpy/interpreter/vm.h"
 
 int pk_arrayview(py_Ref self, py_TValue** p) {
@@ -57,27 +58,31 @@ bool pk_arraycontains(py_Ref self, py_Ref val) {
     return true;
 }
 
-bool list_iterator__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    list_iterator* ud = py_touserdata(argv);
+PK_DEFINE_NEXT_WRAPPER(list_iterator)
+
+int list_iterator__iternext(py_Ref self) {
+    list_iterator* ud = py_touserdata(self);
     if(ud->index < ud->vec->length) {
         py_TValue* res = c11__at(py_TValue, ud->vec, ud->index);
         py_assign(py_retval(), res);
         ud->index++;
-        return true;
+        return 1;
     }
-    return StopIteration();
+    py_newnil(py_retval());
+    return 0;
 }
 
-bool tuple_iterator__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    tuple_iterator* ud = py_touserdata(argv);
+PK_DEFINE_NEXT_WRAPPER(tuple_iterator)
+
+int tuple_iterator__iternext(py_Ref self) {
+    tuple_iterator* ud = py_touserdata(self);
     if(ud->index < ud->length) {
         py_assign(py_retval(), ud->p + ud->index);
         ud->index++;
-        return true;
+        return 1;
     }
-    return StopIteration();
+    py_newnil(py_retval());
+    return 0;
 }
 
 py_Type pk_list_iterator__register() {

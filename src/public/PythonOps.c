@@ -2,6 +2,7 @@
 #include "pocketpy/interpreter/bindings.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/objects/base.h"
+#include "pocketpy/objects/exception.h"
 #include "pocketpy/pocketpy.h"
 
 bool py_binaryadd(py_Ref lhs, py_Ref rhs) { return py_binaryop(lhs, rhs, __add__, __radd__); }
@@ -142,43 +143,31 @@ bool py_iter(py_Ref val) {
 }
 
 int py_next(py_Ref val) {
-    VM* vm = pk_current_vm;
-
+    // builtin iterators signal exhaustion without constructing a `StopIteration`
     switch(val->type) {
-        case tp_generator:
-            if(generator__next__(1, val)) return 1;
-            break;
-        case tp_array2d_like_iterator:
-            if(array2d_like_iterator__next__(1, val)) return 1;
-            break;
-        case tp_list_iterator:
-            if(list_iterator__next__(1, val)) return 1;
-            break;
-        case tp_tuple_iterator:
-            if(tuple_iterator__next__(1, val)) return 1;
-            break;
-        case tp_dict_iterator:
-            if(dict_items__next__(1, val)) return 1;
-            break;
-        case tp_range_iterator:
-            if(range_iterator__next__(1, val)) return 1;
-            break;
-        case tp_str_iterator:
-            if(str_iterator__next__(1, val)) return 1;
-            break;
-        default: {
-            py_Ref tmp = py_tpfindmagic(val->type, __next__);
-            if(!tmp) {
-                TypeError("'%t' object is not an iterator", val->type);
-                return -1;
-            }
-            if(py_call(tmp, 1, val)) return 1;
-            break;
-        }
+        case tp_generator: return generator__iternext(val);
+        case tp_array2d_like_iterator: return array2d_like_iterator__iternext(val);
+        case tp_list_iterator: return list_iterator__iternext(val);
+        case tp_tuple_iterator: return tuple_iterator__iternext(val);
+        case tp_dict_iterator: return dict_items__iternext(val);
+        case tp_range_iterator: return range_iterator__iternext(val);
+        case tp_str_iterator: return str_iterator__iternext(val);
+        default: break;
     }
+
+    VM* vm = pk_current_vm;
+    py_Ref tmp = py_tpfindmagic(val->type, __next__);
+    if(!tmp) {
+        TypeError("'%t' object is not an iterator", val->type);
+        return -1;
+    }
+    if(py_call(tmp, 1, val)) return 1;
     if(vm->unhandled_exc.type == tp_StopIteration) {
-        vm->last_retval = vm->unhandled_exc;
+        // unwrap the value so callers never have to touch the exception object
+        BaseException* ud = py_touserdata(&vm->unhandled_exc);
+        py_TValue value = ud->args;
         py_clearexc(NULL);
+        *py_retval() = value;
         return 0;
     }
     return -1;

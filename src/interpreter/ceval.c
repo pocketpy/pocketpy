@@ -859,9 +859,8 @@ __NEXT_STEP:
             if(res) {
                 return RES_YIELD;
             } else {
-                assert(self->last_retval.type == tp_StopIteration);
-                BaseException* ud = py_touserdata(py_retval());
-                py_ObjectRef value = &ud->args;
+                // `py_next` leaves the StopIteration value in `py_retval()`
+                py_Ref value = py_retval();
                 if(py_isnil(value)) value = py_None();
                 *TOP() = *value;  // [iter] -> [retval]
                 DISPATCH_JUMP((int16_t)byte.arg);
@@ -929,7 +928,6 @@ __NEXT_STEP:
                 PUSH(py_retval());
                 DISPATCH();
             } else {
-                assert(self->last_retval.type == tp_StopIteration);
                 POP();  // [iter] -> []
                 DISPATCH_JUMP((int16_t)byte.arg);
             }

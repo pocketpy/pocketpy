@@ -128,3 +128,59 @@ def f():
     yield a
 
 assert list(f()) == [1, 2, 3]
+# --- PEP 479: a StopIteration escaping a generator body becomes RuntimeError ---
+# NOTE: the builtin `iter` is shadowed above, so build iterators via generators
+def _exhausted():
+    return
+    yield
+
+def raises_stop_iteration():
+    yield 1
+    raise StopIteration
+
+try:
+    list(raises_stop_iteration())
+    exit(1)
+except RuntimeError as e:
+    assert str(e) == 'generator raised StopIteration', str(e)
+
+it = raises_stop_iteration()
+assert next(it) == 1
+try:
+    next(it)
+    exit(1)
+except RuntimeError:
+    pass
+
+# the same applies when it comes from an exhausted inner iterator
+def drains_inner():
+    inner = _exhausted()
+    yield 1
+    next(inner)
+
+try:
+    list(drains_inner())
+    exit(1)
+except RuntimeError:
+    pass
+
+# a generator that catches it itself is unaffected
+def catches_it():
+    try:
+        next(_exhausted())
+        exit(1)
+    except StopIteration:
+        yield 'caught'
+
+assert list(catches_it()) == ['caught']
+
+# `yield from` over a sub-generator that finishes normally is unaffected
+def sub_with_return():
+    yield 'a'
+    return 'R'
+
+def delegates():
+    got = yield from sub_with_return()
+    yield got
+
+assert list(delegates()) == ['a', 'R']
