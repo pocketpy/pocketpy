@@ -74,8 +74,8 @@ static uint64_t Dict__hash_2nd(uint64_t key) {
     return key;
 }
 
-static void Dict__ctor(Dict* self, uint32_t capacity, int entries_capacity) {
-    self->length = 0;
+// Allocate an empty index array for the given capacity. `entries` is not touched.
+static void Dict__alloc_indices(Dict* self, uint32_t capacity) {
     self->capacity = capacity;
 
     size_t indices_size;
@@ -91,7 +91,11 @@ static void Dict__ctor(Dict* self, uint32_t capacity, int entries_capacity) {
 
     self->indices = PK_MALLOC(indices_size);
     memset(self->indices, -1, indices_size);
+}
 
+static void Dict__ctor(Dict* self, uint32_t capacity, int entries_capacity) {
+    self->length = 0;
+    Dict__alloc_indices(self, capacity);
     c11_vector__ctor(&self->entries, sizeof(DictEntry));
     c11_vector__reserve(&self->entries, entries_capacity);
 }
@@ -145,6 +149,9 @@ static bool Dict__probe(Dict* self,
                         DictEntry** p_entry) {
     if(py_isstr(key)) {
         *p_hash = c11_sv__hash(py_tosv(key));
+    } else if(key->type == tp_int) {
+        // fast path: `int.__hash__` is the identity, so skip the generic dispatch
+        *p_hash = Dict__hash_2nd((uint64_t)key->_i64);
     } else {
         py_i64 h_user;
         if(!py_hash(key, &h_user)) return false;
@@ -199,29 +206,34 @@ static void Dict__clear(Dict* self) {
 }
 
 static void Dict__rehash_2x(Dict* self) {
-    Dict old_dict = *self;
-    uint32_t new_capacity = Dict__next_cap(old_dict.capacity);
+    uint32_t new_capacity = Dict__next_cap(self->capacity);
     uint32_t mask = new_capacity - 1;
-    // create a new dict with new capacity
-    Dict__ctor(self, new_capacity, old_dict.entries.capacity);
-    // move entries from old dict to new dict
-    for(int i = 0; i < old_dict.entries.length; i++) {
-        DictEntry* old_entry = c11__at(DictEntry, &old_dict.entries, i);
-        if(py_isnil(&old_entry->key)) continue;  // skip deleted
-        uint32_t idx = old_entry->hash % new_capacity;
-        while(true) {
-            uint32_t idx2 = Dict__get_index(self, idx);
-            if(idx2 == self->null_index_value) {
-                c11_vector__push(DictEntry, &self->entries, *old_entry);
-                Dict__set_index(self, idx, self->entries.length - 1);
-                self->length++;
-                break;
-            }
-            // try next index
-            idx = Dict__step(idx);
+
+    // squeeze out deleted entries in place; the old indices are discarded anyway
+    if(self->length != self->entries.length) {
+        int n = 0;
+        for(int i = 0; i < self->entries.length; i++) {
+            DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+            if(py_isnil(&entry->key)) continue;  // skip deleted
+            if(i != n) *c11__at(DictEntry, &self->entries, n) = *entry;
+            n++;
         }
+        assert(n == self->length);
+        self->entries.length = n;
     }
-    Dict__dtor(&old_dict);
+
+    // `entries` is already dense, so it keeps its buffer and its layout;
+    // only the index array has to be rebuilt for the new capacity
+    PK_FREE(self->indices);
+    Dict__alloc_indices(self, new_capacity);
+    for(int i = 0; i < self->entries.length; i++) {
+        DictEntry* entry = c11__at(DictEntry, &self->entries, i);
+        uint32_t idx = entry->hash % new_capacity;
+        while(Dict__get_index(self, idx) != self->null_index_value) {
+            idx = Dict__step(idx);  // try next index
+        }
+        Dict__set_index(self, idx, i);
+    }
 }
 
 static void Dict__compact_entries(Dict* self) {
@@ -267,7 +279,7 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
     self->length++;
     // check if we need to rehash
     float load_factor = (float)self->length / self->capacity;
-    if(load_factor > (self->index_is_short ? 0.3f : 0.4f)) Dict__rehash_2x(self);
+    if(load_factor > (self->index_is_short ? 0.4f : 0.5f)) Dict__rehash_2x(self);
     return true;
 }
 
