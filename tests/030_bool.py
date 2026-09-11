@@ -3,6 +3,14 @@ assert True == True
 assert True != False
 assert False == False
 assert False != True
+assert True == 1
+assert False == 0
+assert True != 0
+assert False != 1
+assert 1 == True
+assert 0 == False
+assert 1 != False
+assert 0 != True
 
 # test and/or/not
 assert True and True

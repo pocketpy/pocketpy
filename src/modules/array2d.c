@@ -387,8 +387,13 @@ static bool array2d_like__invert__(int argc, py_Ref argv) {
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
-            if(!pk_callmagic(__invert__, 1, item)) return false;
-            c11_array2d__set(res, i, j, py_retval());
+            if(item->type == tp_bool) {
+                py_Ref p_out = c11_array2d__get(res, i, j);
+                py_newbool(p_out, !py_tobool(item));
+            } else {
+                if(!pk_callmagic(__invert__, 1, item)) return false;
+                c11_array2d__set(res, i, j, py_retval());
+            }
         }
     }
     py_assign(py_retval(), py_peek(-1));
@@ -1007,7 +1012,8 @@ static void register_array2d_view(py_Ref mod) {
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__SOURCE
 
-static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_vec2i pos, py_Ref context) {
+static py_TValue*
+    c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_vec2i pos, py_Ref context) {
     bool exists = c11_chunked_array2d_chunks__contains(&self->chunks, pos);
     if(exists) {
         ValueError("chunk already exists at pos (%d, %d)", pos.x, pos.y);
@@ -1044,15 +1050,15 @@ static void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
                                                 c11_vec2i* restrict chunk_pos,
                                                 c11_vec2i* restrict local_pos) {
     cpy312__divmod_int_uint(col,
-                           self->chunk_size_log2,
-                           self->chunk_size_mask,
-                           &chunk_pos->x,
-                           &local_pos->x);
+                            self->chunk_size_log2,
+                            self->chunk_size_mask,
+                            &chunk_pos->x,
+                            &local_pos->x);
     cpy312__divmod_int_uint(row,
-                           self->chunk_size_log2,
-                           self->chunk_size_mask,
-                           &chunk_pos->y,
-                           &local_pos->y);
+                            self->chunk_size_log2,
+                            self->chunk_size_mask,
+                            &chunk_pos->y,
+                            &local_pos->y);
 }
 
 static py_TValue* c11_chunked_array2d__parse_col_row(c11_chunked_array2d* self,

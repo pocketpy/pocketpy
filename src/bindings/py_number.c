@@ -520,11 +520,23 @@ static bool bool__repr__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool bool_try_cast_i64(py_Ref arg, py_i64* out) {
+    if (arg->type == tp_int) {
+        *out = py_toint(arg);
+        return true;
+    } else if (arg->type == tp_bool) {
+        *out = py_tobool(arg);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 static bool bool__eq__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    bool lhs = py_tobool(&argv[0]);
-    if(argv[1].type == tp_bool) {
-        bool rhs = py_tobool(&argv[1]);
+    py_i64 lhs = (py_i64)py_tobool(&argv[0]);
+    py_i64 rhs;
+    if(bool_try_cast_i64(py_arg(1), &rhs)) {
         py_newbool(py_retval(), lhs == rhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -534,9 +546,9 @@ static bool bool__eq__(int argc, py_Ref argv) {
 
 static bool bool__ne__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
-    bool lhs = py_tobool(&argv[0]);
-    if(argv[1].type == tp_bool) {
-        bool rhs = py_tobool(&argv[1]);
+    py_i64 lhs = (py_i64)py_tobool(&argv[0]);
+    py_i64 rhs;
+    if(bool_try_cast_i64(py_arg(1), &rhs)) {
         py_newbool(py_retval(), lhs != rhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -560,25 +572,6 @@ static bool bool__ne__(int argc, py_Ref argv) {
 DEF_BOOL_BITWISE(__and__, &&)
 DEF_BOOL_BITWISE(__or__, ||)
 DEF_BOOL_BITWISE(__xor__, !=)
-
-static bool bool__invert__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    bool val = py_tobool(&argv[0]);
-    py_newbool(py_retval(), !val);
-    return true;
-}
-
-static bool bool_try_cast_i64(py_Ref arg, py_i64* out) {
-    if (arg->type == tp_int) {
-        *out = py_toint(arg);
-        return true;
-    } else if (arg->type == tp_bool) {
-        *out = py_tobool(arg);
-        return true;
-    } else {
-        return false;
-    }
-}
 
 static bool bool__add__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
@@ -711,7 +704,6 @@ void pk_number__register() {
     py_bindmagic(tp_bool, __and__, bool__and__);
     py_bindmagic(tp_bool, __or__, bool__or__);
     py_bindmagic(tp_bool, __xor__, bool__xor__);
-    py_bindmagic(tp_bool, __invert__, bool__invert__);
     py_bindmagic(tp_bool, __add__, bool__add__);
     py_bindmagic(tp_bool, __sub__, bool__sub__);
     py_bindmagic(tp_bool, __mul__, bool__mul__);

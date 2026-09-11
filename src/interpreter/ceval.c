@@ -803,7 +803,8 @@ __NEXT_STEP:
         }
         /*****************************************/
         case OP_CALL: {
-            if(self->heap.gc_enabled) ManagedHeap__collect_hint(&self->heap);
+            if(self->heap.gc_enabled && self->heap.gc_counter >= self->heap.gc_threshold)
+                ManagedHeap__collect_hint(&self->heap);
             vectorcall_opcall(byte.arg & 0xFF, byte.arg >> 8);
             DISPATCH();
         }
