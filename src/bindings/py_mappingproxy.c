@@ -75,8 +75,7 @@ static bool namedict_items(int argc, py_Ref argv) {
 static bool namedict_clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_Ref object = py_getslot(argv, 0);
-    NameDict* dict = PyObject__dict(object->_obj);
-    NameDict__clear(dict);
+    py_cleardict(object);
     py_newnone(py_retval());
     return true;
 }

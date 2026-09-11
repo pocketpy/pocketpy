@@ -1,6 +1,15 @@
 #include "pocketpy/interpreter/vm.h"
 #include <assert.h>
 
+void pk_tpresolvemagics(py_TypeInfo* ti) {
+    py_Ref f = pk_tpfindname(ti, __new__);
+    assert(f != NULL);  // `object.__new__` is always reachable
+    ti->cached_new = *f;
+    py_Ref g = pk_tpfindname(ti, __init__);
+    ti->cached_init = g ? *g : *py_NIL();
+    ti->magics_version = pk_current_vm->type_version;
+}
+
 py_ItemRef pk_tpfindname(py_TypeInfo* ti, py_Name name) {
     assert(ti != NULL);
     do {
@@ -52,6 +61,9 @@ static void py_TypeInfo__common_init(py_Name name,
     self->delattribute = NULL;
     self->getunboundmethod = NULL;
 
+    self->cached_new = *py_NIL();
+    self->cached_init = *py_NIL();
+    self->magics_version = 0;  // never resolved
     self->annotations = *py_NIL();
     self->dtor = dtor;
     self->on_end_subclass = NULL;

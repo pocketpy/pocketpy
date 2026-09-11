@@ -5,6 +5,7 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/objects/exception.h"
+#include "pocketpy/interpreter/bindings.h"
 
 void py_BaseException__stpush(py_Frame* frame,
                               py_Ref self,
@@ -15,6 +16,10 @@ void py_BaseException__stpush(py_Frame* frame,
     int max_frame_dumps = py_debugger_status() == 1 ? 31 : 7;
     if(ud->stacktrace.length >= max_frame_dumps) return;
     BaseExceptionFrame* frame_dump = c11_vector__emplace(&ud->stacktrace);
+    // `locals` and `globals` are only filled in when the debugger is attached, but the GC
+    // walks them unconditionally; nil them out before anything below can allocate
+    py_newnil(&frame_dump->locals);
+    py_newnil(&frame_dump->globals);
     PK_INCREF(src);
     frame_dump->src = src;
     frame_dump->lineno = lineno;
@@ -305,5 +310,12 @@ bool KeyError(py_Ref key) {
 bool StopIteration() {
     bool ok = py_tpcall(tp_StopIteration, 0, NULL);
     if(!ok) return false;
+    return py_raise(py_retval());
+}
+
+bool pk__raise_stopiteration() {
+    if(py_isnil(py_retval())) return StopIteration();
+    // carry the value, e.g. `StopIteration(<generator return value>)`
+    if(!py_tpcall(tp_StopIteration, 1, py_retval())) return false;
     return py_raise(py_retval());
 }

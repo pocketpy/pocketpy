@@ -1,5 +1,6 @@
 #include "pocketpy/interpreter/array2d.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/interpreter/bindings.h"
 #include "pocketpy/pocketpy.h"
 #include <limits.h>
 
@@ -386,8 +387,13 @@ static bool array2d_like__invert__(int argc, py_Ref argv) {
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
-            if(!pk_callmagic(__invert__, 1, item)) return false;
-            c11_array2d__set(res, i, j, py_retval());
+            if(item->type == tp_bool) {
+                py_Ref p_out = c11_array2d__get(res, i, j);
+                py_newbool(p_out, !py_tobool(item));
+            } else {
+                if(!pk_callmagic(__invert__, 1, item)) return false;
+                c11_array2d__set(res, i, j, py_retval());
+            }
         }
     }
     py_assign(py_retval(), py_peek(-1));
@@ -884,10 +890,14 @@ static void register_array2d_like(py_Ref mod) {
     }
 }
 
-bool array2d_like_iterator__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    c11_array2d_like_iterator* self = py_touserdata(argv);
-    if(self->j >= self->array->n_rows) return StopIteration();
+PK_DEFINE_NEXT_WRAPPER(array2d_like_iterator)
+
+int array2d_like_iterator__iternext(py_Ref self_) {
+    c11_array2d_like_iterator* self = py_touserdata(self_);
+    if(self->j >= self->array->n_rows) {
+        py_newnil(py_retval());
+        return 0;
+    }
     py_TValue* data = py_newtuple(py_retval(), 2);
     py_newvec2i(&data[0],
                 (c11_vec2i){
@@ -899,7 +909,7 @@ bool array2d_like_iterator__next__(int argc, py_Ref argv) {
         self->i = 0;
         self->j++;
     }
-    return true;
+    return 1;
 }
 
 static void register_array2d_like_iterator(py_Ref mod) {
@@ -1002,7 +1012,8 @@ static void register_array2d_view(py_Ref mod) {
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__SOURCE
 
-static py_TValue* c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_vec2i pos, py_Ref context) {
+static py_TValue*
+    c11_chunked_array2d__new_chunk(c11_chunked_array2d* self, c11_vec2i pos, py_Ref context) {
     bool exists = c11_chunked_array2d_chunks__contains(&self->chunks, pos);
     if(exists) {
         ValueError("chunk already exists at pos (%d, %d)", pos.x, pos.y);
@@ -1039,15 +1050,15 @@ static void c11_chunked_array2d__world_to_chunk(c11_chunked_array2d* self,
                                                 c11_vec2i* restrict chunk_pos,
                                                 c11_vec2i* restrict local_pos) {
     cpy312__divmod_int_uint(col,
-                           self->chunk_size_log2,
-                           self->chunk_size_mask,
-                           &chunk_pos->x,
-                           &local_pos->x);
+                            self->chunk_size_log2,
+                            self->chunk_size_mask,
+                            &chunk_pos->x,
+                            &local_pos->x);
     cpy312__divmod_int_uint(row,
-                           self->chunk_size_log2,
-                           self->chunk_size_mask,
-                           &chunk_pos->y,
-                           &local_pos->y);
+                            self->chunk_size_log2,
+                            self->chunk_size_mask,
+                            &chunk_pos->y,
+                            &local_pos->y);
 }
 
 static py_TValue* c11_chunked_array2d__parse_col_row(c11_chunked_array2d* self,

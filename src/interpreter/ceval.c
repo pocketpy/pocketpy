@@ -81,6 +81,14 @@ static bool unpack_dict_to_buffer(py_Ref key, py_Ref val, void* ctx) {
     return TypeError("keywords must be strings, not '%t'", key->type);
 }
 
+static bool binaryop_isnum(const py_TValue* v) {
+    return v->type == tp_int || v->type == tp_float;
+}
+
+static py_f64 binaryop_tof64(const py_TValue* v) {
+    return v->type == tp_int ? (py_f64)v->_i64 : v->_f64;
+}
+
 FrameResult VM__run_top_frame(VM* self) {
     py_Frame* frame = self->top_frame;
     Bytecode* co_codes;
@@ -664,9 +672,34 @@ __NEXT_STEP:
         *TOP() = self->last_retval;                                                                \
         DISPATCH();                                                                                \
     }
-            CASE_BINARY_OP(OP_BINARY_ADD, __add__, __radd__)
-            CASE_BINARY_OP(OP_BINARY_SUB, __sub__, __rsub__)
-            CASE_BINARY_OP(OP_BINARY_MUL, __mul__, __rmul__)
+// Fast paths for `int`/`float` operands. These mirror `DEF_NUM_BINARY_OP` in
+// `py_number.c`, including the promotion of a mixed `int`/`float` pair. Modifying a
+// builtin type's magic methods is undefined behaviour (docs/features/ub.md), so the
+// type is never consulted here.
+#define CASE_BINARY_OP_NUM(label, op, rop, c_op, mk_i, mk_f)                                       \
+    case label: {                                                                                  \
+        if(SECOND()->type == tp_int && TOP()->type == tp_int) {                                    \
+            py_i64 lhs = SECOND()->_i64;                                                           \
+            py_i64 rhs = TOP()->_i64;                                                              \
+            POP();                                                                                 \
+            mk_i(TOP(), lhs c_op rhs);                                                             \
+            DISPATCH();                                                                            \
+        }                                                                                          \
+        if(binaryop_isnum(SECOND()) && binaryop_isnum(TOP())) {                                    \
+            py_f64 lhs = binaryop_tof64(SECOND());                                                 \
+            py_f64 rhs = binaryop_tof64(TOP());                                                    \
+            POP();                                                                                 \
+            mk_f(TOP(), lhs c_op rhs);                                                             \
+            DISPATCH();                                                                            \
+        }                                                                                          \
+        if(!pk_stack_binaryop(self, op, rop)) goto __ERROR;                                        \
+        POP();                                                                                     \
+        *TOP() = self->last_retval;                                                                \
+        DISPATCH();                                                                                \
+    }
+            CASE_BINARY_OP_NUM(OP_BINARY_ADD, __add__, __radd__, +, py_newint, py_newfloat)
+            CASE_BINARY_OP_NUM(OP_BINARY_SUB, __sub__, __rsub__, -, py_newint, py_newfloat)
+            CASE_BINARY_OP_NUM(OP_BINARY_MUL, __mul__, __rmul__, *, py_newint, py_newfloat)
             CASE_BINARY_OP(OP_BINARY_TRUEDIV, __truediv__, __rtruediv__)
             CASE_BINARY_OP(OP_BINARY_FLOORDIV, __floordiv__, __rfloordiv__)
             CASE_BINARY_OP(OP_BINARY_MOD, __mod__, __rmod__)
@@ -677,13 +710,14 @@ __NEXT_STEP:
             CASE_BINARY_OP(OP_BINARY_OR, __or__, 0)
             CASE_BINARY_OP(OP_BINARY_XOR, __xor__, 0)
             CASE_BINARY_OP(OP_BINARY_MATMUL, __matmul__, 0)
-            CASE_BINARY_OP(OP_COMPARE_LT, __lt__, __gt__)
-            CASE_BINARY_OP(OP_COMPARE_LE, __le__, __ge__)
-            CASE_BINARY_OP(OP_COMPARE_EQ, __eq__, __eq__)
-            CASE_BINARY_OP(OP_COMPARE_NE, __ne__, __ne__)
-            CASE_BINARY_OP(OP_COMPARE_GT, __gt__, __lt__)
-            CASE_BINARY_OP(OP_COMPARE_GE, __ge__, __le__)
+            CASE_BINARY_OP_NUM(OP_COMPARE_LT, __lt__, __gt__, <, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_LE, __le__, __ge__, <=, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_EQ, __eq__, __eq__, ==, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_NE, __ne__, __ne__, !=, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_GT, __gt__, __lt__, >, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_GE, __ge__, __le__, >=, py_newbool, py_newbool)
 #undef CASE_BINARY_OP
+#undef CASE_BINARY_OP_NUM
         case OP_IS_OP: {
             bool res = py_isidentical(SECOND(), TOP());
             POP();
@@ -774,7 +808,8 @@ __NEXT_STEP:
         }
         /*****************************************/
         case OP_CALL: {
-            if(self->heap.gc_enabled) ManagedHeap__collect_hint(&self->heap);
+            if(self->heap.gc_enabled && self->heap.gc_counter >= self->heap.gc_threshold)
+                ManagedHeap__collect_hint(&self->heap);
             vectorcall_opcall(byte.arg & 0xFF, byte.arg >> 8);
             DISPATCH();
         }
@@ -864,9 +899,8 @@ __NEXT_STEP:
             if(res) {
                 return RES_YIELD;
             } else {
-                assert(self->last_retval.type == tp_StopIteration);
-                BaseException* ud = py_touserdata(py_retval());
-                py_ObjectRef value = &ud->args;
+                // `py_next` leaves the StopIteration value in `py_retval()`
+                py_Ref value = py_retval();
                 if(py_isnil(value)) value = py_None();
                 *TOP() = *value;  // [iter] -> [retval]
                 DISPATCH_JUMP((int16_t)byte.arg);
@@ -934,7 +968,6 @@ __NEXT_STEP:
                 PUSH(py_retval());
                 DISPATCH();
             } else {
-                assert(self->last_retval.type == tp_StopIteration);
                 POP();  // [iter] -> []
                 DISPATCH_JUMP((int16_t)byte.arg);
             }
@@ -989,6 +1022,11 @@ __NEXT_STEP:
         case OP_UNPACK_SEQUENCE: {
             py_TValue* p;
             int length;
+
+            if(SP() + byte.arg > self->stack.end) {
+                py_exception(tp_RecursionError, "value stack overflow");
+                goto __ERROR;
+            }
 
             switch(TOP()->type) {
                 case tp_tuple: {
@@ -1055,6 +1093,10 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_UNPACK_EX: {
+            if(SP() + byte.arg + 1 > self->stack.end) {
+                py_exception(tp_RecursionError, "value stack overflow");
+                goto __ERROR;
+            }
             py_TValue* p;
             int length = pk_arrayview(TOP(), &p);
             if(length == -1) {
@@ -1182,10 +1224,14 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_EXCEPTION_MATCH: {
+            // OP_HANDLE_EXCEPTION at the handler entry already moved the
+            // exception into the frame, so nothing is in flight here
+            FrameExcInfo* info = Frame__top_exc_info(frame);
+            assert(info != NULL && !py_isnil(&info->exc));
             bool ok = false;
             bool has_invalid = false;
             if(TOP()->type == tp_type) {
-                ok = py_isinstance(&self->unhandled_exc, py_totype(TOP()));
+                ok = py_isinstance(&info->exc, py_totype(TOP()));
             } else if(TOP()->type == tp_tuple) {
                 int len = py_tuple_len(TOP());
                 py_ObjectRef data = py_tuple_data(TOP());
@@ -1197,7 +1243,7 @@ __NEXT_STEP:
                 }
                 if(!has_invalid) {
                     for(int i = 0; i < len; i++) {
-                        if(py_isinstance(&self->unhandled_exc, py_totype(data + i))) {
+                        if(py_isinstance(&info->exc, py_totype(data + i))) {
                             ok = true;
                             break;
                         }
@@ -1207,7 +1253,7 @@ __NEXT_STEP:
                 has_invalid = true;
             }
             if(has_invalid) {
-                py_newnil(&self->unhandled_exc);
+                // raise first, so `py_raise` can chain `info->exc`, then drop it
                 TypeError("catching classes that do not inherit from BaseException is not allowed");
                 c11_vector__pop(&frame->exc_stack);
                 goto __ERROR;
@@ -1247,11 +1293,12 @@ __NEXT_STEP:
             goto __ERROR;
         }
         case OP_RE_RAISE: {
-            if(py_isnil(&self->unhandled_exc)) {
-                FrameExcInfo* info = Frame__top_exc_info(frame);
-                assert(info != NULL && !py_isnil(&info->exc));
-                self->unhandled_exc = info->exc;
-            }
+            // OP_HANDLE_EXCEPTION at the handler entry took the exception out of
+            // flight, so the frame is the one holding it and we put it back
+            assert(py_isnil(&self->unhandled_exc));
+            FrameExcInfo* info = Frame__top_exc_info(frame);
+            assert(info != NULL && !py_isnil(&info->exc));
+            self->unhandled_exc = info->exc;
             c11_vector__pop(&frame->exc_stack);
             goto __ERROR_RE_RAISE;
         }

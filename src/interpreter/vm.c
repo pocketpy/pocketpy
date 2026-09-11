@@ -98,6 +98,7 @@ void VM__ctor(VM* self) {
 
     self->last_retval = *py_NIL();
     self->unhandled_exc = *py_NIL();
+    self->type_version = 1;  // 0 means "never resolved" in py_TypeInfo
 
     self->recursion_depth = 0;
     self->max_recursion_depth = 1000;
@@ -509,6 +510,13 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         Function* fn = py_touserdata(p0);
         const CodeObject* co = &fn->decl->code;
 
+        // the callee's locals live on the value stack; make room before any of
+        // the paths below writes there
+        if(argv + co->nlocals > self->stack.end) {
+            py_exception(tp_RecursionError, "value stack overflow");
+            return RES_ERROR;
+        }
+
         switch(fn->decl->type) {
             case FuncType_NORMAL: {
                 bool ok = prepare_py_call(self->vectorcall_buffer, argv, p1, kwargc, fn->decl);
@@ -584,9 +592,11 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
 
     if(p0->type == tp_type) {
         py_Type p0_type = py_totype(p0);
+        py_TypeInfo* p0_ti = pk_typeinfo(p0_type);
+        if(p0_ti->magics_version != self->type_version) pk_tpresolvemagics(p0_ti);
         // [cls, NULL, args..., kwargs...]
-        py_Ref new_f = py_tpfindmagic(p0_type, __new__);
-        assert(new_f && py_isnil(p0 + 1));
+        py_Ref new_f = &p0_ti->cached_new;
+        assert(py_isnil(p0 + 1));
         bool is_default_new = new_f->type == tp_nativefunc && new_f->_cfunc == pk__object_new;
 
         // prepare a copy of args and kwargs
@@ -603,7 +613,7 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
         // NOTE: previously we use `get_unbound_method` but here we just use `tpfindmagic`
         // >> [cls, NULL, args..., kwargs...]
         // >> py_retval() is the new instance
-        py_Ref init_f = py_tpfindmagic(p0_type, __init__);
+        py_Ref init_f = py_isnil(&p0_ti->cached_init) ? NULL : &p0_ti->cached_init;
         if(init_f) {
             if(py_isinstance(py_retval(), p0_type)) {
                 // do an inplace patch
@@ -684,6 +694,8 @@ void ManagedHeap__mark(ManagedHeap* self) {
     for(py_Type i = 1; i < types_length; i++) {
         py_TypeInfo* ti = c11__getitem(TypePointer, &vm->types, i).ti;
         pk__mark_value(&ti->self);
+        pk__mark_value(&ti->cached_new);
+        pk__mark_value(&ti->cached_init);
         pk__mark_value(&ti->annotations);
     }
     // mark frame

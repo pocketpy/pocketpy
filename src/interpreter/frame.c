@@ -63,9 +63,18 @@ void Frame__delete(py_Frame* self) {
 int Frame__goto_exception_handler(py_Frame* self, ValueStack* value_stack, py_Ref exc) {
     FrameExcInfo* p = self->exc_stack.data;
     for(int i = self->exc_stack.length - 1; i >= 0; i--) {
+        CodeBlock* block = c11__at(CodeBlock, &self->co->blocks, p[i].iblock);
         if(py_isnil(&p[i].exc)) {
+            // A nil `exc` means OP_HANDLE_EXCEPTION has not run for this block,
+            // i.e. we are still inside its `try` body, so it can take over.
+            // Anything raised from an `except <expr>` or from a handler body
+            // finds `exc` already set and falls through to the outer block.
+            // `ip == block->end` is the handler entry itself, which is still
+            // reachable: the watchdog checks for a timeout on the instruction
+            // boundary right before OP_HANDLE_EXCEPTION gets to run.
+            assert(self->ip >= block->start && self->ip <= block->end);
             value_stack->sp = (self->p0 + p[i].offset);  // unwind the stack
-            return c11__at(CodeBlock, &self->co->blocks, p[i].iblock)->end;
+            return block->end;
         } else {
             self->exc_stack.length--;
         }

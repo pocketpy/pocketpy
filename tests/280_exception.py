@@ -220,6 +220,15 @@ except Exception as e:
     if type(e) != TypeError:
         exit(1)
 
+try:
+    try:
+        x, y = [1]
+        exit(1)
+    except undefinedfoo:
+        exit(1)
+except NameError:
+    pass
+
 """
 # finally, only
 def finally_only():
@@ -299,3 +308,70 @@ def finally_return():
     
 assert finally_return() == 1
 """
+
+# An exception raised while evaluating an `except` clause must propagate to the
+# enclosing block, never be caught by the very handler that is being entered.
+def _boom():
+    raise TypeError('boom')
+
+# the clause expression itself raises
+try:
+    try:
+        x, y = [1]
+        exit(1)
+    except (IndexError, _boom()):
+        exit(1)
+except TypeError as e:
+    assert str(e) == 'boom'
+
+# a later clause is the one that fails
+try:
+    try:
+        x, y = [1]
+        exit(1)
+    except IndexError:
+        exit(1)
+    except undefinedbar:
+        exit(1)
+except NameError:
+    pass
+
+# a handler body that raises is not caught by its own try block either
+try:
+    try:
+        raise KeyError('k')
+    except KeyError:
+        raise IndexError('i')
+except IndexError as e:
+    assert str(e) == 'i'
+
+# a non-type in an `except` tuple is still a TypeError
+try:
+    try:
+        raise KeyError('k')
+    except (IndexError, 1):
+        exit(1)
+except TypeError:
+    pass
+
+# A value stack overflow must raise, not corrupt memory. Recursion with many
+# locals exhausts the value stack well before the recursion-depth limit.
+def _deep(n):
+    a, b, c, d, e = 1, 2, 3, 4, 5
+    f, g, h, i, j = 1, 2, 3, 4, 5
+    k, l, m, o, p = 1, 2, 3, 4, 5
+    q, r, s, t, u = 1, 2, 3, 4, 5
+    if n == 0:
+        return a
+    return _deep(n - 1)
+
+try:
+    _deep(5000)
+    exit(1)
+except RecursionError:
+    pass
+
+# the VM has to stay usable afterwards
+assert sum(range(100)) == 4950
+assert [x * 2 for x in range(4)] == [0, 2, 4, 6]
+

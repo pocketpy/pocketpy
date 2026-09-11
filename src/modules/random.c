@@ -131,6 +131,25 @@ int64_t mt19937__randint(mt19937* self, int64_t a, int64_t b) {
     }
 }
 
+/* dumps the internal state as `bytes` */
+static void mt19937__getstate(mt19937* self, py_OutRef out) {
+    unsigned char* data = py_newbytes(out, sizeof(mt19937));
+    memcpy(data, self, sizeof(mt19937));
+}
+
+/* restores a state produced by `mt19937__getstate` */
+static bool mt19937__setstate(mt19937* self, py_Ref state) {
+    int size;
+    unsigned char* data = py_tobytes(state, &size);
+    if(size != sizeof(mt19937)) return ValueError("invalid state");
+    mt19937 tmp;
+    memcpy(&tmp, data, sizeof(mt19937));
+    /* `mti == N + 1` means mt[N] is not initialized; anything above `N` is out of range */
+    if(tmp.mti < 0 || tmp.mti > N + 1) return ValueError("invalid state");
+    *self = tmp;
+    return true;
+}
+
 static bool Random__new__(int argc, py_Ref argv) {
     mt19937* ud = py_newobject(py_retval(), py_totype(argv), 0, sizeof(mt19937));
     mt19937__ctor(ud);
@@ -142,13 +161,16 @@ static bool Random__init__(int argc, py_Ref argv) {
         // do nothing
     } else if(argc == 2) {
         mt19937* ud = py_touserdata(py_arg(0));
-        if(!py_isnone(&argv[1])) {
+        if(py_istype(py_arg(1), tp_bytes)) {
+            // a state returned by `getstate()`; this is how `__reduce__` rebuilds the object
+            if(!mt19937__setstate(ud, py_arg(1))) return false;
+        } else if(!py_isnone(&argv[1])) {
             PY_CHECK_ARG_TYPE(1, tp_int);
             py_i64 seed = py_toint(py_arg(1));
             mt19937__seed(ud, (uint32_t)seed);
         }
     } else {
-        return TypeError("Random(): expected 1 or 2 arguments, got %d");
+        return TypeError("Random(): expected 1 or 2 arguments, got %d", argc);
     }
     py_newnone(py_retval());
     return true;
@@ -166,6 +188,33 @@ static bool Random_seed(int argc, py_Ref argv) {
     }
     mt19937__seed(ud, (uint32_t)seed);
     py_newnone(py_retval());
+    return true;
+}
+
+static bool Random_getstate(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    mt19937* ud = py_touserdata(py_arg(0));
+    mt19937__getstate(ud, py_retval());
+    return true;
+}
+
+static bool Random_setstate(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(1, tp_bytes);
+    mt19937* ud = py_touserdata(py_arg(0));
+    if(!mt19937__setstate(ud, py_arg(1))) return false;
+    py_newnone(py_retval());
+    return true;
+}
+
+static bool Random__reduce__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    mt19937* ud = py_touserdata(py_arg(0));
+    // `(cls, (state,))`, i.e. `cls(state)` restores the generator
+    py_TValue* p = py_newtuple(py_retval(), 2);
+    py_assign(&p[0], py_tpobject(py_typeof(py_arg(0))));
+    py_TValue* args = py_newtuple(&p[1], 1);
+    mt19937__getstate(ud, &args[0]);
     return true;
 }
 
@@ -298,9 +347,15 @@ void pk__add_module_random() {
     py_Ref mod = py_newmodule("random");
     py_Type type = py_newtype("Random", tp_object, mod, NULL);
 
+    // must be 2500 bytes so memcpy() works in `mt19937__getstate()` and `mt19937__setstate()`
+    _Static_assert(sizeof(mt19937) == 2500, "sizeof(mt19937) != 2500");
+
     py_bindmagic(type, __new__, Random__new__);
     py_bindmagic(type, __init__, Random__init__);
+    py_bindmagic(type, __reduce__, Random__reduce__);
     py_bindmethod(type, "seed", Random_seed);
+    py_bindmethod(type, "getstate", Random_getstate);
+    py_bindmethod(type, "setstate", Random_setstate);
     py_bindmethod(type, "random", Random_random);
     py_bindmethod(type, "uniform", Random_uniform);
     py_bindmethod(type, "randint", Random_randint);
@@ -317,6 +372,8 @@ void pk__add_module_random() {
     py_setdict(mod, py_name(name), py_retval());
 
     ADD_INST_BOUNDMETHOD("seed");
+    ADD_INST_BOUNDMETHOD("getstate");
+    ADD_INST_BOUNDMETHOD("setstate");
     ADD_INST_BOUNDMETHOD("random");
     ADD_INST_BOUNDMETHOD("uniform");
     ADD_INST_BOUNDMETHOD("randint");

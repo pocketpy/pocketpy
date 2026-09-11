@@ -19,9 +19,12 @@ typedef enum {
     PKL_FLOAT32, PKL_FLOAT64,
     PKL_TRUE, PKL_FALSE,
     PKL_STRING, PKL_BYTES,
-    PKL_BUILD_LIST,
+    // mutable containers are built in two phases so that they can be memoized
+    // *before* their contents are written, which is what makes cyclic references work
+    PKL_NEW_LIST, PKL_FILL_LIST,
+    PKL_NEW_DICT, PKL_FILL_DICT,
+    PKL_NEW_OBJECT, PKL_FILL_OBJECT,
     PKL_BUILD_TUPLE,
-    PKL_BUILD_DICT,
     PKL_VEC2, PKL_VEC3,
     PKL_VEC2I, PKL_VEC3I,
     PKL_TYPE,
@@ -30,7 +33,6 @@ typedef enum {
     PKL_GETATTR,
     PKL_TVALUE,
     PKL_CALL,
-    PKL_OBJECT,
     PKL_EOF,
     // clang-format on
 } PickleOp;
@@ -180,10 +182,16 @@ static bool pkl__write_array(PickleObject* buf, PickleOp op, py_TValue* arr, int
     return true;
 }
 
+typedef struct {
+    PickleObject* buf;
+    int length;
+} pkl__DictCtx;
+
 static bool pkl__write_dict_kv(py_Ref k, py_Ref v, void* ctx) {
-    PickleObject* buf = (PickleObject*)ctx;
-    if(!pkl__write_object(buf, k)) return false;
-    if(!pkl__write_object(buf, v)) return false;
+    pkl__DictCtx* self = (pkl__DictCtx*)ctx;
+    if(!pkl__write_object(self->buf, k)) return false;
+    if(!pkl__write_object(self->buf, v)) return false;
+    self->length++;
     return true;
 }
 
@@ -270,9 +278,19 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
         }
         case tp_list: {
             if(pkl__try_memo(buf, obj->_obj)) return true;
-            bool ok = pkl__write_array(buf, PKL_BUILD_LIST, py_list_data(obj), py_list_len(obj));
-            if(!ok) return false;
+            // memoize before writing the items so that a cyclic reference back to
+            // this list resolves to `PKL_MEMO_GET` instead of recursing forever
+            pkl__emit_op(buf, PKL_NEW_LIST);
             pkl__store_memo(buf, obj->_obj);
+            int length = py_list_len(obj);
+            for(int i = 0; i < length; i++) {
+                // re-read `data` each time: writing an item may run python code
+                // (e.g. `__reduce__`) which can reallocate the list
+                if(i >= py_list_len(obj)) return ValueError("list changed size during pickling");
+                if(!pkl__write_object(buf, py_list_data(obj) + i)) return false;
+            }
+            pkl__emit_op(buf, PKL_FILL_LIST);
+            pkl__emit_int(buf, length);
             return true;
         }
         case tp_tuple: {
@@ -284,11 +302,12 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
         }
         case tp_dict: {
             if(pkl__try_memo(buf, obj->_obj)) return true;
-            bool ok = py_dict_apply(obj, pkl__write_dict_kv, (void*)buf);
-            if(!ok) return false;
-            pkl__emit_op(buf, PKL_BUILD_DICT);
-            pkl__emit_int(buf, py_dict_len(obj));
+            pkl__emit_op(buf, PKL_NEW_DICT);
             pkl__store_memo(buf, obj->_obj);
+            pkl__DictCtx ctx = {buf, 0};
+            if(!py_dict_apply(obj, pkl__write_dict_kv, &ctx)) return false;
+            pkl__emit_op(buf, PKL_FILL_DICT);
+            pkl__emit_int(buf, ctx.length);
             return true;
         }
         case tp_vec2: {
@@ -428,16 +447,24 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
                 return true;
             }
             if(ti->is_python) {
+                // create the (empty) instance and memoize it before writing its fields,
+                // so that a cyclic reference back here resolves to `PKL_MEMO_GET`
+                pkl__emit_op(buf, PKL_NEW_OBJECT);
+                pkl__emit_int(buf, obj->type);
+                buf->used_types[obj->type] = true;
+                pkl__store_memo(buf, obj->_obj);
+
                 NameDict* dict = PyObject__dict(obj->_obj);
-                for(int i = dict->capacity - 1; i >= 0; i--) {
+                int length = dict->length;
+                // values first, in slot order; `PKL_FILL_OBJECT` reads the names in the
+                // same order and pairs them up positionally
+                for(int i = 0; i < dict->capacity; i++) {
                     NameDict_KV* kv = &dict->items[i];
                     if(kv->key == NULL) continue;
                     if(!pkl__write_object(buf, &kv->value)) return false;
                 }
-                pkl__emit_op(buf, PKL_OBJECT);
-                pkl__emit_int(buf, obj->type);
-                buf->used_types[obj->type] = true;
-                pkl__emit_int(buf, dict->length);
+                pkl__emit_op(buf, PKL_FILL_OBJECT);
+                pkl__emit_int(buf, length);
                 for(int i = 0; i < dict->capacity; i++) {
                     NameDict_KV* kv = &dict->items[i];
                     if(kv->key == NULL) continue;
@@ -445,9 +472,6 @@ static bool pkl__write_object(PickleObject* buf, py_TValue* obj) {
                     // include '\0'
                     PickleObject__write_bytes(buf, field.data, field.size + 1);
                 }
-
-                // store memo
-                pkl__store_memo(buf, obj->_obj);
                 return true;
             }
             return TypeError("'%t' object is not picklable", obj->type);
@@ -635,16 +659,18 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 p += size;
                 break;
             }
-            case PKL_BUILD_LIST: {
+            case PKL_NEW_LIST: {
+                py_newlist(py_pushtmp());
+                break;
+            }
+            case PKL_FILL_LIST: {
                 int length = pkl__read_int(&p);
-                py_Ref val = py_retval();
-                py_newlistn(val, length);
-                for(int i = length - 1; i >= 0; i--) {
-                    py_StackRef item = py_peek(-1);
-                    py_list_setitem(val, i, item);
-                    py_pop();
+                // stack: [list, item_0, ..., item_{length-1}]
+                py_StackRef self = py_peek(-1) - length;
+                for(int i = 0; i < length; i++) {
+                    py_list_append(self, self + 1 + i);
                 }
-                py_push(val);
+                py_shrink(length);
                 break;
             }
             case PKL_BUILD_TUPLE: {
@@ -658,21 +684,19 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 py_push(val);
                 break;
             }
-            case PKL_BUILD_DICT: {
+            case PKL_NEW_DICT: {
+                py_newdict(py_pushtmp());
+                break;
+            }
+            case PKL_FILL_DICT: {
                 int length = pkl__read_int(&p);
-                py_Ref val = py_pushtmp();
-                py_newdict(val);
-                py_StackRef begin = py_peek(-1) - 2 * length;
-                py_StackRef end = py_peek(-1);
-                for(py_StackRef i = begin; i < end; i += 2) {
-                    py_StackRef k = i;
-                    py_StackRef v = i + 1;
-                    bool ok = py_dict_setitem(val, k, v);
-                    if(!ok) return false;
+                // stack: [dict, k_0, v_0, ..., k_{length-1}, v_{length-1}]
+                py_StackRef self = py_peek(-1) - 2 * length;
+                for(int i = 0; i < length; i++) {
+                    py_StackRef k = self + 1 + 2 * i;
+                    if(!py_dict_setitem(self, k, k + 1)) return false;
                 }
-                py_assign(py_retval(), val);
-                py_shrink(2 * length + 1);
-                py_push(py_retval());
+                py_shrink(2 * length);
                 break;
             }
             case PKL_VEC2: {
@@ -749,20 +773,23 @@ bool py_pickle_loads_body(const unsigned char* p, int memo_length, c11_smallmap_
                 py_push(py_retval());
                 break;
             }
-            case PKL_OBJECT: {
+            case PKL_NEW_OBJECT: {
                 py_Type type = (py_Type)pkl__read_int(&p);
                 type = pkl__fix_type(type, type_mapping);
-                py_newobject(py_retval(), type, -1, 0);
-                NameDict* dict = PyObject__dict(py_retval()->_obj);
-                int dict_length = pkl__read_int(&p);
-                for(int i = 0; i < dict_length; i++) {
-                    py_StackRef value = py_peek(-1);
+                py_newobject(py_pushtmp(), type, -1, 0);
+                break;
+            }
+            case PKL_FILL_OBJECT: {
+                int length = pkl__read_int(&p);
+                // stack: [object, value_0, ..., value_{length-1}]
+                py_StackRef self = py_peek(-1) - length;
+                NameDict* dict = PyObject__dict(self->_obj);
+                for(int i = 0; i < length; i++) {
                     c11_sv field = {(const char*)p, strlen((const char*)p)};
-                    NameDict__set(dict, py_namev(field), value);
-                    py_pop();
+                    NameDict__set(dict, py_namev(field), self + 1 + i);
                     p += field.size + 1;
                 }
-                py_push(py_retval());
+                py_shrink(length);
                 break;
             }
             case PKL_EOF: {

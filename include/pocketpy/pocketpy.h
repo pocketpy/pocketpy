@@ -590,7 +590,10 @@ PK_API bool py_hash(py_Ref, py_i64* out) PY_RAISE;
 /// Get the iterator of the object.
 PK_API bool py_iter(py_Ref) PY_RAISE PY_RETURN;
 /// Get the next element from the iterator.
-/// 1: success, 0: StopIteration, -1: error
+/// 1: a value was produced into `py_retval()`
+/// 0: the iterator is exhausted; `py_retval()` holds the `StopIteration` value,
+///    or `nil` if there is none
+/// -1: error
 PK_API int py_next(py_Ref) PY_RAISE PY_RETURN;
 /// Python equivalent to `str(val)`.
 PK_API bool py_str(py_Ref val) PY_RAISE PY_RETURN;

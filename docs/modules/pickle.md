@@ -24,6 +24,12 @@ The following types can be pickled:
 - [x] classes accessible from the top level of a module;
 - [x] instances of such classes
 
+Cyclic and shared references are preserved: `list`, `dict` and instances of
+python classes are memoized before their contents are written, so an object
+graph containing reference cycles round-trips correctly and object identity
+is retained. A cycle that passes only through a `tuple` or through a
+`__reduce__` result is not supported.
+
 The following magic methods are available:
 
 - [ ] `__getnewargs__`

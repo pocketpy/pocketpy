@@ -5,6 +5,7 @@
 #include "pocketpy/objects/object.h"
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
+#include "pocketpy/interpreter/bindings.h"
 #include <stdbool.h>
 
 c11_string* pk_tostr(py_Ref self) {
@@ -680,17 +681,21 @@ py_Type pk_str__register() {
     return type;
 }
 
-bool str_iterator__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    int* ud = py_touserdata(&argv[0]);
+PK_DEFINE_NEXT_WRAPPER(str_iterator)
+
+int str_iterator__iternext(py_Ref self) {
+    int* ud = py_touserdata(self);
     int size;
-    const char* data = py_tostrn(py_getslot(argv, 0), &size);
-    if(*ud == size) return StopIteration();
+    const char* data = py_tostrn(py_getslot(self, 0), &size);
+    if(*ud == size) {
+        py_newnil(py_retval());
+        return 0;
+    }
     int start = *ud;
     int len = c11__u8_header(data[*ud], false);
     *ud += len;
     py_newstrv(py_retval(), (c11_sv){data + start, len});
-    return true;
+    return 1;
 }
 
 py_Type pk_str_iterator__register() {

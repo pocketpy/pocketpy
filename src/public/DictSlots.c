@@ -13,11 +13,15 @@ PK_INLINE py_Ref py_getdict(py_Ref self, py_Name name) {
 
 PK_INLINE void py_setdict(py_Ref self, py_Name name, py_Ref val) {
     assert(self && self->is_ptr);
+    // writing to a type's dict may change what `__new__`/`__init__` resolve to,
+    // for this type and for every subclass of it
+    if(self->type == tp_type) pk_current_vm->type_version++;
     NameDict__set(PyObject__dict(self->_obj), name, val);
 }
 
 bool py_deldict(py_Ref self, py_Name name) {
     assert(self && self->is_ptr);
+    if(self->type == tp_type) pk_current_vm->type_version++;
     return NameDict__del(PyObject__dict(self->_obj), name);
 }
 
@@ -40,6 +44,7 @@ bool py_applydict(py_Ref self, bool (*f)(py_Name, py_Ref, void*), void* ctx) {
 
 void py_cleardict(py_Ref self) {
     assert(self && self->is_ptr);
+    if(self->type == tp_type) pk_current_vm->type_version++;
     NameDict* dict = PyObject__dict(self->_obj);
     NameDict__clear(dict);
 }

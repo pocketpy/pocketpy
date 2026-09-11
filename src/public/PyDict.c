@@ -4,6 +4,7 @@
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/types.h"
 #include "pocketpy/interpreter/vm.h"
+#include "pocketpy/interpreter/bindings.h"
 
 typedef struct {
     Dict* dict;  // weakref for slot 0
@@ -644,30 +645,35 @@ py_Type pk_dict__register() {
 }
 
 //////////////////////////
-bool dict_items__next__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(1);
-    DictIterator* iter = py_touserdata(py_arg(0));
-    if(DictIterator__modified(iter)) return RuntimeError("dictionary modified during iteration");
+PK_DEFINE_NEXT_WRAPPER(dict_items)
+
+int dict_items__iternext(py_Ref self) {
+    DictIterator* iter = py_touserdata(self);
+    if(DictIterator__modified(iter)) {
+        RuntimeError("dictionary modified during iteration");
+        return -1;
+    }
     DictEntry* entry = (DictIterator__next(iter));
     if(entry) {
         switch(iter->mode) {
             case 0:  // keys
                 py_assign(py_retval(), &entry->key);
-                return true;
+                return 1;
             case 1:  // values
                 py_assign(py_retval(), &entry->val);
-                return true;
+                return 1;
             case 2:  // items
             {
                 py_Ref p = py_newtuple(py_retval(), 2);
                 p[0] = entry->key;
                 p[1] = entry->val;
-                return true;
+                return 1;
             }
             default: c11__unreachable();
         }
     }
-    return StopIteration();
+    py_newnil(py_retval());
+    return 0;
 }
 
 bool dict_items__len__(int argc, py_Ref argv) {

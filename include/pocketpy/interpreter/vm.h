@@ -47,6 +47,9 @@ typedef struct VM {
 
     BinTree modules;
     c11_vector /*TypePointer*/ types;
+    // Bumped on every write to a type's `__dict__`. `py_TypeInfo` caches the
+    // resolution of `__new__`/`__init__` and re-resolves when this moves.
+    uint64_t type_version;
 
     py_GlobalRef builtins;  // builtins module
     py_GlobalRef main;      // __main__ module

@@ -156,3 +156,40 @@ class E1:
 
 e1 = E1(3,4)
 assert e1.sum() == 7
+
+# `__new__`/`__init__` are resolved once and cached on the type, so rebinding
+# them later has to invalidate that cache -- for the type and for its subclasses.
+class CacheA:
+    def __init__(self):
+        self.tag = 'old'
+
+assert CacheA().tag == 'old'
+
+def _new_init(self):
+    self.tag = 'new'
+
+CacheA.__init__ = _new_init
+assert CacheA().tag == 'new'
+
+class CacheBase: pass
+class CacheDerived(CacheBase): pass
+
+CacheDerived()  # populate the cache before the base is touched
+
+def _base_init(self):
+    self.tag = 'base'
+
+CacheBase.__init__ = _base_init
+assert CacheDerived().tag == 'base'
+
+class CacheC:
+    def __init__(self):
+        self.tag = 'c'
+
+assert CacheC().tag == 'c'
+del CacheC.__init__
+try:
+    CacheC().tag
+    exit(1)
+except AttributeError:
+    pass
