@@ -42,9 +42,17 @@ static bool range__new__(int argc, py_Ref argv) {
     return true;
 }
 
+typedef struct RangeIterator {
+    Range range;
+    py_i64 current;
+} RangeIterator;
+
 static bool range__iter__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
-    return py_tpcall(tp_range_iterator, 1, argv);
+    RangeIterator* ud = py_newobject(py_retval(), tp_range_iterator, 0, sizeof(RangeIterator));
+    ud->range = *(Range*)py_touserdata(argv);
+    ud->current = ud->range.start;
+    return true;
 }
 
 py_Type pk_range__register() {
@@ -54,11 +62,6 @@ py_Type pk_range__register() {
     py_bindmagic(type, __iter__, range__iter__);
     return type;
 }
-
-typedef struct RangeIterator {
-    Range range;
-    py_i64 current;
-} RangeIterator;
 
 static bool range_iterator__new__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
