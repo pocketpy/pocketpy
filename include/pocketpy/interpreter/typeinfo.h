@@ -21,6 +21,12 @@ typedef struct py_TypeInfo {
     bool (*delattribute)(py_Ref self, py_Name name) PY_RAISE;
     bool (*getunboundmethod)(py_Ref self, py_Name name) PY_RETURN;
 
+    // Resolved `__new__`/`__init__`, valid while `magics_version` matches
+    // `vm->type_version`. `cached_init` is nil when the type has no `__init__`.
+    py_TValue cached_new;
+    py_TValue cached_init;
+    uint64_t magics_version;
+
     py_TValue annotations;
     py_Dtor dtor;  // destructor for this type, NULL if no dtor
     void (*on_end_subclass)(struct py_TypeInfo*);  // backdoor for enum module
@@ -28,6 +34,8 @@ typedef struct py_TypeInfo {
 
 py_TypeInfo* pk_typeinfo(py_Type type);
 py_ItemRef pk_tpfindname(py_TypeInfo* ti, py_Name name);
+/// Re-resolve `cached_new`/`cached_init` against the current `type_version`.
+void pk_tpresolvemagics(py_TypeInfo* ti);
 #define pk_tpfindmagic pk_tpfindname
 
 py_Type pk_newtype(const char* name,
