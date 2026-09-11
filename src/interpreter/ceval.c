@@ -81,6 +81,14 @@ static bool unpack_dict_to_buffer(py_Ref key, py_Ref val, void* ctx) {
     return TypeError("keywords must be strings, not '%t'", key->type);
 }
 
+static bool binaryop_isnum(const py_TValue* v) {
+    return v->type == tp_int || v->type == tp_float;
+}
+
+static py_f64 binaryop_tof64(const py_TValue* v) {
+    return v->type == tp_int ? (py_f64)v->_i64 : v->_f64;
+}
+
 FrameResult VM__run_top_frame(VM* self) {
     py_Frame* frame = self->top_frame;
     Bytecode* co_codes;
@@ -659,9 +667,34 @@ __NEXT_STEP:
         *TOP() = self->last_retval;                                                                \
         DISPATCH();                                                                                \
     }
-            CASE_BINARY_OP(OP_BINARY_ADD, __add__, __radd__)
-            CASE_BINARY_OP(OP_BINARY_SUB, __sub__, __rsub__)
-            CASE_BINARY_OP(OP_BINARY_MUL, __mul__, __rmul__)
+// Fast paths for `int`/`float` operands. These mirror `DEF_NUM_BINARY_OP` in
+// `py_number.c`, including the promotion of a mixed `int`/`float` pair. Modifying a
+// builtin type's magic methods is undefined behaviour (docs/features/ub.md), so the
+// type is never consulted here.
+#define CASE_BINARY_OP_NUM(label, op, rop, c_op, mk_i, mk_f)                                       \
+    case label: {                                                                                  \
+        if(SECOND()->type == tp_int && TOP()->type == tp_int) {                                    \
+            py_i64 lhs = SECOND()->_i64;                                                           \
+            py_i64 rhs = TOP()->_i64;                                                              \
+            POP();                                                                                 \
+            mk_i(TOP(), lhs c_op rhs);                                                             \
+            DISPATCH();                                                                            \
+        }                                                                                          \
+        if(binaryop_isnum(SECOND()) && binaryop_isnum(TOP())) {                                    \
+            py_f64 lhs = binaryop_tof64(SECOND());                                                 \
+            py_f64 rhs = binaryop_tof64(TOP());                                                    \
+            POP();                                                                                 \
+            mk_f(TOP(), lhs c_op rhs);                                                             \
+            DISPATCH();                                                                            \
+        }                                                                                          \
+        if(!pk_stack_binaryop(self, op, rop)) goto __ERROR;                                        \
+        POP();                                                                                     \
+        *TOP() = self->last_retval;                                                                \
+        DISPATCH();                                                                                \
+    }
+            CASE_BINARY_OP_NUM(OP_BINARY_ADD, __add__, __radd__, +, py_newint, py_newfloat)
+            CASE_BINARY_OP_NUM(OP_BINARY_SUB, __sub__, __rsub__, -, py_newint, py_newfloat)
+            CASE_BINARY_OP_NUM(OP_BINARY_MUL, __mul__, __rmul__, *, py_newint, py_newfloat)
             CASE_BINARY_OP(OP_BINARY_TRUEDIV, __truediv__, __rtruediv__)
             CASE_BINARY_OP(OP_BINARY_FLOORDIV, __floordiv__, __rfloordiv__)
             CASE_BINARY_OP(OP_BINARY_MOD, __mod__, __rmod__)
@@ -672,13 +705,14 @@ __NEXT_STEP:
             CASE_BINARY_OP(OP_BINARY_OR, __or__, 0)
             CASE_BINARY_OP(OP_BINARY_XOR, __xor__, 0)
             CASE_BINARY_OP(OP_BINARY_MATMUL, __matmul__, 0)
-            CASE_BINARY_OP(OP_COMPARE_LT, __lt__, __gt__)
-            CASE_BINARY_OP(OP_COMPARE_LE, __le__, __ge__)
-            CASE_BINARY_OP(OP_COMPARE_EQ, __eq__, __eq__)
-            CASE_BINARY_OP(OP_COMPARE_NE, __ne__, __ne__)
-            CASE_BINARY_OP(OP_COMPARE_GT, __gt__, __lt__)
-            CASE_BINARY_OP(OP_COMPARE_GE, __ge__, __le__)
+            CASE_BINARY_OP_NUM(OP_COMPARE_LT, __lt__, __gt__, <, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_LE, __le__, __ge__, <=, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_EQ, __eq__, __eq__, ==, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_NE, __ne__, __ne__, !=, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_GT, __gt__, __lt__, >, py_newbool, py_newbool)
+            CASE_BINARY_OP_NUM(OP_COMPARE_GE, __ge__, __le__, >=, py_newbool, py_newbool)
 #undef CASE_BINARY_OP
+#undef CASE_BINARY_OP_NUM
         case OP_IS_OP: {
             bool res = py_isidentical(SECOND(), TOP());
             POP();

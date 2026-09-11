@@ -872,3 +872,82 @@ assert 9 % 8 == 1
 assert 9 // 8 == 1
 assert 9 % 9 == 0
 assert 9 // 9 == 1
+
+# `+`, `-`, `*` and the comparisons take an inline fast path when both operands
+# are `int` or `float`. Cover every type pairing and every way out of it.
+i, f = 7, 2.5
+
+# int op int -> int
+assert 7 + 2 == 9 and type(7 + 2) is int
+assert 7 - 2 == 5 and type(7 - 2) is int
+assert 7 * 2 == 14 and type(7 * 2) is int
+
+# float op float -> float
+assert 7.5 + 2.5 == 10.0 and type(7.5 + 2.5) is float
+assert 7.5 - 2.5 == 5.0 and type(7.5 - 2.5) is float
+assert 7.5 * 2.0 == 15.0 and type(7.5 * 2.0) is float
+
+# mixed operands promote to float in both directions
+assert i + f == 9.5 and type(i + f) is float
+assert f + i == 9.5 and type(f + i) is float
+assert i - f == 4.5 and type(i - f) is float
+assert f - i == -4.5 and type(f - i) is float
+assert i * f == 17.5 and type(i * f) is float
+assert f * i == 17.5 and type(f * i) is float
+
+# comparisons, all four pairings
+assert (2 < 7) and not (7 < 2)
+assert (2.5 < 7.5) and not (7.5 < 2.5)
+assert (2 < 7.5) and not (7.5 < 2)
+assert (2.5 < 7) and not (7 < 2.5)
+assert (7 >= 7) and (7.0 >= 7) and (7 >= 7.0) and (7.0 >= 7.0)
+assert (7 == 7.0) and (7.0 == 7) and not (7 != 7.0)
+assert (7 <= 7.0) and (7.0 <= 7) and not (7 > 7.0) and not (7.0 > 7)
+
+# `bool` is a separate type here, not a subclass of `int`, so it must fall
+# through to the generic path and reach `bool.__add__` and friends
+assert True + 2 == 3
+assert 2 + True == 3
+assert True - 1 == 0
+assert 2 * True == 2
+
+# non-numbers still reach their own magic methods
+assert 'a' + 'b' == 'ab'
+assert [1] + [2] == [1, 2]
+assert 'a' * 2 == 'aa'
+assert (1, 2) < (1, 3)
+
+class Vec:
+    def __init__(self, v):
+        self.v = v
+    def __add__(self, other):
+        return Vec(self.v + other.v)
+    def __radd__(self, other):
+        return Vec(self.v + other)
+    def __lt__(self, other):
+        return self.v < other.v
+
+assert (Vec(1) + Vec(2)).v == 3
+assert (2 + Vec(1)).v == 3          # int.__add__ returns NotImplemented -> __radd__
+assert Vec(1) < Vec(2)
+
+# unsupported pairings still raise
+try:
+    1 + 'a'
+    exit(1)
+except TypeError:
+    pass
+try:
+    1 < 'a'
+    exit(1)
+except TypeError:
+    pass
+
+# division is deliberately not on the fast path
+assert 7 / 2 == 3.5 and type(7 / 2) is float
+assert 7 // 2 == 3 and 7 % 2 == 1
+try:
+    1 / 0
+    exit(1)
+except ZeroDivisionError:
+    pass
