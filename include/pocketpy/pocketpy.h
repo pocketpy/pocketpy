@@ -84,6 +84,12 @@ typedef struct py_Callbacks {
 typedef struct py_AppCallbacks {
     void (*on_vm_ctor)(int index);
     void (*on_vm_dtor)(int index);
+    /// Debugger callbacks default to DAP when PK_ENABLE_OS is enabled, otherwise NULL.
+    PY_MAYBENULL void (*debugger_waitforattach)(const char* hostname, unsigned short port);
+    /// 0: detached, 1: attached and running user code, 2: attached and running debugger code.
+    PY_MAYBENULL int (*debugger_status)();
+    PY_MAYBENULL void (*debugger_exceptionbreakpoint)(py_Ref exc);
+    PY_MAYBENULL void (*debugger_exit)(int code);
 } py_AppCallbacks;
 
 /// Native function signature.
@@ -666,17 +672,18 @@ PK_API bool StopIteration() PY_RAISE;
 
 /************* Debugger *************/
 
-#if PK_ENABLE_OS
-PK_API void py_debugger_waitforattach(const char* hostname, unsigned short port);
-PK_API int py_debugger_status();
-PK_API void py_debugger_exceptionbreakpoint(py_Ref exc);
-PK_API void py_debugger_exit(int code);
-#else
-#define py_debugger_waitforattach(hostname, port)
-#define py_debugger_status() 0
-#define py_debugger_exceptionbreakpoint(exc)
-#define py_debugger_exit(code)
-#endif
+#define py_debugger_waitforattach(hostname, port) \
+    (py_appcallbacks()->debugger_waitforattach \
+         ? py_appcallbacks()->debugger_waitforattach((hostname), (port)) \
+         : (void)0)
+#define py_debugger_status() \
+    (py_appcallbacks()->debugger_status ? py_appcallbacks()->debugger_status() : 0)
+#define py_debugger_exceptionbreakpoint(exc) \
+    (py_appcallbacks()->debugger_exceptionbreakpoint \
+         ? py_appcallbacks()->debugger_exceptionbreakpoint((exc)) \
+         : (void)0)
+#define py_debugger_exit(code) \
+    (py_appcallbacks()->debugger_exit ? py_appcallbacks()->debugger_exit((code)) : (void)0)
 
 /************* PyTuple *************/
 

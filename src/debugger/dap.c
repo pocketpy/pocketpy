@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "pocketpy/common/socket.h"
 #include "pocketpy/debugger/core.h"
+#include "pocketpy/debugger/dap.h"
 #include "pocketpy/objects/base.h"
 #include "pocketpy/objects/exception.h"
 #include "pocketpy/pocketpy.h"
@@ -531,7 +532,7 @@ void c11_dap_tracefunc(py_Frame* frame, enum py_TraceEvent event) {
     py_sys_settrace(c11_dap_tracefunc, false);
 }
 
-void py_debugger_waitforattach(const char* hostname, unsigned short port) {
+void dap_waitforattach(const char* hostname, unsigned short port) {
     c11_debugger_init();
     c11_dap_init_server(hostname, port);
     while(!server.isconfiguredone) {
@@ -546,16 +547,16 @@ void py_debugger_waitforattach(const char* hostname, unsigned short port) {
     py_sys_settrace(c11_dap_tracefunc, true);
 }
 
-void py_debugger_exit(int exitCode) { c11_dap_send_exited_event(exitCode); }
+void dap_exit(int exitCode) { c11_dap_send_exited_event(exitCode); }
 
-int py_debugger_status() { 
+int dap_status() {
     if(!server.isAttached) {
         return 0;
     }
     return server.isUserCode ? 1 : 2;
- }
+}
 
-void py_debugger_exceptionbreakpoint(py_Ref exc) {
+void dap_exceptionbreakpoint(py_Ref exc) {
     assert(py_isinstance(exc, tp_BaseException));
 
     py_sys_settrace(NULL, true);

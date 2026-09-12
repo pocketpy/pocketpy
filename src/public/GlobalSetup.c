@@ -3,6 +3,7 @@
 
 #include "pocketpy/common/utils.h"
 #include "pocketpy/common/name.h"
+#include "pocketpy/debugger/dap.h"
 #include "pocketpy/interpreter/vm.h"
 
 PK_THREAD_LOCAL VM* pk_current_vm;
@@ -21,6 +22,14 @@ void py_initialize() {
         // c11__abort("py_initialize() can only be called once!");
         return;
     }
+
+#if PK_ENABLE_OS
+    py_AppCallbacks* callbacks = py_appcallbacks();
+    callbacks->debugger_waitforattach = dap_waitforattach;
+    callbacks->debugger_status = dap_status;
+    callbacks->debugger_exceptionbreakpoint = dap_exceptionbreakpoint;
+    callbacks->debugger_exit = dap_exit;
+#endif
 
     pk_names_initialize();
 
