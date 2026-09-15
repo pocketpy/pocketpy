@@ -692,18 +692,52 @@ __NEXT_STEP:
         *TOP() = self->last_retval;                                                                \
         DISPATCH();                                                                                \
     }
+// Fast paths for `int` operands, mirroring `DEF_INT_BITWISE_OP` in `py_number.c`.
+#define CASE_BINARY_OP_INT(label, op, rop, c_op)                                                   \
+    case label: {                                                                                  \
+        if(SECOND()->type == tp_int && TOP()->type == tp_int) {                                    \
+            py_i64 lhs = SECOND()->_i64;                                                           \
+            py_i64 rhs = TOP()->_i64;                                                              \
+            POP();                                                                                 \
+            py_newint(TOP(), lhs c_op rhs);                                                        \
+            DISPATCH();                                                                            \
+        }                                                                                          \
+        if(!pk_stack_binaryop(self, op, rop)) goto __ERROR;                                        \
+        POP();                                                                                     \
+        *TOP() = self->last_retval;                                                                \
+        DISPATCH();                                                                                \
+    }
+// Fast paths for `int` operands, mirroring `int__floordiv__` and `int__mod__` in `py_number.c`.
+// A zero divisor takes the slow path, which raises the `ZeroDivisionError`.
+#define CASE_BINARY_OP_INT_DIV(label, op, rop, c_func)                                             \
+    case label: {                                                                                  \
+        if(SECOND()->type == tp_int && TOP()->type == tp_int && TOP()->_i64 != 0) {                \
+            py_i64 lhs = SECOND()->_i64;                                                           \
+            py_i64 rhs = TOP()->_i64;                                                              \
+            POP();                                                                                 \
+            py_newint(TOP(), c_func(lhs, rhs));                                                    \
+            DISPATCH();                                                                            \
+        }                                                                                          \
+        if(!pk_stack_binaryop(self, op, rop)) goto __ERROR;                                        \
+        POP();                                                                                     \
+        *TOP() = self->last_retval;                                                                \
+        DISPATCH();                                                                                \
+    }
             CASE_BINARY_OP_NUM(OP_BINARY_ADD, __add__, __radd__, +, py_newint, py_newfloat)
             CASE_BINARY_OP_NUM(OP_BINARY_SUB, __sub__, __rsub__, -, py_newint, py_newfloat)
             CASE_BINARY_OP_NUM(OP_BINARY_MUL, __mul__, __rmul__, *, py_newint, py_newfloat)
             CASE_BINARY_OP(OP_BINARY_TRUEDIV, __truediv__, __rtruediv__)
-            CASE_BINARY_OP(OP_BINARY_FLOORDIV, __floordiv__, __rfloordiv__)
-            CASE_BINARY_OP(OP_BINARY_MOD, __mod__, __rmod__)
+            CASE_BINARY_OP_INT_DIV(OP_BINARY_FLOORDIV,
+                                   __floordiv__,
+                                   __rfloordiv__,
+                                   cpy312__int_floordiv)
+            CASE_BINARY_OP_INT_DIV(OP_BINARY_MOD, __mod__, __rmod__, cpy312__int_mod)
             CASE_BINARY_OP(OP_BINARY_POW, __pow__, __rpow__)
-            CASE_BINARY_OP(OP_BINARY_LSHIFT, __lshift__, 0)
-            CASE_BINARY_OP(OP_BINARY_RSHIFT, __rshift__, 0)
-            CASE_BINARY_OP(OP_BINARY_AND, __and__, 0)
-            CASE_BINARY_OP(OP_BINARY_OR, __or__, 0)
-            CASE_BINARY_OP(OP_BINARY_XOR, __xor__, 0)
+            CASE_BINARY_OP_INT(OP_BINARY_LSHIFT, __lshift__, 0, <<)
+            CASE_BINARY_OP_INT(OP_BINARY_RSHIFT, __rshift__, 0, >>)
+            CASE_BINARY_OP_INT(OP_BINARY_AND, __and__, 0, &)
+            CASE_BINARY_OP_INT(OP_BINARY_OR, __or__, 0, |)
+            CASE_BINARY_OP_INT(OP_BINARY_XOR, __xor__, 0, ^)
             CASE_BINARY_OP(OP_BINARY_MATMUL, __matmul__, 0)
             CASE_BINARY_OP_NUM(OP_COMPARE_LT, __lt__, __gt__, <, py_newbool, py_newbool)
             CASE_BINARY_OP_NUM(OP_COMPARE_LE, __le__, __ge__, <=, py_newbool, py_newbool)
@@ -713,6 +747,8 @@ __NEXT_STEP:
             CASE_BINARY_OP_NUM(OP_COMPARE_GE, __ge__, __le__, >=, py_newbool, py_newbool)
 #undef CASE_BINARY_OP
 #undef CASE_BINARY_OP_NUM
+#undef CASE_BINARY_OP_INT
+#undef CASE_BINARY_OP_INT_DIV
         case OP_IS_OP: {
             bool res = py_isidentical(SECOND(), TOP());
             POP();
@@ -946,6 +982,10 @@ __NEXT_STEP:
             DISPATCH();
         }
         case OP_UNARY_INVERT: {
+            if(TOP()->type == tp_int) {
+                py_newint(TOP(), ~TOP()->_i64);
+                DISPATCH();
+            }
             if(!pk_callmagic(__invert__, 1, TOP())) goto __ERROR;
             *TOP() = self->last_retval;
             DISPATCH();
