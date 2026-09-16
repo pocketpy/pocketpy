@@ -9,6 +9,29 @@ assert 'testing5' >= 'test' + 'ing1'
 assert 'abc' + 'def' == 'abcdef'
 assert 'abc' * 3 == 'abcabcabc'
 
+# Oversized repetition must fail before size arithmetic or allocation (#541).
+for text, count in [
+    ('ab', 2147483648),
+    ('abcdefgh', 1152921504606846976),
+    ('ab', 5000000000000000000),
+    ('a', 2147483647),
+]:
+    for reverse in [False, True]:
+        raised = False
+        try:
+            result = count * text if reverse else text * count
+        except ValueError:
+            raised = True
+        assert raised, 'oversized string repetition should raise ValueError'
+
+assert '' * 9223372036854775807 == ''
+assert 9223372036854775807 * '' == ''
+assert 'abc' * 0 == ''
+assert 'abc' * -1 == ''
+assert 'abc' * 1 == 'abc'
+assert 3 * 'abc' == 'abcabcabc'
+assert 'é' * 3 == 'ééé'
+
 assert repr('\\\n\t\'\r\b\x48') in [
     r"'\\\n\t\'\r\bH'",
     '"\\\\\\n\\t\'\\r\\x08H"',

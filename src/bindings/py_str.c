@@ -6,6 +6,7 @@
 #include "pocketpy/interpreter/vm.h"
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/interpreter/bindings.h"
+#include <limits.h>
 #include <stdbool.h>
 
 c11_string* pk_tostr(py_Ref self) {
@@ -173,9 +174,12 @@ static bool str__mul__(int argc, py_Ref argv) {
         py_newnotimplemented(py_retval());
     } else {
         py_i64 n = py_toint(py_arg(1));
-        if(n <= 0) {
+        if(n <= 0 || self->size == 0) {
             py_newstr(py_retval(), "");
         } else {
+            // Both the string and its heap allocation use int-sized lengths.
+            const py_i64 max_size = INT_MAX - sizeof(PyObject) - sizeof(c11_string) - 1;
+            if(n > max_size / self->size) return ValueError("repeated string is too long");
             char* p = py_newstrn(py_retval(), self->size * n);
             for(int i = 0; i < n; i++) {
                 memcpy(p + i * self->size, self->data, self->size);
