@@ -24,6 +24,24 @@ void py_tuple_setitem(py_Ref self, int i, py_Ref val) { py_setslot(self, i, val)
 int py_tuple_len(py_Ref self) { return self->_obj->slots; }
 
 //////////////
+static bool tuple__add__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(!py_istype(py_arg(0), tp_tuple) || !py_istype(py_arg(1), tp_tuple)) {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    int lhs_length = py_tuple_len(py_arg(0));
+    int rhs_length = py_tuple_len(py_arg(1));
+    py_Ref p = py_newtuple(py_retval(), lhs_length + rhs_length);
+    for(int i = 0; i < lhs_length; i++) {
+        p[i] = *py_tuple_getitem(py_arg(0), i);
+    }
+    for(int i = 0; i < rhs_length; i++) {
+        p[lhs_length + i] = *py_tuple_getitem(py_arg(1), i);
+    }
+    return true;
+}
+
 static bool tuple__len__(int argc, py_Ref argv) {
     py_newint(py_retval(), py_tuple_len(argv));
     return true;
@@ -176,6 +194,7 @@ static bool tuple__hash__(int argc, py_Ref argv) {
 py_Type pk_tuple__register() {
     py_Type type = pk_newtype("tuple", tp_object, NULL, NULL, false, true);
 
+    py_bindmagic(type, __add__, tuple__add__);
     py_bindmagic(type, __len__, tuple__len__);
     py_bindmagic(type, __repr__, tuple__repr__);
     py_bindmagic(type, __new__, tuple__new__);
