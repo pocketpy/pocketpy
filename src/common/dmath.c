@@ -3,6 +3,13 @@
 #include "pocketpy/common/_log_spline_tbl.h"
 #include <stdint.h>
 
+// hardware sqrt, see `dmath_sqrt`
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#include <emmintrin.h>
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#include <arm_neon.h>
+#endif
+
 union Float64Bits {
     double f;
     uint64_t i;
@@ -153,8 +160,62 @@ double dmath_pow(double base, double exp) {
     return DMATH_NAN;
 }
 
+// IEEE 754 requires sqrt to be correctly rounded, so the hardware instruction
+// returns the same bits on every platform (and matches CPython).
+// libm is never used: every hardware branch below is guaranteed to emit the instruction,
+// and other targets use a software sqrt which is also correctly rounded (same bits, but slow).
 double dmath_sqrt(double x) {
-    return dmath_pow(x, 0.5);
+    if(x < 0) return DMATH_NAN;
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+    // x86 with sse2: sqrtsd
+    __m128d v = _mm_set_sd(x);
+    return _mm_cvtsd_f64(_mm_sqrt_sd(v, v));
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    // aarch64: fsqrt
+    return vget_lane_f64(vsqrt_f64(vdup_n_f64(x)), 0);
+#elif defined(__arm__) && defined(__ARM_FP) && (__ARM_FP & 8)
+    // arm32 with a double precision vfp: vsqrt
+    // (`__builtin_sqrt` is not used because it may call libm to set errno)
+    register double d0 __asm__("d0") = x;
+    __asm__("vsqrt.f64 d0, d0" : "=w"(d0) : "w"(d0));
+    return d0;
+#else
+    // software fallback (e.g. x86 without sse2, wasm):
+    // digit-by-digit sqrt in integer arithmetic (as in fdlibm's e_sqrt.c)
+    union Float64Bits u = { .f = x };
+    int e = (int)(u.i >> 52) & 0x7ff;
+    uint64_t m = u.i & (-1ULL >> 12);
+    if(e == 0x7ff) return x + x;  // inf or nan
+    if(e == 0) {
+        if(m == 0) return x;  // +-0
+        for(e = 1; m >> 52 == 0; e--) m <<= 1;  // subnormal
+    } else {
+        m |= 1ULL << 52;
+    }
+    // x = (m / 2^52) * 2^(e - 1023), make the exponent even so it can be halved
+    if((e & 1) == 0) {
+        m <<= 1;
+        e--;
+    }
+    // q = floor(sqrt(m / 2^52) * 2^53), one bit per iteration:
+    // 53 bits of the result and 1 more bit for rounding
+    uint64_t q = 0, s = 0;
+    m <<= 1;
+    for(uint64_t r = 1ULL << 53; r != 0; r >>= 1) {
+        uint64_t t = s + r;
+        if(t <= m) {
+            s = t + r;
+            m -= t;
+            q += r;
+        }
+        m <<= 1;
+    }
+    // sqrt of a double is never exactly halfway between two doubles, so round half up is enough
+    q = (q + 1) >> 1;
+    // the leading bit of q carries into the exponent
+    u.i = ((uint64_t)((e + 1023) / 2 - 1) << 52) + q;
+    return u.f;
+#endif
 }
 
 double dmath_cbrt(double x) {

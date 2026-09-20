@@ -80,10 +80,27 @@ assertEqual(math.pow(-1.255782,-3), -0.5049603042167915)
 assertEqual(math.pow(6.127042, 4.071529), 1604.40754645674428502388764172)
 
 # test sqrt
-assertEqual(math.sqrt(2), 1.41421356237309492343001693370)
-assertEqual(math.sqrt(math.pi), 1.772453850905516 - 2.220446049250313e-16)
+# these match CPython bit-for-bit (hardware sqrt is correctly rounded, see dmath_sqrt)
+assertEqual(math.sqrt(2), 1.4142135623730951)
+assertEqual(math.sqrt(math.pi), 1.7724538509055159)
 assertEqual(math.sqrt(125.872509), 11.21929182257062)
-assertEqual(math.sqrt(1225.296280), 35.0042323155358019448613049462)
+assertEqual(math.sqrt(1225.296280), 35.00423231553579)
+assertEqual(math.sqrt(0.1), 0.31622776601683794)
+assertEqual(math.sqrt(1e300), 1e150)
+assertEqual(math.sqrt(1.7976931348623157e308), 1.3407807929942596e154)
+# subnormal inputs
+assertEqual(math.sqrt(1e-320), 9.99994433575849e-161)
+assertEqual(math.sqrt(5e-324), 2.2227587494850775e-162)
+# perfect squares must be exact, the old exp/log based sqrt gave sqrt(9) == 2.9999999999999996
+for i in range(2000):
+    assertEqual(math.sqrt(i * i), float(i))
+# special values
+assertEqual(math.sqrt(math.inf), math.inf)
+assertEqual(math.copysign(1.0, math.sqrt(0.0)), 1.0)
+assertEqual(math.copysign(1.0, math.sqrt(-0.0)), -1.0)
+assert math.isnan(math.sqrt(-1))
+assert math.isnan(math.sqrt(-math.inf))
+assert math.isnan(math.sqrt(math.nan))
 
 # test cos, sin, tan
 assertEqual(math.cos(0), 1.0)
