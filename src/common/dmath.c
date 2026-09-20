@@ -218,10 +218,6 @@ double dmath_sqrt(double x) {
 #endif
 }
 
-double dmath_cbrt(double x) {
-    return dmath_pow(x, 1.0 / 3.0);
-}
-
 // https://github.com/kraj/musl/blob/kraj/master/src/math/sincos.c
 static double __sin(double x, double y, int iy)
 {

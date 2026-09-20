@@ -1,5 +1,5 @@
-// Inverse trigonometric functions ported from the Zig standard library, which
-// in turn ports them from musl (MIT licensed):
+// Math functions ported from the Zig standard library, which in turn ports
+// them from musl (MIT licensed):
 // https://github.com/ziglang/zig/blob/master/lib/std/math/
 //
 // These live in their own file so the provenance stays obvious: each function
@@ -303,4 +303,64 @@ double dmath_atan2(double y, double x) {
         case 2: return pi - (z - pi_lo);  /* atan(+, -) */
         default: return (z - pi_lo) - pi; /* atan(-, -) */
     }
+}
+
+// https://github.com/ziglang/zig/blob/master/lib/std/math/cbrt.zig
+//
+// cbrt is not required by IEEE 754 to be correctly rounded, so there is no
+// hardware instruction to lean on like `dmath_sqrt` does; this software
+// version is what gives the same bits on every platform.
+double dmath_cbrt(double x) {
+    const uint32_t B1 = 715094163; /* (1023 - 1023 / 3 - 0.03306235651) * 2^20 */
+    const uint32_t B2 = 696219795; /* (1023 - 1023 / 3 - 54 / 3 - 0.03306235651) * 2^20 */
+
+    /* |1 / cbrt(x) - p(x)| < 2^-23.5 */
+    const double P0 = 1.87595182427177009643;
+    const double P1 = -1.88497979543377169875;
+    const double P2 = 1.621429720105354466140;
+    const double P3 = -0.758397934778766047437;
+    const double P4 = 0.145996192886612446982;
+
+    union ZigF64 ux = {.f = x};
+    uint64_t u = ux.i;
+    uint32_t hx = (uint32_t)(u >> 32) & 0x7FFFFFFF;
+
+    /* cbrt(nan, inf) = itself */
+    if(hx >= 0x7FF00000) return x + x;
+
+    /* cbrt to ~5bits */
+    if(hx < 0x00100000) {
+        union ZigF64 us = {.f = x * 0x1.0p54};
+        u = us.i;
+        hx = (uint32_t)(u >> 32) & 0x7FFFFFFF;
+
+        /* cbrt(+-0) = itself */
+        if(hx == 0) return x;
+        hx = hx / 3 + B2;
+    } else {
+        hx = hx / 3 + B1;
+    }
+
+    u &= 0x8000000000000000ULL;
+    u |= (uint64_t)hx << 32;
+    union ZigF64 ut = {.i = u};
+    double t = ut.f;
+
+    /* cbrt to 23 bits
+     * cbrt(x) = t * cbrt(x / t^3) ~= t * P(t^3 / x) */
+    double r = (t * t) * (t / x);
+    t = t * ((P0 + r * (P1 + r * P2)) + ((r * r) * r) * (P3 + r * P4));
+
+    /* Round t away from 0 to 23 bits */
+    ut.f = t;
+    ut.i = (ut.i + 0x80000000) & 0xFFFFFFFFC0000000ULL;
+    t = ut.f;
+
+    /* one step newton to 53 bits */
+    double s = t * t;
+    double q = x / s;
+    double w = t + t;
+    q = (q - t) / (w + q);
+
+    return t + t * q;
 }

@@ -102,6 +102,42 @@ assert math.isnan(math.sqrt(-1))
 assert math.isnan(math.sqrt(-math.inf))
 assert math.isnan(math.sqrt(math.nan))
 
+# test cbrt
+# cbrt is not required by IEEE 754 to be correctly rounded, so unlike sqrt there is
+# no hardware instruction to lean on; these come from the musl port in dmath_zig.c.
+# The cases marked below differ from CPython's math.cbrt by 1 ulp on Windows, where
+# it is the musl port that is correctly rounded and the platform CRT that is not.
+assertEqual(math.cbrt(2), 1.2599210498948732)  # CPython/msvc gives 1.259921049894873
+assertEqual(math.cbrt(3), 1.4422495703074083)
+assertEqual(math.cbrt(10), 2.154434690031884)
+assertEqual(math.cbrt(0.1), 0.4641588833612779)  # CPython/msvc gives 0.464158883361278
+assertEqual(math.cbrt(125.872509), 5.011606490362725)
+assertEqual(math.cbrt(1225.296280), 10.700737364388822)
+assertEqual(math.cbrt(1e300), 1e100)
+assertEqual(math.cbrt(1.7976931348623157e308), 5.643803094122362e102)
+# negative inputs, which the old dmath_pow based cbrt returned nan for
+assertEqual(math.cbrt(-8.0), -2.0)
+assertEqual(math.cbrt(-0.5), -0.7937005259840998)  # CPython/msvc gives -0.7937005259840997
+assertEqual(math.cbrt(-1000.0), -10.0)
+assertEqual(math.cbrt(-1e300), -1e100)
+# subnormal inputs, which the old cbrt got wrong by orders of magnitude
+# because dmath_log2 does not normalize them: cbrt(5e-324) came out as 2.2323972485981933e-103
+assertEqual(math.cbrt(5e-324), 1.7031839360032603e-108)
+assertEqual(math.cbrt(-5e-324), -1.7031839360032603e-108)
+assertEqual(math.cbrt(1e-320), 2.1544266950262728e-107)  # CPython/msvc gives 2.154426695026273e-107
+assertEqual(math.cbrt(2.2250738585072014e-308), 2.812644285236262e-103)  # CPython/msvc gives 2.8126442852362615e-103
+# perfect cubes must be exact; the old cbrt got 1800 of these 2000 wrong,
+# e.g. cbrt(27) == 2.9999999999999996 and cbrt(8) == 1.9999999999999998
+for i in range(2000):
+    assertEqual(math.cbrt(i * i * i), float(i))
+    assertEqual(math.cbrt(-(i * i * i)), -float(i))
+# special values
+assertEqual(math.cbrt(math.inf), math.inf)
+assertEqual(math.cbrt(-math.inf), -math.inf)
+assertEqual(math.copysign(1.0, math.cbrt(0.0)), 1.0)
+assertEqual(math.copysign(1.0, math.cbrt(-0.0)), -1.0)
+assert math.isnan(math.cbrt(math.nan))
+
 # test cos, sin, tan
 assertEqual(math.cos(0), 1.0)
 assertEqual(math.cos(math.pi/2), 6.123233995736766e-17)

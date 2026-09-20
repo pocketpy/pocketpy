@@ -118,6 +118,7 @@ ONE_ARG_FUNC(log2, dmath_log2)
 ONE_ARG_FUNC(log10, dmath_log10)
 TWO_ARG_FUNC(pow, dmath_pow)
 ONE_ARG_FUNC(sqrt, dmath_sqrt)
+ONE_ARG_FUNC(cbrt, dmath_cbrt)
 
 ONE_ARG_FUNC(acos, dmath_acos)
 ONE_ARG_FUNC(asin, dmath_asin)
@@ -198,6 +199,7 @@ void pk__add_module_math() {
 
     py_bindfunc(mod, "pow", math_pow);
     py_bindfunc(mod, "sqrt", math_sqrt);
+    py_bindfunc(mod, "cbrt", math_cbrt);
 
     py_bindfunc(mod, "acos", math_acos);
     py_bindfunc(mod, "asin", math_asin);

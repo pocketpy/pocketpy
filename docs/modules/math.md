@@ -87,6 +87,10 @@ Return `x` raised to the power `y`.
 
 Return the square root of `x`.
 
+### `math.cbrt(x)`
+
+Return the cube root of `x`. Unlike `sqrt`, `x` may be negative.
+
 ### `math.acos(x)`
 
 Return the arc cosine of `x`, in radians.
