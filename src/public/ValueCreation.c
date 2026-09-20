@@ -14,9 +14,14 @@ void py_newint(py_OutRef out, py_i64 val) {
 }
 
 void py_newtrivial(py_OutRef out, py_Type type, void* data, int size) {
-    out->type = type;
-    out->is_ptr = false;
     assert(size <= 16);
+    // A trivial value is kept, compared and pickled as its raw bytes, so all of
+    // them are set: zero first, which leaves `is_ptr` false and covers the padding
+    // after it, `extra` and whatever of the 16 bytes payload `data` does not fill.
+    // Only what is not zero is assigned after that. A caller that tags the value
+    // through `extra` sets it after this call.
+    memset(out, 0, sizeof(py_TValue));
+    out->type = type;
     memcpy(&out->_chars, data, size);
 }
 

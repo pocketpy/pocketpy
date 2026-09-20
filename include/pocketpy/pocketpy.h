@@ -209,7 +209,10 @@ PK_API bool py_smarteval(const char* source, py_Ref module, ...) PY_RAISE PY_RET
 
 /// Create an `int` object.
 PK_API void py_newint(py_OutRef, py_i64);
-/// Create a trivial value object.
+/// Create a trivial value object from the first `size` (<= 16) bytes of `data`.
+/// Every byte of `out` is set: what `data` does not fill is zero, `extra` included,
+/// so equal values are equal byte for byte, in memory and once pickled.
+/// To tag the value through `extra`, set it after this call.
 PK_API void py_newtrivial(py_OutRef out, py_Type type, void* data, int size);
 /// Create a `float` object.
 PK_API void py_newfloat(py_OutRef, py_f64);
