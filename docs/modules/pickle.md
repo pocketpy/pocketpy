@@ -24,6 +24,9 @@ The following types can be pickled:
 - [x] classes accessible from the top level of a module;
 - [x] instances of such classes
 
+`array2d` instances cannot be pickled. Calling `pickle.dumps()` on an `array2d`
+raises `TypeError`. Previously pickled `array2d` data is no longer supported.
+
 Cyclic and shared references are preserved: `list`, `dict` and instances of
 python classes are memoized before their contents are written, so an object
 graph containing reference cycles round-trips correctly and object identity

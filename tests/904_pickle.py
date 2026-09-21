@@ -1,5 +1,12 @@
 import pickle as pkl
 
+def assert_not_picklable(data):
+    try:
+        pkl.dumps(data)
+        assert False, 'array2d must not be picklable'
+    except TypeError as e:
+        assert str(e) == "'array2d' object is not picklable"
+
 def test(data): # type: ignore
     print('-'*50)
     b = pkl.dumps(data)
@@ -37,13 +44,10 @@ a = array2d[int | bool | vec2i].fromlist([
     [1, 2, vec2i.LEFT],
     [4, True, 6]
 ])
-a_encoded = pkl.dumps(a)
-print(a_encoded)
-a_decoded = pkl.loads(a_encoded)
-assert isinstance(a_decoded, array2d)
-assert a_decoded.width == 3 and a_decoded.height == 2
-assert (a == a_decoded).all()
-print(a_decoded)
+assert_not_picklable(a)
+assert_not_picklable([a])
+assert_not_picklable({'array': a})
+assert_not_picklable(array2d.fromlist([['hello', []]]))
 
 test([1, 2, 3])                 # PKL_LIST
 test((1, 2, 3))                 # PKL_TUPLE
@@ -99,7 +103,7 @@ print(pkl.dumps(decoded))
 a = array2d[TVal].fromlist([
     [TVal(1), TVal(2)],
     [TVal(3), 1]])
-test(a)
+assert_not_picklable(a)
 
 # test __reduce__
 
