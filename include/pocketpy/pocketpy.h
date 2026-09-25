@@ -78,6 +78,13 @@ typedef struct py_Callbacks {
     PY_MAYBENULL void (*gc_mark)(void (*f)(py_Ref val, void* ctx), void* ctx);
     /// Used by `PRINT_EXPR` bytecode.
     PY_MAYBENULL bool (*displayhook)(py_Ref val) PY_RAISE;
+    // open_file hook contributed by fdtd.io (Hector), 2026.
+    /// Consulted before a script-reachable file operation. `path` is the target path;
+    /// `mode` is the fopen mode string for `io.FileIO`, or the literal "delete" for
+    /// `os.remove`. Return true to allow the operation, false to reject it (the binding
+    /// then raises OSError). NULL (the default) allows everything, so existing embedders
+    /// are unaffected. Lets an embedder enforce its own path policy.
+    PY_MAYBENULL bool (*open_file)(const char* path, const char* mode);
 } py_Callbacks;
 
 /// A struct contains the application-level callbacks.
