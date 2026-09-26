@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
 A new Flutter FFI plugin project.
                        DESC
-  s.homepage         = 'https://pocketpy.dev'
+  s.homepage         = 'https://pocketpy.github.io'
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'blueloveTH' => 'blueloveth@foxmail.com' }
 

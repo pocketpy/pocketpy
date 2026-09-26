@@ -9,9 +9,9 @@ message: >-
 type: software
 authors:
   - name: blueloveTH
-    website: 'https://pocketpy.dev'
+    website: 'https://pocketpy.github.io'
 repository-code: 'https://github.com/pocketpy/pocketpy'
-url: 'https://pocketpy.dev'
+url: 'https://pocketpy.github.io'
 abstract: >-
   A portable python 3.x interpreter in modern C for game scripting.
 keywords:

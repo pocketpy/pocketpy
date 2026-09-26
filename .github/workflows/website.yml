@@ -5,9 +5,14 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: website-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -31,12 +36,19 @@ jobs:
     - name: Compile
       run: |
         bash build_web.sh
+        mkdir -p docs/.retype/static
         mv web docs/.retype/static
+        touch docs/.retype/.nojekyll
     ###################################################
-    - uses: crazy-max/ghaction-github-pages@v3
+    - name: Deploy to pocketpy.github.io
+      uses: crazy-max/ghaction-github-pages@v3
       with:
-        target_branch: gh-pages
+        repo: pocketpy/pocketpy.github.io
+        target_branch: main
+        keep_history: true
         build_dir: docs/.retype
+        jekyll: false
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      if: github.ref == 'refs/heads/main'
+        # PAT with Contents: write permission on pocketpy/pocketpy.github.io.
+        GH_PAT: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && github.repository == 'pocketpy/pocketpy'

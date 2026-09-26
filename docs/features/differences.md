@@ -16,7 +16,7 @@ game scripting, not cpython for general purpose programming.**
 
 pkpy supports most of the syntax and semantics of python.
 For performance and simplicity, some features are not implemented, or behave differently.
-The easiest way to test a feature is to [try it on your browser](https://pocketpy.dev/static/web/).
+The easiest way to test a feature is to [try it on your browser](https://pocketpy.github.io/static/web/).
 
 ## Unimplemented features
 

@@ -141,7 +141,7 @@ World Generation Complete 3 10000 10
 
 `ComputeThread` uses `pickle` module to serialize the data between threads.
 Parameters and return values must be supported by `pickle`.
-See [pickle](https://pocketpy.dev/modules/pickle/) for more details.
+See [pickle](https://pocketpy.github.io/modules/pickle/) for more details.
 
 Since `ComputeThread` is backed by a separate `VM` instance,
 it does not share any state with the main thread

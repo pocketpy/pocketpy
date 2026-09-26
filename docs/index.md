@@ -10,7 +10,7 @@ It aims to be an alternative to Lua for game scripting, with elegant syntax, pow
 pocketpy has no dependencies other than the C standard library, which can be easily integrated into your C/C++ project.
 Developers are able to write Python bindings via C-API or pybind11 compatible interfaces.
 
-+ [Live Python Demo](https://pocketpy.dev/static/web/): Run Python code in your browser
++ [Live Python Demo](https://pocketpy.github.io/static/web/): Run Python code in your browser
 + [Live C Examples](https://pocketpy.github.io/examples/): Explore C-APIs in your browser
 + [Godot Extension](https://github.com/pocketpy/godot-pocketpy): Use pocketpy in Godot Engine
 + [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy): Debug and profile pocketpy scripts in VSCode

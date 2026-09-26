@@ -1,6 +1,6 @@
 input: .
 output: .retype
-url: https://pocketpy.dev
+url: https://pocketpy.github.io
 branding:
   title: pocketpy
   label: v2.2.0
@@ -14,7 +14,7 @@ links:
     link: ""
   - text: "Live Demo"
     icon: play
-    link: "https://pocketpy.dev/static/web/"
+    link: "https://pocketpy.github.io/static/web/"
     target: blank
   - text: "Live Examples"
     icon: code

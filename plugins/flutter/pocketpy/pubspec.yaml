@@ -1,7 +1,7 @@
 name: pocketpy
 description: A lightweight Python interpreter for game engines. It supports Android/iOS/Windows/Linux/MacOS.
 version: 2.2.0
-homepage: https://pocketpy.dev
+homepage: https://pocketpy.github.io
 repository: https://github.com/pocketpy/pocketpy
 
 environment:

@@ -30,8 +30,8 @@ It aims to be an alternative to Lua for game scripting, with elegant syntax, pow
 pocketpy has no dependencies other than the C standard library, which can be easily integrated into your C/C++ project.
 Developers are able to write Python bindings via C-API or pybind11 compatible interfaces.
 
-Please see https://pocketpy.dev for details and try the following resources.
-+ [Live Python Demo](https://pocketpy.dev/static/web/): Run Python code in your browser
+Please see https://pocketpy.github.io for details and try the following resources.
++ [Live Python Demo](https://pocketpy.github.io/static/web/): Run Python code in your browser
 + [Live C Examples](https://pocketpy.github.io/examples/): Explore C-APIs in your browser
 + [Godot Extension](https://github.com/pocketpy/godot-pocketpy): Use pocketpy in Godot Engine
 + [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy): Debug and profile pocketpy scripts in VSCode
@@ -180,7 +180,7 @@ __ERROR:
 Currently, pkpy is as fast as cpython 3.9.
 Performance results for cpython 3.9 are applicable to for pkpy.
 
-See https://pocketpy.dev/performance/ for details.
+See https://pocketpy.github.io/performance/ for details.
 
 And these are the results of the primes benchmark on Intel i5-12400F, WSL (Ubuntu 20.04 LTS), which *roughly* reflects the performance among c++, lua, pkpy and cpython.
 
