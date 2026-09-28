@@ -10,6 +10,7 @@
 #endif
 
 #include "pocketpy/pocketpy.h"
+#include "pocketpy/common/threads.h"
 #include <assert.h>
 
 #define NANOS_PER_SEC 1000000000
