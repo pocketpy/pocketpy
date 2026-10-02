@@ -18,6 +18,9 @@ endif()
 if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /jumptablerdata")
     add_compile_options(/wd4267 /wd4244 /wd4146 /wd4819 /experimental:c11atomics)
+    if(PK_ENABLE_DETERMINISM)
+        add_compile_options(/fp:strict)
+    endif()
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Ox")
@@ -41,7 +44,11 @@ else()
     endif()
 
     if(PK_ENABLE_DETERMINISM)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffp-contract=off")
+        add_compile_options(-fno-fast-math -ffp-contract=off)
+        # x87's extended intermediates violate the binary64 kernel contract.
+        if(CMAKE_SIZEOF_VOID_P EQUAL 4 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86|x86_64|AMD64)$")
+            add_compile_options(-msse2 -mfpmath=sse)
+        endif()
     endif()
 endif()
 

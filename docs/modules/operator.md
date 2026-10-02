@@ -3,54 +3,48 @@ icon: package
 label: operator
 ---
 
-The operator module exports a set of efficient functions corresponding to the intrinsic operators of Python. For example, `operator.add(x, y)` is equivalent to the expression `x+y`. Many function names are those used for special methods, without the double underscores.
+# operator
 
-## Mapping Operators to Functions
+Function forms of Python operators, useful for callbacks and reductions.
 
-| Operation | Syntax | Function |
-| --- | --- | --- |
-| Ordering | `a <= b` | `le(a, b)` |
-| Ordering | `a < b` | `lt(a, b)` |
-| Ordering | `a >= b` | `ge(a, b)` |
-| Ordering | `a > b` | `gt(a, b)` |
-| Equality | `a == b` | `eq(a, b)` |
-| Equality | `a != b` | `ne(a, b)` |
-| Bitwise AND | `a & b` | `and_(a, b)` |
-| Bitwise OR | `a | b` | `or_(a, b)` |
-| Bitwise XOR | `a ^ b` | `xor(a, b)` |
-| Bitwise Inversion | `~a` | `invert(a)` |
-| Left Shift | `a << b` | `lshift(a, b)` |
-| Right Shift | `a >> b` | `rshift(a, b)` |
-| Identity | `a is b` | `is_(a, b)` |
-| Identity | `a is not b` | `is_not(a, b)` |
-| Negation (Logical) | `not a` | `not_(a)` |
-| Negation (Arithmetic) | `-a` | `neg(a)` |
-| Truth Test | `bool(a)` | `truth(a)` |
-| Containment Test | `b in a` | `contains(a, b)` |
-| Addition | `a + b` | `add(a, b)` |
-| Subtraction | `a - b` | `sub(a, b)` |
-| Multiplication | `a * b` | `mul(a, b)` |
-| Division | `a / b` | `truediv(a, b)` |
-| Division | `a // b` | `floordiv(a, b)` |
-| Modulo | `a % b` | `mod(a, b)` |
-| Exponentiation | `a ** b` | `pow(a, b)` |
-| Matrix Multiplication | `a @ b` | `matmul(a, b)` |
-| Indexing | `a[b]` | `getitem(a, b)` |
-| Index Assignment | `a[b] = c` | `setitem(a, b, c)` |
-| Index Deletion | `del a[b]` | `delitem(a, b)` |
+| Operation | Functions |
+| --- | --- |
+| Comparison | `lt`, `le`, `eq`, `ne`, `ge`, `gt` |
+| Arithmetic | `add`, `sub`, `mul`, `truediv`, `floordiv`, `mod`, `pow`, `matmul`, `neg` |
+| Bitwise | `and_`, `or_`, `xor`, `invert`, `lshift`, `rshift` |
+| Identity/truth | `is_`, `is_not`, `not_`, `truth` |
+| Containers | `contains(container, value)`, `getitem(obj, key)`, `setitem(obj, key, value)`, `delitem(obj, key)` |
+| Accessor factories | `itemgetter(key)`, `attrgetter(name)` |
 
+For binary operators, `operator.add(a, b)` means `a + b`, and similarly
+for the other names. `contains(a, b)` means `b in a`, so the container
+comes first.
 
-## In-place Operators
-| Operation | Syntax | Function |
-| --- | --- | --- |
-| Addition | `a += b` | `iadd(a, b)` |
-| Subtraction | `a -= b` | `isub(a, b)` |
-| Multiplication | `a *= b` | `imul(a, b)` |
-| Division | `a /= b` | `itruediv(a, b)` |
-| Division | `a //= b` | `ifloordiv(a, b)` |
-| Modulo | `a %= b` | `imod(a, b)` |
-| Bitwise AND | `a &= b` | `iand(a, b)` |
-| Bitwise OR | `a |= b` | `ior(a, b)` |
-| Bitwise XOR | `a ^= b` | `ixor(a, b)` |
-| Left Shift | `a <<= b` | `ilshift(a, b)` |
-| Right Shift | `a >>= b` | `irshift(a, b)` |
+```python
+from operator import itemgetter, mul
+from functools import reduce
+
+players = [('Ada', 30), ('Bo', 10), ('Cy', 20)]
+assert sorted(players, key=itemgetter(1)) == [('Bo', 10), ('Cy', 20), ('Ada', 30)]
+assert reduce(mul, [2, 3, 4], 1) == 24
+```
+
+`itemgetter` accepts one key and `attrgetter` accepts one attribute name.
+Multiple keys/names and dotted attribute traversal are not implemented.
+
+The in-place helpers are `iadd`, `isub`, `imul`, `itruediv`,
+`ifloordiv`, `imod`, `iand`, `ior`, `ixor`, `ilshift`, and
+`irshift`. They perform the corresponding augmented assignment and return
+the result. They do not rebind the caller's variable:
+
+```python
+from operator import iadd
+
+value = 2
+value = iadd(value, 3)
+assert value == 5
+```
+
+Custom `__iadd__`-style hooks remain unsupported; see
+[language differences](../features/differences.md).
+Implementation: [operator.py](https://github.com/pocketpy/pocketpy/blob/main/python/operator.py).

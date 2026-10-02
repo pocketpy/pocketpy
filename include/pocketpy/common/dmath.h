@@ -9,6 +9,10 @@
 #define DMATH_EPSILON 1e-10
 #define DMATH_LOG2_E 1.4426950408889634
 
+// Fixed OpenLibm binary64 kernels. Require round-to-nearest-even, gradual
+// underflow (FTZ/DAZ disabled), and no fast-math or excess intermediate precision.
+// These return IEEE values (including canonical quiet NaN 0x7ff8000000000000);
+// Python exceptions belong to the bindings. See third-party/openlibm/README.md.
 double dmath_exp2(double x);
 double dmath_log2(double x);
 

@@ -3,19 +3,41 @@ icon: package
 label: json
 ---
 
-JSON serialization and deserialization module.
+# json
 
-This module is not safe. You may not want to use it with untrusted data.
-If you need a safe alternative, consider a 3rd-party library like `cjson`.
+Serialize simple data as JSON text.
 
-You can override the json functions with:
-```c
-py_GlobalRef mod = py_getmodule("json");
-py_bindfunc(mod, "loads", _safe_json_loads);
-py_bindfunc(mod, "dumps", _safe_json_dumps);
+!!!danger Trusted input only
+`json.loads()` evaluates its input as a Python expression in the `json`
+module. It can execute code and is not a strict JSON parser. Do not pass
+untrusted input to it.
+!!!
+
+| Function | Behavior |
+| --- | --- |
+| `loads(text: str)` | Evaluate text and return a Python value. JSON names `null`, `true`, and `false` are available. |
+| `dumps(obj, indent=0)` | Return a string; a positive integer indent enables multiline formatting. |
+
+Supported output values are `None`, booleans, integers, floats, strings, lists,
+tuples, and dictionaries with **string keys**. Tuples become JSON arrays and
+load as lists. Unsupported values raise `TypeError`. Keep containers acyclic.
+
+```python
+import json
+
+settings = {'name': 'Ada', 'lives': 3, 'sound': True}
+text = json.dumps(settings, indent=2)
+assert json.loads(text) == settings
+assert json.loads('{"value": null}') == {'value': None}
 ```
 
-#### Source code
+This API does not provide file-based `load`/`dump`, custom encoders,
+`object_hook`, `sort_keys`, or the full CPython option set.
+Non-finite floats are emitted as `NaN` or `Infinity`, which are outside
+strict JSON.
 
-:::code source="../../include/typings/json.pyi" :::
+For external data, bind a dedicated JSON parser in the host. A host may replace
+`json.loads` and `json.dumps` using [C binding helpers](../bindings.md);
+preserve the intended signatures and error reporting.
 
+Implementation: [json.c](https://github.com/pocketpy/pocketpy/blob/main/src/modules/json.c).

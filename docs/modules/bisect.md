@@ -3,26 +3,30 @@ icon: package
 label: bisect
 ---
 
-### `bisect.bisect_left(a, x)`
+# bisect
 
-Return the index where to insert item `x` in list `a`, assuming `a` is sorted.
+Find insertion positions in an already sorted list. Searching takes logarithmic
+time; insertion still moves list elements and can take linear time.
 
-### `bisect.bisect_right(a, x)`
+| Function | Result |
+| --- | --- |
+| `bisect_left(a, x, lo=0, hi=None)` | Index before existing entries equal to `x`. |
+| `bisect_right(a, x, lo=0, hi=None)` | Index after existing entries equal to `x`. |
+| `insort_left(a, x, lo=0, hi=None)` | Insert at the left position; return `None`. |
+| `insort_right(a, x, lo=0, hi=None)` | Insert at the right position; return `None`. |
 
-Return the index where to insert item `x` in list `a`, assuming `a` is sorted.
+`bisect` aliases `bisect_right`; `insort` aliases `insort_right`.
+The search interval is `[lo, hi)`, with `hi=None` meaning `len(a)`.
+Keep those bounds within the list. There is no `key=` parameter.
 
-### `bisect.insort_left(a, x)`
+```python
+from bisect import bisect_left, bisect_right, insort
 
-Insert item `x` in list `a`, and keep it sorted assuming `a` is sorted.
+scores = [10, 20, 20, 40]
+assert bisect_left(scores, 20) == 1
+assert bisect_right(scores, 20) == 3
+insort(scores, 30)
+assert scores == [10, 20, 20, 30, 40]
+```
 
-If x is already in a, insert it to the left of the leftmost x.
-
-### `bisect.insort_right(a, x)`
-
-Insert item `x` in list `a`, and keep it sorted assuming `a` is sorted.
-
-If x is already in a, insert it to the right of the rightmost x.
-
-#### Source code
-
-:::code source="../../python/bisect.py" :::
+Implementation: [bisect.py](https://github.com/pocketpy/pocketpy/blob/main/python/bisect.py).

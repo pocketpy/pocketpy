@@ -4,6 +4,12 @@ order: 0
 label: "Project Ideas"
 ---
 
+!!!info Historical program material
+This page records the 2025 GSoC program. Dates, project plans, and setup
+instructions below belong to that program. For current pocketpy integration,
+use the [quick start](../quick-start.md) and [C API guide](../C-API/introduction.md).
+!!!
+
 ### VSCode plugin for debugging pocketpy applications
 
 + Difficulty Level: 3/5 (Medium)

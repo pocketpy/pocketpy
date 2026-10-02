@@ -1,5 +1,7 @@
 input: .
 output: .retype
+exclude:
+  - .validation/
 url: https://pocketpy.github.io
 branding:
   title: pocketpy
@@ -11,7 +13,7 @@ meta:
 links:
   - text: "Home"
     icon: home
-    link: ""
+    link: "/"
   - text: "Live Demo"
     icon: play
     link: "https://pocketpy.github.io/static/web/"
@@ -20,9 +22,9 @@ links:
     icon: code
     link: "https://pocketpy.github.io/examples/"
     target: blank
-  - text: "Github"
+  - text: "GitHub"
     icon: mark-github
-    link: https://github.com/blueloveth/pocketpy
+    link: https://github.com/pocketpy/pocketpy
     target: blank
   - text: Discord
     link: https://discord.gg/WWaq72GzXv

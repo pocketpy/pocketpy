@@ -4,6 +4,12 @@ order: 10
 label: "Application Guide"
 ---
 
+!!!info Historical program material
+This page records the 2024 GSoC program. Dates, project plans, and setup
+instructions below belong to that program. For current pocketpy integration,
+use the [quick start](../quick-start.md) and [C API guide](../C-API/introduction.md).
+!!!
+
 Before starting, please read the [Ideas](./ideas.md) page and choose a project you are interested in.
 Set up a C++ compiler, clone pocketpy sources from github and try to build.
 This helps you confirm that your skills and experience match the requirements of the project.

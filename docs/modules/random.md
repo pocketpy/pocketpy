@@ -3,55 +3,55 @@ icon: package
 label: random
 ---
 
-### `random.seed(a)`
+# random
 
-Set the random seed.
+Pseudo-random numbers from a Mersenne Twister generator. Module-level functions
+use a shared generator in the current VM; `Random` creates independent state.
+This generator is for simulations and games, not cryptographic secrets.
 
-### `random.random()`
+| API | Behavior |
+| --- | --- |
+| `seed(value)` | Seed with an integer, or `None` for the clock. Integer seeds use the low 32 bits. |
+| `random()` | Float in `[0.0, 1.0)`. |
+| `randint(a, b)` | Integer including both endpoints; require `a <= b`. |
+| `uniform(a, b)` | Float between the endpoints; floating-point rounding can affect the boundary. |
+| `choice(sequence)` | One item from a nonempty list, tuple, or string. |
+| `shuffle(items)` | Shuffle a list in place; return `None`. |
+| `choices(population, weights=None, k=1)` | List of `k` selections with replacement; population and weights are lists or tuples. |
+| `getstate()`, `setstate(state)` | Save/restore the generator's state as bytes. |
+| `Random(value=None)` | New generator, optionally initialized with an integer seed or saved state bytes. |
 
-Return a random float number in the range [0.0, 1.0).
+For weighted choices, supply finite nonnegative weights with matching length
+and total greater than `1e-6`; use a nonnegative `k`.
+Unseeded generators initialize from the clock on first use.
 
-### `random.randint(a, b)`
-
-Return a random integer in the range [a, b].
-
-### `random.uniform(a, b)`
-
-Return a random float number in the range [a, b).
-
-### `random.choice(seq)`
-
-Return a random element from a sequence.
-
-### `random.shuffle(seq)`
-
-Shuffle a sequence inplace.
-
-### `random.choices(population, weights=None, k=1)`
-
-Return a k sized list of elements chosen from the population with replacement.
-
-### `random.getstate()`
-
-Return the internal state of the generator as a `bytes` object.
-
-### `random.setstate(state)`
-
-Restore the internal state of the generator from a `bytes` object
-returned by a previous call to `getstate()`.
-
-### `random.Random(x=None)`
-
-Create a new generator. `x` may be an `int` seed, `None` (seeded lazily from the
-system clock on first use), or a state returned by `getstate()`.
-
-A `Random` object supports `pickle`, so its state can be saved and restored:
+## Repeatable independent draws
 
 ```python
-import pickle, random
+from random import Random
 
-r = random.Random(7)
-data = pickle.dumps(r)
-r2 = pickle.loads(data)
-assert r.random() == r2.random()
+rng = Random(7)
+state = rng.getstate()
+rolls = [rng.randint(1, 6) for _ in range(5)]
+rng.setstate(state)
+assert rolls == [rng.randint(1, 6) for _ in range(5)]
+
+loot = rng.choices(['coin', 'gem'], weights=[9, 1], k=3)
+assert len(loot) == 3
+assert all([item in ['coin', 'gem'] for item in loot])
+```
+
+State bytes use pocketpy's internal representation, not CPython's state tuple.
+Do not assume sequences or saved states are interchangeable with CPython or
+across future runtime versions.
+
+A generator can also be [pickled](pickle.md):
+
+```python
+import pickle
+from random import Random
+
+original = Random(7)
+restored = pickle.loads(pickle.dumps(original))
+assert original.random() == restored.random()
 ```

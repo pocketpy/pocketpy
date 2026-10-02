@@ -3,79 +3,76 @@ icon: home
 label: Welcome
 ---
 
-# Welcome to pocketpy
+# pocketpy
 
-pocketpy is a portable Python 3.x interpreter, written in C11.
-It aims to be an alternative to Lua for game scripting, with elegant syntax, powerful features and competitive performance.
-pocketpy has no dependencies other than the C standard library, which can be easily integrated into your C/C++ project.
-Developers are able to write Python bindings via C-API or pybind11 compatible interfaces.
+pocketpy is a small Python 3.x interpreter written in C11, designed for embedding
+in games and other C/C++ applications. The core interpreter has no third-party
+dependencies. Optional modules add features such as compression and image I/O.
 
-+ [Live Python Demo](https://pocketpy.github.io/static/web/): Run Python code in your browser
-+ [Live C Examples](https://pocketpy.github.io/examples/): Explore C-APIs in your browser
-+ [Godot Extension](https://github.com/pocketpy/godot-pocketpy): Use pocketpy in Godot Engine
-+ [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy): Debug and profile pocketpy scripts in VSCode
-+ [Flutter Plugin](https://pub.dev/packages/pocketpy): Use pocketpy in Flutter apps
-+ [Raylib Bindings](https://github.com/pocketpy/raylib-bindings): Use raylib with pocketpy
+This documentation describes the **2.2.x API in this repository**. pocketpy
+implements a practical subset of Python; a familiar module name does not imply
+the full CPython API. Start with the [compatibility guide](features/differences.md)
+when porting an existing script.
 
-## What it looks like
+## Choose a starting point
+
+| I want to... | Read |
+| --- | --- |
+| Build the interpreter or embed it in an application | [Quick start](quick-start.md) |
+| Expose a C function to Python | [C bindings](bindings.md) |
+| Bind C++ functions and classes | [C++ bindings](bindings-cpp.md) |
+| Manage Python values and call scripts from C | [C API guide](C-API/introduction.md) |
+| Find a module and check its limitations | [Module overview](modules/index.md) |
+| Debug, profile, or distribute scripts | [Debugging](features/debugging.md), [profiling](features/profiling.md), [bytecode deployment](features/deploy.md) |
+
+## Try a script
 
 ```python
-def is_prime(x):
-  if x < 2:
-    return False
-  for i in range(2, x):
-    if x % i == 0:
-      return False
-  return True
+def is_prime(value):
+    if value < 2:
+        return False
+    for divisor in range(2, value):
+        if value % divisor == 0:
+            return False
+    return True
 
-primes = [i for i in range(2, 20) if is_prime(i)]
-print(primes)
+print([value for value in range(2, 20) if is_prime(value)])
 # [2, 3, 5, 7, 11, 13, 17, 19]
 ```
 
-## Supported platforms
+The [browser playground](https://pocketpy.github.io/static/web/) runs Python
+without installation. The [C examples](https://pocketpy.github.io/examples/)
+demonstrate the embedding API. Browser builds may enable different modules from
+a desktop build.
 
-pkpy should work on any platform with a C11 compiler.
-These platforms are officially tested.
+## Platforms and integrations
 
-+ Windows 64-bit
-+ Linux 64-bit / 32-bit
-+ macOS 64-bit
-+ Android 64-bit / 32-bit
-+ iOS 64-bit
-+ Emscripten 32-bit
-+ Raspberry Pi OS 64-bit
-+ [Luckfox Pico SDK](https://github.com/LuckfoxTECH/luckfox-pico) 32-bit
+The project targets Windows, Linux, macOS, Android, iOS, Emscripten, and small
+Linux devices. A C11 compiler is required; Windows builds use MSVC. The current
+runtime requires little-endian hardware. See [build configuration](build.md) for
+compiler flags and optional features.
 
-On Windows platform, only MSVC compiler is officially supported.
+Integrations include [Godot](https://github.com/pocketpy/godot-pocketpy),
+[raylib](https://github.com/pocketpy/raylib-bindings), and
+[Flutter](https://pub.dev/packages/pocketpy). The
+[VS Code extension](https://marketplace.visualstudio.com/items?itemName=pocketpy.pocketpy)
+provides debugging and line profiling.
 
-## Star the repo
+## Moving from 1.x
 
-If you find pkpy useful, consider [star this repository](https://github.com/blueloveth/pocketpy).
+Version 2 rewrote the interpreter in C11 and replaced the 1.x C++ API. Existing
+1.x embedding code needs to be ported. Choose the C API for explicit VM control
+or the bundled C\+\+17 binding layer for convenient C\+\+ integration. Script
+compatibility is described separately in the [language guide](features/differences.md).
 
-## Sponsor this project
+## Community and support
 
-You can sponsor this project via these ways.
+Report issues or contribute through [GitHub](https://github.com/pocketpy/pocketpy).
+See the [contribution guide](https://github.com/pocketpy/pocketpy/blob/main/CONTRIBUTING.md)
+for development setup. You can support development through
+[GitHub Sponsors](https://github.com/sponsors/blueloveTH) or
+[Buy Me a Coffee](https://www.buymeacoffee.com/blueloveth).
 
-+ [Github Sponsors](https://github.com/sponsors/blueloveTH)
-+ [Buy me a coffee](https://www.buymeacoffee.com/blueloveth)
-
-Your sponsorship will help us develop pkpy continuously.
-
-## Premium supporter
-
-Special thanks to our premium supporter, Tesselmax, for sponsoring the development of pocketpy.
-
-Tesselmax builds Tesselmax.EM, a distributed electromagnetic field simulator for silicon
-photonics and RF/interconnect design (FDTD, FDFD, and mode solving across GPU clusters).
-Tesselmax embeds pocketpy as the scripting engine in our simulation console, so user scripts drive
+Special thanks to **[Tesselmax](https://fdtd.io)** for sponsoring pocketpy.
+Tesselmax.EM embeds pocketpy in its electromagnetic simulation console to script
 geometry, materials, sources, and post-processing.
-
-Website: [https://fdtd.io](https://fdtd.io)
-
-## Upgrade to v2.0
-
-pkpy v2.0 is a C11 project instead of C++17. All your existing code for v1.x won't work anymore.
-
-We provide two API sets for v2.0, C-API and pybind11 API (C\+\+17). If you are a C user, use the C-API. If you are a C\+\+ user, use the pybind11 API.
-

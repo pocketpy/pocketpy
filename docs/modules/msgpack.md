@@ -3,14 +3,36 @@ icon: package
 label: msgpack
 ---
 
+# msgpack
+
+Encode simple values in the MessagePack binary format.
+
+!!!info Optional module
+Enable `PK_BUILD_MODULE_MSGPACK=ON`; see [build configuration](../build.md).
 !!!
-This module is optional. Set option `PK_BUILD_MODULE_MSGPACK` to `ON` in your `CMakeLists.txt` to enable it.
-!!!
 
-### `msgpack.loads(data: bytes)`
+| Function | Result |
+| --- | --- |
+| `dumps(obj)` | Encoded `bytes`. |
+| `loads(data: bytes)` | Decoded Python value. |
 
-Decode a msgpack bytes into a python object.
+```python
+import msgpack
 
-### `msgpack.dumps(obj) -> bytes`
+state = {'level': 2, 'items': ['key', 'coin'], 'payload': b'\x00\x01'}
+packed = msgpack.dumps(state)
+assert msgpack.loads(packed) == state
+```
 
-Encode a python object into a msgpack bytes.
+The built-in conversion supports `None`, booleans, signed 64-bit integers,
+floats, strings, bytes, lists, and dictionaries. Use string or integer map keys.
+Arrays decode to lists; tuples and arbitrary class instances are not part of
+the default encoder.
+
+Keep integer values within pocketpy's signed 64-bit range, including when
+receiving MessagePack unsigned integers. Extension values require host-provided
+conversion hooks; they are not automatically mapped to Python classes.
+The API has no CPython third-party `msgpack` keyword option set.
+
+Implementation:
+[bindings.c](https://github.com/pocketpy/pocketpy/blob/main/3rd/msgpack/src/bindings.c).

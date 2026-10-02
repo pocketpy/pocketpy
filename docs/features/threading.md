@@ -1,153 +1,75 @@
 ---
 icon: dot
 title: Compute Threads
+order: 82
 ---
 
-pocketpy organizes its state by `VM` structure.
-Users can have at maximum 16 `VM` instances (index from 0 to 15).
-Each `VM` instance can only be accessed by exactly one thread at a time.
-If you are trying to run two python scripts in parallel refering the same `VM` instance,
-you will crash it definitely.
+# Compute threads
 
-However, there are two ways to achieve multi-threading in pocketpy.
+A pocketpy VM contains independent modules, globals, and Python objects.
+There are 16 VM slots, indexed `0` through `15`; VM 0 is the default.
+**Only one native thread may access a particular VM at a time.**
 
-One way is to use a native threading library such as `pthread`.
-You can wrap the multi-threading logic into a C function and bind it to pocketpy.
-Be careful and not to access the same `VM` instance from multiple threads at the same time.
-You need to lock critical resources or perform a deep copy of all needed data.
+Build with `PK_ENABLE_THREADS=ON` to use `pkpy.ComputeThread`. This is the
+CMake default, but not the default for manual builds.
+Check `pkpy.configmacros['PK_ENABLE_THREADS']` when a build lacks the class.
 
-## ComputeThread
+## Run a job in another VM
 
-The other way is to use `pkpy.ComputeThread`.
-It is like an isolate in Dart language.
-`ComputeThread` is a true multi-threading model to allow you run python scripts in parallel without lock,
-backed by a separate `VM` instance.
+This example needs no external Python files:
 
-`ComputeThread` is highly designed for computational intensive tasks in games.
-For example, you can run game logic in main thread (VM 0) and run world generation in another thread (e.g. VM 1).
-
-```mermaid
-graph TD
-    subgraph Main Thread
-        A[Game Start]
-        B[Submit WorldGen Job]
-        C[Frame 1]
-        D[Frame 2]
-        E[Frame 3]
-        F[...]
-        G[Get WorldGen Result]
-        H[Render World]
-    end
-    subgraph WorldGen Thread
-        O[Generate Biomes]
-        P[Generate Terrain]
-        Q[Generate Creatures]
-        R[Dump Result]
-    end
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    F --> G
-    G --> H
-
-    O --> P
-    P --> Q
-    Q --> R
-
-    B --> O
-    R --> G
-```
-
-#### `main.py`
 ```python
-import time
 from pkpy import ComputeThread
 
-thread = ComputeThread(1)
-print("Game Start")
+worker = ComputeThread(1)
+worker.exec('def square_sum(count):\n    return sum([i * i for i in range(count)])')
 
-# import worldgen.py
-thread.exec('from worldgen import gen_world')
+worker.submit_call('square_sum', 100)
+# The main thread can do other work while the job runs.
+worker.wait_for_done()
 
-print("Submit WorldGen Job")
-thread.submit_call('gen_world', 3, (100, 100), 10)
-
-# wait for worldgen to finish
-for i in range(1, 100000):
-    print('Frame:', i)
-    time.sleep(1)
-    if thread.is_done:
-        break
-
-error = thread.last_error()
+error = worker.last_error()
 if error is not None:
-    print("Error:", error)
-else:
-    retval = thread.last_retval()
-    biomes = retval['biomes']
-    terrain = retval['terrain']
-    creatures = retval['creatures']
-    print("World Generation Complete", len(biomes), len(terrain), len(creatures))
+    raise RuntimeError(error)
+
+assert worker.last_retval() == 328350
 ```
 
-#### `worldgen.py`
-```python
-import time
-import random
+`exec()` initializes the worker VM synchronously. `submit_call()` evaluates
+the function name in that VM and starts a background job. A main-thread
+function or global is not automatically visible in the worker.
 
-def gen_world(biome_count: int, terrain_size: tuple[int, int], creature_count: int) -> dict:
-    # simulate a long computation
-    time.sleep(3)
+## Job API
 
-    # generate world data
-    all_biomes = ["forest", "desert", "ocean", "mountain", "swamp"]
-    all_creatures = ["wolf", "bear", "fish", "bird", "lizard"]
+| Member | Behavior |
+| --- | --- |
+| `ComputeThread(vm_index)` | Reserve a worker VM from 1 through 15; use a distinct index per live worker. |
+| `exec(source)`, `eval(source)` | Run synchronously in the worker VM. |
+| `submit_exec(source)` | Submit statements; the successful result is `None`. |
+| `submit_eval(source)` | Submit an expression. |
+| `submit_call(expression, *args, **kwargs)` | Evaluate a callable in the worker and invoke it with copied arguments. |
+| `is_done` | Whether the submitted job has finished. |
+| `wait_for_done()` | Wait until completion. |
+| `last_error()` | Formatted worker error, or `None` after success. Read only after completion. |
+| `last_retval()` | Deserialize the result of a successful completed job. |
 
-    width, height = terrain_size
+Only one job can run per worker at a time. Wait for completion before submitting
+another job, and collect the result before a new job replaces it.
 
-    terrain_data = [
-        random.randint(1, 10)
-        for _ in range(width * height)
-    ]
+In a frame loop, poll `is_done` once per frame. Read `last_error()` before
+`last_retval()`; a failed job has no usable return value. Keep the worker
+object alive until completion, and finish all jobs before finalizing the host.
 
-    creatures = [
-        {
-            "name": random.choice(all_creatures),
-            "x": random.randint(0, width - 1),
-            "y": random.randint(0, height - 1),
-        }
-        for i in range(creature_count)
-    ]
+## Data and native resources
 
-    return {
-        "biomes": all_biomes[:biome_count],
-        "terrain": terrain_data,
-        "creatures": creatures,
-    }
-```
+Arguments and results cross the VM boundary through [pickle](../modules/pickle.md).
+They must be serializable; mutable containers are copied, not shared.
+For class instances, the corresponding class must be importable in the worker.
+Each VM loads its own Python module state.
 
-Run `main.py` and you will see the result like this:
-```
-Game Start
-Submit WorldGen Job
-Frame: 1
-Frame: 2
-Frame: 3
-Frame: 4
-World Generation Complete 3 10000 10
-```
+Native libraries and host resources can still share process-wide state.
+Protect that state in your bindings. Do not pass `py_Ref` values between VMs
+or share a VM with a native worker that is already running.
 
-`ComputeThread` uses `pickle` module to serialize the data between threads.
-Parameters and return values must be supported by `pickle`.
-See [pickle](https://pocketpy.github.io/modules/pickle/) for more details.
-
-Since `ComputeThread` is backed by a separate `VM` instance,
-it does not share any state with the main thread
-except for the parameters you pass to it.
-Therefore, common python modules will be imported twice in each thread.
-
-If you want to identify which VM instance the module is running in,
-you can call `pkpy.currentvm` or let your `ComputeThread` set some special flags
-before importing these modules.
+Use `pkpy.currentvm()` to identify the current VM. Custom import and output
+callbacks must be configured for each VM that needs them.

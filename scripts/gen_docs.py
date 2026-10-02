@@ -19,9 +19,9 @@ class Function:
     def badges(self):
         res = []
         if self.is_py_raise:
-            res.append('[!badge text="raise" variant="danger"](../introduction/#py_raise-macro)')
+            res.append('[!badge text="raise" variant="danger"](introduction.md#py_raise-macro)')
         if self.is_py_return:
-            res.append('[!badge text="return"](../introduction/#py_return-macro)')
+            res.append('[!badge text="return"](introduction.md#py_return-macro)')
         return ' '.join(res)
 
     def markdown(self):

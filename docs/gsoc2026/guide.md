@@ -4,6 +4,12 @@ order: 10
 label: "Application Guide"
 ---
 
+!!!info Historical program material
+This page records the 2026 GSoC program. Dates, project plans, and setup
+instructions below belong to that program. For current pocketpy integration,
+use the [quick start](../quick-start.md) and [C API guide](../C-API/introduction.md).
+!!!
+
 Welcome to the Google Summer of Code 2026 application guide for pocketpy.
 We are recruiting a student who is passionate about vibe coding and mobile game development.
 

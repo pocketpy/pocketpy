@@ -3,39 +3,65 @@ icon: package
 label: pickle
 ---
 
-### `pickle.dumps(obj) -> bytes`
+# pickle
 
-Return the pickled representation of an object as a bytes object.
+Save Python object graphs as bytes and restore them within pocketpy.
 
-### `pickle.loads(b: bytes)`
+| Function | Result |
+| --- | --- |
+| `dumps(obj)` | Serialized `bytes`. |
+| `loads(data: bytes)` | Restored object. |
 
-Return the unpickled object from a bytes object.
+!!!warning
+Only load data you trust. Deserialization can resolve classes and call
+reconstruction functions. This is pocketpy's own format, not CPython's pickle
+protocol; use a matching runtime when exchanging saved data.
+!!!
 
+## Shared references and cycles
 
-## What can be pickled and unpickled?
+```python
+import pickle
 
-The following types can be pickled:
+shared = ['coin']
+inventory = [shared, shared]
+restored = pickle.loads(pickle.dumps(inventory))
+assert restored == [['coin'], ['coin']]
+assert restored[0] is restored[1]
 
-- [x] None, True, and False;
-- [x] integers, floating-point numbers;
-- [x] strings, bytes;
-- [x] tuples, lists, sets, and dictionaries containing only picklable objects;
-- [x] functions (user-defined) accessible from the top level of a module (using def, not lambda);
-- [x] classes accessible from the top level of a module;
-- [x] instances of such classes
+cycle = []
+cycle.append(cycle)
+restored_cycle = pickle.loads(pickle.dumps(cycle))
+assert restored_cycle[0] is restored_cycle
+```
 
-`array2d` instances cannot be pickled. Calling `pickle.dumps()` on an `array2d`
-raises `TypeError`. Previously pickled `array2d` data is no longer supported.
+## Supported objects
 
-Cyclic and shared references are preserved: `list`, `dict` and instances of
-python classes are memoized before their contents are written, so an object
-graph containing reference cycles round-trips correctly and object identity
-is retained. A cycle that passes only through a `tuple` or through a
-`__reduce__` result is not supported.
+- `None`, booleans, integers, floats, strings, and bytes.
+- Tuples, lists, sets, and dictionaries containing supported values.
+- User-defined functions and classes accessible by name at module scope.
+- Instances of such classes, and native types with supported reconstruction
+  behavior, such as [random.Random](random.md).
 
-The following magic methods are available:
+Functions and classes are resolved by their module/name; their source code is
+not packed into the data. Make those definitions available when loading,
+especially in a [worker VM](../features/threading.md). Lambdas and local
+functions are not suitable replacements for module-level definitions.
 
-- [ ] `__getnewargs__`
-- [ ] `__getstate__`
-- [ ] `__setstate__`
-- [x] `__reduce__`
+Lists, dictionaries, and Python class instances are memoized before their
+contents, preserving shared identity and supported reference cycles.
+Cycles involving a tuple or a `__reduce__` reconstruction can be restricted;
+a tuple-only cycle or a self-reference through a reduce result is unsupported.
+
+`array2d` instances cannot be pickled and raise `TypeError`.
+Previously pickled `array2d` data is not supported. Convert appropriate
+contents to lists if needed.
+
+## Custom reconstruction
+
+`__reduce__()` must return a two-item tuple
+`(reconstruction_callable, argument_tuple)`.
+The callable must be resolvable when loading. The hooks `__getnewargs__`,
+`__getstate__`, and `__setstate__` are not implemented.
+
+Implementation: [pickle.c](https://github.com/pocketpy/pocketpy/blob/main/src/modules/pickle.c).

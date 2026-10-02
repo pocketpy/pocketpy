@@ -1,53 +1,67 @@
 ---
 icon: dot
-title: Deploy Bytecodes
+title: Bytecode Deployment
 order: 81
 ---
 
-!!!
-The feature requires pocketpy version >= `2.1.7`
-!!!
+# Bytecode deployment
 
-You can deploy your pocketpy program as `.pyc` files, which are compiled bytecodes with necessary metadata.
-This slightly improves the loading speed of your program.
+pocketpy can compile scripts to `.pyc` files and run them without the original
+source. This avoids parsing at load time; it does not make the executed
+bytecode itself faster.
 
-It also makes your users unable to get your source code directly, unless they do expensive reverse engineering.
+These files use **pocketpy's own format**, not CPython's `.pyc` format.
+Compile and run with the same pocketpy revision and compatible build settings;
+do not assume bytecode compatibility across interpreter updates.
 
-To compile a `.py` file into a `.pyc` bytecode file, you need the command-line executable `main`,
-which can be simply built by running `python cmake_build.py` in the repository root.
+## Compile and run a file
 
-
-## Example
-
-Once you have `main` executable, you can run the following command to compile `input_file.py`:
+After [building the standalone interpreter](../quick-start.md):
 
 ```sh
-./main --compile input_file.py output_file.pyc
+./build/main --compile hello.py hello.pyc
+./build/main hello.pyc
 ```
 
-Alternatively, you can invoke the `compileall.py` script in the repository root.
-It compiles all `.py` files in the specified directory into `.pyc` files.
+With the Visual Studio generator:
+
+```powershell
+.\build\Release\main.exe --compile hello.py hello.pyc
+.\build\Release\main.exe hello.pyc
+```
+
+Supply both input and output paths. The `--compile` option cannot be combined
+with `--debug` or `--profile`.
+
+## Compile a directory
+
+Run the repository's `compileall.py` with a host Python interpreter:
 
 ```sh
-python compileall.py ./main input_path output_path
+python compileall.py ./build/main scripts dist
 ```
 
-## Running `.pyc` files
+It recursively compiles `scripts/*.py`, preserving subdirectories under
+`dist/`. For example, `scripts/game/__init__.py` becomes
+`dist/game/__init__.pyc`. Non-Python assets are not copied.
 
-The command-line executable `main` can run `.pyc` files directly:
+Keep the module/package layout when distributing the output.
+The importer tries `.py` before `.pyc`, so a source file left beside the
+bytecode takes precedence. See [module loading](../C-API/modules.md).
 
-```sh
-./main output_file.pyc
-```
+## Run bytecode from an embedded host
 
-If you are using C-APIs, you can use the `py_execo()` function.
+`py_execo(data, size, filename, module)` accepts a byte buffer and its length.
+Pass `NULL` as the module to use `__main__`, and handle its boolean result
+the same way as `py_exec()`. A custom `importfile` callback must set the
+byte length when returning compiled modules.
 
-```c
-/// Run a compiled code object.
-PK_API bool py_execo(const void* data, int size, const char* filename, py_Ref module) PY_RAISE PY_RETURN;
-```
+## Diagnostics and distribution limits
 
-## Trackback Support
+Tracebacks retain filenames and line numbers, but bytecode does not include
+the original source lines. Keep matching source files during debugging.
 
-Since `.pyc` files do not contain raw sources,
-trackbacks will show line numbers but not the actual source code lines.
+Bytecode is not encryption: constants and program structure remain available
+for inspection. Distribute only code you intend the recipient to run, and
+do not load untrusted bytecode. Keep credentials and other secrets outside
+distributed scripts and bytecode.

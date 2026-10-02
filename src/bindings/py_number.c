@@ -104,21 +104,35 @@ static bool number__pow__(int argc, py_Ref argv) {
                 py_newfloat(py_retval(), dmath_pow(lhs, rhs));
             }
         } else {
-            // rhs >= 0
-            py_i64 ret = 1;
+            // Fixed-width integer powers must not invoke signed-overflow UB.
+            // Keep the exact integer result when representable, including INT64_MIN.
+            bool negative = lhs < 0 && (rhs & 1);
+            uint64_t limit = negative ? UINT64_C(0x8000000000000000) : INT64_MAX;
+            uint64_t base = lhs < 0 ? 0 - (uint64_t)lhs : (uint64_t)lhs;
+            uint64_t ret = 1;
             while(true) {
-                if(rhs & 1) ret *= lhs;
+                if(rhs & 1) {
+                    if(base && ret > limit / base) return OverflowError("integer power overflow");
+                    ret *= base;
+                }
                 rhs >>= 1;
                 if(!rhs) break;
-                lhs *= lhs;  // place this here to avoid overflow
+                if(base && base > limit / base) return OverflowError("integer power overflow");
+                base *= base;
             }
-            py_newint(py_retval(), ret);
+            py_i64 result = negative && ret ? -(py_i64)(ret - 1) - 1 : (py_i64)ret;
+            py_newint(py_retval(), result);
         }
     } else {
         py_f64 lhs, rhs;
         if(!py_castfloat(&argv[0], &lhs)) return false;
         if(try_castfloat(&argv[1], &rhs)) {
-            py_newfloat(py_retval(), dmath_pow(lhs, rhs));
+            if(lhs == 0 && rhs < 0 && dmath_isfinite(rhs))
+                return ZeroDivisionError("0.0 cannot be raised to a negative power");
+            double result = dmath_pow(lhs, rhs);
+            if(dmath_isinf(result) && dmath_isfinite(lhs) && dmath_isfinite(rhs))
+                return OverflowError("numerical result out of range");
+            py_newfloat(py_retval(), result);
         } else {
             py_newnotimplemented(py_retval());
         }

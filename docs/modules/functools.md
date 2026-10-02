@@ -3,23 +3,53 @@ icon: package
 label: functools
 ---
 
-### `functools.cache`
+# functools
 
-A decorator that caches a function's return value each time it is called. If called later with the same arguments, the cached value is returned, and not re-evaluated.
+Helpers for caching calls, reducing a sequence, and pre-filling arguments.
 
-### `functools.lru_cache(maxsize=128)`
+| API | Behavior |
+| --- | --- |
+| `@cache` | Cache results without a size limit. |
+| `@lru_cache(maxsize=128)` | Keep up to `maxsize` recently used argument tuples. |
+| `reduce(function, sequence, initial=...)` | Combine items from left to right. An empty sequence needs an initial value. |
+| `partial(function, *args, **kwargs)` | Store arguments for later calls. |
 
-A decorator that wraps a function with a memoizing callable that saves up to the maxsize most recent calls.
+## Cache a computation
 
-### `functools.reduce(function, sequence, initial=...)`
+```python
+from functools import lru_cache, reduce
 
-Apply a function of two arguments cumulatively to the items of a sequence, from left to right, so as to reduce the sequence to a single value. For example, `functools.reduce(lambda x, y: x+y, [1, 2, 3, 4, 5])` calculates `((((1+2)+3)+4)+5)`. The left argument, `x`, is the accumulated value and the right argument, `y`, is the update value from the sequence. If the optional `initial` is present, it is placed before the items of the sequence in the calculation, and serves as a default when the sequence is empty.
+@lru_cache(maxsize=32)
+def fibonacci(n):
+    if n < 2:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
 
-### `functools.partial(f, *args, **kwargs)`
+assert fibonacci(10) == 55
+assert reduce(lambda total, value: total + value, [1, 2, 3], 0) == 6
+```
 
-Return a new partial object which when called will behave like `f` called with the positional arguments `args` and keyword arguments `kwargs`. If more arguments are supplied to the call, they are appended to `args`. If additional keyword arguments are supplied, they extend and override `kwargs`.
+The cache decorators accept **positional calls only**, with hashable arguments.
+Use a positive integer `maxsize`; the implementation does not support
+CPython's `maxsize=None`, zero-size mode, `typed`, or `cache_info()`/
+`cache_clear()` methods. Cached mutable results are returned as the same
+object on later calls.
 
+## Partial calls
 
-#### Source code
+```python
+from functools import partial
 
-:::code source="../../python/functools.py" :::
+def label(name, prefix='item'):
+    return prefix + ': ' + name
+
+enemy_label = partial(label, prefix='enemy')
+assert enemy_label('slime') == 'enemy: slime'
+assert enemy_label('slime', prefix='boss') == 'enemy: slime'
+```
+
+Stored positional arguments are prepended to new ones. **Stored keyword
+arguments override keywords passed at call time** in this implementation.
+This differs from CPython, where call-time keywords win.
+
+Implementation: [functools.py](https://github.com/pocketpy/pocketpy/blob/main/python/functools.py).

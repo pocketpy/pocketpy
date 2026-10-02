@@ -3,138 +3,52 @@ icon: package
 label: math
 ---
 
-### `math.pi`
+# math
 
-3.141592653589793
+Real-number functions and constants. Most functions accept an `int` or
+`float` and return a `float`; exceptions are noted below.
+Arguments to native functions are positional.
 
-### `math.e`
+## Available API
 
-2.718281828459045
+| Group | Members |
+| --- | --- |
+| Constants | `pi`, `e`, `inf`, `nan` |
+| Rounding | `ceil(x)`, `floor(x)`, `trunc(x)` return integers; `fabs(x)` returns a float. |
+| Aggregation | `fsum(values)` for a list of numbers; `gcd(a, b)` for two integers. |
+| Classification | `isfinite(x)`, `isinf(x)`, `isnan(x)`, `isclose(a, b)` |
+| Powers/logarithms | `exp(x)`, `log(x)`, `log(x, base)`, `log2(x)`, `log10(x)`, `pow(x, y)`, `sqrt(x)`, `cbrt(x)` |
+| Trigonometry | `sin(x)`, `cos(x)`, `tan(x)`, `asin(x)`, `acos(x)`, `atan(x)`, `atan2(y, x)` |
+| Angles | `degrees(radians)`, `radians(degrees)` |
+| Decomposition | `modf(x)`, `fmod(x, y)`, `copysign(x, y)` |
+| Combinatorics | `factorial(n)` for a nonnegative integer. |
 
-### `math.inf`
+Trigonometric arguments and results use radians. `modf(x)` returns
+`(fractional_part, integer_part)`, both floats; pass a float to this function.
+`copysign(x, y)` takes the magnitude of `x` and the sign of `y`.
 
-The `inf`.
+```python
+import math
 
-### `math.nan`
-
-The `nan`.
-
-### `math.ceil(x)`
-
-Return the ceiling of `x` as a float, the smallest integer value greater than or equal to `x`.
-
-### `math.fabs(x)`
-
-Return the absolute value of `x`.
-
-### `math.floor(x)`
-
-Return the floor of `x` as a float, the largest integer value less than or equal to `x`.
-
-### `math.fsum(iterable)`
-
-Return an accurate floating point sum of values in the iterable. Avoids loss of precision by tracking multiple intermediate partial sums:
-
-```
->>> sum([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-0.9999999999999999
->>> fsum([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-1.0
+assert math.ceil(1.2) == 2
+assert type(math.floor(1.8)) is int
+assert math.gcd(18, 24) == 6
+assert math.fsum([0.1] * 10) == 1.0
+assert math.isclose(math.sin(math.pi / 2), 1.0)
+assert math.modf(2.5) == (0.5, 2.0)
 ```
 
-### `math.gcd(a, b)`
+## Differences from CPython
 
-Return the greatest common divisor of the integers `a` and `b`.
+- `fsum` accepts a list, not an arbitrary iterable, and uses compensated
+  summation rather than CPython's full algorithm.
+- `isclose(a, b)` checks `abs(a - b) < 1e-9`. It has no relative or absolute
+  tolerance keyword arguments; infinities do not compare close by this rule.
+- `gcd` takes exactly two arguments.
+- `factorial` is limited by signed 64-bit integers. Keep `n <= 20` for an
+  exact representable result.
+- Domain handling follows the implementation's math functions and may produce
+  NaN or infinity instead of CPython exceptions.
 
-
-### `math.isfinite(x)`
-
-Return `True` if `x` is neither an infinity nor a NaN, and `False` otherwise.
-
-### `math.isinf(x)`
-
-Return `True` if `x` is a positive or negative infinity, and `False` otherwise.
-
-### `math.isnan(x)`
-
-Return `True` if `x` is a NaN (not a number), and `False` otherwise.
-
-### `math.isclose(a, b)`
-
-Return `True` if the values `a` and `b` are close to each other and `False` otherwise.
-
-### `math.exp(x)`
-
-Return `e` raised to the power of `x`.
-
-### `math.log(x)`
-
-Return the natural logarithm of `x` (to base `e`).
-
-### `math.log2(x)`
-
-Return the base-2 logarithm of `x`. This is usually more accurate than `log(x, 2)`.
-
-### `math.log10(x)`
-
-Return the base-10 logarithm of `x`. This is usually more accurate than `log(x, 10)`.
-
-### `math.pow(x, y)`
-
-Return `x` raised to the power `y`.
-
-### `math.sqrt(x)`
-
-Return the square root of `x`.
-
-### `math.cbrt(x)`
-
-Return the cube root of `x`. Unlike `sqrt`, `x` may be negative.
-
-### `math.acos(x)`
-
-Return the arc cosine of `x`, in radians.
-
-### `math.asin(x)`
-
-Return the arc sine of `x`, in radians.
-
-### `math.atan(x)`
-
-Return the arc tangent of `x`, in radians.
-
-### `math.atan2(y, x)`
-
-Return `atan(y / x)`, in radians. The result is between `-pi` and `pi`. The vector in the plane from the origin to point `(x, y)` makes this angle with the positive X axis. The point of `atan2()` is that the signs of both inputs are known to it, so it can compute the correct quadrant for the angle. For example, `atan(1)` and `atan2(1, 1)` are both `pi/4`, but `atan2(-1, -1)` is `-3*pi/4`.
-
-### `math.cos(x)`
-
-Return the cosine of `x` radians.
-
-### `math.sin(x)`
-
-Return the sine of `x` radians.
-
-### `math.tan(x)`
-
-Return the tangent of `x` radians.
-
-### `math.degrees(x)`
-
-Convert angle `x` from radians to degrees.
-
-### `math.radians(x)`
-
-Convert angle `x` from degrees to radians.
-
-### `math.modf(x)`
-
-Return the fractional and integer parts of `x`. Both results carry the sign of `x` and are floats.
-
-### `math.copysign(x, y)`
-
-Return a float with the magnitude (absolute value) of `x` but the sign of `y`.
-
-### `math.factorial(x)`
-
-Return `x` factorial as an integer.
+For complex values, use [cmath](cmath.md).
+Implementation: [math.c](https://github.com/pocketpy/pocketpy/blob/main/src/modules/math.c).

@@ -3,6 +3,38 @@ icon: package
 label: importlib
 ---
 
-### `importlib.reload(module)`
+# importlib
 
-Reload a previously imported module. The argument must be a module object, so it must have been successfully imported before. This is useful if you have edited the module source file using an external editor and want to try out the new version without leaving the Python interpreter. The return value is the module object (the same as the argument).
+`reload(module)` re-executes an already imported source module and returns
+the same module object. It reloads `.py` source through the current VM's
+[import callback](../C-API/modules.md), not compiled `.pyc` or native modules.
+
+For example, save this as `settings.py`:
+
+```python
+difficulty = 3
+```
+
+Run the following from the directory containing that file:
+
+```python
+import importlib
+import settings
+
+original = settings
+reloaded = importlib.reload(settings)
+assert reloaded is original
+print(settings.difficulty)  # 3, or the new value after editing settings.py
+```
+
+In a long-running host, edit the source and call `reload()` again to pick up
+the new contents.
+
+Reloading preserves the module dictionary and attempts to reuse existing
+class types. Names removed from the source can remain in the dictionary.
+References obtained through `from settings import difficulty` do not update
+automatically; prefer `settings.difficulty` for values intended to change.
+
+Reloading executes module-level side effects again and does not roll back a
+partially failed reload. Use it for controlled development workflows rather
+than assuming it resets all application state.
