@@ -2,9 +2,9 @@
 // them from musl (MIT licensed):
 // https://github.com/ziglang/zig/blob/master/lib/std/math/
 //
-// These live in their own file so the provenance stays obvious: each function
-// below is a line-by-line translation of the Zig source linked above it, and
-// should be re-synced from there rather than hand-tuned.
+// The finite evaluation order is retained from the original translation.
+// The historical upstream links do not pin a revision. Numerical changes need
+// review and independent accuracy/determinism checks, not an automatic sync.
 
 #include "pocketpy/common/dmath.h"
 #include <stdint.h>

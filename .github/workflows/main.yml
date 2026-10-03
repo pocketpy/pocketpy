@@ -24,7 +24,16 @@ jobs:
       run: |
         python amalgamate.py
         cd amalgamated
-        cl.exe /std:c11 /experimental:c11atomics /utf-8 /Ox /I. pocketpy.c main.c /link Ws2_32.lib /out:pkpy.exe
+        cl.exe /std:c11 /experimental:c11atomics /utf-8 /Ox /fp:precise /DPK_ENABLE_DETERMINISM=1 /I. pocketpy.c main.c /link Ws2_32.lib /out:pkpy.exe
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        cl.exe /std:c11 /experimental:c11atomics /utf-8 /Ox /fp:precise /I../include pocketpy.c ../src2/test_dmath.c /link Ws2_32.lib /out:test_dmath.exe
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        ./test_dmath.exe --cases ../tests/dmath/cases
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        cd ..
+        ./amalgamated/pkpy.exe tests/930_dmath.py
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        ./amalgamated/pkpy.exe tests/932_dmath_consumers.py
   build_win32:
     runs-on: windows-latest
     steps:
@@ -36,7 +45,8 @@ jobs:
       shell: bash
       run: |
         mkdir -p output/x86_64
-        python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON -DPK_BUILD_MODULE_CUTE_PNG=ON -DPK_BUILD_MODULE_MSGPACK=ON
+        python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON -DPK_BUILD_MODULE_CUTE_PNG=ON -DPK_BUILD_MODULE_MSGPACK=ON -DPK_BUILD_MATH_TESTS=ON
+        ctest --test-dir build -C Release --output-on-failure
         cp main.exe output/x86_64
         cp pocketpy.dll output/x86_64
     - uses: actions/upload-artifact@v4
@@ -64,10 +74,13 @@ jobs:
         bash build_g.sh
         bash run_tests.sh
         rm -rf ./main
+        clang -std=c11 -Iinclude -O1 -g -fno-fast-math -ffp-contract=off -fsanitize=undefined,float-cast-overflow -fno-sanitize-recover=all src/common/dmath.c src/common/dmath_zig.c src/common/dmath_openlibm.c src2/test_dmath.c -lm -o test_dmath_sanitized
+        ./test_dmath_sanitized
     - name: Run Script Check
       run: |
         python scripts/check_pragma_once.py include
         python scripts/check_undef.py src
+        python scripts/dmath/generate.py --check
     - name: Unit Test with Coverage
       run: bash run_tests.sh
     - name: Upload coverage reports to Codecov
@@ -80,7 +93,8 @@ jobs:
       run: |
         python scripts/check_pragma_once.py include
         mkdir -p output/x86_64
-        python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON -DPK_BUILD_MODULE_CUTE_PNG=ON -DPK_BUILD_MODULE_MSGPACK=ON
+        python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON -DPK_BUILD_MODULE_CUTE_PNG=ON -DPK_BUILD_MODULE_MSGPACK=ON -DPK_BUILD_MATH_TESTS=ON
+        ctest --test-dir build -C Release --output-on-failure
         python scripts/run_tests.py
         cp main output/x86_64
         cp libpocketpy.so output/x86_64
@@ -100,7 +114,8 @@ jobs:
           submodules: recursive
       - name: Compile and Test
         run: |
-          python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON -DPK_BUILD_MODULE_CUTE_PNG=ON -DPK_BUILD_MODULE_MSGPACK=ON
+          python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON -DPK_BUILD_MODULE_CUTE_PNG=ON -DPK_BUILD_MODULE_MSGPACK=ON -DPK_BUILD_MATH_TESTS=ON
+          ctest --test-dir build -C Release --output-on-failure
           python scripts/run_tests.py
       - name: Benchmark
         run: python scripts/run_tests.py benchmark
@@ -187,7 +202,8 @@ jobs:
             uname -m
             python -c "import struct; print(8 * struct.calcsize('P'))"
   
-            python cmake_build.py
+            python cmake_build.py Release -DPK_BUILD_MATH_TESTS=ON
+            ctest --test-dir build -C Release --output-on-failure
             python scripts/run_tests.py
           shell: alpine.sh --root {0}
 

@@ -166,10 +166,14 @@ def checked_sh(cmd):
 	assert ok == 0, f"command failed: {cmd}"
 
 if sys.platform in ['linux', 'darwin']:
-	common_flags = "-O1 --std=c11 -lm -ldl -lpthread -Iamalgamated"
+	common_flags = "-O1 --std=c11 -fno-fast-math -ffp-contract=off -DPK_ENABLE_DETERMINISM=1 -lm -ldl -lpthread -Iamalgamated"
 	checked_sh(f"gcc -o main amalgamated/pocketpy.c src2/example.c {common_flags}")
 	checked_sh("./main && rm -f ./main")
 	checked_sh(f"gcc -o main amalgamated/pocketpy.c amalgamated/main.c {common_flags}")
+	checked_sh(f"gcc -o amalgamated/test_dmath amalgamated/pocketpy.c src2/test_dmath.c -Iinclude {common_flags}")
+	checked_sh("./amalgamated/test_dmath")
+	checked_sh("./main tests/930_dmath.py")
+	checked_sh("./main tests/932_dmath_consumers.py")
 
 
 print("amalgamated/pocketpy.h")

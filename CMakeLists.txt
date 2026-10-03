@@ -19,7 +19,7 @@ if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /jumptablerdata")
     add_compile_options(/wd4267 /wd4244 /wd4146 /wd4819 /experimental:c11atomics)
     if(PK_ENABLE_DETERMINISM)
-        add_compile_options(/fp:strict)
+        add_compile_options(/fp:precise)
     endif()
 
     if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -200,4 +200,28 @@ endif()
 
 if(PK_ENABLE_MIMALLOC)
     target_link_libraries(${PROJECT_NAME} mimalloc-static)
+endif()
+
+if(PK_BUILD_MATH_TESTS)
+    enable_testing()
+    # Compile the kernels directly so the test also works with DLL builds that
+    # intentionally do not export the internal dmath symbols.
+    set(DMATH_TEST_SOURCES src2/test_dmath.c src/common/dmath.c
+                           src/common/dmath_zig.c src/common/dmath_openlibm.c)
+    add_executable(test_dmath ${DMATH_TEST_SOURCES})
+    add_executable(test_dmath_soft_sqrt ${DMATH_TEST_SOURCES})
+    target_compile_definitions(test_dmath_soft_sqrt PRIVATE PK_DMATH_SOFT_SQRT=1)
+    if(UNIX)
+        target_link_libraries(test_dmath m)
+        target_link_libraries(test_dmath_soft_sqrt m)
+    endif()
+    set(DMATH_CASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests/dmath/cases)
+    foreach(function isfinite isinf isnan isnormal fabs copysign fmin fmax
+                     ceil floor trunc modf fmod sqrt cbrt exp exp2 exp10 pow
+                     log log2 log10 log_base sin cos tan sincos asin acos atan atan2)
+        add_test(NAME dmath.${function}
+                 COMMAND test_dmath --cases ${DMATH_CASE_DIR} ${function})
+    endforeach()
+    add_test(NAME dmath.sqrt_software
+             COMMAND test_dmath_soft_sqrt --cases ${DMATH_CASE_DIR} sqrt)
 endif()

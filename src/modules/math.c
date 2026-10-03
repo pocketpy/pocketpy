@@ -11,12 +11,21 @@
         return true;                                                                               \
     }
 
-#define ONE_ARG_INT_FUNC(name, func)                                                               \
+#define ONE_ARG_ROUND_FUNC(name, func)                                                             \
     static bool math_##name(int argc, py_Ref argv) {                                               \
         PY_CHECK_ARGC(1);                                                                          \
+        if(py_isint(py_arg(0))) {                                                                  \
+            py_newint(py_retval(), py_toint(py_arg(0)));                                           \
+            return true;                                                                          \
+        }                                                                                         \
         double x;                                                                                  \
         if(!py_castfloat(py_arg(0), &x)) return false;                                             \
-        py_newint(py_retval(), (py_i64)func(x));                                                   \
+        double rounded = func(x);                                                                 \
+        /* Keep integer results when representable; never cast NaN/Inf or an out-of-range value. */ \
+        if(rounded >= -0x1p63 && rounded < 0x1p63)                                                 \
+            py_newint(py_retval(), (py_i64)rounded);                                               \
+        else                                                                                      \
+            py_newfloat(py_retval(), rounded);                                                    \
         return true;                                                                               \
     }
 
@@ -39,9 +48,9 @@
         return true;                                                                               \
     }
 
-ONE_ARG_INT_FUNC(ceil, dmath_ceil)
-ONE_ARG_INT_FUNC(floor, dmath_floor)
-ONE_ARG_INT_FUNC(trunc, dmath_trunc)
+ONE_ARG_ROUND_FUNC(ceil, dmath_ceil)
+ONE_ARG_ROUND_FUNC(floor, dmath_floor)
+ONE_ARG_ROUND_FUNC(trunc, dmath_trunc)
 ONE_ARG_FUNC(fabs, dmath_fabs)
 
 static bool math_fsum(int argc, py_Ref argv) {
@@ -93,23 +102,19 @@ static bool math_isclose(int argc, py_Ref argv) {
     return true;
 }
 
+// Overflow deliberately returns signed infinity instead of raising an exception.
 ONE_ARG_FUNC(exp, dmath_exp)
 
 static bool math_log(int argc, py_Ref argv) {
+    if(argc != 1 && argc != 2) return TypeError("log() takes 1 or 2 arguments");
     double x;
     if(!py_castfloat(py_arg(0), &x)) return false;
-    if(x < 0) {
-        py_newfloat(py_retval(), DMATH_NAN);
-        return true;
-    }
     if(argc == 1) {
         py_newfloat(py_retval(), dmath_log(x));
-    } else if(argc == 2) {
+    } else {
         double base;
         if(!py_castfloat(py_arg(1), &base)) return false;
-        py_newfloat(py_retval(), dmath_log2(x) / dmath_log2(base));
-    } else {
-        return TypeError("log() takes 1 or 2 arguments");
+        py_newfloat(py_retval(), dmath_log_base(x, base));
     }
     return true;
 }
@@ -151,8 +156,10 @@ TWO_ARG_FUNC(fmod, dmath_fmod)
 
 static bool math_modf(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
+    double x;
+    if(!py_castfloat(py_arg(0), &x)) return false;
     double i;
-    double f = dmath_modf(py_tofloat(py_arg(0)), &i);
+    double f = dmath_modf(x, &i);
     py_Ref p = py_newtuple(py_retval(), 2);
     py_newfloat(&p[0], f);
     py_newfloat(&p[1], i);
@@ -222,5 +229,5 @@ void pk__add_module_math() {
 
 #undef ONE_ARG_FUNC
 #undef ONE_ARG_BOOL_FUNC
-#undef ONE_ARG_INT_FUNC
+#undef ONE_ARG_ROUND_FUNC
 #undef TWO_ARG_FUNC

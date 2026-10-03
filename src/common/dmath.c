@@ -1,6 +1,5 @@
 #include "pocketpy/common/dmath.h"
 #include "pocketpy/common/algorithm.h"
-#include "pocketpy/common/_log_spline_tbl.h"
 #include <stdint.h>
 
 // hardware sqrt, see `dmath_sqrt`
@@ -15,165 +14,22 @@ union Float64Bits {
     uint64_t i;
 };
 
-/* IEEE 754 double precision floating point data manipulation */
-typedef union 
-{
-    double   f;
-    uint64_t u;
-    struct {int32_t  i0,i1;} s;
-}  udi_t;
-
-// https://github.com/akohlmey/fastermath/blob/master/src/exp.c#L63
-double dmath_exp2(double x) {
-    if (x > 1000) return DMATH_INFINITY;
-    if (x < -1000) return 0;
-	if (dmath_isnan(x)) return DMATH_NAN;
-    
-    const int FM_DOUBLE_BIAS = 1023;
-
-    static const double fm_exp2_q[] = {
-    /*  1.00000000000000000000e0, */
-        2.33184211722314911771e2,
-        4.36821166879210612817e3
-    };
-    static const double fm_exp2_p[] = {
-        2.30933477057345225087e-2,
-        2.02020656693165307700e1,
-        1.51390680115615096133e3
-    };
-
-    double   ipart, fpart, px, qx;
-    udi_t    epart;
-
-    ipart = dmath_floor(x+0.5);
-    fpart = x - ipart;
-
-    // FM_DOUBLE_INIT_EXP(epart,ipart);
-    epart.s.i0 = 0;
-    epart.s.i1 = (((int) ipart) + FM_DOUBLE_BIAS) << 20;
-
-    x = fpart*fpart;
-
-    px =        fm_exp2_p[0];
-    px = px*x + fm_exp2_p[1];
-    qx =    x + fm_exp2_q[0];
-    px = px*x + fm_exp2_p[2];
-    qx = qx*x + fm_exp2_q[1];
-
-    px = px * fpart;
-
-    x = 1.0 + 2.0*(px/(qx-px));
-    return epart.f*x;
-}
-
-double dmath_log2(double x) {
-	if(x < 0) return DMATH_NAN;
-	if(x == 0) return -DMATH_INFINITY;
-	if(x == DMATH_INFINITY) return DMATH_INFINITY;
-	if(dmath_isnan(x)) return DMATH_NAN;
-
-    const double fm_log_dinv =  4.09600000000000000000e+03;
-    const double fm_log_dsq6 =  9.93410746256510361521e-09;
-
-    const int FM_DOUBLE_BIAS = 1023;
-    const int FM_DOUBLE_EMASK = 2146435072;
-    const int FM_DOUBLE_MBITS = 20;
-    const int FM_DOUBLE_MMASK = 1048575;
-    const int FM_DOUBLE_EZERO = 1072693248;
-
-    const int FM_SPLINE_SHIFT = 8;
-
-    udi_t val;
-    double a,b,y;
-    int32_t hx, ipart;
-
-    val.f = x;
-    hx = val.s.i1;
-    
-    /* extract exponent and subtract bias */
-    ipart = (((hx & FM_DOUBLE_EMASK) >> FM_DOUBLE_MBITS) - FM_DOUBLE_BIAS);
-
-    /* mask out exponent to get the prefactor to 2**ipart */
-    hx &= FM_DOUBLE_MMASK;
-    val.s.i1 = hx | FM_DOUBLE_EZERO;
-    x = val.f;
-
-    /* table index */
-    hx >>= FM_SPLINE_SHIFT;
-
-    /* compute x value matching table index */
-    val.s.i0 = 0;
-    val.s.i1 = FM_DOUBLE_EZERO | (hx << FM_SPLINE_SHIFT);
-    b = (x - val.f) * fm_log_dinv;
-    a = 1.0 - b;
-
-    /* evaluate spline */
-    y = a * fm_log_q1[hx] + b * fm_log_q1[hx+1];
-    a = (a*a*a-a) * fm_log_q2[hx];
-    b = (b*b*b-b) * fm_log_q2[hx+1];
-    y += (a + b) * fm_log_dsq6;
-
-    return ((double) ipart) + (y * DMATH_LOG2_E);
-}
-
-double dmath_exp(double x) {
-    return dmath_exp2(x * DMATH_LOG2_E); // log2(e)
-}
-
-double dmath_exp10(double x) {
-    return dmath_exp2(x * 3.321928094887362); // log2(10)
-}
-
-double dmath_log(double x) {
-    return dmath_log2(x) / DMATH_LOG2_E; // log2(e)
-}
-
-double dmath_log10(double x) {
-    return dmath_log2(x) / 3.321928094887362; // log2(10)
-}
-
-double dmath_pow(double base, double exp) {
-    int64_t exp_int = (int64_t)exp;
-    if(exp_int == exp) {
-        if(exp_int == 0) return 1;
-        if(exp_int < 0) {
-			if(base == 0) return DMATH_NAN;
-            base = 1 / base;
-            exp_int = -exp_int;
-        }
-        double res = 1;
-        while(exp_int > 0) {
-            if(exp_int & 1) res *= base;
-            base *= base;
-            exp_int >>= 1;
-        }
-        return res;
-    }
-    if (base > 0) {
-		if(base == 1.0) return 1.0;
-        return dmath_exp(exp * dmath_log(base));
-    }
-    if (base == 0) {
-        if (exp > 0) return 0;
-        if (exp == 0) return 1;
-    }
-    return DMATH_NAN;
-}
-
 // IEEE 754 requires sqrt to be correctly rounded, so the hardware instruction
 // returns the same bits on every platform (and matches CPython).
 // libm is never used: every hardware branch below is guaranteed to emit the instruction,
 // and other targets use a software sqrt which is also correctly rounded (same bits, but slow).
 double dmath_sqrt(double x) {
     if(x < 0) return DMATH_NAN;
-#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+// PK_DMATH_SOFT_SQRT exercises the fallback on hardware-sqrt hosts in tests.
+#if !defined(PK_DMATH_SOFT_SQRT) && \
+    (defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2))
     // x86 with sse2: sqrtsd
     __m128d v = _mm_set_sd(x);
     return _mm_cvtsd_f64(_mm_sqrt_sd(v, v));
-#elif defined(__aarch64__) || defined(_M_ARM64)
+#elif !defined(PK_DMATH_SOFT_SQRT) && (defined(__aarch64__) || defined(_M_ARM64))
     // aarch64: fsqrt
     return vget_lane_f64(vsqrt_f64(vdup_n_f64(x)), 0);
-#elif defined(__arm__) && defined(__ARM_FP) && (__ARM_FP & 8)
+#elif !defined(PK_DMATH_SOFT_SQRT) && defined(__arm__) && defined(__ARM_FP) && (__ARM_FP & 8)
     // arm32 with a double precision vfp: vsqrt
     // (`__builtin_sqrt` is not used because it may call libm to set errno)
     register double d0 __asm__("d0") = x;
@@ -218,290 +74,7 @@ double dmath_sqrt(double x) {
 #endif
 }
 
-// https://github.com/kraj/musl/blob/kraj/master/src/math/sincos.c
-static double __sin(double x, double y, int iy)
-{
-static const double
-S1  = -1.66666666666666324348e-01, /* 0xBFC55555, 0x55555549 */
-S2  =  8.33333333332248946124e-03, /* 0x3F811111, 0x1110F8A6 */
-S3  = -1.98412698298579493134e-04, /* 0xBF2A01A0, 0x19C161D5 */
-S4  =  2.75573137070700676789e-06, /* 0x3EC71DE3, 0x57B1FE7D */
-S5  = -2.50507602534068634195e-08, /* 0xBE5AE5E6, 0x8A2B9CEB */
-S6  =  1.58969099521155010221e-10; /* 0x3DE5D93A, 0x5ACFD57C */
-
-	double z,r,v,w;
-
-	z = x*x;
-	w = z*z;
-	r = S2 + z*(S3 + z*S4) + z*w*(S5 + z*S6);
-	v = z*x;
-	if (iy == 0)
-		return x + v*(S1 + z*r);
-	else
-		return x - ((z*(0.5*y - v*r) - y) - v*S1);
-}
-
-static double __cos(double x, double y)
-{
-static const double
-C1  =  4.16666666666666019037e-02, /* 0x3FA55555, 0x5555554C */
-C2  = -1.38888888888741095749e-03, /* 0xBF56C16C, 0x16C15177 */
-C3  =  2.48015872894767294178e-05, /* 0x3EFA01A0, 0x19CB1590 */
-C4  = -2.75573143513906633035e-07, /* 0xBE927E4F, 0x809C52AD */
-C5  =  2.08757232129817482790e-09, /* 0x3E21EE9E, 0xBDB4B1C4 */
-C6  = -1.13596475577881948265e-11; /* 0xBDA8FAE9, 0xBE8838D4 */
-
-	double hz,z,r,w;
-
-	z  = x*x;
-	w  = z*z;
-	r  = z*(C1+z*(C2+z*C3)) + w*w*(C4+z*(C5+z*C6));
-	hz = 0.5*z;
-	w  = 1.0-hz;
-	return w + (((1.0-w)-hz) + (z*r-x*y));
-}
-
-int __rem_pio2(double x, double *y)
-{
-static const double
-toint   = 1.5/2.22044604925031308085e-16,
-pio4    = 0x1.921fb54442d18p-1,
-invpio2 = 6.36619772367581382433e-01, /* 0x3FE45F30, 0x6DC9C883 */
-pio2_1  = 1.57079632673412561417e+00, /* 0x3FF921FB, 0x54400000 */
-pio2_1t = 6.07710050650619224932e-11, /* 0x3DD0B461, 0x1A626331 */
-pio2_2  = 6.07710050630396597660e-11, /* 0x3DD0B461, 0x1A600000 */
-pio2_2t = 2.02226624879595063154e-21, /* 0x3BA3198A, 0x2E037073 */
-pio2_3  = 2.02226624871116645580e-21, /* 0x3BA3198A, 0x2E000000 */
-pio2_3t = 8.47842766036889956997e-32; /* 0x397B839A, 0x252049C1 */
-
-	union Float64Bits u = { .f = x };
-	double z,w,t,r,fn;
-	double tx[3],ty[2];
-	uint32_t ix;
-	int sign, n, ex, ey, i;
-
-	sign = u.i>>63;
-	ix = u.i>>32 & 0x7fffffff;
-	if (ix <= 0x400f6a7a) {  /* |x| ~<= 5pi/4 */
-		if ((ix & 0xfffff) == 0x921fb)  /* |x| ~= pi/2 or 2pi/2 */
-			goto medium;  /* cancellation -- use medium case */
-		if (ix <= 0x4002d97c) {  /* |x| ~<= 3pi/4 */
-			if (!sign) {
-				z = x - pio2_1;  /* one round good to 85 bits */
-				y[0] = z - pio2_1t;
-				y[1] = (z-y[0]) - pio2_1t;
-				return 1;
-			} else {
-				z = x + pio2_1;
-				y[0] = z + pio2_1t;
-				y[1] = (z-y[0]) + pio2_1t;
-				return -1;
-			}
-		} else {
-			if (!sign) {
-				z = x - 2*pio2_1;
-				y[0] = z - 2*pio2_1t;
-				y[1] = (z-y[0]) - 2*pio2_1t;
-				return 2;
-			} else {
-				z = x + 2*pio2_1;
-				y[0] = z + 2*pio2_1t;
-				y[1] = (z-y[0]) + 2*pio2_1t;
-				return -2;
-			}
-		}
-	}
-	if (ix <= 0x401c463b) {  /* |x| ~<= 9pi/4 */
-		if (ix <= 0x4015fdbc) {  /* |x| ~<= 7pi/4 */
-			if (ix == 0x4012d97c)  /* |x| ~= 3pi/2 */
-				goto medium;
-			if (!sign) {
-				z = x - 3*pio2_1;
-				y[0] = z - 3*pio2_1t;
-				y[1] = (z-y[0]) - 3*pio2_1t;
-				return 3;
-			} else {
-				z = x + 3*pio2_1;
-				y[0] = z + 3*pio2_1t;
-				y[1] = (z-y[0]) + 3*pio2_1t;
-				return -3;
-			}
-		} else {
-			if (ix == 0x401921fb)  /* |x| ~= 4pi/2 */
-				goto medium;
-			if (!sign) {
-				z = x - 4*pio2_1;
-				y[0] = z - 4*pio2_1t;
-				y[1] = (z-y[0]) - 4*pio2_1t;
-				return 4;
-			} else {
-				z = x + 4*pio2_1;
-				y[0] = z + 4*pio2_1t;
-				y[1] = (z-y[0]) + 4*pio2_1t;
-				return -4;
-			}
-		}
-	}
-	if (ix < 0x413921fb) {  /* |x| ~< 2^20*(pi/2), medium size */
-medium:
-		/* rint(x/(pi/2)) */
-		fn = (double)x*invpio2 + toint - toint;
-		n = (int32_t)fn;
-		r = x - fn*pio2_1;
-		w = fn*pio2_1t;  /* 1st round, good to 85 bits */
-		/* Matters with directed rounding. */
-		if ((r - w < -pio4)) {
-			n--;
-			fn--;
-			r = x - fn*pio2_1;
-			w = fn*pio2_1t;
-		} else if ((r - w > pio4)) {
-			n++;
-			fn++;
-			r = x - fn*pio2_1;
-			w = fn*pio2_1t;
-		}
-		y[0] = r - w;
-		u.f = y[0];
-		ey = u.i>>52 & 0x7ff;
-		ex = ix>>20;
-		if (ex - ey > 16) { /* 2nd round, good to 118 bits */
-			t = r;
-			w = fn*pio2_2;
-			r = t - w;
-			w = fn*pio2_2t - ((t-r)-w);
-			y[0] = r - w;
-			u.f = y[0];
-			ey = u.i>>52 & 0x7ff;
-			if (ex - ey > 49) {  /* 3rd round, good to 151 bits, covers all cases */
-				t = r;
-				w = fn*pio2_3;
-				r = t - w;
-				w = fn*pio2_3t - ((t-r)-w);
-				y[0] = r - w;
-			}
-		}
-		y[1] = (r - y[0]) - w;
-		return n;
-	}
-
-    (void)tx;
-    (void)ty;
-    (void)i;
-    return 0;
-#if 0
-	/*
-	 * all other (large) arguments
-	 */
-	if (ix >= 0x7ff00000) {  /* x is inf or NaN */
-		y[0] = y[1] = x - x;
-		return 0;
-	}
-	/* set z = scalbn(|x|,-ilogb(x)+23) */
-	u.f = x;
-	u.i &= (uint64_t)-1>>12;
-	u.i |= (uint64_t)(0x3ff + 23)<<52;
-	z = u.f;
-	for (i=0; i < 2; i++) {
-		tx[i] = (double)(int32_t)z;
-		z     = (z-tx[i])*0x1p24;
-	}
-	tx[i] = z;
-	/* skip zero terms, first term is non-zero */
-	while (tx[i] == 0.0)
-		i--;
-	n = __rem_pio2_large(tx,ty,(int)(ix>>20)-(0x3ff+23),i+1,1);
-	if (sign) {
-		y[0] = -ty[0];
-		y[1] = -ty[1];
-		return -n;
-	}
-	y[0] = ty[0];
-	y[1] = ty[1];
-	return n;
-#endif
-}
-
-void dmath_sincos(double x, double *sin, double *cos) {
-	double y[2], s, c;
-	uint32_t ix;
-	unsigned n;
-
-	//GET_HIGH_WORD(ix, x);
-    union Float64Bits u = { .f = x };
-    ix = (uint32_t)(u.i >> 32);
-
-	ix &= 0x7fffffff;
-
-	/* |x| ~< pi/4 */
-	if (ix <= 0x3fe921fb) {
-		/* if |x| < 2**-27 * sqrt(2) */
-		if (ix < 0x3e46a09e) {
-			/* raise inexact if x!=0 and underflow if subnormal */
-
-			// FORCE_EVAL(ix < 0x00100000 ? x/0x1p120f : x+0x1p120f);
-            volatile double y_force_eval;
-            y_force_eval = ix < 0x00100000 ? x/0x1p120f : x+0x1p120f;
-            (void)y_force_eval;
-
-			*sin = x;
-			*cos = 1.0;
-			return;
-		}
-		*sin = __sin(x, 0.0, 0);
-		*cos = __cos(x, 0.0);
-		return;
-	}
-
-	/* sincos(Inf or NaN) is NaN */
-	if (ix >= 0x7ff00000) {
-		*sin = *cos = x - x;
-		return;
-	}
-
-	/* argument reduction needed */
-	n = __rem_pio2(x, y);
-	s = __sin(y[0], y[1], 1);
-	c = __cos(y[0], y[1]);
-	switch (n&3) {
-	case 0:
-		*sin = s;
-		*cos = c;
-		break;
-	case 1:
-		*sin = c;
-		*cos = -s;
-		break;
-	case 2:
-		*sin = -s;
-		*cos = -c;
-		break;
-	case 3:
-	default:
-		*sin = -c;
-		*cos = s;
-		break;
-	}
-}
-
-double dmath_sin(double x) {
-    double s, c;
-    dmath_sincos(x, &s, &c);
-    return s;
-}
-
-double dmath_cos(double x) {
-    double s, c;
-    dmath_sincos(x, &s, &c);
-    return c;
-}
-
-double dmath_tan(double x) {
-    double s, c;
-    dmath_sincos(x, &s, &c);
-    return s / c;
-}
-
+// sin/cos/tan/sincos live in dmath_openlibm.c.
 // dmath_asin / dmath_acos / dmath_atan / dmath_atan2 live in dmath_zig.c
 
 ////////////////////////////////////////////////////////////////////
@@ -529,7 +102,6 @@ int dmath_isfinite(double x) {
 // https://github.com/kraj/musl/blob/kraj/master/src/math/fmod.c
 double dmath_fmod(double x, double y) {
 	if(y == 0) return DMATH_NAN;
-	
 	union Float64Bits ux = { .f = x }, uy = { .f = y };
 	int ex = ux.i>>52 & 0x7ff;
 	int ey = uy.i>>52 & 0x7ff;
@@ -609,27 +181,7 @@ double dmath_fabs(double x) {
 	return u.f;
 }
 
-double dmath_ceil(double x) {
-	if(!dmath_isfinite(x)) return x;
-    int64_t int_part = (int64_t)x;
-    if (x > 0 && x != (double)int_part) {
-        return (double)(int_part + 1);
-    }
-    return (double)int_part;
-}
-
-double dmath_floor(double x) {
-	if(!dmath_isfinite(x)) return x;
-    int64_t int_part = (int64_t)x;
-    if (x < 0 && x != (double)int_part) {
-        return (double)(int_part - 1);
-    }
-    return (double)int_part;
-}
-
-double dmath_trunc(double x) {
-    return (double)((int64_t)x);
-}
+// ceil/floor/trunc live in dmath_openlibm.c.
 
 // https://github.com/kraj/musl/blob/kraj/master/src/math/modf.c
 double dmath_modf(double x, double* iptr) {
@@ -665,9 +217,15 @@ double dmath_modf(double x, double* iptr) {
 }
 
 double dmath_fmin(double x, double y) {
+    if(dmath_isnan(x)) return y;
+    if(dmath_isnan(y)) return x;
+    if(x == y) return (pk_dmath_bits(x) >> 63) ? x : y;
     return (x < y) ? x : y;
 }
 
 double dmath_fmax(double x, double y) {
+    if(dmath_isnan(x)) return y;
+    if(dmath_isnan(y)) return x;
+    if(x == y) return (pk_dmath_bits(x) >> 63) ? y : x;
     return (x > y) ? x : y;
 }

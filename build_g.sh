@@ -4,7 +4,7 @@ set -e
 
 SRC=$(find src/ -name "*.c")
 
-FLAGS="-std=c11 -lm -ldl -lpthread -Iinclude -O0 -Wfatal-errors -g -DDEBUG -DPK_ENABLE_OS=1"
+FLAGS="-std=c11 -lm -ldl -lpthread -Iinclude -O0 -Wfatal-errors -g -DDEBUG -DPK_ENABLE_OS=1 -DPK_ENABLE_DETERMINISM=1 -fno-fast-math -ffp-contract=off"
 
 SANITIZE_FLAGS="-fsanitize=address,leak,undefined -fno-sanitize=function"
 
