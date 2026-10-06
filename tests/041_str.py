@@ -153,6 +153,10 @@ assert a.rjust(5) == '  123'
 assert a.rjust(5, '0') == '00123'
 assert a.ljust(5) == '123  '
 assert a.ljust(5, '0') == '12300'
+assert 'é'.ljust(3) == 'é  '
+assert 'é'.rjust(3, '*') == '**é'
+assert '日本'.ljust(3, '-') == '日本-'
+assert 'a'.rjust(3, 'é') == 'ééa'
 
 assert '\x30\x31\x32' == '012'
 assert '\b\b\b' == '\x08\x08\x08'
@@ -176,6 +180,16 @@ assert a.index('2', -2) == 1
 
 assert a.find('1') == 0
 assert a.find('1', 1) == -1
+
+# find and index return character indices, not byte offsets
+s = 'aßa-é日'
+assert s.find('é') == 4
+assert s.find('日', -1) == 5
+assert s.find('a', 1) == 2
+assert s.index('é', 3) == 4
+assert s[s.find('é'):] == 'é日'
+assert 'ab'.find('', 2) == 2
+assert 'ab'.find('', 3) == -1
 
 b = list("Hello, World!")
 assert b == ['H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!']
