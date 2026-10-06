@@ -66,6 +66,18 @@ c11_string* c11_sv__replace(c11_sv self, char old, char new_) {
 c11_string* c11_sv__replace2(c11_sv self, c11_sv old, c11_sv new_) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
+    if(old.size == 0) {
+        // insert new_ before every character and at the end
+        int i = 0;
+        while(i < self.size) {
+            int n = c11__u8_header(self.data[i], false);
+            c11_sbuf__write_sv(&buf, new_);
+            c11_sbuf__write_sv(&buf, (c11_sv){self.data + i, n});
+            i += n;
+        }
+        c11_sbuf__write_sv(&buf, new_);
+        return c11_sbuf__submit(&buf);
+    }
     int start = 0;
     while(true) {
         int i = c11_sv__index2(self, old, start);
@@ -168,7 +180,7 @@ int c11_sv__index2(c11_sv self, c11_sv sub, int start) {
 }
 
 int c11_sv__count(c11_sv self, c11_sv sub) {
-    if(sub.size == 0) return self.size + 1;
+    if(sub.size == 0) return c11_sv__u8_length(self) + 1;
     int cnt = 0;
     int start = 0;
     while(true) {
