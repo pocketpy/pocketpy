@@ -72,6 +72,10 @@ assert '1111'.count('11') == 2
 assert '11'.count('') == 3
 assert ''.count('1') == 0
 assert ''.count('') == 1
+assert 'é日'.count('') == 3
+assert 'ab'.replace('', '-') == '-a-b-'
+assert 'é日'.replace('', '|') == '|é|日|'
+assert ''.replace('', 'x') == 'x'
 
 t = "*****this is **string** example....wow!!!*****"
 s = "123abcrunoob321"
