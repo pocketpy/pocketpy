@@ -113,6 +113,20 @@ assert str(abs(0.0)) == '0.0'
 # except ValueError:
 #     pass
 
+# float() of an empty or blank string is an error, not 0.0
+for s in ['', ' ', '\t\n']:
+    try:
+        float(s)
+        exit(1)
+    except ValueError:
+        pass
+
+# surrounding whitespace is ignored
+assert float(' 1.5') == 1.5
+assert float('1.5 ') == 1.5
+assert float('\t-2.5\n') == -2.5
+assert float(' inf ') == float('inf')
+
 assert eq(10 % 4, 2)
 assert eq(10.5 % 4, 2.5)
 assert eq(10 % 4.5, 1.0)
