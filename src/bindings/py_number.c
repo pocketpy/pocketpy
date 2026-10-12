@@ -472,6 +472,10 @@ static bool float__new__(int argc, py_Ref argv) {
         case tp_str: {
             // str to float
             c11_sv sv = py_tosv(py_arg(1));
+            // like CPython, surrounding whitespace is ignored
+            c11_sv text = c11_sv__strip(sv, (c11_sv){" \t\n\r\f\v", 6}, true, true);
+            if(text.size == 0) return ValueError("invalid literal for float(): %q", sv);
+            sv = text;
 
             if(c11__sveq2(sv, "inf")) {
                 py_newfloat(py_retval(), DMATH_INFINITY);
