@@ -738,7 +738,28 @@ static bool bytes__repr__(int argc, py_Ref argv) {
     c11_sbuf buf;
     c11_sbuf__ctor(&buf);
     c11_sbuf__write_char(&buf, 'b');
-    c11_sbuf__write_quoted(&buf, (c11_sv){(const char*)self->data, self->size}, '\'');
+    c11_sbuf__write_char(&buf, '\'');
+    // Like CPython: printable ASCII as is, everything else escaped byte by byte
+    for(int i = 0; i < self->size; i++) {
+        unsigned char c = self->data[i];
+        switch(c) {
+            case '\'': c11_sbuf__write_cstrn(&buf, "\\'", 2); break;
+            case '\\': c11_sbuf__write_cstrn(&buf, "\\\\", 2); break;
+            case '\n': c11_sbuf__write_cstrn(&buf, "\\n", 2); break;
+            case '\r': c11_sbuf__write_cstrn(&buf, "\\r", 2); break;
+            case '\t': c11_sbuf__write_cstrn(&buf, "\\t", 2); break;
+            default:
+                if(c >= 0x20 && c < 0x7f) {
+                    c11_sbuf__write_char(&buf, (char)c);
+                } else {
+                    c11_sbuf__write_cstrn(&buf, "\\x", 2);
+                    c11_sbuf__write_char(&buf, PK_HEX_TABLE[c >> 4]);
+                    c11_sbuf__write_char(&buf, PK_HEX_TABLE[c & 0xf]);
+                }
+                break;
+        }
+    }
+    c11_sbuf__write_char(&buf, '\'');
     c11_sbuf__py_submit(&buf, py_retval());
     return true;
 }

@@ -69,3 +69,10 @@ try:
     exit(1)
 except StopIteration:
     pass
+
+# test repr: bytes outside printable ASCII are escaped one by one
+assert repr('é'.encode()) == "b'\\xc3\\xa9'"
+assert repr(bytes([0, 9, 10, 13, 39, 92, 127, 128, 200, 255])) == "b'\\x00\\t\\n\\r\\'\\\\\\x7f\\x80\\xc8\\xff'"
+assert repr(b'\x08') == "b'\\x08'"
+assert repr(b'abc') == "b'abc'"
+assert repr(b'') == "b''"
