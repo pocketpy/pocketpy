@@ -24,7 +24,7 @@ build that your application ships.
 | Bytes | A smaller operation set, including no repetition with `*` | Repeat text before encoding, or construct the required bytes in the host. |
 | Exceptions | `try/except` supported; `else` and `finally` clauses unsupported | Arrange explicit cleanup on success and failure. |
 | Context managers | Cleanup occurs only when execution reaches the end of the block | Read the cleanup example below. |
-| Pattern matching | `match/case` compares values for equality | Use explicit tests for destructuring and type checks. |
+| Pattern matching | Supports literals, `_`, name captures and nested fixed-length tuple/list patterns. `True`, `False` and `None` patterns compare by identity. | Use explicit checks for other sequence types or unsupported pattern forms. |
 | Imports | Host-controlled loading; no `sys.path` search list | Configure the working directory or a [custom loader](../C-API/modules.md). |
 | Packages | A selected standard library and native binding API | Check each [module page](../modules/index.md); CPython binary extensions are incompatible. |
 
@@ -103,24 +103,35 @@ assert rest == [2, 3]
 `first, *middle, last = values` is unsupported. Split that assignment into
 ordinary indexing and slicing.
 
-`match` is a keyword, not a soft keyword. Each `case` expression is compared
-to the subject, and `case _` is the fallback:
+`match` is a keyword, not a soft keyword. A bare name captures the whole
+subject, `_` matches without binding a name, and tuple/list patterns inspect
+fixed-length sequences recursively:
 
 ```python
-status = 404
-match status:
-    case 200:
-        message = 'ok'
-    case 404:
-        message = 'not found'
-    case _:
-        message = 'unknown'
-assert message == 'not found'
+def describe(value):
+    match value:
+        case ("point", [x, y]):
+            return (x, y)
+        case ("point", item):
+            return (item,)
+        case _:
+            return None
+
+assert describe(("point", [3, 4])) == (3, 4)
+assert describe(("point", 5)) == (5,)
 ```
 
-A tuple case compares against that tuple; it is not a set of alternatives.
-Capture patterns, class patterns, and CPython's structural matching semantics
-are unavailable.
+The literal patterns `True`, `False` and `None` compare by identity, as in
+CPython. Other literal patterns compare by equality: `case True` does not
+match `1`, while `case 1` matches `True`.
+
+Tuple and list patterns match only exact tuple/list values and require the
+same number of items. CPython also accepts other sequence types, such as
+`range`, and sequence subclasses. Unparenthesized sequence patterns such as
+`case x, y:` are unsupported. Guards, OR patterns, starred sequence patterns,
+mapping patterns, class patterns, `as` patterns and dotted value patterns are
+unsupported. Byte string and complex literal patterns, as well as adjacent
+string literals in patterns, are unsupported.
 
 ## Strings and indentation
 

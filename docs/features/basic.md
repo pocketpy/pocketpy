@@ -21,7 +21,8 @@ variant of it.
 | Errors | `raise`, `try/except`, exception subclasses |
 | Modules | `import`, `from ... import`, relative imports |
 | Strings | UTF-8 strings, formatting, f-strings |
-| Other syntax | Unpacking, type annotations, `with`, simplified `match/case` |
+| Other syntax | Unpacking, type annotations, `with` |
+| Pattern matching | Literal cases, `_` wildcard, name captures, nested fixed-length tuple/list patterns |
 | Runtime access | `eval()`, `exec()`, `getattr()`, `setattr()`, `hasattr()` |
 
 ## Functions, data, and iteration
@@ -52,6 +53,31 @@ player = Player('Ada')
 player.score = 250
 assert player.rank == 2
 ```
+
+## Pattern matching
+
+`match/case` supports literal patterns, `_` as a wildcard, bare names as
+captures, and fixed-length tuple/list patterns. Tuple and list patterns can
+nest, and either pattern form matches tuple or list values of the same length.
+
+```python
+def evaluate(expr):
+    match expr:
+        case ("lit", value):
+            return value
+        case ("+", left, right):
+            return evaluate(left) + evaluate(right)
+        case _:
+            return None
+
+assert evaluate(("+", ("lit", 1), ("lit", 2))) == 3
+```
+
+The literal patterns `True`, `False` and `None` compare by identity, as in
+CPython. Other literal patterns compare by equality. For example, `case True`
+does not match `1`, but `case 1` matches `True`. See the
+[CPython comparison guide](differences.md#unpacking-and-matching) for
+unsupported pattern forms and sequence types.
 
 ## Special methods
 
