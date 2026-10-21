@@ -1472,6 +1472,8 @@ typedef enum MatchPatternKind {
     MatchPattern_LITERAL,
     MatchPattern_SINGLETON,
     MatchPattern_SEQUENCE,
+    MatchPattern_AS,
+    MatchPattern_VALUE,
 } MatchPatternKind;
 
 typedef struct MatchPattern {
@@ -1483,6 +1485,11 @@ typedef struct MatchPattern {
         struct {
             c11_vector /*T=MatchPattern**/ items;
         } sequence;
+        struct {
+            struct MatchPattern* pattern;
+            py_Name name;
+        } alias;
+        Expr* value;
     } as;
 } MatchPattern;
 
@@ -1503,26 +1510,58 @@ static void MatchPattern__delete(MatchPattern* self) {
     if(self->kind == MatchPattern_SEQUENCE) {
         c11__foreach(MatchPattern*, &self->as.sequence.items, it) MatchPattern__delete(*it);
         c11_vector__dtor(&self->as.sequence.items);
+    } else if(self->kind == MatchPattern_AS) {
+        MatchPattern__delete(self->as.alias.pattern);
+    } else if(self->kind == MatchPattern_VALUE) {
+        vtdelete(self->as.value);
     }
     PK_FREE(self);
 }
 
 static Error* parse_match_pattern(Compiler* self,
                                   c11_vector* captures,
-                                  MatchPattern** out) {
+                                  MatchPattern** out);
+
+static Error* match_pattern_capture(Compiler* self, c11_vector* captures, py_Name name) {
+    c11__foreach(py_Name, captures, it) {
+        if(*it == name) return SyntaxError(self, "multiple assignments to a name in pattern");
+    }
+    c11_vector__push(py_Name, captures, name);
+    return NULL;
+}
+
+static Error* parse_match_closed_pattern(Compiler* self,
+                                        c11_vector* captures,
+                                        MatchPattern** out) {
     *out = NULL;
     int line = curr()->line;
 
     if(match(TK_ID)) {
         py_Name name = py_namev(Token__sv(prev()));
+        if(curr()->type == TK_DOT && name != py_name("_")) {
+            NameScope scope = name_scope(self);
+            if(c11_smallmap_n2d__contains(&ctx()->global_names, name)) scope = NAME_GLOBAL;
+            Expr* value = (Expr*)NameExpr__new(line, name, scope);
+            while(match(TK_DOT)) {
+                if(!match(TK_ID)) {
+                    vtdelete(value);
+                    return SyntaxError(self, "expected an attribute name in value pattern");
+                }
+                value = (Expr*)AttribExpr__new(prev()->line,
+                                              value,
+                                              py_namev(Token__sv(prev())));
+            }
+            MatchPattern* pattern = MatchPattern__new(MatchPattern_VALUE, line);
+            pattern->as.value = value;
+            *out = pattern;
+            return NULL;
+        }
         if(name == py_name("_")) {
             *out = MatchPattern__new(MatchPattern_WILDCARD, line);
             return NULL;
         }
-        c11__foreach(py_Name, captures, it) {
-            if(*it == name) return SyntaxError(self, "multiple assignments to a name in pattern");
-        }
-        c11_vector__push(py_Name, captures, name);
+        Error* err = match_pattern_capture(self, captures, name);
+        if(err) return err;
         MatchPattern* pattern = MatchPattern__new(MatchPattern_CAPTURE, line);
         pattern->as.name = name;
         *out = pattern;
@@ -1599,14 +1638,79 @@ static Error* parse_match_pattern(Compiler* self,
         return NULL;
     }
 
-    return SyntaxError(self, "expected a capture, literal, tuple, or list pattern");
+    return SyntaxError(self, "expected a capture, literal, value, tuple, or list pattern");
 }
 
+static Error* parse_match_pattern(Compiler* self,
+                                  c11_vector* captures,
+                                  MatchPattern** out) {
+    Error* err = parse_match_closed_pattern(self, captures, out);
+    if(err || !match(TK_AS)) return err;
+
+    MatchPattern* inner = *out;
+    *out = NULL;
+    if(!match(TK_ID) || c11__sveq2(Token__sv(prev()), "_")) {
+        MatchPattern__delete(inner);
+        return SyntaxError(self, "expected a capture name after 'as'");
+    }
+    py_Name name = py_namev(Token__sv(prev()));
+    err = match_pattern_capture(self, captures, name);
+    if(err) {
+        MatchPattern__delete(inner);
+        return err;
+    }
+    MatchPattern* pattern = MatchPattern__new(MatchPattern_AS, inner->line);
+    pattern->as.alias.pattern = inner;
+    pattern->as.alias.name = name;
+    *out = pattern;
+    return NULL;
+}
+
+static Error* parse_match_patterns(Compiler* self,
+                                  c11_vector* captures,
+                                  MatchPattern** out) {
+    Error* err = parse_match_pattern(self, captures, out);
+    if(err || !match(TK_COMMA)) return err;
+
+    MatchPattern* sequence = MatchPattern__new(MatchPattern_SEQUENCE, (*out)->line);
+    c11_vector__ctor(&sequence->as.sequence.items, sizeof(MatchPattern*));
+    c11_vector__push(MatchPattern*, &sequence->as.sequence.items, *out);
+    *out = NULL;
+    do {
+        if(curr()->type == TK_COLON || curr()->type == TK_IF) break;
+        MatchPattern* item = NULL;
+        err = parse_match_pattern(self, captures, &item);
+        if(err) {
+            MatchPattern__delete(sequence);
+            return err;
+        }
+        c11_vector__push(MatchPattern*, &sequence->as.sequence.items, item);
+    } while(match(TK_COMMA));
+    *out = sequence;
+    return NULL;
+}
+
+static bool match_pattern_irrefutable(const MatchPattern* pattern) {
+    if(pattern->kind == MatchPattern_AS) {
+        return match_pattern_irrefutable(pattern->as.alias.pattern);
+    }
+    return pattern->kind == MatchPattern_CAPTURE || pattern->kind == MatchPattern_WILDCARD;
+}
+
+// Sequences and aliases save parent subjects beneath the current value.
+// A failed pattern must discard those subjects before trying the next case.
 static void compile_match_pattern(Ctx* ctx,
                                   const MatchPattern* pattern,
-                                  int nested_sequences,
+                                  int saved_subjects,
                                   c11_vector* failures) {
     switch(pattern->kind) {
+        case MatchPattern_AS: {
+            Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, pattern->line);
+            compile_match_pattern(ctx, pattern->as.alias.pattern, saved_subjects + 1, failures);
+            MatchPattern capture = {.kind = MatchPattern_CAPTURE, .line = pattern->line};
+            capture.as.name = pattern->as.alias.name;
+            compile_match_pattern(ctx, &capture, saved_subjects, failures);
+        } break;
         case MatchPattern_WILDCARD:
             Ctx__emit_(ctx, OP_POP_TOP, BC_NOARG, pattern->line);
             break;
@@ -1624,9 +1728,14 @@ static void compile_match_pattern(Ctx* ctx,
             }
             Ctx__emit_store_name(ctx, scope, pattern->as.name, pattern->line);
         } break;
+        case MatchPattern_VALUE:
         case MatchPattern_LITERAL:
         case MatchPattern_SINGLETON: {
-            Ctx__emit_(ctx, OP_LOAD_CONST, pattern->as.const_index, pattern->line);
+            if(pattern->kind == MatchPattern_VALUE) {
+                vtemit_(pattern->as.value, ctx);
+            } else {
+                Ctx__emit_(ctx, OP_LOAD_CONST, pattern->as.const_index, pattern->line);
+            }
             // Python compares True, False and None by identity, other literals by equality.
             bool singleton = pattern->kind == MatchPattern_SINGLETON;
             if(singleton) Ctx__emit_(ctx, OP_IS_OP, 0, pattern->line);
@@ -1636,7 +1745,7 @@ static void compile_match_pattern(Ctx* ctx,
                                   pattern->line);
             c11_vector__push(MatchPatternFailure,
                              failures,
-                             ((MatchPatternFailure){jump, nested_sequences}));
+                             ((MatchPatternFailure){jump, saved_subjects}));
         } break;
         case MatchPattern_SEQUENCE: {
             Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, pattern->line);
@@ -1647,13 +1756,13 @@ static void compile_match_pattern(Ctx* ctx,
             int jump = Ctx__emit_(ctx, OP_POP_JUMP_IF_FALSE, BC_NOARG, pattern->line);
             c11_vector__push(MatchPatternFailure,
                              failures,
-                             ((MatchPatternFailure){jump, nested_sequences + 1}));
+                             ((MatchPatternFailure){jump, saved_subjects + 1}));
 
             for(int i = 0; i < pattern->as.sequence.items.length; i++) {
                 Ctx__emit_(ctx, OP_DUP_TOP, BC_NOARG, pattern->line);
                 Ctx__emit_(ctx, OP_MATCH_SEQUENCE_ITEM, i, pattern->line);
                 MatchPattern* item = c11__getitem(MatchPattern*, &pattern->as.sequence.items, i);
-                compile_match_pattern(ctx, item, nested_sequences + 1, failures);
+                compile_match_pattern(ctx, item, saved_subjects + 1, failures);
             }
             Ctx__emit_(ctx, OP_POP_TOP, BC_NOARG, pattern->line);
         } break;
@@ -2312,7 +2421,7 @@ static Error* compile_match_case(Compiler* self, c11_vector* patches) {
     Error* err;
     bool is_case_default = false;
 
-    check(EXPR(self));  // condition
+    check(EXPR_TUPLE(self));  // subject
     Ctx__s_emit_top(ctx());
 
     consume(TK_COLON);
@@ -2329,12 +2438,11 @@ static Error* compile_match_case(Compiler* self, c11_vector* patches) {
             c11_vector /*T=py_Name*/ captures;
             c11_vector__ctor(&captures, sizeof(py_Name));
             MatchPattern* pattern = NULL;
-            err = parse_match_pattern(self, &captures, &pattern);
+            err = parse_match_patterns(self, &captures, &pattern);
             c11_vector__dtor(&captures);
             if(err) return err;
 
-            is_case_default = pattern->kind == MatchPattern_WILDCARD ||
-                              pattern->kind == MatchPattern_CAPTURE;
+            bool irrefutable = match_pattern_irrefutable(pattern);
             int line = pattern->line;
             Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, line);
 
@@ -2342,6 +2450,21 @@ static Error* compile_match_case(Compiler* self, c11_vector* patches) {
             c11_vector__ctor(&failures, sizeof(MatchPatternFailure));
             compile_match_pattern(ctx(), pattern, 0, &failures);
             MatchPattern__delete(pattern);
+
+            bool guarded = match(TK_IF);
+            is_case_default = irrefutable && !guarded;
+            if(guarded) {
+                err = EXPR(self);
+                if(err) {
+                    c11_vector__dtor(&failures);
+                    return err;
+                }
+                Ctx__s_emit_top(ctx());
+                int jump = Ctx__emit_(ctx(), OP_POP_JUMP_IF_FALSE, BC_NOARG, prev()->line);
+                c11_vector__push(MatchPatternFailure,
+                                 &failures,
+                                 ((MatchPatternFailure){jump, 0}));
+            }
 
             err = compile_block_body(self);
             if(err) {

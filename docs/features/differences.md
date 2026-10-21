@@ -24,7 +24,7 @@ build that your application ships.
 | Bytes | A smaller operation set, including no repetition with `*` | Repeat text before encoding, or construct the required bytes in the host. |
 | Exceptions | `try/except` supported; `else` and `finally` clauses unsupported | Arrange explicit cleanup on success and failure. |
 | Context managers | Cleanup occurs only when execution reaches the end of the block | Read the cleanup example below. |
-| Pattern matching | Supports literals, `_`, name captures and nested fixed-length tuple/list patterns. `True`, `False` and `None` patterns compare by identity. | Use explicit checks for other sequence types or unsupported pattern forms. |
+| Pattern matching | A subset of Python patterns; sequence subjects must be built-in tuples or lists | Check the supported forms below and rewrite unsupported patterns with explicit tests. |
 | Imports | Host-controlled loading; no `sys.path` search list | Configure the working directory or a [custom loader](../C-API/modules.md). |
 | Packages | A selected standard library and native binding API | Check each [module page](../modules/index.md); CPython binary extensions are incompatible. |
 
@@ -103,35 +103,40 @@ assert rest == [2, 3]
 `first, *middle, last = values` is unsupported. Split that assignment into
 ordinary indexing and slicing.
 
-`match` is a keyword, not a soft keyword. A bare name captures the whole
-subject, `_` matches without binding a name, and tuple/list patterns inspect
-fixed-length sequences recursively:
+The [language features guide](basic.md#pattern-matching) lists supported
+patterns with examples. These include captures, wildcards, nested fixed-length
+sequences, `as` aliases, guards and dotted values.
 
-```python
-def describe(value):
-    match value:
-        case ("point", [x, y]):
-            return (x, y)
-        case ("point", item):
-            return (item,)
-        case _:
-            return None
+The following comparison rules agree with CPython:
 
-assert describe(("point", [3, 4])) == (3, 4)
-assert describe(("point", 5)) == (5,)
-```
+| Pattern | Comparison | Example |
+| --- | --- | --- |
+| `True`, `False`, `None` | Identity (`is`) | `case True:` rejects `1`; `case False:` rejects `0`. |
+| Supported number and string literals | Equality (`==`) | `case 1:` matches `True` and `1.0`. |
+| Dotted values | Equality (`==`) | If `Tags.TRUE` is `True`, `case Tags.TRUE:` matches `1`. |
 
-The literal patterns `True`, `False` and `None` compare by identity, as in
-CPython. Other literal patterns compare by equality: `case True` does not
-match `1`, while `case 1` matches `True`.
+A bare name captures the subject instead of looking up a constant. To compare
+with an existing value, use a dotted name such as `Tags.POINT` or a guard.
+Guards run after their patterns succeed and captures have been assigned.
+A false guard continues to the next case; exceptions propagate.
 
-Tuple and list patterns match only exact tuple/list values and require the
-same number of items. CPython also accepts other sequence types, such as
-`range`, and sequence subclasses. Unparenthesized sequence patterns such as
-`case x, y:` are unsupported. Guards, OR patterns, starred sequence patterns,
-mapping patterns, class patterns, `as` patterns and dotted value patterns are
-unsupported. Byte string and complex literal patterns, as well as adjacent
-string literals in patterns, are unsupported.
+The following differences affect porting:
+
+| Area | pocketpy | CPython |
+| --- | --- | --- |
+| Literal syntax | Integer and float literals, optionally negative; string literals; `True`, `False`, `None` | Also accepts byte string and complex literal patterns, plus adjacent string literals. |
+| Sequence subjects | Only exact built-in tuples and lists, with the same number of items as the pattern | Also accepts eligible types such as `range` and sequence subclasses. |
+| Other pattern forms | OR patterns, starred sequences, mappings and class patterns are unsupported | Supports these forms. |
+| Keywords | `match` is reserved | `match` and `case` are soft keywords that can also be used as ordinary names. |
+
+The sequence forms `[x, y]`, `(x, y)` and `x, y` are supported and each can
+match either a tuple or a list. As in CPython, strings and bytes do not match
+sequence patterns; an arbitrary iterable is not sufficient either.
+
+Captures from a successful match can be used after the match statement.
+A false guard does not undo the captures made by its successful pattern.
+Do not rely on partial captures after a pattern fails: Python leaves that
+behavior unspecified.
 
 ## Strings and indentation
 
