@@ -334,14 +334,14 @@ bool c11_bytes__eq(c11_bytes* self, c11_bytes* other) {
 }
 
 int c11_sv__cmp(c11_sv self, c11_sv other) {
-    int res = strncmp(self.data, other.data, c11__min(self.size, other.size));
+    int res = memcmp(self.data, other.data, c11__min(self.size, other.size));
     if(res != 0) return res;
     return self.size - other.size;
 }
 
 int c11_sv__cmp2(c11_sv self, const char* other) {
     int size = strlen(other);
-    int res = strncmp(self.data, other, c11__min(self.size, size));
+    int res = memcmp(self.data, other, c11__min(self.size, size));
     if(res != 0) return res;
     return self.size - size;
 }

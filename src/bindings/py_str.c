@@ -194,8 +194,8 @@ static bool str__contains__(int argc, py_Ref argv) {
         py_newnotimplemented(py_retval());
     } else {
         c11_string* other = pk_tostr(&argv[1]);
-        const char* p = strstr(self->data, other->data);
-        py_newbool(py_retval(), p != NULL);
+        int index = c11_sv__index2(c11_string__sv(self), c11_string__sv(other), 0);
+        py_newbool(py_retval(), index != -1);
     }
     return true;
 }
