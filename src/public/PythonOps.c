@@ -57,7 +57,7 @@ bool py_isidentical(py_Ref lhs, py_Ref rhs) {
             if(lhs->is_ptr && rhs->is_ptr) {
                 return lhs->_obj == rhs->_obj;
             } else {
-                return strcmp(lhs->_chars, rhs->_chars) == 0;
+                return c11__sveq(py_tosv(lhs), py_tosv(rhs));
             }
         }
         case tp_nativefunc: return lhs->_cfunc == rhs->_cfunc;
