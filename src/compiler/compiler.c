@@ -1620,8 +1620,16 @@ static Error* parse_match_closed_pattern(Compiler* self,
         return NULL;
     }
 
-    if(curr()->type == TK_NUM || curr()->type == TK_STR || curr()->type == TK_TRUE ||
-       curr()->type == TK_FALSE || curr()->type == TK_NONE ||
+    if(match(TK_STR)) {
+        MatchPattern* pattern = MatchPattern__new(MatchPattern_LITERAL, line);
+        pattern->as.const_index =
+            Ctx__add_const_string(ctx(), c11_string__sv(prev()->value._str));
+        *out = pattern;
+        return NULL;
+    }
+
+    if(curr()->type == TK_NUM || curr()->type == TK_TRUE || curr()->type == TK_FALSE ||
+       curr()->type == TK_NONE ||
        (curr()->type == TK_SUB && next()->type == TK_NUM)) {
         py_TValue literal;
         Error* err = read_literal(self, &literal);
@@ -1629,11 +1637,7 @@ static Error* parse_match_closed_pattern(Compiler* self,
         bool singleton = literal.type == tp_bool || literal.type == tp_NoneType;
         MatchPattern* pattern = MatchPattern__new(
             singleton ? MatchPattern_SINGLETON : MatchPattern_LITERAL, line);
-        if(literal.type == tp_str) {
-            pattern->as.const_index = Ctx__add_const_string(ctx(), py_tosv(&literal));
-        } else {
-            pattern->as.const_index = Ctx__add_const(ctx(), &literal);
-        }
+        pattern->as.const_index = Ctx__add_const(ctx(), &literal);
         *out = pattern;
         return NULL;
     }

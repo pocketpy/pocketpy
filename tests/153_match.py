@@ -35,6 +35,21 @@ def f(case):
 
 assert f(200) == True
 
+# String patterns use the full literal, including embedded NUL bytes.
+def match_nul_string(value):
+    match value:
+        case "abcdefghijklmnopqrstuvwxyz\0first":
+            return "first"
+        case "abcdefghijklmnopqrstuvwxyz\0second":
+            return "second"
+        case _:
+            return "fallback"
+
+assert match_nul_string("abcdefghijklmnopqrstuvwxyz\0first") == "first"
+assert match_nul_string("abcdefghijklmnopqrstuvwxyz\0second") == "second"
+assert match_nul_string("abcdefghijklmnopqrstuvwxyz") == "fallback"
+assert match_nul_string("abcdefghijklmnopqrstuvwxyz\0different") == "fallback"
+
 # structural match patterns: captures, wildcards, and nested sequences
 def eval_ast(expr):
     match expr:
