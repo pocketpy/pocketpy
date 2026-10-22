@@ -177,3 +177,93 @@ for i in range(len(data)):
     if i % 3 == 0:
         y = b.pop()
         delattr(a, y)
+
+# setdefault
+d = {}
+assert d.setdefault('missing') is None
+assert d == {'missing': None}
+assert d.setdefault('missing', 42) is None
+
+default = []
+assert d.setdefault('items', default) is default
+d.setdefault('items', []).append(1)
+assert d['items'] is default
+assert default == [1]
+assert list(d) == ['missing', 'items']
+
+for value in (False, 0, '', [], None):
+    d = {'key': value}
+    assert d.setdefault('key', 42) is value
+    assert d['key'] is value
+
+# Insertion order and values survive growth, deletion and reinsertion.
+d = {}
+for i in range(100):
+    assert d.setdefault(i, i * 2) == i * 2
+for i in range(100):
+    assert d.setdefault(i, -1) == i * 2
+assert list(d) == list(range(100))
+del d[0]
+assert d.setdefault(0, -1) == -1
+assert list(d)[-1] == 0
+
+# One hash call per operation, including insertion; equal keys share an entry.
+class SetDefaultKey:
+    def __init__(self, value):
+        self.value = value
+        self.hash_calls = 0
+    def __hash__(self):
+        self.hash_calls += 1
+        return 1
+    def __eq__(self, other):
+        return self.value == other.value
+    def __ne__(self, other):
+        return self.value != other.value
+
+d = {}
+key = SetDefaultKey(1)
+assert d.setdefault(key, default) is default
+assert key.hash_calls == 1
+assert d.setdefault(key, None) is default
+assert key.hash_calls == 2
+equal_key = SetDefaultKey(1)
+assert d.setdefault(equal_key, None) is default
+assert equal_key.hash_calls == 1
+other_key = SetDefaultKey(2)
+assert d.setdefault(other_key, 42) == 42
+assert other_key.hash_calls == 1
+assert len(d) == 2
+
+# Lookup errors propagate without inserting the default.
+class SetDefaultHashError:
+    def __hash__(self):
+        raise ValueError('hash failed')
+    def __eq__(self, other):
+        return self is other
+    def __ne__(self, other):
+        return self is not other
+
+d = {}
+try:
+    d.setdefault(SetDefaultHashError(), 42)
+    assert False
+except ValueError as e:
+    assert str(e) == 'hash failed'
+assert d == {}
+try:
+    d.setdefault([], 42)
+    assert False
+except TypeError:
+    pass
+assert d == {}
+
+try:
+    d.setdefault()
+    assert False
+except TypeError as e:
+    assert str(e) == 'setdefault expected at least 1 argument, got 0'
+try:
+    d.setdefault('key', 1, 2)
+    assert False
+except TypeError as e:
+    assert str(e) == 'setdefault expected at most 2 arguments, got 3'
