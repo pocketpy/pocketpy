@@ -260,17 +260,7 @@ static void Dict__compact_entries(Dict* self) {
     PK_FREE(mappings);
 }
 
-static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
-    uint64_t hash;
-    uint32_t idx;
-    DictEntry* entry;
-    if(!Dict__probe(self, key, &hash, &idx, &entry)) return false;
-    if(entry) {
-        // update existing entry
-        entry->val = *val;
-        return true;
-    }
-    // insert new entry
+static void Dict__insert(Dict* self, py_Ref key, py_Ref val, uint64_t hash, uint32_t idx) {
     DictEntry* new_entry = c11_vector__emplace(&self->entries);
     new_entry->hash = hash;
     new_entry->key = *key;
@@ -280,6 +270,19 @@ static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
     // check if we need to rehash
     float load_factor = (float)self->length / self->capacity;
     if(load_factor > (self->index_is_short ? 0.4f : 0.5f)) Dict__rehash_2x(self);
+}
+
+static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
+    uint64_t hash;
+    uint32_t idx;
+    DictEntry* entry;
+    if(!Dict__probe(self, key, &hash, &idx, &entry)) return false;
+    if(entry) {
+        // update existing entry
+        entry->val = *val;
+    } else {
+        Dict__insert(self, key, val, hash, idx);
+    }
     return true;
 }
 
@@ -572,6 +575,25 @@ static bool dict_get(int argc, py_Ref argv) {
     return true;
 }
 
+static bool dict_setdefault(int argc, py_Ref argv) {
+    if(argc < 2) return TypeError("setdefault expected at least 1 argument, got 0");
+    if(argc > 3) return TypeError("setdefault expected at most 2 arguments, got %d", argc - 1);
+    Dict* self = py_touserdata(argv);
+    py_Ref key = py_arg(1);
+    py_Ref default_val = argc == 3 ? py_arg(2) : py_None();
+    uint64_t hash;
+    uint32_t idx;
+    DictEntry* entry;
+    if(!Dict__probe(self, key, &hash, &idx, &entry)) return false;
+    if(entry) {
+        *py_retval() = entry->val;
+    } else {
+        Dict__insert(self, key, default_val, hash, idx);
+        *py_retval() = *default_val;
+    }
+    return true;
+}
+
 static bool dict_pop(int argc, py_Ref argv) {
     Dict* self = py_touserdata(argv);
     if(argc < 2 || argc > 3) return TypeError("pop() takes 1 or 2 arguments (%d given)", argc - 1);
@@ -646,6 +668,7 @@ py_Type pk_dict__register() {
     py_bindmethod(type, "copy", dict_copy);
     py_bindmethod(type, "update", dict_update);
     py_bindmethod(type, "get", dict_get);
+    py_bindmethod(type, "setdefault", dict_setdefault);
     py_bindmethod(type, "pop", dict_pop);
     py_bindmethod(type, "popitem", dict_popitem);
     py_bindmethod(type, "keys", dict_keys);
