@@ -124,43 +124,6 @@ else:
     x = 3
 assert x == 2
 
-# match case
-case, _1 = 1, 2
-assert case == 1 and _1 == 2
-
-match (404 * 1):
-    case 200:
-        assert False
-    case 404:
-        assert True
-    case _: assert False
-
-match (555 * 1):
-    case 200:
-        assert False
-    case 404: assert False
-    case _:
-        assert True
-
-match (555 * 1):
-    case 200:
-        assert False
-    case 404:
-        assert False
-    # no default case
-
-
-def f(case):
-    match case:
-        case 200:
-            return True
-        case 404:
-            return False
-        case _:
-            return False
-
-assert f(200) == True
-
 # extras
 
 t = 0

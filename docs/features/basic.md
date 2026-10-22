@@ -21,7 +21,8 @@ variant of it.
 | Errors | `raise`, `try/except`, exception subclasses |
 | Modules | `import`, `from ... import`, relative imports |
 | Strings | UTF-8 strings, formatting, f-strings |
-| Other syntax | Unpacking, type annotations, `with`, simplified `match/case` |
+| Other syntax | Unpacking, type annotations, `with` |
+| Pattern matching | Integer, float, string and singleton patterns; dotted values; captures; fixed-length sequences; `as`; guards |
 | Runtime access | `eval()`, `exec()`, `getattr()`, `setattr()`, `hasattr()` |
 
 ## Functions, data, and iteration
@@ -52,6 +53,29 @@ player = Player('Ada')
 player.score = 250
 assert player.rank == 2
 ```
+
+## Pattern matching
+
+Use `match/case` with literals, captures, `_`, fixed-length tuple/list
+patterns, dotted values, `as` and guards. Nested patterns are supported.
+
+```python
+class Tags:
+    POINT = "point"
+
+def positive_point(value):
+    match value:
+        case (Tags.POINT, x, y) as point if x > 0 and y > 0:
+            return point
+        case _:
+            return None
+
+assert positive_point(("point", 2, 3)) == ("point", 2, 3)
+assert positive_point(("point", -2, 3)) is None
+```
+
+See the [compatibility guide](differences.md#unpacking-and-matching) for
+unsupported patterns and differences from CPython.
 
 ## Special methods
 

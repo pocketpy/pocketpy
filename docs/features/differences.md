@@ -24,7 +24,7 @@ build that your application ships.
 | Bytes | A smaller operation set, including no repetition with `*` | Repeat text before encoding, or construct the required bytes in the host. |
 | Exceptions | `try/except` supported; `else` and `finally` clauses unsupported | Arrange explicit cleanup on success and failure. |
 | Context managers | Cleanup occurs only when execution reaches the end of the block | Read the cleanup example below. |
-| Pattern matching | `match/case` compares values for equality | Use explicit tests for destructuring and type checks. |
+| Pattern matching | A subset of Python patterns; sequence subjects must be built-in tuples or lists | Check the supported forms below and rewrite unsupported patterns with explicit tests. |
 | Imports | Host-controlled loading; no `sys.path` search list | Configure the working directory or a [custom loader](../C-API/modules.md). |
 | Packages | A selected standard library and native binding API | Check each [module page](../modules/index.md); CPython binary extensions are incompatible. |
 
@@ -103,8 +103,8 @@ assert rest == [2, 3]
 `first, *middle, last = values` is unsupported. Split that assignment into
 ordinary indexing and slicing.
 
-`match` is a keyword, not a soft keyword. Each `case` expression is compared
-to the subject, and `case _` is the fallback:
+`match` is a keyword, not a soft keyword. Literal cases are compared
+against the subject, and `case _` is the fallback:
 
 ```python
 status = 404
@@ -118,9 +118,27 @@ match status:
 assert message == 'not found'
 ```
 
-A tuple case compares against that tuple; it is not a set of alternatives.
-Capture patterns, class patterns, and CPython's structural matching semantics
-are unavailable.
+Captures, nested fixed-length tuple/list patterns, `as`, guards and dotted
+values are supported. A bare name binds the subject; use a dotted name
+to compare with an existing value. See the [language features guide](basic.md#pattern-matching)
+for an example.
+
+`case (1, 2):` matches a tuple or list containing exactly `1` and `2`,
+in that order. Only built-in tuples and lists are supported.
+
+Integer, float and string literals are compared by equality.
+`True`, `False` and `None` are compared by identity, as in CPython.
+Dotted values are compared by equality, including references to these singletons.
+
+OR patterns, starred sequences, mapping patterns, class patterns,
+byte string patterns and complex literal patterns are unsupported.
+Adjacent string literals in patterns are also unsupported.
+
+Comparisons and dotted value lookups can run user code. If that code shortens
+a list being matched, a later item access can raise `IndexError`. CPython may
+already have unpacked those items before running the comparison, so the same
+code can behave differently. Python leaves these matching side-effect details
+[unspecified](https://peps.python.org/pep-0634/#side-effects-and-undefined-behavior).
 
 ## Strings and indentation
 

@@ -785,6 +785,33 @@ __NEXT_STEP:
             if(!res) DISPATCH_JUMP((int16_t)byte.arg);
             DISPATCH();
         }
+        case OP_MATCH_SEQUENCE: {
+            int length = -1;
+            if(TOP()->type == tp_tuple) length = py_tuple_len(TOP());
+            if(TOP()->type == tp_list) length = py_list_len(TOP());
+            py_newbool(TOP(), length == byte.arg);
+            DISPATCH();
+        }
+        case OP_MATCH_SEQUENCE_ITEM: {
+            py_TValue* items;
+            int length;
+            if(TOP()->type == tp_tuple) {
+                items = py_tuple_data(TOP());
+                length = py_tuple_len(TOP());
+            } else if(TOP()->type == tp_list) {
+                items = py_list_data(TOP());
+                length = py_list_len(TOP());
+            } else {
+                TypeError("expected a tuple or list while matching a pattern, got '%t'", TOP()->type);
+                goto __ERROR;
+            }
+            if(byte.arg >= length) {
+                IndexError("sequence became too short while matching a pattern");
+                goto __ERROR;
+            }
+            *TOP() = items[byte.arg];
+            DISPATCH();
+        }
         case OP_POP_JUMP_IF_FALSE: {
             int res = py_bool(TOP());
             if(res < 0) goto __ERROR;
