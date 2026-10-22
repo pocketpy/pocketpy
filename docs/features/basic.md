@@ -56,42 +56,8 @@ assert player.rank == 2
 
 ## Pattern matching
 
-`match/case` supports the following forms:
-
-| Form | Example | Behavior |
-| --- | --- | --- |
-| Integer and float literals | `case -2:`, `case 1.5:` | Compare the subject with the number using equality. |
-| String literals | `case "point":` | Compare the subject with the string using equality. |
-| Singleton literals | `case True:`, `case False:`, `case None:` | Compare by identity. |
-| Wildcard | `case _:` | Match any value without binding a name. |
-| Capture | `case item:` | Match any value and bind it to `item`; a bare name does not look up an existing value. |
-| Fixed-length sequences | `case [x, y]:`, `case (x, y):`, `case x, y:` | Match a built-in tuple or list with exactly two items and bind the items. Nested patterns are supported. |
-| Dotted values | `case Tags.POINT:` | Look up the dotted name and compare its value with the subject using equality. |
-| Aliases | `case [x, y] as pair:` | Bind the whole subject to `pair` after the inner pattern succeeds. |
-| Guards | `case [x, y] if x < y:` | Evaluate the condition after matching and binding captures; try the next case if it is false. |
-
-Parentheses around a single pattern group it: `case (item):` captures the
-whole subject. A comma makes it a sequence pattern: `case (item,):` matches a
-one-item tuple or list. Both `case []:` and `case ():` match an empty tuple or
-list. Only built-in tuples and lists match sequence patterns; strings, bytes
-and iterators do not.
-
-```python
-def evaluate(expr):
-    match expr:
-        case ("lit", value):
-            return value
-        case ("+", left, right):
-            return evaluate(left) + evaluate(right)
-        case _:
-            return None
-
-assert evaluate(("+", ("lit", 1), ("lit", 2))) == 3
-```
-
-Use a dotted name such as `Tags.POINT` to compare against an existing value.
-Use `as` to capture the matched value and `if` to check a condition after the
-pattern succeeds:
+Use `match/case` with literals, captures, `_`, fixed-length tuple/list
+patterns, dotted values, `as` and guards. Nested patterns are supported.
 
 ```python
 class Tags:
@@ -108,25 +74,8 @@ assert positive_point(("point", 2, 3)) == ("point", 2, 3)
 assert positive_point(("point", -2, 3)) is None
 ```
 
-The subject is evaluated once, then cases are tried in order until a pattern
-and its optional guard succeed. A guard is not evaluated when its pattern
-fails. Exceptions from dotted value lookup, comparison or guard evaluation
-propagate to the caller.
-
-A capture or wildcard without a guard must be the last case because it matches
-every subject. This also applies to aliases such as `case _ as item:`. Each
-capture name may occur only once within a pattern, and `_` cannot be the target
-of `as`.
-
-The literal patterns `True`, `False` and `None` compare by identity, as in
-CPython. For example, `case True` does not match `1`, but `case 1` matches
-`True` through equality. Dotted value patterns always use equality, even when
-the referenced value is `True`, `False` or `None`.
-
-This is a subset of Python pattern matching. OR patterns, starred sequences,
-mapping patterns and class patterns are unsupported. The
-[CPython comparison guide](differences.md#unpacking-and-matching) lists the
-literal syntax and sequence types that are unsupported.
+See the [compatibility guide](differences.md#unpacking-and-matching) for
+unsupported patterns and differences from CPython.
 
 ## Special methods
 

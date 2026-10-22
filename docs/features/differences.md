@@ -103,40 +103,36 @@ assert rest == [2, 3]
 `first, *middle, last = values` is unsupported. Split that assignment into
 ordinary indexing and slicing.
 
-The [language features guide](basic.md#pattern-matching) lists supported
-patterns with examples. These include captures, wildcards, nested fixed-length
-sequences, `as` aliases, guards and dotted values.
+`match` is a keyword, not a soft keyword. Literal cases are compared
+against the subject, and `case _` is the fallback:
 
-The following comparison rules agree with CPython:
+```python
+status = 404
+match status:
+    case 200:
+        message = 'ok'
+    case 404:
+        message = 'not found'
+    case _:
+        message = 'unknown'
+assert message == 'not found'
+```
 
-| Pattern | Comparison | Example |
-| --- | --- | --- |
-| `True`, `False`, `None` | Identity (`is`) | `case True:` rejects `1`; `case False:` rejects `0`. |
-| Supported number and string literals | Equality (`==`) | `case 1:` matches `True` and `1.0`. |
-| Dotted values | Equality (`==`) | If `Tags.TRUE` is `True`, `case Tags.TRUE:` matches `1`. |
+Captures, nested fixed-length tuple/list patterns, `as`, guards and dotted
+values are supported. A bare name binds the subject; use a dotted name
+to compare with an existing value. See the [language features guide](basic.md#pattern-matching)
+for an example.
 
-A bare name captures the subject instead of looking up a constant. To compare
-with an existing value, use a dotted name such as `Tags.POINT` or a guard.
-Guards run after their patterns succeed and captures have been assigned.
-A false guard continues to the next case; exceptions propagate.
+`case (1, 2):` matches a tuple or list containing exactly `1` and `2`,
+in that order. Only built-in tuples and lists are supported.
 
-The following differences affect porting:
+Integer, float and string literals are compared by equality.
+`True`, `False` and `None` are compared by identity, as in CPython.
+Dotted values are compared by equality, including references to these singletons.
 
-| Area | pocketpy | CPython |
-| --- | --- | --- |
-| Literal syntax | Integer and float literals, optionally negative; string literals; `True`, `False`, `None` | Also accepts byte string and complex literal patterns, plus adjacent string literals. |
-| Sequence subjects | Only exact built-in tuples and lists, with the same number of items as the pattern | Also accepts eligible types such as `range` and sequence subclasses. |
-| Other pattern forms | OR patterns, starred sequences, mappings and class patterns are unsupported | Supports these forms. |
-| Keywords | `match` is reserved | `match` and `case` are soft keywords that can also be used as ordinary names. |
-
-The sequence forms `[x, y]`, `(x, y)` and `x, y` are supported and each can
-match either a tuple or a list. As in CPython, strings and bytes do not match
-sequence patterns; an arbitrary iterable is not sufficient either.
-
-Captures from a successful match can be used after the match statement.
-A false guard does not undo the captures made by its successful pattern.
-Do not rely on partial captures after a pattern fails: Python leaves that
-behavior unspecified.
+OR patterns, starred sequences, mapping patterns, class patterns,
+byte string patterns and complex literal patterns are unsupported.
+Adjacent string literals in patterns are also unsupported.
 
 Comparisons and dotted value lookups can run user code. If that code shortens
 a list being matched, a later item access can raise `IndexError`. CPython may
