@@ -802,11 +802,11 @@ __NEXT_STEP:
                 items = py_list_data(TOP());
                 length = py_list_len(TOP());
             } else {
-                TypeError("sequence changed during pattern matching");
+                TypeError("expected a tuple or list while matching a pattern, got '%t'", TOP()->type);
                 goto __ERROR;
             }
             if(byte.arg >= length) {
-                IndexError("sequence changed during pattern matching");
+                IndexError("sequence became too short while matching a pattern");
                 goto __ERROR;
             }
             *TOP() = items[byte.arg];

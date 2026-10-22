@@ -138,6 +138,12 @@ A false guard does not undo the captures made by its successful pattern.
 Do not rely on partial captures after a pattern fails: Python leaves that
 behavior unspecified.
 
+Comparisons and dotted value lookups can run user code. If that code shortens
+a list being matched, a later item access can raise `IndexError`. CPython may
+already have unpacked those items before running the comparison, so the same
+code can behave differently. Python leaves these matching side-effect details
+[unspecified](https://peps.python.org/pep-0634/#side-effects-and-undefined-behavior).
+
 ## Strings and indentation
 
 Use four spaces per indentation level. A tab is interpreted as four spaces,

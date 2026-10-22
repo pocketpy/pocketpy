@@ -456,13 +456,18 @@ assert CapturedAttributes.total == 5
 assert CapturedAttributes.whole == ("point", 2, 3)
 
 # Validate restrictions across combinations of the supported forms.
-def invalid_pattern(source):
+def invalid_pattern(source, message_fragment=None):
     caught = False
+    message = ""
     try:
         compile(source, "<match syntax>", "exec")
-    except SyntaxError:
+    except SyntaxError as error:
         caught = True
+        message = error.args[0]
+        if message_fragment is not None:
+            assert message_fragment in message, message
     assert caught, source
+    return message
 
 for pattern in ("x, x", "[x] as x", "1 as _", "1 as x.y", "1 as x as y",
                 "[x as y, y]", "[1] as", "Codes.", "_.VALUE"):
@@ -470,5 +475,14 @@ for pattern in ("x, x", "[x] as x", "1 as _", "1 as x.y", "1 as x as y",
 
 for pattern in ("x", "_ as x", "(x as y)"):
     invalid_pattern("match value:\n    case " + pattern +
-                    ":\n        pass\n    case _:\n        pass\n")
+                    ":\n        pass\n    case _:\n        pass\n", "unreachable")
+
+assert invalid_pattern("match value:\n    case _:\n        pass\n    case 1:\n        pass\n") == \
+    "wildcard makes remaining patterns unreachable"
+assert invalid_pattern("match value:\n    case item:\n        pass\n    case 1:\n        pass\n") == \
+    "name capture 'item' makes remaining patterns unreachable"
+assert invalid_pattern("match value:\n    case [x, x]:\n        pass\n") == \
+    "multiple assignments to name 'x' in pattern"
+assert invalid_pattern("match value:\n    case 1 as _:\n        pass\n") == \
+    "cannot use '_' as a target"
 

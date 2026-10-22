@@ -1524,7 +1524,10 @@ static Error* parse_match_pattern(Compiler* self,
 
 static Error* match_pattern_capture(Compiler* self, c11_vector* captures, py_Name name) {
     c11__foreach(py_Name, captures, it) {
-        if(*it == name) return SyntaxError(self, "multiple assignments to a name in pattern");
+        if(*it == name)
+            return SyntaxError(self,
+                               "multiple assignments to name '%s' in pattern",
+                               py_name2str(name));
     }
     c11_vector__push(py_Name, captures, name);
     return NULL;
@@ -1536,8 +1539,18 @@ static Error* parse_match_closed_pattern(Compiler* self,
     *out = NULL;
     int line = curr()->line;
 
+    if(curr()->type == TK_MUL) {
+        return SyntaxError(self, "starred sequence patterns are not supported");
+    }
+    if(curr()->type == TK_LBRACE) {
+        return SyntaxError(self, "mapping patterns are not supported");
+    }
+
     if(match(TK_ID)) {
         py_Name name = py_namev(Token__sv(prev()));
+        if(curr()->type == TK_LPAREN && name != py_name("_")) {
+            return SyntaxError(self, "class patterns are not supported");
+        }
         if(curr()->type == TK_DOT && name != py_name("_")) {
             NameScope scope = name_scope(self);
             if(c11_smallmap_n2d__contains(&ctx()->global_names, name)) scope = NAME_GLOBAL;
@@ -1545,11 +1558,15 @@ static Error* parse_match_closed_pattern(Compiler* self,
             while(match(TK_DOT)) {
                 if(!match(TK_ID)) {
                     vtdelete(value);
-                    return SyntaxError(self, "expected an attribute name in value pattern");
+                    return SyntaxError(self, "expected an attribute name after '.'");
                 }
                 value = (Expr*)AttribExpr__new(prev()->line,
                                               value,
                                               py_namev(Token__sv(prev())));
+            }
+            if(curr()->type == TK_LPAREN) {
+                vtdelete(value);
+                return SyntaxError(self, "class patterns are not supported");
             }
             MatchPattern* pattern = MatchPattern__new(MatchPattern_VALUE, line);
             pattern->as.value = value;
@@ -1642,20 +1659,30 @@ static Error* parse_match_closed_pattern(Compiler* self,
         return NULL;
     }
 
-    return SyntaxError(self, "expected a capture, literal, value, tuple, or list pattern");
+    return SyntaxError(self, "expected a pattern, got '%s'", TokenSymbols[curr()->type]);
 }
 
 static Error* parse_match_pattern(Compiler* self,
                                   c11_vector* captures,
                                   MatchPattern** out) {
     Error* err = parse_match_closed_pattern(self, captures, out);
-    if(err || !match(TK_AS)) return err;
+    if(err) return err;
+    if(curr()->type == TK_OR) {
+        MatchPattern__delete(*out);
+        *out = NULL;
+        return SyntaxError(self, "OR patterns are not supported");
+    }
+    if(!match(TK_AS)) return NULL;
 
     MatchPattern* inner = *out;
     *out = NULL;
-    if(!match(TK_ID) || c11__sveq2(Token__sv(prev()), "_")) {
+    if(!match(TK_ID)) {
         MatchPattern__delete(inner);
-        return SyntaxError(self, "expected a capture name after 'as'");
+        return SyntaxError(self, "expected a name after 'as'");
+    }
+    if(c11__sveq2(Token__sv(prev()), "_")) {
+        MatchPattern__delete(inner);
+        return SyntaxError(self, "cannot use '_' as a target");
     }
     py_Name name = py_namev(Token__sv(prev()));
     err = match_pattern_capture(self, captures, name);
@@ -2424,6 +2451,8 @@ static Error* compile_if_stmt(Compiler* self) {
 static Error* compile_match_case(Compiler* self, c11_vector* patches) {
     Error* err;
     bool is_case_default = false;
+    py_Name default_capture = 0;
+    int default_line = 0;
 
     check(EXPR_TUPLE(self));  // subject
     Ctx__s_emit_top(ctx());
@@ -2438,7 +2467,17 @@ static Error* compile_match_case(Compiler* self, c11_vector* patches) {
         match_newlines();
 
         if(match_id_by_str(self, "case")) {
-            if(is_case_default) return SyntaxError(self, "irrefutable pattern must be the last one");
+            if(is_case_default) {
+                if(default_capture) {
+                    err = SyntaxError(self,
+                                      "name capture '%s' makes remaining patterns unreachable",
+                                      py_name2str(default_capture));
+                } else {
+                    err = SyntaxError(self, "wildcard makes remaining patterns unreachable");
+                }
+                err->lineno = default_line;
+                return err;
+            }
             c11_vector /*T=py_Name*/ captures;
             c11_vector__ctor(&captures, sizeof(py_Name));
             MatchPattern* pattern = NULL;
@@ -2447,6 +2486,13 @@ static Error* compile_match_case(Compiler* self, c11_vector* patches) {
             if(err) return err;
 
             bool irrefutable = match_pattern_irrefutable(pattern);
+            if(irrefutable) {
+                const MatchPattern* catchall = pattern;
+                while(catchall->kind == MatchPattern_AS) catchall = catchall->as.alias.pattern;
+                default_capture =
+                    catchall->kind == MatchPattern_CAPTURE ? catchall->as.name : 0;
+                default_line = catchall->line;
+            }
             int line = pattern->line;
             Ctx__emit_(ctx(), OP_DUP_TOP, BC_NOARG, line);
 
