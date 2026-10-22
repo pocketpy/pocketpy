@@ -185,7 +185,7 @@ static bool tuple__hash__(int argc, py_Ref argv) {
         py_i64 y;
         if(!py_hash(&data[i], &y)) return false;
         // recommended by Github Copilot
-        x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
+        x = x ^ ((uint64_t)y + 0x9e3779b9 + (x << 6) + (x >> 2));
     }
     py_newint(py_retval(), x);
     return true;

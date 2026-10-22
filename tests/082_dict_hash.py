@@ -27,6 +27,15 @@ for group in groups:
             assert d.pop(left) == 'updated'
             assert d == {}
 
+# Tuple keys use the same hashes for equal numeric elements, including large ints.
+for group in groups:
+    d = {(group[0],): 'tuple'}
+    for value in group:
+        assert hash((value,)) == hash((group[0],))
+        assert d[(value,)] == 'tuple'
+        d[(value,)] = 'tuple'
+    assert len(d) == 1
+
 # Rounded floats must not alias a different integer near precision boundaries.
 for integer, floating in [
     (9007199254740993, 9007199254740992.0),
