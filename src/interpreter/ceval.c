@@ -668,7 +668,8 @@ __NEXT_STEP:
         DISPATCH();                                                                                \
     }
 // Fast paths for `int`/`float` operands. These mirror `DEF_NUM_BINARY_OP` in
-// `py_number.c`, including the promotion of a mixed `int`/`float` pair. Modifying a
+// `py_number.c`, including promotion except for mixed numeric equality, which
+// requires an exact comparison through the magic method. Modifying a
 // builtin type's magic methods is undefined behaviour (docs/features/ub.md), so the
 // type is never consulted here.
 #define CASE_BINARY_OP_NUM(label, op, rop, c_op, mk_i, mk_f)                                       \
@@ -680,7 +681,9 @@ __NEXT_STEP:
             mk_i(TOP(), lhs c_op rhs);                                                             \
             DISPATCH();                                                                            \
         }                                                                                          \
-        if(binaryop_isnum(SECOND()) && binaryop_isnum(TOP())) {                                    \
+        if(binaryop_isnum(SECOND()) && binaryop_isnum(TOP()) &&                                    \
+           ((label != OP_COMPARE_EQ && label != OP_COMPARE_NE) ||                                 \
+            SECOND()->type == TOP()->type)) {                                                     \
             py_f64 lhs = binaryop_tof64(SECOND());                                                 \
             py_f64 rhs = binaryop_tof64(TOP());                                                    \
             POP();                                                                                 \

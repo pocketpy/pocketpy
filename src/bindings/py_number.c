@@ -13,6 +13,55 @@ static bool try_castfloat(py_Ref self, double* out) {
     }
 }
 
+static bool try_castint(py_Ref arg, py_i64* out) {
+    if (arg->type == tp_int) {
+        *out = py_toint(arg);
+        return true;
+    } else if (arg->type == tp_bool) {
+        *out = py_tobool(arg);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// The upper bound is exclusive because INT64_MAX rounds to 2**63 as a double.
+static bool try_float_i64(py_f64 value, py_i64* out) {
+    if(!(value >= -0x1p63 && value < 0x1p63)) return false;
+    py_i64 integer = (py_i64)value;
+    if((py_f64)integer != value) return false;
+    *out = integer;
+    return true;
+}
+
+static bool number__eq__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    py_i64 lhs, rhs;
+    bool lhs_int = try_castint(py_arg(0), &lhs);
+    bool rhs_int = try_castint(py_arg(1), &rhs);
+    bool equal;
+    if(lhs_int && rhs_int) {
+        equal = lhs == rhs;
+    } else if(py_isfloat(py_arg(0)) && py_isfloat(py_arg(1))) {
+        equal = py_tofloat(py_arg(0)) == py_tofloat(py_arg(1));
+    } else if(lhs_int && py_isfloat(py_arg(1))) {
+        equal = try_float_i64(py_tofloat(py_arg(1)), &rhs) && lhs == rhs;
+    } else if(py_isfloat(py_arg(0)) && rhs_int) {
+        equal = try_float_i64(py_tofloat(py_arg(0)), &lhs) && lhs == rhs;
+    } else {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    py_newbool(py_retval(), equal);
+    return true;
+}
+
+static bool number__ne__(int argc, py_Ref argv) {
+    if(!number__eq__(argc, argv)) return false;
+    if(py_isbool(py_retval())) py_newbool(py_retval(), !py_tobool(py_retval()));
+    return true;
+}
+
 #define DEF_NUM_BINARY_OP(name, op, rint, rfloat)                                                  \
     static bool int##name(int argc, py_Ref argv) {                                                 \
         PY_CHECK_ARGC(2);                                                                          \
@@ -45,8 +94,6 @@ DEF_NUM_BINARY_OP(__add__, +, py_newint, py_newfloat)
 DEF_NUM_BINARY_OP(__sub__, -, py_newint, py_newfloat)
 DEF_NUM_BINARY_OP(__mul__, *, py_newint, py_newfloat)
 
-DEF_NUM_BINARY_OP(__eq__, ==, py_newbool, py_newbool)
-DEF_NUM_BINARY_OP(__ne__, !=, py_newbool, py_newbool)
 DEF_NUM_BINARY_OP(__lt__, <, py_newbool, py_newbool)
 DEF_NUM_BINARY_OP(__le__, <=, py_newbool, py_newbool)
 DEF_NUM_BINARY_OP(__gt__, >, py_newbool, py_newbool)
@@ -372,6 +419,11 @@ static bool float__hash__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 val = py_tofloat(&argv[0]);
     py_i64 h_user;
+    if(try_float_i64(val, &h_user)) {
+        // Equal integers, floats and booleans must have the same hash.
+        py_newint(py_retval(), h_user);
+        return true;
+    }
     memcpy(&h_user, &val, sizeof(py_f64));
     py_newint(py_retval(), h_user);
     return true;
@@ -526,42 +578,6 @@ static bool bool__repr__(int argc, py_Ref argv) {
     return true;
 }
 
-static bool bool_try_cast_i64(py_Ref arg, py_i64* out) {
-    if (arg->type == tp_int) {
-        *out = py_toint(arg);
-        return true;
-    } else if (arg->type == tp_bool) {
-        *out = py_tobool(arg);
-        return true;
-    } else {
-        return false;
-    }
-}
-
-static bool bool__eq__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    py_i64 lhs = (py_i64)py_tobool(&argv[0]);
-    py_i64 rhs;
-    if(bool_try_cast_i64(py_arg(1), &rhs)) {
-        py_newbool(py_retval(), lhs == rhs);
-    } else {
-        py_newnotimplemented(py_retval());
-    }
-    return true;
-}
-
-static bool bool__ne__(int argc, py_Ref argv) {
-    PY_CHECK_ARGC(2);
-    py_i64 lhs = (py_i64)py_tobool(&argv[0]);
-    py_i64 rhs;
-    if(bool_try_cast_i64(py_arg(1), &rhs)) {
-        py_newbool(py_retval(), lhs != rhs);
-    } else {
-        py_newnotimplemented(py_retval());
-    }
-    return true;
-}
-
 #define DEF_BOOL_BITWISE(name, op)                                                                 \
     static bool bool##name(int argc, py_Ref argv) {                                                \
         PY_CHECK_ARGC(2);                                                                          \
@@ -583,7 +599,7 @@ static bool bool__add__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_tobool(py_arg(0));
     py_i64 rhs;
-    if (bool_try_cast_i64(py_arg(1), &rhs)) {
+    if (try_castint(py_arg(1), &rhs)) {
         py_newint(py_retval(), lhs + rhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -595,7 +611,7 @@ static bool bool__sub__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_tobool(py_arg(0));
     py_i64 rhs;
-    if (bool_try_cast_i64(py_arg(1), &rhs)) {
+    if (try_castint(py_arg(1), &rhs)) {
         py_newint(py_retval(), lhs - rhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -607,7 +623,7 @@ static bool bool__rsub__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_tobool(py_arg(0));
     py_i64 rhs;
-    if (bool_try_cast_i64(py_arg(1), &rhs)) {
+    if (try_castint(py_arg(1), &rhs)) {
         py_newint(py_retval(), rhs - lhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -619,7 +635,7 @@ static bool bool__mul__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(2);
     py_i64 lhs = py_tobool(py_arg(0));
     py_i64 rhs;
-    if (bool_try_cast_i64(py_arg(1), &rhs)) {
+    if (try_castint(py_arg(1), &rhs)) {
         py_newint(py_retval(), lhs * rhs);
     } else {
         py_newnotimplemented(py_retval());
@@ -636,10 +652,10 @@ void pk_number__register() {
     py_bindmagic(tp_int, __mul__, int__mul__);
     py_bindmagic(tp_float, __mul__, float__mul__);
 
-    py_bindmagic(tp_int, __eq__, int__eq__);
-    py_bindmagic(tp_float, __eq__, float__eq__);
-    py_bindmagic(tp_int, __ne__, int__ne__);
-    py_bindmagic(tp_float, __ne__, float__ne__);
+    py_bindmagic(tp_int, __eq__, number__eq__);
+    py_bindmagic(tp_float, __eq__, number__eq__);
+    py_bindmagic(tp_int, __ne__, number__ne__);
+    py_bindmagic(tp_float, __ne__, number__ne__);
     py_bindmagic(tp_int, __lt__, int__lt__);
     py_bindmagic(tp_float, __lt__, float__lt__);
     py_bindmagic(tp_int, __le__, int__le__);
@@ -705,8 +721,8 @@ void pk_number__register() {
     py_bindmagic(tp_bool, __new__, bool__new__);
     py_bindmagic(tp_bool, __hash__, bool__hash__);
     py_bindmagic(tp_bool, __repr__, bool__repr__);
-    py_bindmagic(tp_bool, __eq__, bool__eq__);
-    py_bindmagic(tp_bool, __ne__, bool__ne__);
+    py_bindmagic(tp_bool, __eq__, number__eq__);
+    py_bindmagic(tp_bool, __ne__, number__ne__);
     py_bindmagic(tp_bool, __and__, bool__and__);
     py_bindmagic(tp_bool, __or__, bool__or__);
     py_bindmagic(tp_bool, __xor__, bool__xor__);
