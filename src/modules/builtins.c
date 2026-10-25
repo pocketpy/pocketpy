@@ -480,6 +480,36 @@ static bool NoneType__repr__(int argc, py_Ref argv) {
     return true;
 }
 
+static bool NoneType__hash__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(1);
+    PY_CHECK_ARG_TYPE(0, tp_NoneType);
+    // None is an immediate singleton, so its hash must not depend on an address.
+    py_newint(py_retval(), 0xFCA86420);
+    return true;
+}
+
+static bool NoneType__eq__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(0, tp_NoneType);
+    if(py_isnone(py_arg(1))) {
+        py_newbool(py_retval(), true);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
+static bool NoneType__ne__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    PY_CHECK_ARG_TYPE(0, tp_NoneType);
+    if(py_isnone(py_arg(1))) {
+        py_newbool(py_retval(), false);
+    } else {
+        py_newnotimplemented(py_retval());
+    }
+    return true;
+}
+
 static bool ellipsis__repr__(int argc, py_Ref argv) {
     py_newstr(py_retval(), "...");
     return true;
@@ -530,7 +560,9 @@ py_GlobalRef pk_builtins__register() {
 
     // some patches
     py_bindmagic(tp_NoneType, __repr__, NoneType__repr__);
-    py_setdict(py_tpobject(tp_NoneType), __hash__, py_None());
+    py_bindmagic(tp_NoneType, __hash__, NoneType__hash__);
+    py_bindmagic(tp_NoneType, __eq__, NoneType__eq__);
+    py_bindmagic(tp_NoneType, __ne__, NoneType__ne__);
     py_bindmagic(tp_ellipsis, __repr__, ellipsis__repr__);
     py_setdict(py_tpobject(tp_ellipsis), __hash__, py_None());
     py_bindmagic(tp_NotImplementedType, __repr__, NotImplementedType__repr__);
