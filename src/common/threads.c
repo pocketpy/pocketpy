@@ -154,7 +154,7 @@ static c11_thrd_retval_t _thrdpool_worker(void* arg) {
 void c11_thrdpool__ctor(c11_thrdpool* pool, int length) {
     pool->length = length;
     atomic_store_explicit(&pool->ready_workers_num, 0, memory_order_relaxed);
-    pool->workers = PK_MALLOC(sizeof(c11_thrdpool_worker) * length);
+    pool->workers = py_malloc(sizeof(c11_thrdpool_worker) * length);
 
     c11_mutex__ctor(&pool->workers_mutex);
     c11_cond__ctor(&pool->workers_cond);
@@ -187,7 +187,7 @@ void c11_thrdpool__dtor(c11_thrdpool* pool) {
 
     c11_mutex__dtor(&pool->workers_mutex);
     c11_cond__dtor(&pool->workers_cond);
-    PK_FREE(pool->workers);
+    py_free(pool->workers);
 }
 
 void c11_thrdpool__map(c11_thrdpool* pool, c11_thrdpool_func_t func, void** args, int num_tasks) {

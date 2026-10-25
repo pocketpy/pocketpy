@@ -227,7 +227,7 @@ __SUCCESS:
 
     c11_string__delete(filename);
     c11_string__delete(slashed_path);
-    if(need_free) PK_FREE((void*)data);
+    if(need_free) py_free((void*)data);
     return ok ? 1 : -1;
 }
 
@@ -252,7 +252,7 @@ bool py_importlib_reload(py_Ref module) {
     // py_cleardict(module); BUG: removing old classes will cause RELOAD_MODE to fail
     bool ok = py_exec(data, filename->data, RELOAD_MODE, module);
     c11_string__delete(filename);
-    PK_FREE(data);
+    py_free(data);
     py_assign(py_retval(), module);
     return ok;
 }

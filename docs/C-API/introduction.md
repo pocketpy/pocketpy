@@ -6,7 +6,7 @@ order: 10
 
 # C API essentials
 
-Include `pocketpy.h` and initialize the runtime before calling the API.
+Include `pocketpy.h` and initialize the runtime before working with Python values.
 The [quick start](../quick-start.md) has a complete host program.
 Public declarations live in
 [pocketpy.h](https://github.com/pocketpy/pocketpy/blob/main/include/pocketpy/pocketpy.h);
@@ -122,3 +122,25 @@ another VM. Each VM can be used by only one thread at a time; see
 `py_resetvm()` discards the current VM's state, invalidating its references.
 `py_finalize()` destroys all VMs and is terminal for the process: the API must
 not be used afterward.
+
+## Application allocators
+
+`py_malloc()`, `py_realloc()`, and `py_free()` call the allocator function
+pointers in `py_appcallbacks()`. They default to the C standard library and
+are available before `py_initialize()`. The same allocator serves every VM,
+including compilation, module loading, and VM initialization and finalization.
+
+To install a custom allocator, set all three callbacks before the first
+pocketpy allocation:
+
+```c
+py_AppCallbacks* callbacks = py_appcallbacks();
+callbacks->malloc = my_malloc;    /* void* (size_t) */
+callbacks->realloc = my_realloc;  /* void* (void*, size_t) */
+callbacks->free = my_free;        /* void (void*) */
+py_initialize();
+```
+
+The callbacks must follow the C allocation functions' contracts and support
+calls from all threads that use pocketpy. Keep them installed until all
+pocketpy memory has been freed, including any buffers owned by the host.

@@ -33,10 +33,13 @@ adding the subdirectory, or pass them on the CMake command line.
 | `PK_ENABLE_DETERMINISM` | `ON` | Use the project's deterministic math implementation. |
 | `PK_ENABLE_WATCHDOG` | `OFF` | Enable execution timeout checks. |
 | `PK_ENABLE_CUSTOM_SNAME` | `OFF` | Omit the built-in name implementation; an advanced host integration must supply its own. |
-| `PK_ENABLE_MIMALLOC` | `OFF` | Fetch and use mimalloc instead of the default allocator. |
 
 Select at most one library-only option. With both off, the root build creates
 the standalone `main` executable and a library.
+
+Memory allocation defaults to the C standard library. Hosts can provide a
+process-wide allocator through `py_appcallbacks()` before initialization; see
+[application allocators](C-API/introduction.md#application-allocators).
 
 The following modules are optional and default to `OFF`:
 

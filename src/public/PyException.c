@@ -168,7 +168,7 @@ static void c11_sbuf__write_exc(c11_sbuf* self, py_Ref exc) {
     c11_sbuf__write_cstr(self, ": ");
     c11_sbuf__write_cstr(self, message);
 
-    PK_FREE(message);
+    py_free(message);
 }
 
 char* safe_stringify_exception(py_Ref exc) {
@@ -223,7 +223,7 @@ void py_printexc() {
     if(!msg) return;
     pk_current_vm->callbacks.print(msg);
     pk_current_vm->callbacks.print("\n");
-    PK_FREE(msg);
+    py_free(msg);
 }
 
 char* py_formatexc() {
@@ -254,7 +254,7 @@ char* formatexc_internal(py_Ref exc) {
     }
 
     c11_string* res = c11_sbuf__submit(&ss);
-    char* dup = PK_MALLOC(res->size + 1);
+    char* dup = py_malloc(res->size + 1);
     memcpy(dup, res->data, res->size);
     dup[res->size] = '\0';
     c11_string__delete(res);

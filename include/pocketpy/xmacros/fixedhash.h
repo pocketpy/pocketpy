@@ -64,14 +64,14 @@ void METHOD(ctor)(NAME* self) {
 void METHOD(dtor)(NAME* self) { c11_chunkedvector__dtor(&self->entries); }
 
 NAME* METHOD(new)() {
-    NAME* self = PK_MALLOC(sizeof(NAME));
+    NAME* self = py_malloc(sizeof(NAME));
     METHOD(ctor)(self);
     return self;
 }
 
 void METHOD(delete)(NAME* self) {
     METHOD(dtor)(self);
-    PK_FREE(self);
+    py_free(self);
 }
 
 void METHOD(set)(NAME* self, K key, V* value) {

@@ -321,7 +321,7 @@ static void FuncDecl__serialize(c11_serializer* s,
 
 // Deserialize FuncDecl
 static FuncDecl_ FuncDecl__deserialize(c11_deserializer* d, SourceData_ embedded_src) {
-    FuncDecl_ self = PK_MALLOC(sizeof(FuncDecl));
+    FuncDecl_ self = py_malloc(sizeof(FuncDecl));
     self->rc.count = 1;
     self->rc.dtor = FuncDecl__dtor;
 

@@ -1,5 +1,7 @@
 #include "pocketpy/common/threads.h"
+#include "pocketpy.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int64_t time_monotonic_ns();
 
@@ -21,8 +23,8 @@ int main(int argc, char** argv) {
     c11_thrdpool__ctor(&pool, threads_num);
 
     int num_tasks = 10000;
-    long long* data = PK_MALLOC(sizeof(long long) * num_tasks);
-    void** args = PK_MALLOC(sizeof(void*) * num_tasks);
+    long long* data = py_malloc(sizeof(long long) * num_tasks);
+    void** args = py_malloc(sizeof(void*) * num_tasks);
 
     for(int i = 0; i < 10; i++) {
         for(int i = 0; i < num_tasks; i++) {
@@ -50,7 +52,7 @@ int main(int argc, char** argv) {
     }
 
     c11_thrdpool__dtor(&pool);
-    PK_FREE(args);
-    PK_FREE(data);
+    py_free(args);
+    py_free(data);
     return 0;
 }

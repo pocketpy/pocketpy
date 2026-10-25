@@ -48,7 +48,7 @@ static void NameDict__set_capacity_and_alloc_items(NameDict* self, int val) {
     self->critical_size = val * self->load_factor;
     self->mask = (uintptr_t)val - 1;
 
-    self->items = PK_MALLOC(self->capacity * sizeof(NameDict_KV));
+    self->items = py_malloc(self->capacity * sizeof(NameDict_KV));
     memset(self->items, 0, self->capacity * sizeof(NameDict_KV));
 }
 
@@ -64,18 +64,18 @@ static void NameDict__rehash_2x(NameDict* self) {
         c11__rtassert(!ok);
         self->items[j] = old_items[i];
     }
-    PK_FREE(old_items);
+    py_free(old_items);
 }
 
 NameDict* NameDict__new(float load_factor) {
-    NameDict* p = PK_MALLOC(sizeof(NameDict));
+    NameDict* p = py_malloc(sizeof(NameDict));
     NameDict__ctor(p, load_factor);
     return p;
 }
 
 void NameDict__delete(NameDict* self) {
     NameDict__dtor(self);
-    PK_FREE(self);
+    py_free(self);
 }
 
 void NameDict__ctor(NameDict* self, float load_factor) {
@@ -85,7 +85,7 @@ void NameDict__ctor(NameDict* self, float load_factor) {
     NameDict__set_capacity_and_alloc_items(self, 4);
 }
 
-void NameDict__dtor(NameDict* self) { PK_FREE(self->items); }
+void NameDict__dtor(NameDict* self) { py_free(self->items); }
 
 py_TValue* NameDict__try_get(NameDict* self, py_Name key) {
     bool ok;

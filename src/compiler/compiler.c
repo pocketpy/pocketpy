@@ -44,7 +44,7 @@ typedef struct ExprVt {
     do {                                                                                           \
         if(self) {                                                                                 \
             if((self)->vt->dtor) (self)->vt->dtor(self);                                           \
-            PK_FREE(self);                                                                         \
+            py_free(self);                                                                         \
         }                                                                                          \
     } while(0)
 
@@ -155,7 +155,7 @@ NameExpr* NameExpr__new(int line, py_Name name, NameScope scope) {
                               .emit_del = NameExpr__emit_del,
                               .emit_store = NameExpr__emit_store,
                               .is_name = true};
-    NameExpr* self = PK_MALLOC(sizeof(NameExpr));
+    NameExpr* self = py_malloc(sizeof(NameExpr));
     self->vt = &Vt;
     self->line = line;
     self->name = name;
@@ -192,7 +192,7 @@ StarredExpr* StarredExpr__new(int line, Expr* child, int level) {
                               .emit_store = StarredExpr__emit_store,
                               .is_starred = true,
                               .dtor = StarredExpr__dtor};
-    StarredExpr* self = PK_MALLOC(sizeof(StarredExpr));
+    StarredExpr* self = py_malloc(sizeof(StarredExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -221,7 +221,7 @@ static void UnaryExpr__emit_(Expr* self_, Ctx* ctx) {
 
 UnaryExpr* UnaryExpr__new(int line, Expr* child, Opcode opcode) {
     const static ExprVt Vt = {.emit_ = UnaryExpr__emit_, .dtor = UnaryExpr__dtor};
-    UnaryExpr* self = PK_MALLOC(sizeof(UnaryExpr));
+    UnaryExpr* self = py_malloc(sizeof(UnaryExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -244,7 +244,7 @@ void FStringSpecExpr__emit_(Expr* self_, Ctx* ctx) {
 
 FStringSpecExpr* FStringSpecExpr__new(int line, Expr* child, c11_sv spec) {
     const static ExprVt Vt = {.emit_ = FStringSpecExpr__emit_, .dtor = UnaryExpr__dtor};
-    FStringSpecExpr* self = PK_MALLOC(sizeof(FStringSpecExpr));
+    FStringSpecExpr* self = py_malloc(sizeof(FStringSpecExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -266,7 +266,7 @@ void RawStringExpr__emit_(Expr* self_, Ctx* ctx) {
 
 RawStringExpr* RawStringExpr__new(int line, c11_sv value, Opcode opcode) {
     const static ExprVt Vt = {.emit_ = RawStringExpr__emit_};
-    RawStringExpr* self = PK_MALLOC(sizeof(RawStringExpr));
+    RawStringExpr* self = py_malloc(sizeof(RawStringExpr));
     self->vt = &Vt;
     self->line = line;
     self->value = value;
@@ -290,7 +290,7 @@ void ImagExpr__emit_(Expr* self_, Ctx* ctx) {
 
 ImagExpr* ImagExpr__new(int line, double value) {
     const static ExprVt Vt = {.emit_ = ImagExpr__emit_};
-    ImagExpr* self = PK_MALLOC(sizeof(ImagExpr));
+    ImagExpr* self = py_malloc(sizeof(ImagExpr));
     self->vt = &Vt;
     self->line = line;
     self->value = value;
@@ -334,7 +334,7 @@ void LiteralExpr__emit_(Expr* self_, Ctx* ctx) {
 
 LiteralExpr* LiteralExpr__new(int line, const TokenValue* value) {
     const static ExprVt Vt = {.emit_ = LiteralExpr__emit_, .is_literal = true};
-    LiteralExpr* self = PK_MALLOC(sizeof(LiteralExpr));
+    LiteralExpr* self = py_malloc(sizeof(LiteralExpr));
     self->vt = &Vt;
     self->line = line;
     self->value = value;
@@ -362,7 +362,7 @@ void Literal0Expr__emit_(Expr* self_, Ctx* ctx) {
 
 Literal0Expr* Literal0Expr__new(int line, TokenIndex token) {
     const static ExprVt Vt = {.emit_ = Literal0Expr__emit_};
-    Literal0Expr* self = PK_MALLOC(sizeof(Literal0Expr));
+    Literal0Expr* self = py_malloc(sizeof(Literal0Expr));
     self->vt = &Vt;
     self->line = line;
     self->token = token;
@@ -381,7 +381,7 @@ void LoadConstExpr__emit_(Expr* self_, Ctx* ctx) {
 
 LoadConstExpr* LoadConstExpr__new(int line, int index) {
     const static ExprVt Vt = {.emit_ = LoadConstExpr__emit_};
-    LoadConstExpr* self = PK_MALLOC(sizeof(LoadConstExpr));
+    LoadConstExpr* self = py_malloc(sizeof(LoadConstExpr));
     self->vt = &Vt;
     self->line = line;
     self->index = index;
@@ -421,7 +421,7 @@ void SliceExpr__emit_(Expr* self_, Ctx* ctx) {
 
 SliceExpr* SliceExpr__new(int line) {
     const static ExprVt Vt = {.dtor = SliceExpr__dtor, .emit_ = SliceExpr__emit_};
-    SliceExpr* self = PK_MALLOC(sizeof(SliceExpr));
+    SliceExpr* self = py_malloc(sizeof(SliceExpr));
     self->vt = &Vt;
     self->line = line;
     self->start = NULL;
@@ -450,7 +450,7 @@ static void DictItemExpr__emit_(Expr* self_, Ctx* ctx) {
 
 static DictItemExpr* DictItemExpr__new(int line) {
     const static ExprVt Vt = {.dtor = DictItemExpr__dtor, .emit_ = DictItemExpr__emit_};
-    DictItemExpr* self = PK_MALLOC(sizeof(DictItemExpr));
+    DictItemExpr* self = py_malloc(sizeof(DictItemExpr));
     self->vt = &Vt;
     self->line = line;
     self->key = NULL;
@@ -480,7 +480,7 @@ void SequenceExpr__dtor(Expr* self_) {
     for(int i = 0; i < self->itemCount; i++) {
         vtdelete(self->items[i]);
     }
-    PK_FREE(self->items);
+    py_free(self->items);
 }
 
 bool TupleExpr__emit_store(Expr* self_, Ctx* ctx) {
@@ -531,11 +531,11 @@ bool TupleExpr__emit_del(Expr* self_, Ctx* ctx) {
 }
 
 static SequenceExpr* SequenceExpr__new(int line, const ExprVt* vt, int count, Opcode opcode) {
-    SequenceExpr* self = PK_MALLOC(sizeof(SequenceExpr));
+    SequenceExpr* self = py_malloc(sizeof(SequenceExpr));
     self->vt = vt;
     self->line = line;
     self->opcode = opcode;
-    self->items = PK_MALLOC(sizeof(Expr*) * count);
+    self->items = py_malloc(sizeof(Expr*) * count);
     self->itemCount = count;
     return self;
 }
@@ -617,7 +617,7 @@ void CompExpr__emit_(Expr* self_, Ctx* ctx) {
 
 CompExpr* CompExpr__new(int line, Opcode op0, Opcode op1) {
     const static ExprVt Vt = {.dtor = CompExpr__dtor, .emit_ = CompExpr__emit_};
-    CompExpr* self = PK_MALLOC(sizeof(CompExpr));
+    CompExpr* self = py_malloc(sizeof(CompExpr));
     self->vt = &Vt;
     self->line = line;
     self->op0 = op0;
@@ -641,7 +641,7 @@ static void LambdaExpr__emit_(Expr* self_, Ctx* ctx) {
 
 LambdaExpr* LambdaExpr__new(int line, int index) {
     const static ExprVt Vt = {.emit_ = LambdaExpr__emit_};
-    LambdaExpr* self = PK_MALLOC(sizeof(LambdaExpr));
+    LambdaExpr* self = py_malloc(sizeof(LambdaExpr));
     self->vt = &Vt;
     self->line = line;
     self->index = index;
@@ -672,7 +672,7 @@ void LogicBinaryExpr__emit_(Expr* self_, Ctx* ctx) {
 
 LogicBinaryExpr* LogicBinaryExpr__new(int line, Opcode opcode) {
     const static ExprVt Vt = {.emit_ = LogicBinaryExpr__emit_, .dtor = LogicBinaryExpr__dtor};
-    LogicBinaryExpr* self = PK_MALLOC(sizeof(LogicBinaryExpr));
+    LogicBinaryExpr* self = py_malloc(sizeof(LogicBinaryExpr));
     self->vt = &Vt;
     self->line = line;
     self->lhs = NULL;
@@ -711,7 +711,7 @@ GroupedExpr* GroupedExpr__new(int line, Expr* child) {
                               .emit_ = GroupedExpr__emit_,
                               .emit_del = GroupedExpr__emit_del,
                               .emit_store = GroupedExpr__emit_store};
-    GroupedExpr* self = PK_MALLOC(sizeof(GroupedExpr));
+    GroupedExpr* self = py_malloc(sizeof(GroupedExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -740,7 +740,7 @@ static void NamedExpr__emit_(Expr* self_, Ctx* ctx) {
 
 static NamedExpr* NamedExpr__new(int line, NameExpr* name, Expr* rhs) {
     const static ExprVt Vt = {.dtor = NamedExpr__dtor, .emit_ = NamedExpr__emit_};
-    NamedExpr* self = PK_MALLOC(sizeof(NamedExpr));
+    NamedExpr* self = py_malloc(sizeof(NamedExpr));
     self->vt = &Vt;
     self->line = line;
     self->name = name;
@@ -868,7 +868,7 @@ BinaryExpr* BinaryExpr__new(int line, TokenIndex op, bool inplace) {
     const static ExprVt Vt = {.emit_ = BinaryExpr__emit_,
                               .dtor = BinaryExpr__dtor,
                               .is_binary = true};
-    BinaryExpr* self = PK_MALLOC(sizeof(BinaryExpr));
+    BinaryExpr* self = py_malloc(sizeof(BinaryExpr));
     self->vt = &Vt;
     self->line = line;
     self->lhs = NULL;
@@ -909,7 +909,7 @@ TernaryExpr* TernaryExpr__new(int line) {
         .emit_ = TernaryExpr__emit_,
         .is_ternary = true,
     };
-    TernaryExpr* self = PK_MALLOC(sizeof(TernaryExpr));
+    TernaryExpr* self = py_malloc(sizeof(TernaryExpr));
     self->vt = &Vt;
     self->line = line;
     self->cond = NULL;
@@ -979,7 +979,7 @@ SubscrExpr* SubscrExpr__new(int line) {
         .emit_del = SubscrExpr__emit_del,
         .is_subscr = true,
     };
-    SubscrExpr* self = PK_MALLOC(sizeof(SubscrExpr));
+    SubscrExpr* self = py_malloc(sizeof(SubscrExpr));
     self->vt = &Vt;
     self->line = line;
     self->lhs = NULL;
@@ -1060,7 +1060,7 @@ AttribExpr* AttribExpr__new(int line, Expr* child, py_Name name) {
                               .emit_istore = AttribExpr__emit_istore,
                               .dtor = AttribExpr__dtor,
                               .is_attrib = true};
-    AttribExpr* self = PK_MALLOC(sizeof(AttribExpr));
+    AttribExpr* self = py_malloc(sizeof(AttribExpr));
     self->vt = &Vt;
     self->line = line;
     self->child = child;
@@ -1137,7 +1137,7 @@ void CallExpr__emit_(Expr* self_, Ctx* ctx) {
 
 CallExpr* CallExpr__new(int line, Expr* callable) {
     const static ExprVt Vt = {.dtor = CallExpr__dtor, .emit_ = CallExpr__emit_};
-    CallExpr* self = PK_MALLOC(sizeof(CallExpr));
+    CallExpr* self = py_malloc(sizeof(CallExpr));
     self->vt = &Vt;
     self->line = line;
     self->callable = callable;
@@ -1169,7 +1169,7 @@ static void Ctx__dtor(Ctx* self) {
     // free the dedup map
     c11__foreach(c11_smallmap_v2d_KV, &self->co_consts_string_dedup_map, p_kv) {
         const char* p = p_kv->key.data;
-        PK_FREE((void*)p);
+        py_free((void*)p);
     }
     c11_smallmap_v2d__dtor(&self->co_consts_string_dedup_map);
 }
@@ -1297,7 +1297,7 @@ static int Ctx__add_const_string(Ctx* self, c11_sv key) {
         py_newstrv(tmp, key);
         int index = self->co->consts.length - 1;
         // dedup
-        char* new_buf = PK_MALLOC(key.size + 1);
+        char* new_buf = py_malloc(key.size + 1);
         memcpy(new_buf, key.data, key.size);
         new_buf[key.size] = 0;
         c11_smallmap_v2d__set(&self->co_consts_string_dedup_map,
@@ -1400,7 +1400,7 @@ static void Compiler__ctor(Compiler* self, SourceData_ src, Token* tokens, int t
 static void Compiler__dtor(Compiler* self) {
     // free tokens
     destruct_tokens(self->tokens, self->tokens_length);
-    PK_FREE(self->tokens);
+    py_free(self->tokens);
     // free contexts
     c11__foreach(Ctx, &self->contexts, ctx) Ctx__dtor(ctx);
     c11_vector__dtor(&self->contexts);
@@ -1435,7 +1435,7 @@ static NameScope name_scope(Compiler* self) {
 }
 
 Error* SyntaxError(Compiler* self, const char* fmt, ...) {
-    Error* err = PK_MALLOC(sizeof(Error));
+    Error* err = py_malloc(sizeof(Error));
     err->src = self->src;
     PK_INCREF(self->src);
     Token* t = self->i == self->tokens_length ? prev() : curr();

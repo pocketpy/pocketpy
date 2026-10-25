@@ -186,7 +186,7 @@ static bool is_possible_number_char(char c) {
 
 /******************************/
 static Error* LexerError(Lexer* self, const char* fmt, ...) {
-    Error* err = PK_MALLOC(sizeof(Error));
+    Error* err = py_malloc(sizeof(Error));
     err->src = self->src;
     PK_INCREF(self->src);
     err->lineno = self->current_line;
@@ -645,7 +645,7 @@ void destruct_tokens(Token* tokens, int length) {
     // free tokens
     for(int i = 0; i < length; i++) {
         if(tokens[i].value.index == TokenValue_STR) {
-            // PK_FREE internal string
+            // py_free internal string
             c11_string__delete(tokens[i].value._str);
         }
     }

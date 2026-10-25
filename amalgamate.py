@@ -170,6 +170,8 @@ if sys.platform in ['linux', 'darwin']:
 	checked_sh(f"gcc -o main amalgamated/pocketpy.c src2/example.c {common_flags}")
 	checked_sh("./main && rm -f ./main")
 	checked_sh(f"gcc -o main amalgamated/pocketpy.c amalgamated/main.c {common_flags}")
+	checked_sh(f"gcc -o amalgamated/test_allocators amalgamated/pocketpy.c src2/test_allocators.c {common_flags}")
+	checked_sh("./amalgamated/test_allocators")
 	checked_sh(f"gcc -o amalgamated/test_dmath amalgamated/pocketpy.c src2/test_dmath.c -Iinclude {common_flags}")
 	checked_sh("./amalgamated/test_dmath")
 	checked_sh("./main tests/930_dmath.py")

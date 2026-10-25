@@ -12,14 +12,14 @@ void BinTree__ctor(BinTree* self, void* key, py_Ref value, const BinTreeConfig* 
 }
 
 void BinTree__dtor(BinTree* self) {
-    if(self->config->need_free_key) PK_FREE(self->key);
+    if(self->config->need_free_key) py_free(self->key);
     if(self->left) {
         BinTree__dtor(self->left);
-        PK_FREE(self->left);
+        py_free(self->left);
     }
     if(self->right) {
         BinTree__dtor(self->right);
-        PK_FREE(self->right);
+        py_free(self->right);
     }
 }
 
@@ -29,14 +29,14 @@ void BinTree__set(BinTree* self, void* key, py_Ref value) {
         if(self->left) {
             BinTree__set(self->left, key, value);
         } else {
-            self->left = PK_MALLOC(sizeof(BinTree));
+            self->left = py_malloc(sizeof(BinTree));
             BinTree__ctor(self->left, key, value, self->config);
         }
     } else if(cmp > 0) {
         if(self->right) {
             BinTree__set(self->right, key, value);
         } else {
-            self->right = PK_MALLOC(sizeof(BinTree));
+            self->right = py_malloc(sizeof(BinTree));
             BinTree__ctor(self->right, key, value, self->config);
         }
     } else {

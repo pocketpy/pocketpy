@@ -47,7 +47,7 @@ void ManagedHeap__dtor(ManagedHeap* self) {
     for(int i = 0; i < self->large_objects.length; i++) {
         PyObject* obj = c11__getitem(PyObject*, &self->large_objects, i);
         PyObject__dtor(obj);
-        PK_FREE(obj);
+        py_free(obj);
     }
     c11_vector__dtor(&self->large_objects);
     c11_vector__dtor(&self->gc_roots);
@@ -210,7 +210,7 @@ int ManagedHeap__sweep(ManagedHeap* self, ManagedHeapSwpetInfo* out_info) {
             if(out_info) out_info->large_types[obj->type]++;
             self->large_total_size -= decode_size_8b(obj->size_8b);
             PyObject__dtor(obj);
-            PK_FREE(obj);
+            py_free(obj);
         }
     }
     // shrink `self->large_objects`
@@ -230,7 +230,7 @@ PyObject* ManagedHeap__gcnew(ManagedHeap* self, py_Type type, int slots, int uds
     PyObject* obj = MultiPool__alloc(&self->small_objects, size);
     uint8_t size_8b = 0;
     if(obj == NULL) {
-        obj = PK_MALLOC(size);
+        obj = py_malloc(size);
         int quantized_size;
         size_8b = encode_size_8b(size, &quantized_size);
         self->large_total_size += quantized_size;

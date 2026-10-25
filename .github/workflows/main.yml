@@ -26,6 +26,10 @@ jobs:
         cd amalgamated
         cl.exe /std:c11 /experimental:c11atomics /utf-8 /Ox /fp:precise /DPK_ENABLE_DETERMINISM=1 /I. pocketpy.c main.c /link Ws2_32.lib /out:pkpy.exe
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        cl.exe /std:c11 /experimental:c11atomics /utf-8 /Ox /fp:precise /I. pocketpy.c ../src2/test_allocators.c /link Ws2_32.lib /out:test_allocators.exe
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        ./test_allocators.exe
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         cl.exe /std:c11 /experimental:c11atomics /utf-8 /Ox /fp:precise /I../include pocketpy.c ../src2/test_dmath.c /link Ws2_32.lib /out:test_dmath.exe
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         ./test_dmath.exe --cases ../tests/dmath/cases

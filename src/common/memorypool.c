@@ -1,5 +1,6 @@
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/config.h"
+#include "pocketpy/pocketpy.h"
 
 #include <stdbool.h>
 
@@ -7,9 +8,9 @@ void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int BlockCount)
     self->BlockSize = BlockSize;
     self->BlockCount = BlockCount;
     self->exceeded_bytes = 0;
-    self->data = PK_MALLOC(BlockSize * BlockCount);
+    self->data = py_malloc(BlockSize * BlockCount);
     self->data_end = self->data + BlockSize * BlockCount;
-    self->_free_list = PK_MALLOC(sizeof(void*) * BlockCount);
+    self->_free_list = py_malloc(sizeof(void*) * BlockCount);
     self->_free_list_length = BlockCount;
     for(int i = 0; i < BlockCount; i++) {
         self->_free_list[i] = self->data + i * BlockSize;
@@ -17,8 +18,8 @@ void FixedMemoryPool__ctor(FixedMemoryPool* self, int BlockSize, int BlockCount)
 }
 
 void FixedMemoryPool__dtor(FixedMemoryPool* self) {
-    PK_FREE(self->_free_list);
-    PK_FREE(self->data);
+    py_free(self->_free_list);
+    py_free(self->data);
 }
 
 void* FixedMemoryPool__alloc(FixedMemoryPool* self) {
@@ -27,7 +28,7 @@ void* FixedMemoryPool__alloc(FixedMemoryPool* self) {
         return self->_free_list[self->_free_list_length];
     } else {
         self->exceeded_bytes += self->BlockSize;
-        return PK_MALLOC(self->BlockSize);
+        return py_malloc(self->BlockSize);
     }
 }
 
@@ -38,7 +39,7 @@ void FixedMemoryPool__dealloc(FixedMemoryPool* self, void* p) {
         self->_free_list_length++;
     } else {
         self->exceeded_bytes -= self->BlockSize;
-        PK_FREE(p);
+        py_free(p);
     }
 }
 

@@ -27,7 +27,7 @@ static bool _py_compile(CodeObject* out,
         PK_DECREF(src);
 
         PK_DECREF(err->src);
-        PK_FREE(err);
+        py_free(err);
         return false;
     }
     PK_DECREF(src);
@@ -160,7 +160,7 @@ bool py_execo(const void* data, int size, const char* filename, py_Ref module) {
         return ok;
     } else {
         bool ok = RuntimeError("bad code object %s: %s", filename, err);
-        PK_FREE(err);
+        py_free(err);
         return ok;
     }
 }

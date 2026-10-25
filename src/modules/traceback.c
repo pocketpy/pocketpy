@@ -18,7 +18,7 @@ static bool traceback_format_exc(int argc, py_Ref argv) {
     char* res = traceback_formatexc();
     if(res) {
         py_newstr(py_retval(), res);
-        PK_FREE(res);
+        py_free(res);
     } else {
         py_newnone(py_retval());
     }
@@ -31,7 +31,7 @@ static bool traceback_print_exc(int argc, py_Ref argv) {
     if(res) {
         pk_current_vm->callbacks.print(res);
         pk_current_vm->callbacks.print("\n");
-        PK_FREE(res);
+        py_free(res);
     }
     py_newnone(py_retval());
     return true;

@@ -1020,7 +1020,7 @@ static py_TValue*
         return NULL;
     }
     int chunk_numel = self->chunk_size * self->chunk_size + 1;
-    py_TValue* data = PK_MALLOC(sizeof(py_TValue) * chunk_numel);
+    py_TValue* data = py_malloc(sizeof(py_TValue) * chunk_numel);
     data[0] = *context;
     memset(&data[1], 0, sizeof(py_TValue) * (chunk_numel - 1));
     c11_chunked_array2d_chunks__set(&self->chunks, pos, data);
@@ -1189,7 +1189,7 @@ static bool chunked_array2d__len__(int argc, py_Ref argv) {
 static bool chunked_array2d_clear(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_chunked_array2d* self = py_touserdata(argv);
-    c11__foreach(c11_chunked_array2d_chunks_KV, &self->chunks, p_kv) PK_FREE(p_kv->value);
+    c11__foreach(c11_chunked_array2d_chunks_KV, &self->chunks, p_kv) py_free(p_kv->value);
     c11_chunked_array2d_chunks__clear(&self->chunks);
     self->last_visited.value = NULL;
     py_newnone(py_retval());
@@ -1213,7 +1213,7 @@ static bool chunked_array2d_copy(int argc, py_Ref argv) {
         c11_chunked_array2d_chunks_KV* kv =
             c11__at(c11_chunked_array2d_chunks_KV, &self->chunks, i);
         int chunk_numel = self->chunk_size * self->chunk_size + 1;
-        py_TValue* data = PK_MALLOC(sizeof(py_TValue) * chunk_numel);
+        py_TValue* data = py_malloc(sizeof(py_TValue) * chunk_numel);
         memcpy(data, kv->value, sizeof(py_TValue) * chunk_numel);
         // construct new KV
         c11_chunked_array2d_chunks_KV new_kv;
@@ -1255,7 +1255,7 @@ static bool chunked_array2d_remove_chunk(int argc, py_Ref argv) {
     c11_vec2i pos = py_tovec2i(&argv[1]);
     py_TValue* data = c11_chunked_array2d_chunks__get(&self->chunks, pos, NULL);
     if(data != NULL) {
-        PK_FREE(data);
+        py_free(data);
         bool ok = c11_chunked_array2d_chunks__del(&self->chunks, pos);
         assert(ok);
         self->last_visited.value = NULL;
@@ -1301,7 +1301,7 @@ static bool chunked_array2d_get_context(int argc, py_Ref argv) {
 }
 
 void c11_chunked_array2d__dtor(c11_chunked_array2d* self) {
-    c11__foreach(c11_chunked_array2d_chunks_KV, &self->chunks, p_kv) PK_FREE(p_kv->value);
+    c11__foreach(c11_chunked_array2d_chunks_KV, &self->chunks, p_kv) py_free(p_kv->value);
     c11_chunked_array2d_chunks__dtor(&self->chunks);
 }
 

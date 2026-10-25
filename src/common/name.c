@@ -37,7 +37,7 @@ void pk_names_finalize() {
         NameBucket* p = pk_string_table.table[i];
         while(p) {
             NameBucket* next = p->next;
-            PK_FREE(p);
+            py_free(p);
             p = next;
         }
         pk_string_table.table[i] = NULL;
@@ -72,7 +72,7 @@ py_Name py_namev(c11_sv name) {
     }
 
     // generate new index
-    NameBucket* bucket = PK_MALLOC(sizeof(NameBucket) + name.size + 1);
+    NameBucket* bucket = py_malloc(sizeof(NameBucket) + name.size + 1);
     bucket->next = NULL;
     bucket->hash = hash;
     bucket->size = name.size;

@@ -154,7 +154,7 @@ int c11_debugger_reset_breakpoints_by_source(const char* sourcesname) {
                 (c11_debugger_breakpoint*)c11_vector__emplace(&tmp_breakpoints);
             *dst = *it;
         } else {
-            PK_FREE((void*)it->sourcename);
+            py_free((void*)it->sourcename);
         }
     }
 

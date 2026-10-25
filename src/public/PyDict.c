@@ -89,7 +89,7 @@ static void Dict__alloc_indices(Dict* self, uint32_t capacity) {
         self->null_index_value = UINT32_MAX;
     }
 
-    self->indices = PK_MALLOC(indices_size);
+    self->indices = py_malloc(indices_size);
     memset(self->indices, -1, indices_size);
 }
 
@@ -103,7 +103,7 @@ static void Dict__ctor(Dict* self, uint32_t capacity, int entries_capacity) {
 static void Dict__dtor(Dict* self) {
     self->length = 0;
     self->capacity = 0;
-    PK_FREE(self->indices);
+    py_free(self->indices);
     c11_vector__dtor(&self->entries);
 }
 
@@ -224,7 +224,7 @@ static void Dict__rehash_2x(Dict* self) {
 
     // `entries` is already dense, so it keeps its buffer and its layout;
     // only the index array has to be rebuilt for the new capacity
-    PK_FREE(self->indices);
+    py_free(self->indices);
     Dict__alloc_indices(self, new_capacity);
     for(int i = 0; i < self->entries.length; i++) {
         DictEntry* entry = c11__at(DictEntry, &self->entries, i);
@@ -237,7 +237,7 @@ static void Dict__rehash_2x(Dict* self) {
 }
 
 static void Dict__compact_entries(Dict* self) {
-    uint32_t* mappings = PK_MALLOC(self->entries.length * sizeof(uint32_t));
+    uint32_t* mappings = py_malloc(self->entries.length * sizeof(uint32_t));
 
     int n = 0;
     for(int i = 0; i < self->entries.length; i++) {
@@ -257,7 +257,7 @@ static void Dict__compact_entries(Dict* self) {
         if(idx2 == self->null_index_value) continue;
         Dict__set_index(self, idx, mappings[idx2]);
     }
-    PK_FREE(mappings);
+    py_free(mappings);
 }
 
 static bool Dict__set(Dict* self, py_TValue* key, py_TValue* val) {
@@ -543,7 +543,7 @@ static bool dict_copy(int argc, py_Ref argv) {
     // copy indices
     size_t indices_size = self->index_is_short ? self->capacity * sizeof(uint16_t)
                                                : self->capacity * sizeof(uint32_t);
-    new_dict->indices = PK_MALLOC(indices_size);
+    new_dict->indices = py_malloc(indices_size);
     memcpy(new_dict->indices, self->indices, indices_size);
     return true;
 }
