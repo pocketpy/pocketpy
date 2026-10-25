@@ -113,9 +113,54 @@ assert type(hash(3.14)) is int
 assert type(hash(-2.71828)) is int
 
 # 测试边界情况
-# assert type(hash(None)) is int 
+assert type(hash(None)) is int
 assert hash(True) == 1
 assert hash(False) == 0
+
+# https://github.com/pocketpy/pocketpy/issues/568
+assert None.__hash__() == hash(None)
+assert None.__eq__(None) is True
+assert None.__ne__(None) is False
+assert None.__eq__(0) is NotImplemented
+assert None.__ne__(0) is NotImplemented
+assert None != 0
+assert None != False
+assert None != 'None'
+
+def returns_none():
+    pass
+
+assert hash(returns_none()) == hash(None)
+
+none_dict = {None: 'value', 0: 'zero', 'None': 'string'}
+assert none_dict[None] == 'value'
+assert none_dict[False] == 'zero'
+assert len(none_dict) == 3
+none_dict[returns_none()] = 'updated'
+assert none_dict[None] == 'updated'
+assert len(none_dict) == 3
+assert none_dict.pop(None) == 'updated'
+assert None not in none_dict
+none_dict[None] = 'restored'
+del none_dict[None]
+assert None not in none_dict
+
+collision_dict = {None: 'none', hash(None): 'integer'}
+assert len(collision_dict) == 2
+assert collision_dict[None] == 'none'
+assert collision_dict[hash(None)] == 'integer'
+
+none_set = {None, None, 0}
+assert len(none_set) == 2
+assert returns_none() in none_set
+none_set.remove(None)
+assert None not in none_set
+none_set.add(None)
+assert None in none_set
+assert len(none_set) == 2
+
+assert type(hash((None, 1))) is int
+assert {(None, 1): 'tuple'}[(returns_none(), 1)] == 'tuple'
 
 # 测试元组
 assert type(hash((4, 5, 6, (1234,1122), 2.3983, 'abcd'))) is int
