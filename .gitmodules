@@ -1,6 +1,3 @@
-[submodule "3rd/lz4/lz4"]
-	path = 3rd/lz4/lz4
-	url = https://github.com/lz4/lz4
 [submodule "3rd/periphery/c-periphery"]
 	path = 3rd/periphery/c-periphery
 	url = https://github.com/vsergeev/c-periphery.git

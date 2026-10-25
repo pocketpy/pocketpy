@@ -15,9 +15,6 @@ option(PK_ENABLE_CUSTOM_SNAME "" OFF)
 option(PK_BUILD_MATH_TESTS "Build deterministic binary64 kernel tests" OFF)
 
 # modules
-option(PK_BUILD_MODULE_LZ4 "" OFF)
-option(PK_BUILD_MODULE_CUTE_PNG "" OFF)
-option(PK_BUILD_MODULE_MSGPACK "" OFF)
 option(PK_BUILD_MODULE_PERIPHERY "" OFF)
 
 # PK_IS_MAIN determines whether the project is being used from root

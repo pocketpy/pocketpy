@@ -9,7 +9,7 @@ Interpreter identification, host-supplied arguments, and recursion limits.
 
 | Member | Meaning |
 | --- | --- |
-| `version` | pocketpy's version string, such as `'2.2.0'`; not a CPython version. |
+| `version` | pocketpy's version string, such as `'2.2.1'`; not a CPython version. |
 | `platform` | Target platform identifier, such as `win32`, `linux`, `darwin`, `android`, `ios`, or `emscripten`. |
 | `argv` | Argument list supplied by the host. |
 | `getrecursionlimit()` | Current Python call-depth limit. |

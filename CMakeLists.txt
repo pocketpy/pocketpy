@@ -92,21 +92,6 @@ else()
     add_definitions(-DPK_ENABLE_CUSTOM_SNAME=0)
 endif()
 
-if(PK_BUILD_MODULE_LZ4)
-    add_subdirectory(3rd/lz4)
-    add_definitions(-DPK_BUILD_MODULE_LZ4)
-endif()
-
-if(PK_BUILD_MODULE_CUTE_PNG)
-    add_subdirectory(3rd/cute_png)
-    add_definitions(-DPK_BUILD_MODULE_CUTE_PNG)
-endif()
-
-if(PK_BUILD_MODULE_MSGPACK)
-    add_subdirectory(3rd/msgpack)
-    add_definitions(-DPK_BUILD_MODULE_MSGPACK)
-endif()
-
 if(PK_BUILD_MODULE_PERIPHERY)
     add_subdirectory(3rd/periphery)
     add_definitions(-DPK_BUILD_MODULE_PERIPHERY)
@@ -156,18 +141,6 @@ if(PK_BUILD_WITH_UNITY)
 endif()
 
 ############################################
-if(PK_BUILD_MODULE_LZ4)
-    target_link_libraries(${PROJECT_NAME} lz4)
-endif()
-
-if(PK_BUILD_MODULE_CUTE_PNG)
-    target_link_libraries(${PROJECT_NAME} cute_png)
-endif()
-
-if(PK_BUILD_MODULE_MSGPACK)
-    target_link_libraries(${PROJECT_NAME} msgpack)
-endif()
-
 if(PK_BUILD_MODULE_PERIPHERY)
     target_link_libraries(${PROJECT_NAME} periphery-ffi)
 endif()

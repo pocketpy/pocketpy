@@ -51,7 +51,6 @@ call forms; see the [argument rules](../features/differences.md#function-argumen
 | [stdc](stdc.md) | Native memory and typed C storage. |
 | [sys](sys.md) | Version, platform, arguments, and recursion limit. |
 | [traceback](traceback.md) | Exception reports. |
-| [picoterm and conio](console.md) | Terminal text and platform keyboard input. |
 
 ## Games and grids
 
@@ -63,14 +62,11 @@ call forms; see the [argument rules](../features/differences.md#function-argumen
 
 ## Optional native modules
 
-These modules default to **off** in CMake. See [build configuration](../build.md)
-for enabling them and initializing native dependencies.
+The periphery module defaults to **off** in CMake. See
+[build configuration](../build.md) for enabling it and initializing its native dependency.
 
 | Module | Required option |
 | --- | --- |
-| [cute_png](cute_png.md) | `PK_BUILD_MODULE_CUTE_PNG=ON` |
-| [lz4](lz4.md) | `PK_BUILD_MODULE_LZ4=ON` |
-| [msgpack](msgpack.md) | `PK_BUILD_MODULE_MSGPACK=ON` |
 | [periphery](periphery.md) | `PK_BUILD_MODULE_PERIPHERY=ON`, Linux target |
 
 A host application may add or replace modules. If an import fails, check the

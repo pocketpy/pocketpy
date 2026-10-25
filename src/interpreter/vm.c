@@ -246,7 +246,6 @@ void VM__ctor(VM* self) {
     pk__add_module_stdc();
     pk__add_module_vmath();
     pk__add_module_array2d();
-    // pk__add_module_colorcvt();
 
     // add modules
     pk__add_module_os();
@@ -267,13 +266,8 @@ void VM__ctor(VM* self) {
     pk__add_module_importlib();
     pk__add_module_unicodedata();
 
-    pk__add_module_conio();
-    pk__add_module_lz4();        // optional
-    pk__add_module_cute_png();   // optional
-    pk__add_module_msgpack();    // optional
     py__add_module_periphery();  // optional
     pk__add_module_pkpy();
-    pk__add_module_picoterm();
 
     // add python builtins
     do {

@@ -15,9 +15,6 @@ cmake \
     ../../.. \
     -DPK_BUILD_SHARED_LIB=ON \
     -DCMAKE_BUILD_TYPE=Release \
-    -DPK_ENABLE_OS=OFF \
-    -DPK_BUILD_MODULE_LZ4=ON \
-    -DPK_BUILD_MODULE_CUTE_PNG=ON \
-    -DPK_BUILD_MODULE_MSGPACK=ON
+    -DPK_ENABLE_OS=OFF
 
 cmake --build . --config Release

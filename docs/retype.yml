@@ -5,7 +5,7 @@ exclude:
 url: https://pocketpy.github.io
 branding:
   title: pocketpy
-  label: v2.2.0
+  label: v2.2.1
   logo: "./static/logo.png"
 favicon: "./static/logo.png"
 meta:

@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'pocketpy'
-  s.version          = '2.0.0'
+  s.version          = '2.2.1'
   s.summary          = 'A new Flutter FFI plugin project.'
   s.description      = <<-DESC
 A new Flutter FFI plugin project.
@@ -32,7 +32,7 @@ A new Flutter FFI plugin project.
 
   s.prepare_command = <<-CMD
   rm -rf pocketpy
-  git clone --branch v2.2.0 --depth 1 https://github.com/pocketpy/pocketpy.git
+  git clone --branch v2.2.1 --depth 1 https://github.com/pocketpy/pocketpy.git
   cd pocketpy
   git submodule update --init --recursive --depth 1
   bash build_darwin_libs.sh

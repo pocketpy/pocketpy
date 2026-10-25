@@ -14,7 +14,7 @@ options that change what the interpreter can do.
 Pass options when configuring the build:
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPK_BUILD_STATIC_MAIN=ON -DPK_BUILD_MODULE_LZ4=ON
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPK_BUILD_STATIC_MAIN=ON
 cmake --build build --config Release
 ```
 
@@ -41,13 +41,10 @@ Memory allocation defaults to the C standard library. Hosts can provide a
 process-wide allocator through `py_appcallbacks()` before initialization; see
 [application allocators](C-API/introduction.md#application-allocators).
 
-The following modules are optional and default to `OFF`:
+The periphery module is optional and defaults to `OFF`:
 
 | Option | Module |
 | --- | --- |
-| `PK_BUILD_MODULE_LZ4` | [lz4](modules/lz4.md) |
-| `PK_BUILD_MODULE_CUTE_PNG` | [cute_png](modules/cute_png.md) |
-| `PK_BUILD_MODULE_MSGPACK` | [msgpack](modules/msgpack.md) |
 | `PK_BUILD_MODULE_PERIPHERY` | [periphery](modules/periphery.md), for Linux hardware I/O |
 
 Initialize the required Git submodules before enabling a module that uses them:

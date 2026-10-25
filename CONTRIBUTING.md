@@ -27,10 +27,10 @@ A standard local build:
 python cmake_build.py Release
 ```
 
-A build with optional modules (same style as CI):
+A build with deterministic math tests (same style as CI):
 
 ```bash
-python cmake_build.py Release -DPK_BUILD_MODULE_LZ4=ON -DPK_BUILD_MODULE_CUTE_PNG=ON -DPK_BUILD_MODULE_MSGPACK=ON
+python cmake_build.py Release -DPK_BUILD_MATH_TESTS=ON
 ```
 
 Build outputs are copied to the repository root (`main`, and `libpocketpy.so`/`pocketpy.dll`/`libpocketpy.dylib` when available).
