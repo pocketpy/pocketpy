@@ -175,22 +175,6 @@ __ERROR:
 | Decorator       | `@cache`                        | ✅       |
 | Match Case      | `match code: case 200:`         | ✅       |
 
-## Performance
-
-Currently, pkpy is as fast as cpython 3.9.
-Performance results for cpython 3.9 are applicable to for pkpy.
-
-See https://pocketpy.github.io/performance/ for details.
-
-And these are the results of the primes benchmark on Intel i5-12400F, WSL (Ubuntu 20.04 LTS), which *roughly* reflects the performance among c++, lua, pkpy and cpython.
-
-| name | version | time | file |
-| ---- | ---- | ---- | ---- |
-| c++ | gnu++11 | `0.104s ■□□□□□□□□□□□□□□□` | [benchmarks/primes.cpp](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.cpp) |
-| lua | 5.3.3 | `1.576s ■■■■■■■■■□□□□□□□` | [benchmarks/primes.lua](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.lua) |
-| pkpy | 1.2.7 | `2.385s ■■■■■■■■■■■■■□□□` | [benchmarks/primes.py](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py) |
-| cpython | 3.8.10 | `2.871s ■■■■■■■■■■■■■■■■` | [benchmarks/primes.py](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py) |
-
 ## Used By
 
 |                                                                 | Description                                                              |

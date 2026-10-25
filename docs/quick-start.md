@@ -130,4 +130,4 @@ architecture, and revision. Use headers from the same revision as the binary.
 | Compiler cannot find `pocketpy.h` | Link the CMake `pocketpy` target, or add the public include directory. |
 | Executable cannot load `pocketpy.dll` | Keep the DLL next to the executable or use a static build. |
 | `ImportError` for a local script | Start in the directory containing your modules; see [module loading](C-API/modules.md). |
-| Release execution is unexpectedly slow | Enable optimization and define `NDEBUG`; see [performance](performance.md). |
+| Release execution is unexpectedly slow | Enable optimization and define `NDEBUG`. |

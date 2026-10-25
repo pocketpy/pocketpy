@@ -7,7 +7,7 @@ order: 79
 # Profiling
 
 The line profiler shows where a script spends execution time.
-Use it to locate expensive lines, then [measure performance](../performance.md)
+Use it to locate expensive lines, then measure performance
 again without profiling overhead.
 
 ## Record a report
