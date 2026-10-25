@@ -415,21 +415,14 @@ bool pk__normalize_index(int* index, int length) {
 static bool
     prepare_py_call(py_TValue* buffer, py_Ref argv, py_Ref p1, int kwargc, const FuncDecl* decl) {
     const CodeObject* co = &decl->code;
-    int decl_argc = decl->args.length;
-
-    if(p1 - argv < decl_argc) {
-        return TypeError("%s() takes %d positional arguments but %d were given",
-                         co->name->data,
-                         decl_argc,
-                         (int)(p1 - argv));
-    }
 
     py_TValue* t = argv;
     // prepare args
     memset(buffer, 0, co->nlocals * sizeof(py_TValue));
-    c11__foreach(int, &decl->args, index) buffer[*index] = *t++;
-    // prepare kwdefaults
-    c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) buffer[kv->index] = kv->value;
+    c11__foreach(int, &decl->args, index) {
+        if(t >= p1) break;
+        buffer[*index] = *t++;
+    }
 
     // handle *args
     if(decl->starred_arg != -1) {
@@ -440,7 +433,7 @@ static bool
             data[j] = *t++;
         }
     } else {
-        // kwdefaults override
+        // Positional values may also fill parameters with defaults.
         // def f(a, b, c=None)
         // f(1, 2, 3) -> c=3
         c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
@@ -456,8 +449,20 @@ static bool
     for(int j = 0; j < kwargc; j++) {
         py_Name key = (py_Name)py_toint(&p1[2 * j]);
         int index = c11_smallmap_n2d__get(&decl->kw_to_index, key, -1);
+        // Required parameters are not stored in kw_to_index.
+        if(index < 0) {
+            c11__foreach(int, &decl->args, arg_index) {
+                if(c11__getitem(py_Name, &co->varnames, *arg_index) == key) {
+                    index = *arg_index;
+                    break;
+                }
+            }
+        }
         // if key is an explicit key, set as local variable
         if(index >= 0) {
+            if(!py_isnil(&buffer[index])) {
+                return TypeError("%s() got multiple values for argument '%n'", co->name->data, key);
+            }
             buffer[index] = p1[2 * j + 1];
         } else {
             // otherwise, set as **kwargs if possible
@@ -472,6 +477,17 @@ static bool
                 if(!ok) return false;
             }
         }
+    }
+
+    // Keywords may supply required parameters; defaults fill only unbound slots.
+    c11__foreach(int, &decl->args, index) {
+        if(py_isnil(&buffer[*index])) {
+            py_Name name = c11__getitem(py_Name, &co->varnames, *index);
+            return TypeError("%s() missing required argument '%n'", co->name->data, name);
+        }
+    }
+    c11__foreach(FuncDeclKwArg, &decl->kwargs, kv) {
+        if(py_isnil(&buffer[kv->index])) buffer[kv->index] = kv->value;
     }
     return true;
 }
@@ -514,7 +530,9 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
             return RES_ERROR;
         }
 
-        switch(fn->decl->type) {
+        FuncType call_type = fn->decl->type;
+        if(call_type == FuncType_SIMPLE && kwargc) call_type = FuncType_NORMAL;
+        switch(call_type) {
             case FuncType_NORMAL: {
                 bool ok = prepare_py_call(self->vectorcall_buffer, argv, p1, kwargc, fn->decl);
                 if(!ok) return RES_ERROR;
@@ -537,10 +555,6 @@ FrameResult VM__vectorcall(VM* self, uint16_t argc, uint16_t kwargc, bool opcall
                 if(p1 - argv != fn->decl->args.length) {
                     const char* fmt = "%s() takes %d positional arguments but %d were given";
                     TypeError(fmt, co->name->data, fn->decl->args.length, (int)(p1 - argv));
-                    return RES_ERROR;
-                }
-                if(kwargc) {
-                    TypeError("%s() takes no keyword arguments", co->name->data);
                     return RES_ERROR;
                 }
                 // [callable, <self>, args..., local_vars...]
