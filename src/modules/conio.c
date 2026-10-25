@@ -10,6 +10,7 @@
 #elif PY_SYS_PLATFORM == 3 || PY_SYS_PLATFORM == 5
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>

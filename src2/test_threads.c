@@ -1,6 +1,7 @@
 #include "pocketpy/common/threads.h"
 #include "pocketpy.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 int64_t time_monotonic_ns();
 
