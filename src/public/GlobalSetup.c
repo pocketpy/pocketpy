@@ -5,6 +5,7 @@
 #include "pocketpy/common/name.h"
 #include "pocketpy/debugger/dap.h"
 #include "pocketpy/interpreter/vm.h"
+#include <stdlib.h>
 
 PK_THREAD_LOCAL VM* pk_current_vm;
 
@@ -14,6 +15,11 @@ static bool pk_finalized;
 static VM pk_default_vm;
 static VM* pk_all_vm[16];
 static py_TValue _True, _False, _None, _NIL;
+static py_AppCallbacks pk_app_callbacks = {
+    .malloc = malloc,
+    .realloc = realloc,
+    .free = free,
+};
 
 void py_initialize() {
     c11__rtassert(!pk_finalized);
@@ -68,7 +74,7 @@ void py_finalize() {
             // TODO: refactor VM__ctor and VM__dtor
             pk_current_vm = vm;
             VM__dtor(vm);
-            PK_FREE(vm);
+            py_free(vm);
         }
     }
     pk_current_vm = &pk_default_vm;
@@ -90,7 +96,7 @@ int py_currentvm() { return VM__index(pk_current_vm); }
 void py_switchvm(int index) {
     if(index < 0 || index >= 16) c11__abort("invalid vm index");
     if(!pk_all_vm[index]) {
-        pk_current_vm = pk_all_vm[index] = PK_MALLOC(sizeof(VM));
+        pk_current_vm = pk_all_vm[index] = py_malloc(sizeof(VM));
         memset(pk_current_vm, 0, sizeof(VM));
         VM__ctor(pk_all_vm[index]);
     } else {
@@ -119,10 +125,7 @@ void py_setvmctx(void* ctx) { pk_current_vm->ctx = ctx; }
 
 py_Callbacks* py_callbacks() { return &pk_current_vm->callbacks; }
 
-py_AppCallbacks* py_appcallbacks() {
-    static py_AppCallbacks _callbacks = {0};
-    return &_callbacks;
-}
+py_AppCallbacks* py_appcallbacks() { return &pk_app_callbacks; }
 
 /////////////////////////////
 
@@ -153,11 +156,11 @@ int py_gc_collect() {
 
 /////////////////////////////
 
-void* py_malloc(size_t size) { return PK_MALLOC(size); }
+void* py_malloc(size_t size) { return pk_app_callbacks.malloc(size); }
 
-void* py_realloc(void* ptr, size_t size) { return PK_REALLOC(ptr, size); }
+void* py_realloc(void* ptr, size_t size) { return pk_app_callbacks.realloc(ptr, size); }
 
-void py_free(void* ptr) { PK_FREE(ptr); }
+void py_free(void* ptr) { pk_app_callbacks.free(ptr); }
 
 /////////////////////////////
 

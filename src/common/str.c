@@ -10,7 +10,7 @@
 c11_string* c11_string__new(const char* data) { return c11_string__new2(data, strlen(data)); }
 
 c11_string* c11_string__new2(const char* data, int size) {
-    c11_string* retval = PK_MALLOC(sizeof(c11_string) + size + 1);
+    c11_string* retval = py_malloc(sizeof(c11_string) + size + 1);
     c11_string__ctor2(retval, data, size);
     return retval;
 }
@@ -45,12 +45,12 @@ void c11_string__ctor3(c11_string* self, int size) {
 
 c11_string* c11_string__copy(c11_string* self) {
     int total_size = sizeof(c11_string) + self->size + 1;
-    c11_string* retval = PK_MALLOC(total_size);
+    c11_string* retval = py_malloc(total_size);
     memcpy(retval, self, total_size);
     return retval;
 }
 
-void c11_string__delete(c11_string* self) { PK_FREE(self); }
+void c11_string__delete(c11_string* self) { py_free(self); }
 
 c11_sv c11_string__sv(c11_string* self) { return (c11_sv){self->data, self->size}; }
 
@@ -424,14 +424,14 @@ int c11__u32_to_u8(uint32_t utf32_char, char utf8_output[4]) {
 
 char* c11_strdup(const char* str) {
     int len = strlen(str);
-    char* dst = PK_MALLOC(len + 1);
+    char* dst = py_malloc(len + 1);
     memcpy(dst, str, len);
     dst[len] = '\0';
     return dst;
 }
 
 unsigned char* c11_memdup(const unsigned char* src, int size) {
-    unsigned char* dst = PK_MALLOC(size);
+    unsigned char* dst = py_malloc(size);
     memcpy(dst, src, size);
     return dst;
 }

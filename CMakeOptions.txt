@@ -12,7 +12,6 @@ option(PK_ENABLE_DLL "" ON)
 option(PK_ENABLE_DETERMINISM "" ON)
 option(PK_ENABLE_WATCHDOG "" OFF)
 option(PK_ENABLE_CUSTOM_SNAME "" OFF)
-option(PK_ENABLE_MIMALLOC "" OFF)
 option(PK_BUILD_MATH_TESTS "Build deterministic binary64 kernel tests" OFF)
 
 # modules

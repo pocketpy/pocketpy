@@ -90,6 +90,11 @@ typedef struct py_AppCallbacks {
     PY_MAYBENULL int (*debugger_status)();
     PY_MAYBENULL void (*debugger_exceptionbreakpoint)(py_Ref exc);
     PY_MAYBENULL void (*debugger_exit)(int code);
+    /// Allocators shared by all VMs; default to the C standard library.
+    /// Set all three before the first allocation and keep them until all memory is freed.
+    void* (*malloc)(size_t size);
+    void* (*realloc)(void* ptr, size_t size);
+    void (*free)(void* ptr);
 } py_AppCallbacks;
 
 /// Native function signature.
@@ -137,11 +142,11 @@ PK_API void py_sys_settrace(py_TraceFunc func, bool reset);
 /// Invoke the garbage collector.
 PK_API int py_gc_collect();
 
-/// Wrapper for `PK_MALLOC(size)`.
+/// Allocate memory through the application-level malloc callback.
 PK_API void* py_malloc(size_t size);
-/// Wrapper for `PK_REALLOC(ptr, size)`.
+/// Reallocate memory through the application-level realloc callback.
 PK_API void* py_realloc(void* ptr, size_t size);
-/// Wrapper for `PK_FREE(ptr)`.
+/// Free memory through the application-level free callback.
 PK_API void py_free(void* ptr);
 
 /// A shorthand for `True`.

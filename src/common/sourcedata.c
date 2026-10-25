@@ -54,7 +54,7 @@ SourceData_ SourceData__rcnew(const char* source,
                               const char* filename,
                               enum py_CompileMode mode,
                               bool is_dynamic) {
-    SourceData_ self = PK_MALLOC(sizeof(struct SourceData));
+    SourceData_ self = py_malloc(sizeof(struct SourceData));
     SourceData__ctor(self, source, filename, mode, is_dynamic);
     self->rc.count = 1;
     self->rc.dtor = SourceData__dtor;

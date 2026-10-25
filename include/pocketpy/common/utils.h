@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "pocketpy/pocketpy.h"
 
 #define PK_REGION(name) 1
 
@@ -44,6 +45,6 @@ typedef struct RefCounted {
     do {                                                                                           \
         if(--(obj)->rc.count == 0) {                                                               \
             (obj)->rc.dtor(obj);                                                                   \
-            PK_FREE(obj);                                                                          \
+            py_free(obj);                                                                          \
         }                                                                                          \
     } while(0)

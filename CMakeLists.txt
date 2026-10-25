@@ -92,31 +92,6 @@ else()
     add_definitions(-DPK_ENABLE_CUSTOM_SNAME=0)
 endif()
 
-if(PK_ENABLE_MIMALLOC)
-    message(">> Fetching mimalloc")
-    include(FetchContent)
-    
-    FetchContent_Declare(
-        mimalloc
-        GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
-        GIT_TAG        v3.1.5
-    )
-
-    set(MI_OVERRIDE OFF CACHE BOOL "" FORCE)
-    set(MI_NO_USE_CXX ON CACHE BOOL "" FORCE)
-    set(MI_BUILD_SHARED OFF CACHE BOOL "" FORCE)
-    set(MI_BUILD_OBJECT OFF CACHE BOOL "" FORCE)
-    set(MI_BUILD_STATIC ON CACHE BOOL "" FORCE)
-    set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(mimalloc)
-    include_directories(${mimalloc_SOURCE_DIR}/include)
-
-    add_definitions(-DPK_ENABLE_MIMALLOC=1)
-else()
-    add_definitions(-DPK_ENABLE_MIMALLOC=0)
-endif()
-
-
 if(PK_BUILD_MODULE_LZ4)
     add_subdirectory(3rd/lz4)
     add_definitions(-DPK_BUILD_MODULE_LZ4)
@@ -197,10 +172,6 @@ if(PK_BUILD_MODULE_PERIPHERY)
     target_link_libraries(${PROJECT_NAME} periphery-ffi)
 endif()
 ############################################
-
-if(PK_ENABLE_MIMALLOC)
-    target_link_libraries(${PROJECT_NAME} mimalloc-static)
-endif()
 
 if(PK_BUILD_MATH_TESTS)
     enable_testing()

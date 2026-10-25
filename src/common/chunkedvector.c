@@ -34,7 +34,7 @@ void c11_chunkedvector__ctor(c11_chunkedvector* self, int elem_size, int initial
     self->capacity = (1U << (unsigned int)initial_chunks) - 1U;
     self->elem_size = elem_size;
     self->initial_chunks = initial_chunks;
-    void* chunks_data = PK_MALLOC(elem_size * ((1U << (unsigned int)initial_chunks) - 1));
+    void* chunks_data = py_malloc(elem_size * ((1U << (unsigned int)initial_chunks) - 1));
     for(int i = 0; i < initial_chunks; i++) {
         c11_chunkedvector_chunk chunk = {.length = 0,
                                          .capacity = 1U << i,
@@ -46,10 +46,10 @@ void c11_chunkedvector__ctor(c11_chunkedvector* self, int elem_size, int initial
 void c11_chunkedvector__dtor(c11_chunkedvector* self) {
     for(int index = self->initial_chunks; index < self->chunks.length; index++) {
         c11_chunkedvector_chunk* chunk = c11__at(c11_chunkedvector_chunk, &self->chunks, index);
-        PK_FREE(chunk->data);
+        py_free(chunk->data);
     }
     c11_chunkedvector_chunk* initial_chunk = c11__at(c11_chunkedvector_chunk, &self->chunks, 0);
-    PK_FREE(initial_chunk->data);
+    py_free(initial_chunk->data);
     c11_vector__dtor(&self->chunks);
 }
 
@@ -63,7 +63,7 @@ void* c11_chunkedvector__emplace(c11_chunkedvector* self) {
         c11_chunkedvector_chunk chunk = {
             .length = 0,
             .capacity = 1U << (unsigned int)self->chunks.length,
-            .data = PK_MALLOC(self->elem_size * ((1U << (unsigned int)self->chunks.length)))};
+            .data = py_malloc(self->elem_size * ((1U << (unsigned int)self->chunks.length)))};
         self->capacity += chunk.capacity;
         c11_vector__push(c11_chunkedvector_chunk, &self->chunks, chunk);
     }

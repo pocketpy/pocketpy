@@ -179,7 +179,7 @@ class PocketpyBindings {
       _lookup<ffi.NativeFunction<ffi.Int Function()>>('py_gc_collect');
   late final _py_gc_collect = _py_gc_collectPtr.asFunction<int Function()>();
 
-  /// Wrapper for `PK_MALLOC(size)`.
+  /// Allocate memory through the application-level malloc callback.
   ffi.Pointer<ffi.Void> py_malloc(
     int size,
   ) {
@@ -194,7 +194,7 @@ class PocketpyBindings {
   late final _py_malloc =
       _py_mallocPtr.asFunction<ffi.Pointer<ffi.Void> Function(int)>();
 
-  /// Wrapper for `PK_REALLOC(ptr, size)`.
+  /// Reallocate memory through the application-level realloc callback.
   ffi.Pointer<ffi.Void> py_realloc(
     ffi.Pointer<ffi.Void> ptr,
     int size,
@@ -212,7 +212,7 @@ class PocketpyBindings {
   late final _py_realloc = _py_reallocPtr
       .asFunction<ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>, int)>();
 
-  /// Wrapper for `PK_FREE(ptr)`.
+  /// Free memory through the application-level free callback.
   void py_free(
     ffi.Pointer<ffi.Void> ptr,
   ) {
@@ -4058,6 +4058,29 @@ final class py_AppCallbacks extends ffi.Struct {
 
   external ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int index)>>
       on_vm_dtor;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<ffi.Char>, ffi.UnsignedShort)>>
+      debugger_waitforattach;
+
+  external ffi.Pointer<ffi.NativeFunction<ffi.Int Function()>> debugger_status;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<ffi.Void Function(ffi.Pointer<py_TValue>)>>
+      debugger_exceptionbreakpoint;
+
+  external ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Int)>> debugger_exit;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<ffi.Pointer<ffi.Void> Function(ffi.Size)>> malloc;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Void> Function(ffi.Pointer<ffi.Void>, ffi.Size)>> realloc;
+
+  external ffi.Pointer<
+      ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>> free;
 }
 
 /// Python compiler modes.

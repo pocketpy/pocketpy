@@ -27,7 +27,7 @@ void FuncDecl__dtor(void* p) {
 }
 
 FuncDecl_ FuncDecl__rcnew(SourceData_ src, c11_sv name) {
-    FuncDecl* self = PK_MALLOC(sizeof(FuncDecl));
+    FuncDecl* self = py_malloc(sizeof(FuncDecl));
     self->rc.count = 1;
     self->rc.dtor = FuncDecl__dtor;
     CodeObject__ctor(&self->code, src, name);

@@ -131,14 +131,14 @@ typedef struct {
 
 static void ComputeThreadJobCall__dtor(void* arg) {
     ComputeThreadJobCall* self = arg;
-    PK_FREE(self->eval_src);
-    PK_FREE(self->args_data);
-    PK_FREE(self->kwargs_data);
+    py_free(self->eval_src);
+    py_free(self->args_data);
+    py_free(self->kwargs_data);
 }
 
 static void ComputeThreadJobExec__dtor(void* arg) {
     ComputeThreadJobExec* self = arg;
-    PK_FREE(self->source);
+    py_free(self->source);
 }
 
 typedef struct c11_ComputeThread {
@@ -157,7 +157,7 @@ static void
     c11_ComputeThread__reset_job(c11_ComputeThread* self, void* job, void (*job_dtor)(void*)) {
     if(self->job) {
         self->job_dtor(self->job);
-        PK_FREE(self->job);
+        py_free(self->job);
     }
     self->job = job;
     self->job_dtor = job_dtor;
@@ -170,20 +170,20 @@ static void c11_ComputeThread__dtor(c11_ComputeThread* self) {
         c11__abort("ComputeThread(%d) is not done yet!! But the object was deleted.",
                    self->vm_index);
     }
-    if(self->last_retval_data) PK_FREE(self->last_retval_data);
-    if(self->last_error) PK_FREE(self->last_error);
+    if(self->last_retval_data) py_free(self->last_retval_data);
+    if(self->last_error) py_free(self->last_error);
     c11_ComputeThread__reset_job(self, NULL, NULL);
     _pk_compute_thread_flags[self->vm_index] = false;
 }
 
 static void c11_ComputeThread__on_job_begin(c11_ComputeThread* self) {
     if(self->last_retval_data) {
-        PK_FREE(self->last_retval_data);
+        py_free(self->last_retval_data);
         self->last_retval_data = NULL;
         self->last_retval_size = 0;
     }
     if(self->last_error) {
-        PK_FREE(self->last_error);
+        py_free(self->last_error);
         self->last_error = NULL;
     }
     py_switchvm(self->vm_index);
@@ -321,7 +321,7 @@ static bool ComputeThread_submit_exec(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_str);
     const char* source = py_tostr(py_arg(1));
     /**************************/
-    ComputeThreadJobExec* job = PK_MALLOC(sizeof(ComputeThreadJobExec));
+    ComputeThreadJobExec* job = py_malloc(sizeof(ComputeThreadJobExec));
     job->self = self;
     job->source = c11_strdup(source);
     job->mode = EXEC_MODE;
@@ -344,7 +344,7 @@ static bool ComputeThread_submit_eval(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(1, tp_str);
     const char* source = py_tostr(py_arg(1));
     /**************************/
-    ComputeThreadJobExec* job = PK_MALLOC(sizeof(ComputeThreadJobExec));
+    ComputeThreadJobExec* job = py_malloc(sizeof(ComputeThreadJobExec));
     job->self = self;
     job->source = c11_strdup(source);
     job->mode = EVAL_MODE;
@@ -378,7 +378,7 @@ static bool ComputeThread_submit_call(int argc, py_Ref argv) {
     int kwargs_size;
     unsigned char* kwargs_data = py_tobytes(py_retval(), &kwargs_size);
     /**************************/
-    ComputeThreadJobCall* job = PK_MALLOC(sizeof(ComputeThreadJobCall));
+    ComputeThreadJobCall* job = py_malloc(sizeof(ComputeThreadJobCall));
     job->self = self;
     job->eval_src = c11_strdup(eval_src);
     job->args_data = c11_memdup(args_data, args_size);
@@ -422,7 +422,7 @@ __ERROR:
     py_switchvm(old_vm_index);
     atomic_store(&self->is_done, true);
     RuntimeError("c11_ComputeThread__exec_blocked() failed:\n%s", err);
-    PK_FREE(err);
+    py_free(err);
     return false;
 }
 

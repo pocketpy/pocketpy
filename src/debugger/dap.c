@@ -116,7 +116,7 @@ void c11_dap_handle_setBreakpoints(py_Ref arguments, c11_sbuf* buffer) {
     const char* sourcename = c11_strdup(py_tostr(py_retval()));
     if(!py_smarteval("[bp['line'] for bp in _0['breakpoints']]", NULL, arguments)) {
         py_printexc();
-        PK_FREE((void*)sourcename);
+        py_free((void*)sourcename);
         return;
     }
     int bp_numbers = c11_debugger_reset_breakpoints_by_source(sourcename);
@@ -130,7 +130,7 @@ void c11_dap_handle_setBreakpoints(py_Ref arguments, c11_sbuf* buffer) {
     }
     c11_sbuf__write_cstr(buffer, "]}");
     c11_sbuf__write_char(buffer, ',');
-    PK_FREE((void*)sourcename);
+    py_free((void*)sourcename);
 }
 
 static void c11_dap_build_ExceptionInfo(const char* exc_type, const char* exc_message, c11_sbuf* buffer) {
@@ -205,7 +205,7 @@ void c11_dap_handle_evaluate(py_Ref arguments, c11_sbuf* buffer) {
 
     c11_sv result_sv = {.data = result, .size = strlen(result)};
     pk_sprintf(buffer, "{\"result\":%Q,\"variablesReference\":0}", result_sv);
-    PK_FREE((void*)result);
+    py_free((void*)result);
     c11_sbuf__write_char(buffer, ',');
 }
 
@@ -474,8 +474,8 @@ inline static void c11_dap_handle_message() {
     pk_sprintf(&buffer, "Content-Length: %d\r\n\r\n%s", strlen(response_content), response_content);
     c11_string* response = c11_sbuf__submit(&buffer);
     c11_socket_send(server.toclient, response->data, response->size);
-    PK_FREE((void*)message);
-    PK_FREE((void*)response_content);
+    py_free((void*)message);
+    py_free((void*)response_content);
     c11_string__delete(response);
 }
 

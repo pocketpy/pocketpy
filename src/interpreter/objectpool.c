@@ -10,7 +10,7 @@
 static PoolArena* PoolArena__new(int block_size) {
     assert(kPoolArenaSize % block_size == 0);
     int block_count = kPoolArenaSize / block_size;
-    PoolArena* self = PK_MALLOC(sizeof(PoolArena) + sizeof(int) * block_count);
+    PoolArena* self = py_malloc(sizeof(PoolArena) + sizeof(int) * block_count);
     self->block_size = block_size;
     self->block_count = block_count;
     self->unused_length = block_count;
@@ -67,7 +67,7 @@ static void Pool__dtor(Pool* self) {
             PyObject* obj = (PyObject*)(arena->data + i * self->block_size);
             if(obj->type != 0) PyObject__dtor(obj);
         }
-        PK_FREE(arena);
+        py_free(arena);
     }
     c11_vector__dtor(&self->arenas);
 }
@@ -122,7 +122,7 @@ static int Pool__sweep_dealloc(Pool* self, int* out_types) {
     while(self->arenas.length > min_length) {
         PoolArena* back_arena = c11_vector__back(PoolArena*, &self->arenas);
         if(back_arena->unused_length == back_arena->block_count) {
-            PK_FREE(back_arena);
+            py_free(back_arena);
             c11_vector__pop(&self->arenas);
         } else {
             break;

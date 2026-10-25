@@ -17,7 +17,7 @@ void LineProfiler__dtor(LineProfiler* self) {
         c11_smallmap_p2i_KV kv = c11__getitem(c11_smallmap_p2i_KV, &self->records, i);
         SourceData_ src = (SourceData_)kv.key;
         PK_DECREF(src);
-        PK_FREE((void*)kv.value);
+        py_free((void*)kv.value);
     }
     c11_smallmap_p2i__dtor(&self->records);
     c11_vector__dtor(&self->frame_records);
@@ -27,7 +27,7 @@ LineRecord* LineProfiler__get_record(LineProfiler* self, SourceLocation loc) {
     LineRecord* lines = (LineRecord*)c11_smallmap_p2i__get(&self->records, loc.src, 0);
     if(lines == NULL) {
         int max_lineno = loc.src->line_starts.length;
-        lines = PK_MALLOC(sizeof(LineRecord) * (max_lineno + 1));
+        lines = py_malloc(sizeof(LineRecord) * (max_lineno + 1));
         memset(lines, 0, sizeof(LineRecord) * (max_lineno + 1));
         c11_smallmap_p2i__set(&self->records, loc.src, (py_i64)lines);
         PK_INCREF(loc.src);

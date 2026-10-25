@@ -15,7 +15,7 @@ static char* readfile(const char* path, int* data_size) {
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);
-    char* buffer = PK_MALLOC(size + 1);
+    char* buffer = py_malloc(size + 1);
     size = fread(buffer, 1, size, f);
     buffer[size] = 0;
     fclose(f);
@@ -144,9 +144,9 @@ int main(int argc, char** argv) {
                     fprintf(report_file, "%s", json_report);
                     fclose(report_file);
                 }
-                PK_FREE(json_report);
+                py_free(json_report);
             }
-            PK_FREE(data);
+            py_free(data);
         } else {
             printf("Error: cannot open file '%s'\n", filename);
             py_finalize();
