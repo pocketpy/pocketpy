@@ -25,9 +25,9 @@
 <a href="https://deepwiki.com/pocketpy/pocketpy"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
-pocketpy is a portable Python 3.x interpreter, written in C11.
-It aims to be an alternative to Lua for game scripting, with elegant syntax, powerful features and competitive performance.
-pocketpy has no dependencies other than the C standard library, which can be easily integrated into your C/C++ project.
+Pocketpy is a Portable Python 3.x interpreter, written in C11.
+It aims to be an Alternative to Lua for game scripting, with elegant syntax, powerful features and competitive performance.
+Pocketpy has no dependencies other than the C standard library, which can be easily integrated into your C/C++ project.
 Developers are able to write Python bindings via C-API or pybind11 compatible interfaces.
 
 Please see https://pocketpy.github.io for details and try the following resources.
@@ -56,7 +56,7 @@ On Windows platform, only MSVC compiler is officially supported.
 
 ## Quick Start
 
-You have two options to integrate pkpy into your project.
+You have two options to integrate pkpy into your Project.
 
 #### Use CMake (Recommended)
 
@@ -72,7 +72,7 @@ See [CMakeLists.txt](https://github.com/pocketpy/pocketpy/blob/main/CMakeLists.t
 
 It is safe to use `main` branch in production if CI badge is green.
 
-#### Use the single header file
+### Use the single header file
 
 Download the `pocketpy.h` and `pocketpy.c` on our [GitHub Release](https://github.com/pocketpy/pocketpy/releases) page.
 And `#include` it in your project.
@@ -175,7 +175,7 @@ __ERROR:
 | Decorator       | `@cache`                        | ✅       |
 | Match Case      | `match code: case 200:`         | ✅       |
 
-## Used By
+### Used By
 
 |                                                                 | Description                                                              |
 |-----------------------------------------------------------------|--------------------------------------------------------------------------|
