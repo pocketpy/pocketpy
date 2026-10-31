@@ -193,12 +193,12 @@ Submit a pull request to add your project here.
 
 All kinds of contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, build, testing, and PR guidance.
 
-- Submit a Pull Request
-  - fix a bug
-  - add a new feature
-- Open an Issue
-  - any suggestions
-  - any questions
++ Submit a Pull Request <br>
++ fix a bug <br>
++ add a new feature <br>
++ Open an Issue <br>
++ Any suggestions <br>
++ Any questions <br>
 
 If you find pkpy useful, consider star this repository.
 
@@ -215,9 +215,9 @@ Your sponsorship will help us develop pkpy continuously.
 
 Special thanks to our premium supporter, Tesselmax, for sponsoring the development of pocketpy.
 
-Tesselmax builds Tesselmax.EM, a distributed electromagnetic field simulator for silicon
-photonics and RF/interconnect design (FDTD, FDFD, and mode solving across GPU clusters).
-Tesselmax embeds pocketpy as the scripting engine in our simulation console, so user scripts drive
++ Tesselmax builds Tesselmax.EM, a distributed electromagnetic field simulator for silicon
+photonics and RF/interconnect design (FDTD, FDFD, and mode solving across GPU clusters).<br>
++ Tesselmax embeds pocketpy as the scripting engine in our simulation console, so user scripts drive
 geometry, materials, sources, and post-processing.
 
 Website: [https://fdtd.io](https://fdtd.io)
