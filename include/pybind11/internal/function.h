@@ -472,30 +472,38 @@ struct template_parser<Callable,
             stack[args_pos] = repack_args;
         }
 
-        // pack the kwargs
-        int index = 0;
-        if constexpr(named_argc != 0) {
-            int arg_index = 0;
-            while(arg_index < named_argc && index < kwargs.size()) {
-                const auto name = kwargs[index].first;
-                const auto value = kwargs[index].second;
-                if(name.cast<std::string_view>() == record.arguments->names[arg_index]) {
-                    stack[arg_index] = value;
-                    index += 1;
-                }
-                arg_index += 1;
-            }
-        }
-
         object repacked_kwargs;
         if constexpr(kwargs_pos != -1) {
-            auto pack = dict();
-            while(index < kwargs.size()) {
-                pack[kwargs[index].first] = kwargs[index].second;
-                index += 1;
-            }
-            repacked_kwargs = std::move(pack);
+            repacked_kwargs = dict();
             stack[kwargs_pos] = repacked_kwargs;
+        }
+        for(auto& [key, val]: kwargs) {
+            auto name = key.cast<std::string_view>();
+
+            int target_idx = -1;
+            if(record.arguments) {
+                // Find if name exists in record.arguments->names
+                for(size_t i = 0; i < record.arguments->names.size(); ++i) {
+                    if(record.arguments->names[i] == name) {
+                        target_idx = static_cast<int>(i);
+                        break;
+                    }
+                }
+            }
+
+            if(target_idx != -1) {
+                // Check for duplicate positional assignment
+                if(target_idx < static_cast<int>(args.size())) { return false; }
+                stack[target_idx] = val;
+            } else {
+                // Not a defined parameter
+                if constexpr(kwargs_pos != -1) {
+                    repacked_kwargs.cast<dict>()[key] = val;
+                } else {
+                    // Unexpected keyword argument
+                    return false;
+                }
+            }
         }
 
         // check if all the arguments are valid
