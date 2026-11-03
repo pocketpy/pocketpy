@@ -49,6 +49,8 @@ TEST_F(PYBIND11_TEST, constructor) {
     EXPECT_EVAL_EQ("Point(3)", Point(3, 2));
     EXPECT_EVAL_EQ("Point(3, 4)", Point(3, 4));
     EXPECT_EVAL_EQ("Point((3, 4))", Point(3, 4));
+    EXPECT_EVAL_EQ("Point(x=3, y=4)", Point(3, 4));
+    EXPECT_EVAL_EQ("Point(y=4, x=3)", Point(3, 4));
 }
 
 TEST_F(PYBIND11_TEST, args) {
