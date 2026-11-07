@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import subprocess
+import ctypes
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -77,14 +78,25 @@ exit()
             exit(1)
 
 def test_windows_monotonic():
-    # CPython and pocketpy read the same system-wide performance counter.
+    # Read the same raw counter as pocketpy regardless of Python's clock implementation.
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+
+    def read_counter(query):
+        value = ctypes.c_longlong()
+        if not query(ctypes.byref(value)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        return value.value
+
+    frequency = read_counter(kernel32.QueryPerformanceFrequency)
     with TemporaryDirectory() as directory:
         script = Path(directory) / 'monotonic.py'
         script.write_text('import time\nprint(time.monotonic_ns())\n', encoding='utf-8')
-        before = time.monotonic_ns()
+        before = read_counter(kernel32.QueryPerformanceCounter)
         actual = int(subprocess.check_output([pkpy_exe, str(script)]))
-        after = time.monotonic_ns()
-    assert before - 1 <= actual <= after + 1, (before, actual, after)
+        after = read_counter(kernel32.QueryPerformanceCounter)
+    before_ns = before * 1000000000 // frequency
+    after_ns = after * 1000000000 // frequency
+    assert before_ns - 1 <= actual <= after_ns + 1, (before_ns, actual, after_ns)
 
 code = os.system(f'"{sys.executable}" compileall.py {pkpy_exe} tests tmp/tests')
 assert code == 0
