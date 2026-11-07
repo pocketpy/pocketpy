@@ -39,8 +39,10 @@ int64_t time_monotonic_ns() {
     LONGLONG ticksll = now.QuadPart;
     static LARGE_INTEGER freq;
     if(freq.QuadPart == 0) QueryPerformanceFrequency(&freq);
-    /* Convert ticks to nanoseconds */
-    return (ticksll * NANOS_PER_SEC) / freq.QuadPart;
+    /* Scale the fractional second separately to avoid overflowing on long uptimes. */
+    LONGLONG seconds = ticksll / freq.QuadPart;
+    LONGLONG remainder = ticksll % freq.QuadPart;
+    return seconds * NANOS_PER_SEC + (int64_t)((double)remainder * NANOS_PER_SEC / freq.QuadPart);
 #else
     struct timespec tms;
 #ifdef CLOCK_MONOTONIC

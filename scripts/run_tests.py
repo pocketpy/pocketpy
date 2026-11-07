@@ -2,6 +2,8 @@ import os
 import sys
 import time
 import subprocess
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 pkpy_exe = 'main.exe' if sys.platform == 'win32' else './main'
 
@@ -74,6 +76,16 @@ exit()
             print(res.stdout)
             exit(1)
 
+def test_windows_monotonic():
+    # CPython and pocketpy read the same system-wide performance counter.
+    with TemporaryDirectory() as directory:
+        script = Path(directory) / 'monotonic.py'
+        script.write_text('import time\nprint(time.monotonic_ns())\n', encoding='utf-8')
+        before = time.monotonic_ns()
+        actual = int(subprocess.check_output([pkpy_exe, str(script)]))
+        after = time.monotonic_ns()
+    assert before - 1 <= actual <= after + 1, (before, actual, after)
+
 code = os.system(f'"{sys.executable}" compileall.py {pkpy_exe} tests tmp/tests')
 assert code == 0
 
@@ -83,6 +95,8 @@ if len(sys.argv) == 2:
 else:
     test_dir('tests/')
     test_repl()
+    if sys.platform == 'win32':
+        test_windows_monotonic()
 
     if os.path.exists('tmp/tests'):
         print('-' * 50)
