@@ -122,12 +122,13 @@ class deque[T]:
     def rotate(self, n: int = 1):
         if len(self) == 0:
             return
+        length = len(self)
+        n = n % length
         if n > 0:
-            n = n % len(self)
             for _ in range(n):
                 self.appendleft(self.pop())
         elif n < 0:
-            n = -n % len(self)
+            n = -n
             for _ in range(n):
                 self.append(self.popleft())
 
