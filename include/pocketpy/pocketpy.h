@@ -802,7 +802,7 @@ PK_API bool py_pickle_dumps(py_Ref val) PY_RAISE PY_RETURN;
 PK_API bool py_pickle_loads(const unsigned char* data, int size) PY_RAISE PY_RETURN;
 
 /************* pkpy module *************/
-/// Begin the watchdog with `timeout` in milliseconds.
+/// Begin the watchdog with `timeout` in milliseconds of process CPU time.
 /// `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
 /// You need to call `py_watchdog_end()` later.
 /// If `timeout` is reached, `TimeoutError` will be raised.
@@ -818,6 +818,9 @@ PK_API char* py_profiler_report();
 /************* Others *************/
 int64_t time_ns();
 int64_t time_monotonic_ns();
+#if PK_ENABLE_WATCHDOG
+double time_process_ms();
+#endif
 py_i64 cpy312__int_floordiv(py_i64 a, py_i64 b);
 py_i64 cpy312__int_mod(py_i64 a, py_i64 b);
 void cpy312__float_divmod(double vx, double wx, double *floordiv, double *mod);

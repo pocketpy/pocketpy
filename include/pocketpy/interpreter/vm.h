@@ -26,7 +26,7 @@ typedef struct TraceInfo {
 } TraceInfo;
 
 typedef struct WatchdogInfo {
-    clock_t max_reset_time;
+    double deadline_ms;
 } WatchdogInfo;
 
 typedef struct TypePointer {
