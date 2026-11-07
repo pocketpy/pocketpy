@@ -7,7 +7,6 @@
 #include "pocketpy/interpreter/vm.h"
 
 #include "pocketpy/common/threads.h"
-#include <time.h>
 
 #define DEF_TVALUE_METHODS(T, Field)                                                               \
     static bool TValue_##T##__new__(int argc, py_Ref argv) {                                       \
@@ -86,12 +85,13 @@ static bool pkpy_currentvm(int argc, py_Ref argv) {
 #if PK_ENABLE_WATCHDOG
 void py_watchdog_begin(py_i64 timeout) {
     WatchdogInfo* info = &pk_current_vm->watchdog_info;
-    info->max_reset_time = clock() + (timeout * (CLOCKS_PER_SEC / 1000));
+    double now = time_process_ms();
+    info->deadline_ms = now < 0 ? 0 : now + timeout;
 }
 
 void py_watchdog_end() {
     WatchdogInfo* info = &pk_current_vm->watchdog_info;
-    info->max_reset_time = 0;
+    info->deadline_ms = 0;
 }
 
 static bool pkpy_watchdog_begin(int argc, py_Ref argv) {

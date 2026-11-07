@@ -61,6 +61,22 @@ int64_t time_ns() { return 0; }
 int64_t time_monotonic_ns() { return 0; }
 #endif
 
+#if PK_ENABLE_WATCHDOG
+double time_process_ms() {
+#ifdef _WIN32
+    FILETIME creation, exit, kernel, user;
+    if(!GetProcessTimes(GetCurrentProcess(), &creation, &exit, &kernel, &user)) return -1;
+    uint64_t kernel_ticks = ((uint64_t)kernel.dwHighDateTime << 32) | kernel.dwLowDateTime;
+    uint64_t user_ticks = ((uint64_t)user.dwHighDateTime << 32) | user.dwLowDateTime;
+    return ((double)kernel_ticks + (double)user_ticks) / 10000.0;
+#else
+    clock_t ticks = clock();
+    if(ticks == (clock_t)-1) return -1;
+    return ticks * (1000.0 / CLOCKS_PER_SEC);
+#endif
+}
+#endif
+
 static bool time_time(int argc, py_Ref argv) {
     PY_CHECK_ARGC(0);
     int64_t nanos = time_ns();

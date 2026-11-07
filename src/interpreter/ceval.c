@@ -9,7 +9,6 @@
 #include "pocketpy/objects/error.h"
 #include <stdbool.h>
 #include <assert.h>
-#include <time.h>
 
 #define DISPATCH()                                                                                 \
     do {                                                                                           \
@@ -123,9 +122,9 @@ __NEXT_STEP:
     }
 
 #if PK_ENABLE_WATCHDOG
-    if(self->watchdog_info.max_reset_time > 0) {
-        if(py_debugger_status() == 0 && clock() > self->watchdog_info.max_reset_time) {
-            self->watchdog_info.max_reset_time = 0;
+    if(self->watchdog_info.deadline_ms > 0) {
+        if(py_debugger_status() == 0 && time_process_ms() > self->watchdog_info.deadline_ms) {
+            self->watchdog_info.deadline_ms = 0;
             TimeoutError("watchdog timeout");
             goto __ERROR;
         }
