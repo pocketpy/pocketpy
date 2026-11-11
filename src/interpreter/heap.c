@@ -53,16 +53,20 @@ void ManagedHeap__dtor(ManagedHeap* self) {
     c11_vector__dtor(&self->gc_roots);
 }
 
+static void ManagedHeap__report_debug_callback_error(py_StackRef p0) {
+    // a collection cannot raise, so print the error and continue
+    py_printexc();
+    py_clearexc(p0);
+}
+
 static void ManagedHeap__fire_debug_callback_start(ManagedHeap* self) {
+    py_StackRef p0 = py_peek(0);
     py_push(&self->debug_callback);
     py_pushnil();
     py_newstr(py_pushtmp(), "start");
     py_newstr(py_pushtmp(), "");
     bool ok = py_vectorcall(2, 0);
-    if(!ok) {
-        char* msg = py_formatexc();
-        c11__abort("gc_debug_callback error!!\n%s", msg);
-    }
+    if(!ok) ManagedHeap__report_debug_callback_error(p0);
 }
 
 static void ManagedHeap__fire_debug_callback_stop(ManagedHeap* self,
@@ -115,16 +119,14 @@ static void ManagedHeap__fire_debug_callback_stop(ManagedHeap* self,
     pk_sprintf(&buf, "auto_thres.free_ratio:    %f\n", out_info->auto_thres.free_ratio);
     c11_sbuf__write_cstr(&buf, DIVIDER);
 
+    py_StackRef p0 = py_peek(0);
     py_push(&self->debug_callback);
     py_pushnil();
     py_newstr(py_pushtmp(), "stop");
     py_StackRef arg = py_pushtmp();
     c11_sbuf__py_submit(&buf, arg);
     bool ok = py_vectorcall(2, 0);
-    if(!ok) {
-        char* msg = py_formatexc();
-        c11__abort("gc_debug_callback error!!\n%s", msg);
-    }
+    if(!ok) ManagedHeap__report_debug_callback_error(p0);
 }
 
 int ManagedHeap__collect_hint(ManagedHeap* self) {
