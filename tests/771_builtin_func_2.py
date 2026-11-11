@@ -227,6 +227,14 @@ assert type(local_t.tm_isdst) is int
 
 # test time.sleep
 time.sleep(0.1)
+for v in (-1, -0.1, -1e-9):
+    try:
+        time.sleep(v)
+        exit(1)
+    except ValueError:
+        pass
+time.sleep(-0.0)
+time.sleep(0)
 # test time.localtime
 assert type(time.localtime()) is time.struct_time
 

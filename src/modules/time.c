@@ -103,6 +103,7 @@ static bool time_sleep(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     py_f64 secs;
     if(!py_castfloat(argv, &secs)) return false;
+    if(secs < 0) return ValueError("sleep length must be non-negative");
 
     int64_t start = time_monotonic_ns();
     const int64_t end = start + secs * NANOS_PER_SEC;
