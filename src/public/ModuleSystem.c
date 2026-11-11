@@ -21,8 +21,11 @@ static py_Ref pk_newmodule(const char* path, bool is_init) {
     py_ModuleInfo* mi = py_newobject(py_retval(), tp_module, -1, sizeof(py_ModuleInfo));
     
     int last_dot = c11_sv__rindex(pathv, '.');
-    if(last_dot == -1 || is_init) {
+    if(is_init) {
         mi->package = c11_string__new(path);
+    } else if(last_dot == -1) {
+        // a top-level module has no parent package
+        mi->package = c11_string__new("");
     } else {
         // a.b.c -> a.b
         mi->package = c11_string__new2(path, last_dot);
