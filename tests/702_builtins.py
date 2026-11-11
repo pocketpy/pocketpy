@@ -26,6 +26,14 @@ assert round(11, 0) == 11
 assert round(11, 1) == 11
 assert round(11, 234567890) == 11
 
+# results that do not fit an int64
+assert round(1e300) == 1e300
+assert round(-1e300) == -1e300
+assert round(float('inf')) == float('inf')
+assert round(1e17, 2) == 1e17
+assert round(1.5, 2**62) == 1.5
+assert round(-2.5, 400) == -2.5
+
 a = [1,2,3,-1]
 assert sorted(a) == [-1,1,2,3]
 assert sorted(a, reverse=True) == [3,2,1,-1]

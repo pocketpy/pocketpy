@@ -340,8 +340,33 @@ static bool int_bit_length(int argc, py_Ref argv) {
 DEF_INT_BITWISE_OP(__and__, &)
 DEF_INT_BITWISE_OP(__or__, |)
 DEF_INT_BITWISE_OP(__xor__, ^)
-DEF_INT_BITWISE_OP(__lshift__, <<)
-DEF_INT_BITWISE_OP(__rshift__, >>)
+
+// shift counts outside 0..63 are undefined in C; follow Python for any count
+static bool int__lshift__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(!py_isint(&argv[1])) {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    py_i64 lhs = py_toint(&argv[0]);
+    py_i64 rhs = py_toint(&argv[1]);
+    if(rhs < 0) return ValueError("negative shift count");
+    py_newint(py_retval(), rhs >= 64 ? 0 : (py_i64)((uint64_t)lhs << rhs));
+    return true;
+}
+
+static bool int__rshift__(int argc, py_Ref argv) {
+    PY_CHECK_ARGC(2);
+    if(!py_isint(&argv[1])) {
+        py_newnotimplemented(py_retval());
+        return true;
+    }
+    py_i64 lhs = py_toint(&argv[0]);
+    py_i64 rhs = py_toint(&argv[1]);
+    if(rhs < 0) return ValueError("negative shift count");
+    py_newint(py_retval(), rhs >= 64 ? (lhs < 0 ? -1 : 0) : lhs >> rhs);
+    return true;
+}
 
 static bool int__repr__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
@@ -402,7 +427,14 @@ static bool int__new__(int argc, py_Ref argv) {
         switch(argv[1].type) {
             case tp_float: {
                 // int(1.1) == 1
-                py_newint(py_retval(), (py_i64)py_tofloat(&argv[1]));
+                py_f64 x = py_tofloat(&argv[1]);
+                // the cast is undefined for NaN, infinities and values outside int64
+                if(!(x >= -0x1p63 && x < 0x1p63)) {
+                    if(dmath_isnan(x)) return ValueError("cannot convert float NaN to integer");
+                    if(dmath_isinf(x)) return ValueError("cannot convert float infinity to integer");
+                    return ValueError("float too large to convert to int64");
+                }
+                py_newint(py_retval(), (py_i64)x);
                 return true;
             }
             case tp_int: {
