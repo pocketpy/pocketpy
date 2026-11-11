@@ -88,6 +88,32 @@ assert 12 & 1 == 0
 assert 12 | 1 == 13
 assert 12 ^ 1 == 13
 
+# shift counts outside 0..63 follow Python semantics within int64
+assert 1 << 63 == -9223372036854775807 - 1
+assert 1 << 64 == 0
+assert -1 >> 100 == -1
+assert 5 >> 64 == 0
+n = 70
+assert (3 << n, -3 >> n, 3 >> n) == (0, -1, 0)
+assert int.__lshift__(1, 64) == 0
+assert int.__rshift__(-8, 200) == -1
+for expr in ['1 << -1', '1 >> -1', 'int.__lshift__(1, -1)']:
+    try:
+        eval(expr)
+        exit(1)
+    except ValueError:
+        pass
+
+# float to int conversion is checked
+assert int(-9.2e18) == -9200000000000000000
+assert int(9.2e18) == 9200000000000000000
+for x in [1e300, -1e300, 2.0 ** 63, float('inf'), float('-inf'), float('nan')]:
+    try:
+        int(x)
+        exit(1)
+    except ValueError:
+        pass
+
 # test high precision int pow
 assert 7**21 == 558545864083284007
 assert 2**60 == 1152921504606846976

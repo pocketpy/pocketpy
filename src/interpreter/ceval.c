@@ -707,6 +707,21 @@ __NEXT_STEP:
         *TOP() = self->last_retval;                                                                \
         DISPATCH();                                                                                \
     }
+// Shift counts outside 0..63 are undefined in C; leave them to `int__lshift__`/`int__rshift__`.
+#define CASE_BINARY_OP_SHIFT(label, op, c_expr)                                                    \
+    case label: {                                                                                  \
+        if(SECOND()->type == tp_int && TOP()->type == tp_int && (uint64_t)TOP()->_i64 < 64) {      \
+            py_i64 lhs = SECOND()->_i64;                                                           \
+            py_i64 rhs = TOP()->_i64;                                                              \
+            POP();                                                                                 \
+            py_newint(TOP(), c_expr);                                                              \
+            DISPATCH();                                                                            \
+        }                                                                                          \
+        if(!pk_stack_binaryop(self, op, 0)) goto __ERROR;                                          \
+        POP();                                                                                     \
+        *TOP() = self->last_retval;                                                                \
+        DISPATCH();                                                                                \
+    }
 // Fast paths for `int` operands, mirroring `int__floordiv__` and `int__mod__` in `py_number.c`.
 // A zero divisor takes the slow path, which raises the `ZeroDivisionError`.
 #define CASE_BINARY_OP_INT_DIV(label, op, rop, c_func)                                             \
@@ -733,8 +748,8 @@ __NEXT_STEP:
                                    cpy312__int_floordiv)
             CASE_BINARY_OP_INT_DIV(OP_BINARY_MOD, __mod__, __rmod__, cpy312__int_mod)
             CASE_BINARY_OP(OP_BINARY_POW, __pow__, __rpow__)
-            CASE_BINARY_OP_INT(OP_BINARY_LSHIFT, __lshift__, 0, <<)
-            CASE_BINARY_OP_INT(OP_BINARY_RSHIFT, __rshift__, 0, >>)
+            CASE_BINARY_OP_SHIFT(OP_BINARY_LSHIFT, __lshift__, (py_i64)((uint64_t)lhs << rhs))
+            CASE_BINARY_OP_SHIFT(OP_BINARY_RSHIFT, __rshift__, lhs >> rhs)
             CASE_BINARY_OP_INT(OP_BINARY_AND, __and__, 0, &)
             CASE_BINARY_OP_INT(OP_BINARY_OR, __or__, 0, |)
             CASE_BINARY_OP_INT(OP_BINARY_XOR, __xor__, 0, ^)
@@ -749,6 +764,7 @@ __NEXT_STEP:
 #undef CASE_BINARY_OP_NUM
 #undef CASE_BINARY_OP_INT
 #undef CASE_BINARY_OP_INT_DIV
+#undef CASE_BINARY_OP_SHIFT
         case OP_IS_OP: {
             bool res = py_isidentical(SECOND(), TOP());
             POP();

@@ -170,13 +170,25 @@ static bool builtins_round(int argc, py_Ref argv) {
         py_f64 x = py_tofloat(py_arg(0));
         py_f64 offset = x >= 0 ? 0.5 : -0.5;
         if(ndigits == -1) {
-            py_newint(py_retval(), (py_i64)(x + offset));
+            py_f64 rounded = x + offset;
+            // like math.floor: keep a float when the result does not fit an int64
+            if(rounded >= -0x1p63 && rounded < 0x1p63) {
+                py_newint(py_retval(), (py_i64)rounded);
+            } else {
+                py_newfloat(py_retval(), rounded);
+            }
             return true;
         }
         // py_f64 factor = dmath_exp10(ndigits);
         py_f64 factor = 1.0;
-        for(int i = 0; i < ndigits; i++) factor *= 10.0;
-        py_newfloat(py_retval(), (py_i64)(x * factor + offset) / factor);
+        for(py_i64 i = 0; i < ndigits && dmath_isfinite(factor); i++) factor *= 10.0;
+        py_f64 scaled = x * factor + offset;
+        if(!(scaled >= -0x1p63 && scaled < 0x1p63)) {
+            // beyond 2**53 there are no fractional digits left to round at this scale
+            py_assign(py_retval(), py_arg(0));
+            return true;
+        }
+        py_newfloat(py_retval(), (py_i64)scaled / factor);
         return true;
     }
 
