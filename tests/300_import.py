@@ -36,6 +36,17 @@ from test2.utils import r
 assert r.__name__ == 'test2.utils.r'
 assert r.__package__ == 'test2.utils'
 
+# a package is its own __package__; a top-level module has none
+assert test1.__package__ == 'test1'
+import math
+assert math.__package__ == ''
+assert __package__ == ''
+try:
+    from . import test1
+    exit(1)
+except ImportError:
+    pass
+
 def f():
     import math as m
     assert m.pi > 3
