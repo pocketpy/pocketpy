@@ -226,7 +226,15 @@ assert type(local_t.tm_yday) is int
 assert type(local_t.tm_isdst) is int
 
 # test time.sleep
-time.sleep(0.1)
+assert time.sleep(0.1) is None
+for seconds in (0, 0.0, -0.0):
+    assert time.sleep(seconds) is None
+for seconds in (-1, -0.1, -1e-9, -1e-12):
+    try:
+        time.sleep(seconds)
+        assert False, 'negative sleep length must raise ValueError'
+    except ValueError as e:
+        assert str(e) == 'sleep length must be non-negative'
 # test time.localtime
 assert type(time.localtime()) is time.struct_time
 
