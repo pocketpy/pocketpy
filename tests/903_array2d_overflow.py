@@ -1,4 +1,6 @@
 from array2d import array2d
+import array2d as array2d_module
+from vmath import vec2i
 
 
 def expect_value_error(fn):
@@ -24,3 +26,9 @@ assert a.width == 2
 assert a.height == 3
 assert a.numel == 6
 assert a[1, 2] == 42
+
+# Views must reject dimensions whose element count exceeds INT_MAX too.
+# Otherwise operations such as copy() or map() could reach an invalid allocation.
+view_source = array2d_module.chunked_array2d(4)
+expect_value_error(lambda: view_source.view_rect(vec2i(0, 0), 65536, 65537))
+
