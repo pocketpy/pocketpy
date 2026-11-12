@@ -18,6 +18,14 @@ static bool c11_array2d__set(c11_array2d* self, int col, int row, py_Ref value) 
 }
 
 c11_array2d* c11_newarray2d(py_OutRef out, int n_cols, int n_rows) {
+    if(n_cols <= 0 || n_rows <= 0) {
+        ValueError("array2d() expected positive dimensions");
+        return NULL;
+    }
+    if(n_cols > INT_MAX / n_rows) {
+        ValueError("array2d() dimensions are too large");
+        return NULL;
+    }
     int numel = n_cols * n_rows;
     c11_array2d* ud = py_newobject(out, tp_array2d, numel, sizeof(c11_array2d));
     ud->header.n_cols = n_cols;
@@ -487,11 +495,15 @@ static c11_array2d_view* _array2d_view__new(py_OutRef out,
                                             int start_row,
                                             int width,
                                             int height) {
-    c11_array2d_view* res = py_newobject(out, tp_array2d_view, 1, sizeof(c11_array2d_view));
     if(width <= 0 || height <= 0) {
         ValueError("width and height must be positive");
         return NULL;
     }
+    if(width > INT_MAX / height) {
+        ValueError("array2d view dimensions are too large");
+        return NULL;
+    }
+    c11_array2d_view* res = py_newobject(out, tp_array2d_view, 1, sizeof(c11_array2d_view));
     res->header.n_cols = width;
     res->header.n_rows = height;
     res->header.numel = width * height;
@@ -925,9 +937,17 @@ static bool array2d__new__(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_type);
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
-    int n_cols = argv[1]._i64;
-    int n_rows = argv[2]._i64;
-    if(n_cols <= 0 || n_rows <= 0) return ValueError("array2d() expected positive dimensions");
+    if(argv[1]._i64 <= 0 || argv[2]._i64 <= 0) {
+        return ValueError("array2d() expected positive dimensions");
+    }
+    if(argv[1]._i64 > INT_MAX || argv[2]._i64 > INT_MAX) {
+        return ValueError("array2d() dimensions are too large");
+    }
+    int n_cols = (int)argv[1]._i64;
+    int n_rows = (int)argv[2]._i64;
+    if(n_cols > INT_MAX / n_rows) {
+        return ValueError("array2d() dimensions are too large");
+    }
     c11_array2d* ud = c11_newarray2d(py_pushtmp(), n_cols, n_rows);
     // setup initial values
     if(py_callable(default_)) {
@@ -971,6 +991,7 @@ static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
         }
     }
     c11_array2d* res = c11_newarray2d(py_retval(), n_cols, n_rows);
+    if(res == NULL) return false;
     for(int j = 0; j < n_rows; j++) {
         py_Ref row_j = py_list_getitem(argv, j);
         for(int i = 0; i < n_cols; i++) {
