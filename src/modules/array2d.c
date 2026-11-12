@@ -495,11 +495,15 @@ static c11_array2d_view* _array2d_view__new(py_OutRef out,
                                             int start_row,
                                             int width,
                                             int height) {
-    c11_array2d_view* res = py_newobject(out, tp_array2d_view, 1, sizeof(c11_array2d_view));
     if(width <= 0 || height <= 0) {
         ValueError("width and height must be positive");
         return NULL;
     }
+    if(width > INT_MAX / height) {
+        ValueError("array2d view dimensions are too large");
+        return NULL;
+    }
+    c11_array2d_view* res = py_newobject(out, tp_array2d_view, 1, sizeof(c11_array2d_view));
     res->header.n_cols = width;
     res->header.n_rows = height;
     res->header.numel = width * height;
