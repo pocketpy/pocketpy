@@ -11,7 +11,7 @@ def currentvm() -> int:
 
 
 def watchdog_begin(timeout: int):
-    """Begin the watchdog with `timeout` in milliseconds.
+    """Begin the watchdog with `timeout` in milliseconds of process CPU time.
 
     `PK_ENABLE_WATCHDOG` must be defined to `1` to use this feature.
     You need to call `watchdog_end()` later.

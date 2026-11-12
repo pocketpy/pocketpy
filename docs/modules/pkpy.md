@@ -35,7 +35,7 @@ resident memory usage.
 ## Watchdog
 
 When built with `PK_ENABLE_WATCHDOG=ON`, `watchdog_begin(timeout)` takes
-milliseconds and timeout checks can raise `TimeoutError`.
+milliseconds of process CPU time and timeout checks can raise `TimeoutError`.
 Call `watchdog_end()` after the protected work on both success and error paths.
 These checks do not preempt a blocking native call.
 
