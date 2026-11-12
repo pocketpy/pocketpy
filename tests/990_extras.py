@@ -75,15 +75,6 @@ class B(Z):
 assert Z(1) == (Z, 1)
 assert B(1) == (B, 1)
 
-from pkpy import TValue
-
-class fixed(TValue[int]):
-    def __new__(cls, value: str):
-        assert super() is TValue[int]
-        return super().__new__(cls, int(value))
-    
-assert fixed('123').value == 123
-
 # context bug
 class Context:
   def __enter__(self):

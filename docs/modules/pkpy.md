@@ -17,7 +17,6 @@ pocketpy-specific runtime controls and diagnostics.
 | `profiler_reset()`, `profiler_report()` | Reset measurements, or stop active profiling and return a report dictionary. |
 | `ComputeThread` | Run independent jobs in another VM; requires thread support. |
 | `watchdog_begin(timeout)`, `watchdog_end()` | Enable/disable execution timeout checks; requires watchdog support. |
-| `TValue[type](value)` | Typed value wrapper with a read-only `value` property. |
 
 ```python
 import pkpy
@@ -25,7 +24,6 @@ import pkpy
 assert pkpy.currentvm() == 0
 assert type(pkpy.memory_usage()) is int
 print(pkpy.memory_usage_info())
-assert pkpy.TValue[int](42).value == 42
 ```
 
 `configmacros` includes `PK_ENABLE_OS`, `PK_ENABLE_THREADS`,
@@ -33,9 +31,6 @@ assert pkpy.TValue[int](42).value == 42
 and `PK_VM_STACK_SIZE`. It is a diagnostic snapshot; editing it does not
 reconfigure the compiled runtime. The memory estimate is not the process's
 resident memory usage.
-
-`TValue` provides wrappers for `int`, `float`, `vmath.vec2`, and
-`vmath.vec2i`; it is not a general-purpose runtime generic type.
 
 ## Watchdog
 

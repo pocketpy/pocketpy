@@ -76,9 +76,10 @@ assert b is not a
 assert b[0] is b[2]
 assert b[1] is b[3]
 
-from pkpy import TValue
+class Base:
+    def __init__(self, value):
+        self.value = value
 
-class Base(TValue[int]):
     def __eq__(self, other):
         return self.value == other.value
     
@@ -96,10 +97,11 @@ print(old_bytes)
 class TVal(Base): pass
 # see if we can still load the old data
 decoded = pkl.loads(old_bytes)
+assert type(decoded) is TVal
 assert decoded == TVal(1)
 print(pkl.dumps(decoded))
 
-# test array2d with TValue
+# test array2d with a user-defined class
 a = array2d[TVal].fromlist([
     [TVal(1), TVal(2)],
     [TVal(3), 1]])
