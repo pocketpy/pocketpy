@@ -92,6 +92,7 @@ void VM__ctor(VM* self) {
     self->callbacks.print = pk_default_print;
     self->callbacks.flush = pk_default_flush;
     self->callbacks.getchr = pk_default_getchr;
+    self->callbacks.open_file = NULL;
 
     self->last_retval = *py_NIL();
     self->unhandled_exc = *py_NIL();
