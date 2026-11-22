@@ -11,6 +11,31 @@ try:
 except ValueError:
     pass
 
+# test overflow / invalid dimensions (regression test for array2d size overflow)
+for w, h in [
+    (65536, 65537),
+    (2147483647, 2),
+    (2**32, 1),
+    (1, 2**32),
+    (1000000, 1000000),
+    (-1, 5),
+    (5, -1),
+    (0, 5),
+    (5, 0),
+]:
+    try:
+        a = array2d(w, h)
+        exit_on_error()
+    except ValueError:
+        pass
+
+# test normal and large-but-valid arrays
+a_large = array2d(1000, 1000, default=42)
+assert a_large.width == 1000 and a_large.height == 1000 and a_large.numel == 1000000
+assert a_large[0, 0] == 42 and a_large[999, 999] == 42
+a_large[999, 999] = 99
+assert a_large[999, 999] == 99
+
 # test callable constructor
 a = array2d[tuple[int, int]](2, 4, lambda pos: (pos.x, pos.y))
 

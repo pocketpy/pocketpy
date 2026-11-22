@@ -8,17 +8,35 @@ static bool c11_array2d_like_is_valid(c11_array2d_like* self, int col, int row) 
     return col >= 0 && col < self->n_cols && row >= 0 && row < self->n_rows;
 }
 
+#define MAX_ARRAY2D_NUMEL ((INT_MAX - (int)sizeof(PyObject) - (int)sizeof(c11_array2d)) / (int)sizeof(py_TValue))
+
+static bool c11_array2d__check_dims(int64_t n_cols, int64_t n_rows, int* out_numel) {
+    if(n_cols <= 0 || n_rows <= 0) {
+        return ValueError("array2d() expected positive dimensions");
+    }
+    if(n_cols > INT_MAX || n_rows > INT_MAX) {
+        return ValueError("array2d() dimensions too large");
+    }
+    int64_t numel = n_cols * n_rows;
+    if(numel > MAX_ARRAY2D_NUMEL) {
+        return ValueError("array2d() size too large");
+    }
+    if(out_numel) *out_numel = (int)numel;
+    return true;
+}
+
 static py_Ref c11_array2d__get(c11_array2d* self, int col, int row) {
-    return self->data + row * self->header.n_cols + col;
+    return self->data + (int64_t)row * self->header.n_cols + col;
 }
 
 static bool c11_array2d__set(c11_array2d* self, int col, int row, py_Ref value) {
-    self->data[row * self->header.n_cols + col] = *value;
+    self->data[(int64_t)row * self->header.n_cols + col] = *value;
     return true;
 }
 
 c11_array2d* c11_newarray2d(py_OutRef out, int n_cols, int n_rows) {
-    int numel = n_cols * n_rows;
+    int numel;
+    if(!c11_array2d__check_dims(n_cols, n_rows, &numel)) return NULL;
     c11_array2d* ud = py_newobject(out, tp_array2d, numel, sizeof(c11_array2d));
     ud->header.n_cols = n_cols;
     ud->header.n_rows = n_rows;
@@ -261,11 +279,12 @@ static bool array2d_like_map(int argc, py_Ref argv) {
     c11_array2d_like* self = py_touserdata(argv);
     py_Ref f = py_arg(1);
     c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    if(res == NULL) return false;
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
             if(!py_call(f, 1, item)) return false;
-            res->data[j * self->n_cols + i] = *py_retval();
+            res->data[(int64_t)j * self->n_cols + i] = *py_retval();
         }
     }
     py_assign(py_retval(), py_peek(-1));
@@ -313,6 +332,7 @@ static bool _array2d_like_broadcasted_zip_with(int argc, py_Ref argv, py_Name op
         other = NULL;
     }
     c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    if(res == NULL) return false;
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref lhs = self->f_get(self, i, j);
@@ -339,6 +359,7 @@ static bool array2d_like_zip_with(int argc, py_Ref argv) {
     py_Ref f = py_arg(2);
     if(!_array2d_like_check_same_shape(self, other)) return false;
     c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    if(res == NULL) return false;
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_push(f);
@@ -384,6 +405,7 @@ static bool array2d_like__invert__(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_array2d_like* self = py_touserdata(argv);
     c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    if(res == NULL) return false;
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
@@ -406,10 +428,11 @@ static bool array2d_like_copy(int argc, py_Ref argv) {
     PY_CHECK_ARGC(1);
     c11_array2d_like* self = py_touserdata(argv);
     c11_array2d* res = c11_newarray2d(py_retval(), self->n_cols, self->n_rows);
+    if(res == NULL) return false;
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_Ref item = self->f_get(self, i, j);
-            res->data[j * self->n_cols + i] = *item;
+            res->data[(int64_t)j * self->n_cols + i] = *item;
         }
     }
     return true;
@@ -487,14 +510,19 @@ static c11_array2d_view* _array2d_view__new(py_OutRef out,
                                             int start_row,
                                             int width,
                                             int height) {
-    c11_array2d_view* res = py_newobject(out, tp_array2d_view, 1, sizeof(c11_array2d_view));
     if(width <= 0 || height <= 0) {
         ValueError("width and height must be positive");
         return NULL;
     }
+    int64_t numel = (int64_t)width * (int64_t)height;
+    if(numel > INT_MAX) {
+        ValueError("view size too large");
+        return NULL;
+    }
+    c11_array2d_view* res = py_newobject(out, tp_array2d_view, 1, sizeof(c11_array2d_view));
     res->header.n_cols = width;
     res->header.n_rows = height;
-    res->header.numel = width * height;
+    res->header.numel = (int)numel;
     res->header.f_get = (py_Ref (*)(c11_array2d_like*, int, int))c11_array2d_view__get;
     res->header.f_set = (bool (*)(c11_array2d_like*, int, int, py_Ref))c11_array2d_view__set;
     res->origin.x = start_col;
@@ -793,6 +821,7 @@ static bool array2d_like_convolve(int argc, py_Ref argv) {
     if(ksize % 2 == 0) return ValueError("kernel size must be odd");
     int ksize_half = ksize / 2;
     c11_array2d* res = c11_newarray2d(py_pushtmp(), self->n_cols, self->n_rows);
+    if(res == NULL) return false;
     for(int j = 0; j < self->n_rows; j++) {
         for(int i = 0; i < self->n_cols; i++) {
             py_i64 sum = 0;
@@ -925,21 +954,23 @@ static bool array2d__new__(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(0, tp_type);
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
-    int n_cols = argv[1]._i64;
-    int n_rows = argv[2]._i64;
-    if(n_cols <= 0 || n_rows <= 0) return ValueError("array2d() expected positive dimensions");
-    c11_array2d* ud = c11_newarray2d(py_pushtmp(), n_cols, n_rows);
+    py_i64 n_cols = argv[1]._i64;
+    py_i64 n_rows = argv[2]._i64;
+    int numel;
+    if(!c11_array2d__check_dims(n_cols, n_rows, &numel)) return false;
+    c11_array2d* ud = c11_newarray2d(py_pushtmp(), (int)n_cols, (int)n_rows);
+    if(ud == NULL) return false;
     // setup initial values
     if(py_callable(default_)) {
-        for(int j = 0; j < n_rows; j++) {
-            for(int i = 0; i < n_cols; i++) {
+        for(int j = 0; j < (int)n_rows; j++) {
+            for(int i = 0; i < (int)n_cols; i++) {
                 py_TValue tmp;
                 py_newvec2i(&tmp,
                             (c11_vec2i){
                                 {i, j}
                 });
                 if(!py_call(default_, 1, &tmp)) return false;
-                ud->data[j * n_cols + i] = *py_retval();
+                ud->data[(int64_t)j * n_cols + i] = *py_retval();
             }
         }
     } else {
@@ -971,6 +1002,7 @@ static bool array2d_fromlist_STATIC(int argc, py_Ref argv) {
         }
     }
     c11_array2d* res = c11_newarray2d(py_retval(), n_cols, n_rows);
+    if(res == NULL) return false;
     for(int j = 0; j < n_rows; j++) {
         py_Ref row_j = py_list_getitem(argv, j);
         for(int i = 0; i < n_cols; i++) {
@@ -1334,9 +1366,12 @@ static bool chunked_array2d_view(int argc, py_Ref argv) {
     }
     int start_col = min_chunk_x * self->chunk_size;
     int start_row = min_chunk_y * self->chunk_size;
-    int width = (max_chunk_x - min_chunk_x + 1) * self->chunk_size;
-    int height = (max_chunk_y - min_chunk_y + 1) * self->chunk_size;
-    return _chunked_array2d_view(py_retval(), argv, self, start_col, start_row, width, height);
+    int64_t width = (int64_t)(max_chunk_x - min_chunk_x + 1) * self->chunk_size;
+    int64_t height = (int64_t)(max_chunk_y - min_chunk_y + 1) * self->chunk_size;
+    if(width <= 0 || height <= 0 || width > INT_MAX || height > INT_MAX) {
+        return ValueError("view size too large");
+    }
+    return _chunked_array2d_view(py_retval(), argv, self, start_col, start_row, (int)width, (int)height);
 }
 
 static bool chunked_array2d_view_rect(int argc, py_Ref argv) {
@@ -1374,11 +1409,14 @@ static bool chunked_array2d_view_chunks(int argc, py_Ref argv) {
     PY_CHECK_ARG_TYPE(3, tp_int);
     c11_chunked_array2d* self = py_touserdata(&argv[0]);
     c11_vec2i chunk_pos = py_tovec2i(&argv[1]);
-    int width = py_toint(&argv[2]) * self->chunk_size;
-    int height = py_toint(&argv[3]) * self->chunk_size;
+    int64_t width = (int64_t)py_toint(&argv[2]) * self->chunk_size;
+    int64_t height = (int64_t)py_toint(&argv[3]) * self->chunk_size;
+    if(width <= 0 || height <= 0 || width > INT_MAX || height > INT_MAX) {
+        return ValueError("invalid view size");
+    }
     int start_col = chunk_pos.x * self->chunk_size;
     int start_row = chunk_pos.y * self->chunk_size;
-    return _chunked_array2d_view(py_retval(), argv, self, start_col, start_row, width, height);
+    return _chunked_array2d_view(py_retval(), argv, self, start_col, start_row, (int)width, (int)height);
 }
 
 static void register_chunked_array2d(py_Ref mod) {
